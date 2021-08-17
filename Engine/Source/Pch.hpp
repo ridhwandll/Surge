@@ -1,2 +1,4 @@
+// Copyright (c) - SurgeTechnologies - All rights reserved
+#pragma once
 #include <iostream>
-#include "Defines.hpp"
+#include "Core/Defines.hpp"
