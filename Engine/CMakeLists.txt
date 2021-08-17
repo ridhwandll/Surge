@@ -7,10 +7,12 @@ file(GLOB_RECURSE SOURCE_FILES
 
 set(INCLUDE_DIRS
     Source
-    Vendor
+    Vendor/fmt/Include
 )
 
-set(LIB_LINKS)
+set(LIB_LINKS
+    fmt
+)
 
 add_library(Surge SHARED ${SOURCE_FILES})
 target_include_directories(Surge PUBLIC ${INCLUDE_DIRS})

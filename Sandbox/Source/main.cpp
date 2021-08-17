@@ -1,19 +1,19 @@
 #include "Core/Core.hpp"
 #include "Core/Clock.hpp"
-#include <iostream>
+#include "Core/Logger.hpp"
 
 class MyApp : public Surge::Application
 {
 public:
     virtual void OnInitialize() override
     {
-        std::cout << "Initialized!" << std::endl;
+        Surge::Log<Surge::LogSeverity::INFO>("Initialized!");
     }
 
     virtual void OnUpdate() override
     {
         float life = Surge::Clock::GetLife();
-        std::cout << "Updating... Time since start " << life << " Seconds" << std::endl;
+        Surge::Log<Surge::LogSeverity::TRACE>("Updating... Time since start {0} Seconds", life);
 
         // Runs the engine for 15 seconds
         if (life >= 15.0f)
@@ -22,15 +22,12 @@ public:
 
     virtual void OnShutdown() override
     {
-        std::cout << "Shutdown... RIP" << std::endl;
+        Surge::Log<Surge::LogSeverity::INFO>("Shutdown... RIP");
     }
 };
 
 int main()
 {
     MyApp app;
-
-    Surge::Initialize(&app);
-    Surge::Run();
-    Surge::Shutdown();
+    SURGE_BASIC_APP(app)
 }
