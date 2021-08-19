@@ -8,18 +8,18 @@
 
 namespace Surge
 {
-	class Win32Window : public Window
-	{
-	public:
-		Win32Window(int width, int height, const std::string& title);
-		virtual ~Win32Window() override;
+    class Win32Window : public Window
+    {
+    public:
+        Win32Window(int width, int height, const String& title);
+        virtual ~Win32Window() override;
 
-		virtual bool IsOpen() override { return mIsOpen; };
-		virtual void Update() override;
-	private:
-		bool mIsOpen = 1;
-		
-		HWND mHwnd;
-		static LRESULT CALLBACK WindowProc(HWND window, UINT msg, WPARAM lparam, LPARAM wparam);
-	};
+        virtual bool IsOpen() override { return mIsOpen; };
+        virtual void Update() override;
+    private:
+        bool mIsOpen = 1;
+        
+        HWND mHwnd;
+        static LRESULT CALLBACK WindowProc(HWND window, UINT msg, WPARAM lparam, LPARAM wparam);
+    };
 }

@@ -3,21 +3,21 @@
 
 namespace Surge
 {
-	class SURGE_API Window
-	{
-	public:
-		static Window* Create(int width, int height, const std::string& title);
-		virtual ~Window() = default;
+    class SURGE_API Window
+    {
+    public:
+        static Window* Create(int width, int height, const String& title);
+        virtual ~Window() = default;
 
-		virtual bool IsOpen() = 0;
-		virtual void Update() = 0;
+        virtual bool IsOpen() = 0;
+        virtual void Update() = 0;
 
-		int GetWidth() { return mWidth; }
-		int GetHeight() { return mHeight; }
-		const std::string& GetTitle() const { return mTitle; }
-	protected:
-		int mWidth = 0;
-		int mHeight = 0;
-		std::string mTitle;
-	};
+        int GetWidth() { return mWidth; }
+        int GetHeight() { return mHeight; }
+        const String& GetTitle() const { return mTitle; }
+    protected:
+        int mWidth = 0;
+        int mHeight = 0;
+        String mTitle;
+    };
 }
