@@ -7,10 +7,10 @@ namespace Surge::Clock
     SURGE_API void Start();
 
     // Returns the time (in seconds) since the engine was initialized
-    SURGE_API f32 GetLife();
+    SURGE_API float GetLife();
 
     // Returns the time (in seconds) since the last frame
-    SURGE_API f32 GetDelta();
+    SURGE_API float GetDelta();
 
     // Updates the internal timer. Increments Life and refreshes Delta
     SURGE_API void Update();
