@@ -14,7 +14,7 @@ namespace Surge
         Win32Window(int width, int height, const String& title);
         virtual ~Win32Window() override;
 
-        virtual bool IsOpen() override { return mIsOpen; };
+        virtual bool IsOpen() const override { return mIsOpen; };
         virtual void Update() override;
     private:
         bool mIsOpen = 1;

@@ -9,11 +9,11 @@ namespace Surge
         static Window* Create(int width, int height, const String& title);
         virtual ~Window() = default;
 
-        virtual bool IsOpen() = 0;
+        virtual bool IsOpen() const = 0;
         virtual void Update() = 0;
 
-        int GetWidth() { return mWidth; }
-        int GetHeight() { return mHeight; }
+        int GetWidth() const { return mWidth; }
+        int GetHeight() const { return mHeight; }
         const String& GetTitle() const { return mTitle; }
     protected:
         int mWidth = 0;

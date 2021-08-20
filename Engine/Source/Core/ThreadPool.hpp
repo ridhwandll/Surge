@@ -21,24 +21,24 @@ namespace Surge
         Uint GetThreadCount() { return mThreadCount; }
 
 		template <typename T, typename F>
-		void ParallelizeLoop(T first_index, T last_index, const F& loop, Uint num_tasks = 0)
+		void ParallelizeLoop(T firstIndex, T lastIndex, const F& loop, Uint numTasks = 0)
 		{
-			if (num_tasks == 0)
-				num_tasks = mThreadCount;
-			if (last_index < first_index)
-				std::swap(last_index, first_index);
-			size_t total_size = last_index - first_index + 1;
-			size_t block_size = total_size / num_tasks;
-			if (block_size == 0)
+			if (numTasks == 0)
+				numTasks = mThreadCount;
+			if (lastIndex < firstIndex)
+				std::swap(lastIndex, firstIndex);
+			size_t totalSize = lastIndex - firstIndex + 1;
+			size_t blockSize = totalSize / numTasks;
+			if (blockSize == 0)
 			{
-				block_size = 1;
-				num_tasks = std::max((Uint)1, (Uint)total_size);
+				blockSize = 1;
+				numTasks = std::max((Uint)1, (Uint)totalSize);
 			}
 			std::atomic<Uint> blocks_running = 0;
-			for (Uint t = 0; t < num_tasks; t++)
+			for (Uint t = 0; t < numTasks; t++)
 			{
-				T start = (T)(t * block_size + first_index);
-				T end = (t == num_tasks - 1) ? last_index : (T)((t + 1) * block_size + first_index - 1);
+				T start = (T)(t * blockSize + firstIndex);
+				T end = (t == numTasks - 1) ? lastIndex : (T)((t + 1) * blockSize + firstIndex - 1);
 				blocks_running++;
 				PushTask([&start, &end, &loop, &blocks_running] {
 					for (T i = start; i <= end; i++)
@@ -55,9 +55,9 @@ namespace Surge
 		template <typename F>
 		void PushTask(const F& task)
 		{
-			m_TasksWaiting++;
+			mTasksWaiting++;
 			{
-				const std::scoped_lock lock(QueueMutex);
+				const std::scoped_lock lock(mQueueMutex);
 				mTasks.push(std::move(std::function<void()>(task)));
 			}
 		}
@@ -78,18 +78,18 @@ namespace Surge
 			PushTask([task, args..., promise]{
 				task(args...);
 				promise->set_value(true);
-				});
+			});
 			return future;
 		}
 
 		template <typename F, typename... A, typename R = std::invoke_result_t<std::decay_t<F>, std::decay_t<A>...>, typename = std::enable_if_t<!std::is_void_v<R>>>
 		std::future<R> Submit(const F& task, const A &... args)
 		{
-			std::shared_ptr<std::promise<R>> promise(new std::promise<R>);
+			std::shared_ptr<std::promise<R>> promise = std::make_shared<std::promise<R>>();
 			std::future<R> future = promise->get_future();
 			PushTask([task, args..., promise]{
 				promise->set_value(task(args...));
-				});
+			});
 			return future;
 		}
 
