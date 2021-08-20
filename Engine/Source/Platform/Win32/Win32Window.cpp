@@ -1,6 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Pch.hpp"
 #include "Win32Window.hpp"
+#include "Core/Core.hpp"
 
 namespace Surge
 {
@@ -56,6 +57,7 @@ namespace Surge
         {
             LPCREATESTRUCT const params = reinterpret_cast<LPCREATESTRUCT>(lparam);
             Win32Window* const wnd = reinterpret_cast<Win32Window* const>(params->lpCreateParams);
+            wnd->mIsOpen = true;
 
             SetWindowLongPtr(window, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(wnd));
             break;
@@ -63,13 +65,16 @@ namespace Surge
         case WM_CLOSE:
         {
             Win32Window* wnd = reinterpret_cast<Win32Window*>(GetWindowLongPtr(window, GWLP_USERDATA));
-            wnd->mIsOpen = 0;
+            wnd->mIsOpen = false;
 
+            Surge::Close();
             PostQuitMessage(0);
             break;
         }
         default:
             return DefWindowProc(window, msg, wparam, lparam);
         }
+
+        return 0;
     }
 }

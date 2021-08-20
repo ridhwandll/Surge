@@ -8,10 +8,12 @@
 
 namespace Surge
 {
-    Window* Window::Create(int width, int height, const String& title)
+    Scope<Window> Window::Create(int width, int height, const String& title)
     {
 #ifdef SURGE_WIN32
-        return new Win32Window(width, height, title);
+        return CreateScope<Win32Window>(width, height, title);
+#else
+        __debugbreak(); //TODO(Rid): Assertions
 #endif
     }
 }

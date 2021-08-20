@@ -17,8 +17,8 @@ namespace Surge
         virtual bool IsOpen() const override { return mIsOpen; };
         virtual void Update() override;
     private:
-        bool mIsOpen = 1;
-        
+        bool mIsOpen = false;
+
         HWND mHwnd;
         static LRESULT CALLBACK WindowProc(HWND window, UINT msg, WPARAM lparam, LPARAM wparam);
     };

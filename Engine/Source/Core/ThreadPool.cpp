@@ -7,6 +7,7 @@ namespace Surge
     ThreadPool::ThreadPool(Uint threadCount)
         : mThreadCount(std::max<Uint>(threadCount, 1)), mThreads(new std::thread[std::max<Uint>(threadCount, 1)])
     {
+        Log<LogSeverity::INFO>("Creating ThreadPool with {0} threads...", threadCount);
         CreateThreads();
     }
 
@@ -38,7 +39,7 @@ namespace Surge
 
     void ThreadPool::CreateThreads()
     {
-        for (std::uint_fast32_t i = 0; i < mThreadCount; i++)
+        for (Uint i = 0; i < mThreadCount; i++)
         {
             mThreads[i] = std::thread(&ThreadPool::Worker, this);
         }

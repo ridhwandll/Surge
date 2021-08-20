@@ -2,12 +2,14 @@
 #include "Pch.hpp"
 #include "Core.hpp"
 #include "Clock.hpp"
+#include "Window.hpp"
 
 namespace Surge
 {
     struct CoreData
     {
         Application* mApplication = nullptr;
+        Scope<Window> mWindow = nullptr;
         bool mRunning = false;
     };
 
@@ -17,9 +19,14 @@ namespace Surge
     {
         Clock::Start();
 
-        sCoreData.mRunning = true;
         sCoreData.mApplication = application;
+        sCoreData.mWindow = Window::Create(1280, 720, "Surge Window");
         sCoreData.mApplication->OnInitialize();
+
+        const Window& window = *sCoreData.mWindow;
+        Log<LogSeverity::INFO>("Create {0} ({1}, {2})", window.GetTitle(), window.GetWidth(), window.GetHeight());
+
+        sCoreData.mRunning = true;
     }
 
     void Run()
@@ -28,6 +35,7 @@ namespace Surge
         {
             Clock::Update();
             sCoreData.mApplication->OnUpdate();
+            sCoreData.mWindow->Update();
         }
     }
 
