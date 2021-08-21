@@ -48,4 +48,9 @@ namespace Surge
     {
         sCoreData.mRunning = false;
     }
+
+    void Crash()
+    {
+        *((int*)0) = 1;
+    }
 }

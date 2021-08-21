@@ -16,6 +16,9 @@ namespace Surge
 
     // Ends the engine loop, returns from "Run"
     SURGE_API void Close();
+
+    // Very important function
+    SURGE_API void Crash();
 }
 
 #define SURGE_BASIC_APP(app)   \
