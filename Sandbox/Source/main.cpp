@@ -4,6 +4,7 @@
 #include "Core/Window.hpp"
 #include "Core/ThreadPool.hpp"
 #include "Core/Defines.hpp"
+#include "Core/Input.hpp"
 
 void MultithreadedFunction(const Surge::String message)
 {
@@ -23,39 +24,34 @@ public:
     virtual void OnInitialize() override
     {
         Surge::Log<Surge::LogSeverity::INFO>("Initialized!");
+        
+        // Make a scoped frame pool if the function that must be multithreaded are done in a single scope
+        Surge::ThreadPool pool;
 
-        mPool.PushTask(MultithreadedFunction, "Hello from thread  1");
-        mPool.PushTask(MultithreadedFunction, "Hello from thread  2");
-        mPool.PushTask(MultithreadedFunction, "Hello from thread  3");
-        mPool.PushTask(MultithreadedFunction, "Hello from thread  4");
-        mPool.PushTask(MultithreadedFunction, "Hello from thread  5");
-        mPool.PushTask(MultithreadedFunction, "Hello from thread  6");
-        mPool.PushTask(MultithreadedFunction, "Hello from thread  7");
-        mPool.PushTask(MultithreadedFunction, "Hello from thread  8");
-        mPool.PushTask(MultithreadedFunction, "Hello from thread  9");
-        mPool.PushTask(MultithreadedFunction, "Hello from thread 10");
-        mPool.PushTask(MultithreadedFunction, "Hello from thread 11");
-        mPool.PushTask(MultithreadedFunction, "Hello from thread 12");
+        pool.PushTask(MultithreadedFunction, "Hello from thread  1");
+        pool.PushTask(MultithreadedFunction, "Hello from thread  2");
 
-        std::future<int> bar = mPool.Submit(MultithreadedFuture, 3);
+        std::future<int> bar = pool.Submit(MultithreadedFuture, 3);
         Surge::Log<Surge::LogSeverity::TRACE>("MultithreadedFuture returned {0}", bar.get());
 
-        mPool.WaitForTasks();
-        mPool.Reset();
+        // The thread pool automatically gets destroyed at the end of scope
+        // You can also have the pool as part of the application members, but it should be used only if you have multithreaded
+        // functions to execute at runtime.
     }
 
     virtual void OnUpdate() override
     {
         float life = Surge::Clock::GetLife();
         Surge::Log<Surge::LogSeverity::TRACE>("Updating... Time since start {0} Seconds", life);
+    
+        if (Surge::Input::GetKeyDown(Surge::Key::Z))
+            Surge::Log<Surge::LogSeverity::INFO>("The Z key was pressed!");
     }
 
     virtual void OnShutdown() override
     {
         Surge::Log<Surge::LogSeverity::INFO>("Shutdown... RIP");
     }
-private:
-    Surge::ThreadPool mPool;
 };
 
 int main()

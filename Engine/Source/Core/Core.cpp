@@ -3,6 +3,7 @@
 #include "Core.hpp"
 #include "Clock.hpp"
 #include "Window.hpp"
+#include "Input.hpp"
 
 namespace Surge
 {
@@ -25,6 +26,8 @@ namespace Surge
 
         const Window& window = *sCoreData.mWindow;
         Log<LogSeverity::INFO>("Create {0} ({1}, {2})", window.GetTitle(), window.GetWidth(), window.GetHeight());
+
+        Surge::Input::Init();
 
         sCoreData.mRunning = true;
     }
