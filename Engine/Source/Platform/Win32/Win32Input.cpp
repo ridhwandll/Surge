@@ -2,31 +2,45 @@
 #include "Pch.hpp"
 #include "Core/Input.hpp"
 
-#include <Windows.h>
-
 namespace Surge
 {
-	static unsigned char sKeyMaps[256];
+    bool Input::IsKeyPressed(KeyCode key)
+    {
+        SHORT state = GetAsyncKeyState(static_cast<int>(key));
+        return (state & 0x8000);
+    }
 
-	void Input::Init()
-	{
-		for (int i = 0; i < 256; i++)
-			sKeyMaps[i] = false;
-	}
+    bool Input::IsMouseButtonPressed(const MouseCode button)
+    {
+        SHORT state = GetAsyncKeyState(static_cast<int>(button));
+        return (state & 0x8000);
+    }
 
-	bool Input::GetKeyDown(KeyCode key)
-	{
-		if (GetKeyboardState(sKeyMaps))
-		{
-			if (sKeyMaps[key] & 0x80)
-				return true;
-		}
+    Pair<float, float> Input::GetMousePosition()
+    {
+        POINT p;
+        GetCursorPos(&p);
+        return { (float)p.x, (float)p.y };
+    }
 
-		return false;
-	}
+    float Input::GetMousePositionX()
+    {
+        return GetMousePosition().Data1;
+    }
 
-	bool Input::GetKeyUp(KeyCode key)
-	{
-		return !Input::GetKeyDown(key);
-	}
+    float Input::GetMousePositionY()
+    {
+        return GetMousePosition().Data2;
+    }
+
+    void Input::SetCursorMode(CursorMode cursorMode)
+    {
+        switch (cursorMode)
+        {
+        case CursorMode::Normal:
+            SetCursor(LoadCursor(nullptr, IDC_ARROW)); break;
+        case CursorMode::Locked:
+            SetCursor(nullptr); break;
+        }
+    }
 }

@@ -29,6 +29,8 @@ namespace Surge
             windowClass.hInstance,
             this
         );
+
+        Log<LogSeverity::Info>("Create {0} ({1}, {2})", mTitle, mWidth, mHeight);
     }
 
     Win32Window::~Win32Window()

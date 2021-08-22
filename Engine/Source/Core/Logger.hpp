@@ -9,12 +9,12 @@ namespace Surge
 {
     enum class LogSeverity
     {
-        TRACE = 0,
-        INFO,
-        DEBUG,
-        WARN,
-        ERROR,
-        FATAL
+        Trace = 0,
+        Info,
+        Debug,
+        Warn,
+        Error,
+        Fatal
     };
 
     static std::mutex sLogMutex;
@@ -26,27 +26,27 @@ namespace Surge
         sLogMutex.lock();
         switch (severity)
         {
-        case Surge::LogSeverity::TRACE:
+        case Surge::LogSeverity::Trace:
             fmt::print("[TRACE - {0}] ", Clock::GetLife());
             fmt::print(format, args...);
             break;
-        case Surge::LogSeverity::INFO:
+        case Surge::LogSeverity::Info:
             fmt::print(fg(fmt::color::lawn_green), "[INFO  - {0}] ", Clock::GetLife());
             fmt::print(fg(fmt::color::lawn_green) | fmt::emphasis::bold, format, args...);
             break;
-        case Surge::LogSeverity::DEBUG:
+        case Surge::LogSeverity::Debug:
             fmt::print(fg(fmt::color::aqua), "[DEBUG - {0}] ", Clock::GetLife());
             fmt::print(fg(fmt::color::aqua) | fmt::emphasis::bold, format, args...);
             break;
-        case Surge::LogSeverity::WARN:
+        case Surge::LogSeverity::Warn:
             fmt::print(fg(fmt::color::yellow), "[WARN  - {0}] ", Clock::GetLife());
             fmt::print(fg(fmt::color::yellow) | fmt::emphasis::bold | fmt::emphasis::italic, format, args...);
             break;
-        case Surge::LogSeverity::ERROR:
+        case Surge::LogSeverity::Error:
             fmt::print(fg(fmt::color::red), "[ERROR - {0}] ", Clock::GetLife());
             fmt::print(fg(fmt::color::red) | fmt::emphasis::bold | fmt::emphasis::italic, format, args...);
             break;
-        case Surge::LogSeverity::FATAL:
+        case Surge::LogSeverity::Fatal:
             fmt::print(bg(fmt::color::red), "[FATAL - {0}] ", Clock::GetLife());
             fmt::print(fg(fmt::color::antique_white) | bg(fmt::color::red) | fmt::emphasis::underline | fmt::emphasis::italic, format, args...);
             break;
