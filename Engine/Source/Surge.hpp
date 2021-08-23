@@ -9,3 +9,4 @@
 #include "Core/ThreadPool.hpp"
 #include "Core/Defines.hpp"
 #include "Core/Input.hpp"
+#include "Core/Plugin.hpp"
