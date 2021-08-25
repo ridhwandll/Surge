@@ -8,10 +8,13 @@ file(GLOB_RECURSE SOURCE_FILES
 set(INCLUDE_DIRS
     Source
     Vendor/fmt/Include
+    Vendor/volk
+    Vendor/Vulkan-Headers/include
 )
 
 set(LIB_LINKS
     fmt
+    volk
 )
 
 add_library(Surge SHARED ${SOURCE_FILES})

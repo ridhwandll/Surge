@@ -26,6 +26,8 @@ namespace Surge
         virtual void SetSize(const Pair<float, float>& size) const override;
 
         virtual void ShowConsole(bool show) const override;
+
+        HWND GetHWND() const { return mWin32Window; }
     private:
         void ApplyFlags();
     private:

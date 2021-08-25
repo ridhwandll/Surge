@@ -1,0 +1,3 @@
+[submodule "Engine/Vendor/Vulkan-Headers"]
+	path = Engine/Vendor/Vulkan-Headers
+	url = https://github.com/KhronosGroup/Vulkan-Headers

@@ -4,6 +4,7 @@
 #include "Surge/Core/Time/Clock.hpp"
 #include "Surge/Core/Window/Window.hpp"
 #include "Surge/Core/Input/Input.hpp"
+#include "Surge/Renderer/Renderer.hpp"
 
 namespace Surge
 {
@@ -23,6 +24,8 @@ namespace Surge
         sCoreData.mApplication = application;
         sCoreData.mWindow = Window::Create({ 1280, 720, "Surge Window", WindowFlags::CreateDefault });
         sCoreData.mWindow->RegisterApplication(application);
+        Renderer::Init();
+
         sCoreData.mApplication->OnInitialize();
         sCoreData.mRunning = true;
     }
@@ -40,6 +43,7 @@ namespace Surge
     void Shutdown()
     {
         sCoreData.mApplication->OnShutdown();
+        Renderer::Shutdown();
     }
 
     void Close()

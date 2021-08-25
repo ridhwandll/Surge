@@ -18,5 +18,8 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
 
 add_subdirectory(Engine/Vendor/fmt)
 
+add_subdirectory(Engine/Vendor/volk)
+set_target_properties(volk PROPERTIES FOLDER Dependencies)
+
 add_subdirectory(Engine)
 add_subdirectory(Sandbox)
