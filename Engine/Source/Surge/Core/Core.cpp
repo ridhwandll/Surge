@@ -46,4 +46,9 @@ namespace Surge
     {
         sCoreData.mRunning = false;
     }
+
+    SURGE_API Scope<Surge::Window>& GetWindow()
+    {
+        return sCoreData.mWindow;
+    }
 }

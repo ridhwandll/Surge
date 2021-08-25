@@ -18,23 +18,17 @@ public:
         Surge::EventDispatcher dispatcher(e);
         dispatcher.Dispatch<Surge::KeyPressedEvent>([this](Surge::KeyPressedEvent& e)
         {
-            Surge::Log<Surge::LogSeverity::Debug>("{0}", e.ToString());
-        });
-        dispatcher.Dispatch<Surge::MouseMovedEvent>([this](Surge::MouseMovedEvent& e)
-        {
-            Surge::Log<Surge::LogSeverity::Trace>("{0}", e.ToString());
-        });
-        dispatcher.Dispatch<Surge::MouseButtonPressedEvent>([this](Surge::MouseButtonPressedEvent& e)
-        {
-            Surge::Log<Surge::LogSeverity::Debug>("{0}", e.ToString());
-        });
-        dispatcher.Dispatch<Surge::WindowResizeEvent>([this](Surge::WindowResizeEvent& e)
-        {
-            Surge::Log<Surge::LogSeverity::Info>("{0}", e.ToString());
-        });
-        dispatcher.Dispatch<Surge::WindowClosedEvent>([this](Surge::WindowClosedEvent& e)
-        {
-            Surge::Log<Surge::LogSeverity::Info>("{0}", e.ToString());
+            Surge::Scope<Surge::Window>& window = Surge::GetWindow();
+            if (e.GetKeyCode() == Surge::Key::M)
+                window->Maximize();
+            else if (e.GetKeyCode() == Surge::Key::S)
+                window->Minimize();
+            else if (e.GetKeyCode() == Surge::Key::A)
+            {
+                window->SetPos({ 0, 0 });
+                Surge::Log<Surge::LogSeverity::Info>("Current window pos: {0}, {1}", window->GetPos().Data1, window->GetPos().Data2);
+            }
+            window->SetTitle(e.ToString());
         });
     }
 

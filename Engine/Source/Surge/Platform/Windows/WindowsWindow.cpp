@@ -54,6 +54,56 @@ namespace Surge
         }
     }
 
+    void WindowsWindow::Minimize()
+    {
+        ShowWindow(mWin32Window, SW_MINIMIZE);
+    }
+
+    void WindowsWindow::Maximize()
+    {
+        ShowWindow(mWin32Window, SW_MAXIMIZE);
+    }
+
+    void WindowsWindow::SetTitle(const String& name)
+    {
+        mWindowData.Title = name;
+        SetWindowText(mWin32Window, mWindowData.Title.c_str());
+    }
+
+    Surge::Pair<float, float> WindowsWindow::GetPos() const
+    {
+        POINT pos = { 0, 0 };
+        ClientToScreen(mWin32Window, &pos);
+        return { static_cast<float>(pos.x), static_cast<float>(pos.y) };
+    }
+
+    void WindowsWindow::SetPos(const Pair<float, float>& pos) const
+    {
+        RECT rect = { (LONG)pos.Data1, (LONG)pos.Data2, (LONG)pos.Data1, (LONG)pos.Data2 };
+        SetWindowPos(mWin32Window, nullptr, rect.left, rect.top, 0, 0, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSIZE);
+    }
+
+    Surge::Pair<float, float> WindowsWindow::GetSize() const
+    {
+        RECT area;
+        GetClientRect(mWin32Window, &area);
+        return { static_cast<float>(area.right), static_cast<float>(area.bottom) };
+    }
+
+    void WindowsWindow::SetSize(const Pair<float, float>& size) const
+    {
+        RECT rect = { 0, 0, (LONG)size.Data1, (LONG)size.Data2 };
+        SetWindowPos(mWin32Window, HWND_TOP, 0, 0, rect.right - rect.left, rect.bottom - rect.top, SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_NOZORDER);
+    }
+
+    void WindowsWindow::ShowConsole(bool show) const
+    {
+        if (show)
+            ShowWindow(GetConsoleWindow(), SW_SHOW);
+        else
+            ShowWindow(GetConsoleWindow(), SW_HIDE);
+    }
+
     void WindowsWindow::ApplyFlags()
     {
         const WindowFlags& flags = mWindowData.Flags;

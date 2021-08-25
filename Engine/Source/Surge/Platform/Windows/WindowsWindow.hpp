@@ -12,7 +12,20 @@ namespace Surge
 
         virtual bool IsOpen() const override { return mIsOpen; };
         virtual void Update() override;
+        virtual void Minimize() override;
+        virtual void Maximize() override;
         virtual void RegisterApplication(Application* application) override { mApplication = application; }
+
+        virtual String GetTitle() const override { return mWindowData.Title; }
+        virtual void SetTitle(const String& name) override;
+
+        virtual Pair<float, float> GetPos() const override;
+        virtual void SetPos(const Pair<float, float>& pos) const override;
+
+        virtual Pair<float, float> GetSize() const override;
+        virtual void SetSize(const Pair<float, float>& size) const override;
+
+        virtual void ShowConsole(bool show) const override;
     private:
         void ApplyFlags();
     private:
