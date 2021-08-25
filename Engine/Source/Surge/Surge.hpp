@@ -11,4 +11,3 @@
 #include "Surge/Core/Input/Input.hpp"
 
 #include "Surge/Events/Event.hpp"
-#include "Surge/Events/EventDispatcher.hpp"

@@ -1,5 +1,6 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
+#include "Surge/Events/Event.hpp"
 
 namespace Surge
 {
@@ -9,13 +10,9 @@ namespace Surge
         Application() = default;
         virtual ~Application() = default;
 
-        // Called once, when Engine initializes
         virtual void OnInitialize() {};
-
-        // Called per frame
         virtual void OnUpdate() {};
-
-        // Called at the engine shutdown
+        virtual void OnEvent(Event& e) {};
         virtual void OnShutdown() {};
     };
 }

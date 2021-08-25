@@ -5,10 +5,16 @@
 #include "Surge/Core/Input/MouseCodes.hpp"
 #include <sstream>
 
-#define GET_NAME_IMPL(type) virtual const char* GetName() const override { return #type; }
-
 namespace Surge
 {
+    enum class EventType
+    {
+        None = 0,
+        WindowClose, WindowResize, WindowFocus, WindowLostFocus, WindowMoved,
+        KeyPressed, KeyReleased, KeyTyped,
+        MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled
+    };
+
     class Event
     {
     public:
@@ -16,7 +22,13 @@ namespace Surge
         virtual ~Event() = default;
         virtual String ToString() const = 0;
         virtual const char* GetName() const = 0;
+        virtual EventType GetEventType() const = 0;
     };
+
+#define EVENT_CLASS_TYPE(type)                                                  \
+    static EventType GetStaticType() { return EventType::type; }                \
+    virtual EventType GetEventType() const override { return GetStaticType(); } \
+    virtual const char* GetName() const override { return #type; }              \
 
     // Key Events
     class KeyEvent : public Event
@@ -45,7 +57,7 @@ namespace Surge
             ss << "KeyPressedEvent: " << mKeyCode << " (" << mRepeatCount << " repeats)";
             return ss.str();
         }
-        GET_NAME_IMPL(KeyPressedEvent);
+        EVENT_CLASS_TYPE(KeyPressed);
     private:
         uint16_t mRepeatCount;
     };
@@ -62,7 +74,7 @@ namespace Surge
             ss << "KeyReleasedEvent: " << mKeyCode;
             return ss.str();
         }
-        GET_NAME_IMPL(KeyReleasedEvent);
+        EVENT_CLASS_TYPE(KeyReleased);
     };
 
     class KeyTypedEvent : public KeyEvent
@@ -77,7 +89,7 @@ namespace Surge
             ss << "KeyTypedEvent: " << mKeyCode;
             return ss.str();
         }
-        GET_NAME_IMPL(KeyTypedEvent);
+        EVENT_CLASS_TYPE(KeyTyped);
     };
 
     // Mouse Events
@@ -96,7 +108,7 @@ namespace Surge
             ss << "MouseMovedEvent: " << mMouseX << ", " << mMouseY;
             return ss.str();
         }
-        GET_NAME_IMPL(MouseMovedEvent);
+        EVENT_CLASS_TYPE(MouseMoved);
     private:
         float mMouseX, mMouseY;
     };
@@ -115,7 +127,7 @@ namespace Surge
             ss << "MouseScrolledEvent: " << mDelta;
             return ss.str();
         }
-        GET_NAME_IMPL(MouseScrolledEvent);
+        EVENT_CLASS_TYPE(MouseScrolled);
     private:
         float mDelta;
     };
@@ -144,7 +156,7 @@ namespace Surge
             ss << "MouseButtonPressedEvent: " << mButton;
             return ss.str();
         }
-        GET_NAME_IMPL(MouseButtonPressedEvent);
+        EVENT_CLASS_TYPE(MouseButtonPressed);
     };
 
     class MouseButtonReleasedEvent : public MouseButtonEvent
@@ -159,7 +171,7 @@ namespace Surge
             ss << "MouseButtonReleasedEvent: " << mButton;
             return ss.str();
         }
-        GET_NAME_IMPL(MouseButtonReleasedEvent);
+        EVENT_CLASS_TYPE(MouseButtonReleased);
     };
 
     // App Events
@@ -178,20 +190,36 @@ namespace Surge
             ss << "WindowResizeEvent: " << mWidth << ", " << mHeight;
             return ss.str();
         }
-        GET_NAME_IMPL(WindowResizeEvent);
+        EVENT_CLASS_TYPE(WindowResize);
     private:
         Uint mWidth, mHeight;
     };
 
-    class WindowCloseEvent : public Event
+    class WindowClosedEvent : public Event
     {
     public:
-        WindowCloseEvent() {}
+        WindowClosedEvent() {}
 
         virtual String ToString() const override
         {
             return "WindowCloseEvent";
         }
-        GET_NAME_IMPL(WindowCloseEvent);
+        EVENT_CLASS_TYPE(WindowClose);
+    };
+
+    class EventDispatcher
+    {
+    public:
+        EventDispatcher(Event& event)
+            : mEvent(event) {}
+
+        template<typename T, typename F>
+        void Dispatch(const F& func)
+        {
+            if (mEvent.GetEventType() == T::GetStaticType())
+                func(static_cast<T&>(mEvent));
+        }
+    private:
+        Event& mEvent;
     };
 }

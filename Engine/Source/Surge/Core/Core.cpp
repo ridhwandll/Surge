@@ -22,6 +22,7 @@ namespace Surge
 
         sCoreData.mApplication = application;
         sCoreData.mWindow = Window::Create({ 1280, 720, "Surge Window", WindowFlags::CreateDefault });
+        sCoreData.mWindow->RegisterApplication(application);
         sCoreData.mApplication->OnInitialize();
         sCoreData.mRunning = true;
     }

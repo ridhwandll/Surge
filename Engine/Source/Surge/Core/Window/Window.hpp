@@ -1,6 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "Surge/Core/Defines.hpp"
+#include "Surge/Core/Application.hpp"
 
 namespace Surge
 {
@@ -37,6 +38,7 @@ namespace Surge
 
         virtual bool IsOpen() const = 0;
         virtual void Update() = 0;
+        virtual void RegisterApplication(Application* application) = 0;
 
         Uint GetWidth() const { return mWindowData.Width; }
         Uint GetHeight() const { return mWindowData.Height; }
