@@ -7,8 +7,6 @@ add_executable(SurgeSandbox ${SOURCE_FILES})
 target_link_libraries(SurgeSandbox PRIVATE Surge)
 target_include_directories(SurgeSandbox PRIVATE ${INCLUDE_DIRS})
 
-make_directory(${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>)
-
 #Copy the dll to the binary directory
 add_custom_command(
     TARGET SurgeSandbox

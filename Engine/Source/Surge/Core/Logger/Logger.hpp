@@ -1,6 +1,6 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
-#include "Core/Clock.hpp"
+#include "Surge/Core/Time/Clock.hpp"
 #include <fmt/core.h>
 #include <fmt/color.h>
 #include <mutex>
@@ -20,7 +20,7 @@ namespace Surge
     static std::mutex sLogMutex;
 
     //TODO (Rid): Support for logging in Files, getting the last 'x' number of messages, store messages in a buffer etc.
-    template <LogSeverity severity, typename... Args>
+    template <LogSeverity severity = LogSeverity::Trace, typename... Args>
     void Log(const char* format, const Args&... args)
     {
         sLogMutex.lock();

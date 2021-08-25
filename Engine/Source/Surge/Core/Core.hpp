@@ -17,8 +17,3 @@ namespace Surge
     // Ends the engine loop, returns from "Run"
     SURGE_API void Close();
 }
-
-#define SURGE_BASIC_APP(app)   \
-::Surge::Initialize(&app);     \
-::Surge::Run();                \
-::Surge::Shutdown();           \

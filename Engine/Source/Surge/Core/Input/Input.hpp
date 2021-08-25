@@ -1,7 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
-#include "Core/KeyCodes.hpp"
-#include "Core/MouseCodes.hpp"
+#include "Surge/Core/Input/KeyCodes.hpp"
+#include "Surge/Core/Input/MouseCodes.hpp"
 
 namespace Surge
 {

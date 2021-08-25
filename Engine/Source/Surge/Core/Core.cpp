@@ -1,9 +1,9 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Pch.hpp"
-#include "Core.hpp"
-#include "Clock.hpp"
-#include "Window.hpp"
-#include "Input.hpp"
+#include "Surge/Core/Core.hpp"
+#include "Surge/Core/Time/Clock.hpp"
+#include "Surge/Core/Window/Window.hpp"
+#include "Surge/Core/Input/Input.hpp"
 
 namespace Surge
 {
@@ -21,7 +21,7 @@ namespace Surge
         Clock::Start();
 
         sCoreData.mApplication = application;
-        sCoreData.mWindow = Window::Create(1280, 720, "Surge Window");
+        sCoreData.mWindow = Window::Create({ 1280, 720, "Surge Window", WindowFlags::CreateDefault });
         sCoreData.mApplication->OnInitialize();
         sCoreData.mRunning = true;
     }

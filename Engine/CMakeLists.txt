@@ -1,8 +1,8 @@
 include(${CMAKE_SOURCE_DIR}/scripts/CMakeUtils.cmake)
 
 file(GLOB_RECURSE SOURCE_FILES
-    Source/*.cpp
-    Source/*.hpp
+    Source/Surge/*.cpp
+    Source/Surge/*.hpp
 )
 
 set(INCLUDE_DIRS
@@ -23,6 +23,19 @@ GroupSourcesByFolder(Surge)
 
 set_property(TARGET Surge PROPERTY VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 set_target_properties (Surge PROPERTIES FOLDER Engine)
+
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/Sandbox/Debug)
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/Sandbox/Release)
+
+#Copy the dll to the binary directory
+make_directory(${CMAKE_BINARY_DIR}/Sandbox/$<CONFIG>)
+add_custom_command(
+    TARGET Surge
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_BINARY_DIR}/Engine/$<CONFIGURATION>/Surge.dll
+        ${CMAKE_BINARY_DIR}/Sandbox/$<CONFIGURATION>
+    )
 
 target_compile_definitions(
     Surge
