@@ -4,288 +4,283 @@
 
 namespace Surge
 {
-	class RefCounted
-	{
-	public:
-		void IncRefCount() const
-		{
-			mRefCount++;
-		}
-		void DecRefCount() const
-		{
-			mRefCount--;
-		}
-		void ZeroRefCount() const
-		{
-			mRefCount = 0;
-		}
+    class RefCounted
+    {
+    public:
+        void IncRefCount() const
+        {
+            mRefCount++;
+        }
+        void DecRefCount() const
+        {
+            mRefCount--;
+        }
+        void ZeroRefCount() const
+        {
+            mRefCount = 0;
+        }
+
+        void IncWeakRefCount() const
+        {
+            mWeakRefCount++;
+        }
+        void DecWeakRefCount() const
+        {
+            mWeakRefCount--;
+        }
+        void ZeroWeakRefCount() const
+        {
+            mWeakRefCount = 0;
+        }
+
+        Uint GetRefCount() const { return mRefCount; }
+    private:
+        mutable Uint mRefCount = 0;
+        mutable Uint mWeakRefCount = 0; // NOTE(AC3R): This is mostly for debugging purposes, the std::weak_ptr also has a weakref count
+    };
+
+    template<typename T>
+    class Ref
+    {
+    public:
+        /* CONSTRUCTORS */
+        Ref()
+            : mInstance(nullptr) {}
+
+        Ref(std::nullptr_t n)
+            : mInstance(nullptr) {}
+
+        Ref(T* instance)
+            : mInstance(instance)
+        {
+            static_assert(std::is_base_of<RefCounted, T>::value, "Class is not RefCounted!");
+            IncRef();
+        }
+
+        template<typename Ts>
+        Ref(const Ref<Ts>& other)
+        {
+            mInstance = (T*)other.mInstance;
+            IncRef();
+        }
+
+        Ref(const Ref<T>& other)
+            : mInstance(other.mInstance)
+        {
+            IncRef();
+        }
+
+        template<typename Ts>
+        Ref(Ref<Ts>&& other)
+        {
+            mInstance = (T*)other.mInstance;
+            other.mInstance = nullptr;
+        }
+
+        /* COPY OPERATOR */
+        Ref& operator=(std::nullptr_t)
+        {
+            DecRef();
+            mInstance = nullptr;
+            return *this;
+        }
+
+        Ref& operator=(const Ref<T>& other)
+        {
+            other.IncRef();
+            DecRef();
+
+            mInstance = other.mInstance;
+            return *this;
+        }
+
+        template<typename Ts>
+        Ref& operator=(const Ref<Ts>& other)
+        {
+            other.IncRef();
+            DecRef();
+
+            mInstance = other.mInstance;
+            return *this;
+        }
+
+        /* MOVE OPERATOR */
+        template<typename Ts>
+        Ref& operator=(Ref<Ts>&& other)
+        {
+            DecRef();
+
+            mInstance = other.mInstance;
+            other.mInstance = nullptr;
+            return *this;
+        }
+
+        /* OTHER OPERATORS */
+        operator bool() { return mInstance != nullptr; }
+        operator bool() const { return mInstance != nullptr; }
+
+        T* operator->() { return mInstance; }
+        const T* operator->() const { return mInstance; }
+
+        T& operator*() { return *mInstance; }
+        const T& operator*() const { return *mInstance; }
 
 
-		void IncWeakRefCount() const
-		{
-			mWeakRefCount++;
-		}
-		void DecWeakRefCount() const
-		{
-			mWeakRefCount--;
-		}
-		void ZeroWeakRefCount() const
-		{
-			mWeakRefCount = 0;
-		}
+        /* FUNCTIONS */
+        T* Raw() { return mInstance; }
+        [[nodiscard]] const T* Raw() const { return mInstance; }
 
-		Uint GetRefCount() const { return mRefCount; }
-	private:
-		mutable Uint mRefCount = 0;
-		mutable Uint mWeakRefCount = 0; // NOTE(AC3R): This is mostly for debugging purposes, the std::weak_ptr also has a weakref count
-	};
+        void Release()
+        {
+            delete mInstance;
+            mInstance->ZeroRefCount();
+        }
 
-	template<typename T>
-	class Ref
-	{
-	public:
+        void Reset(T* instance = nullptr)
+        {
+            DecRef();
+            mInstance = instance;
+        }
 
-		/* CONSTRUCTORS */
-		Ref()
-			: mInstance(nullptr) {}
+        template<typename... Args>
+        static Ref<T> Create(Args&&... args)
+        {
+            return Ref<T>(new T(std::forward<Args>(args)...));
+        }
 
-		Ref(std::nullptr_t n)
-			: mInstance(nullptr) {}
+        template<typename Ts>
+        [[nodiscard]] Ref<Ts> As() const
+        {
+            return Ref<Ts>(*this);
+        }
+        
 
-		Ref(T* instance)
-			: mInstance(instance)
-		{
-			static_assert(std::is_base_of<RefCounted, T>::value, "Class is not RefCounted!");
-			IncRef();
-		}
+        /* DESCTRUCTOR */
+        ~Ref()
+        {
+            DecRef();
+        }
 
-		template<typename Ts>
-		Ref(const Ref<Ts>& other)
-		{
-			mInstance = (T*)other.mInstance;
-			IncRef();
-		}
+    private:
+        void IncRef() const
+        {
+            if (mInstance)
+                mInstance->IncRefCount();
+        }
 
-		Ref(const Ref<T>& other)
-			: mInstance(other.mInstance)
-		{
-			IncRef();
-		}
+        void DecRef() const
+        {
+            if (mInstance)
+            {
+                mInstance->DecRefCount();
+                if (mInstance->GetRefCount() == 0)
+                    delete mInstance;
+            }
+        }
 
-		template<typename Ts>
-		Ref(Ref<Ts>&& other)
-		{
-			mInstance = (T*)other.mInstance;
-			other.mInstance = nullptr;
-		}
+        friend class Ref;
+        T* mInstance;
+    };
 
-		/* COPY OPERATOR */
-		Ref& operator=(std::nullptr_t)
-		{
-			DecRef();
-			mInstance = nullptr;
-			return *this;
-		}
+    template<typename T>
+    class WeakRef
+    {
+    public:
 
-		Ref& operator=(const Ref<T>& other)
-		{
-			other.IncRef();
-			DecRef();
+        /* CONSTRUCTORS */
+        WeakRef()
+            : mInstance(nullptr) {}
 
-			mInstance = other.mInstance;
-			return *this;
-		}
+        WeakRef(std::nullptr_t n)
+            : mInstance(nullptr) {}
 
-		template<typename Ts>
-		Ref& operator=(const Ref<Ts>& other)
-		{
-			other.IncRef();
-			DecRef();
+        WeakRef(Ref<T> instance)
+            : mInstance(instance.Raw())
+        {
+            static_assert(std::is_base_of<RefCounted, T>::value, "Class is not RefCounted!");
+            IncWeakRef();
+        }
 
-			mInstance = other.mInstance;
-			return *this;
-		}
+        WeakRef(Ref<T>&& other)
+        {
+            mInstance = other.Raw();
+            other.Raw() = nullptr;
+        }
 
-		/* MOVE OPERATOR */
-		template<typename Ts>
-		Ref& operator=(Ref<Ts>&& other)
-		{
-			DecRef();
+        /* COPY OPERATOR */
+        WeakRef& operator=(Ref<T> other)
+        {
+            DecWeakRef();
+            other.Raw()->IncWeakRefCount();
 
-			mInstance = other.mInstance;
-			other.mInstance = nullptr;
-			return *this;
-		}
+            mInstance = other.Raw();
+            return *this;
+        }
+        
+        WeakRef& operator=(const WeakRef<T>& other)
+        {
+            DecWeakRef();
+            other.mInstance->IncWeakRefCount();
 
-		/* OTHER OPERATORS */
-		operator bool() { return mInstance != nullptr; }
-		operator bool() const { return mInstance != nullptr; }
+            mInstance = other.mInstance;
+            return *this;
+        }
 
-		T* operator->() { return mInstance; }
-		const T* operator->() const { return mInstance; }
+        /* MOVE OPERATOR */
+        WeakRef& operator=(Ref<T>&& other)
+        {
+            DecWeakRef();
 
-		T& operator*() { return *mInstance; }
-		const T& operator*() const { return *mInstance; }
+            mInstance = other.Raw();
+            other.Raw() = nullptr;
+            return *this;
+        }
 
+        WeakRef& operator=(WeakRef<T>&& other)
+        {
+            DecWeakRef();
 
-		/* FUNCTIONS */
-		T* Raw() { return mInstance; }
-		[[nodiscard]] const T* Raw() const { return mInstance; }
-
-		void Release()
-		{
-			delete mInstance;
-			mInstance->ZeroRefCount();
-		}
-
-		void Reset(T* instance = nullptr)
-		{
-			DecRef();
-			mInstance = instance;
-		}
-
-		template<typename... Args>
-		static Ref<T> Create(Args&&... args)
-		{
-			return Ref<T>(new T(std::forward<Args>(args)...));
-		}
-
-		template<typename Ts>
-		[[nodiscard]] Ref<Ts> As() const
-		{
-			return Ref<Ts>(*this);
-		}
-		
-
-		/* DESCTRUCTOR */
-		~Ref()
-		{
-			DecRef();
-		}
-
-	private:
-		void IncRef() const
-		{
-			if (mInstance)
-				mInstance->IncRefCount();
-		}
-
-		void DecRef() const
-		{
-			if (mInstance)
-			{
-				mInstance->DecRefCount();
-				if (mInstance->GetRefCount() == 0)
-					delete mInstance;
-			}
-		}
-
-		friend class Ref;
-		T* mInstance;
-	};
-
-	template<typename T>
-	class WeakRef
-	{
-	public:
-
-		/* CONSTRUCTORS */
-		WeakRef()
-			: mInstance(nullptr) {}
-
-		WeakRef(std::nullptr_t n)
-			: mInstance(nullptr) {}
-
-		WeakRef(Ref<T> instance)
-			: mInstance(instance.Raw())
-		{
-			static_assert(std::is_base_of<RefCounted, T>::value, "Class is not RefCounted!");
-			IncWeakRef();
-		}
-
-		WeakRef(Ref<T>&& other)
-		{
-			mInstance = other.Raw();
-			other.Raw() = nullptr;
-		}
-
-		/* COPY OPERATOR */
-		WeakRef& operator=(Ref<T> other)
-		{
-			DecWeakRef();
-			other.Raw()->IncWeakRefCount();
-
-			mInstance = other.Raw();
-			return *this;
-		}
-		
-		WeakRef& operator=(const WeakRef<T>& other)
-		{
-			DecWeakRef();
-			other.mInstance->IncWeakRefCount();
-
-			mInstance = other.mInstance;
-			return *this;
-		}
-
-		/* MOVE OPERATOR */
-		WeakRef& operator=(Ref<T>&& other)
-		{
-			DecWeakRef();
-
-			mInstance = other.Raw();
-			other.Raw() = nullptr;
-			return *this;
-		}
-
-		WeakRef& operator=(WeakRef<T>&& other)
-		{
-			DecWeakRef();
-
-			mInstance = other.mInstance;
-			other.mInstance = nullptr;
-			return *this;
-		}
+            mInstance = other.mInstance;
+            other.mInstance = nullptr;
+            return *this;
+        }
 
 
-		/* OTHER OPERATORS */
-		operator bool() { return mInstance != nullptr; }
-		operator bool() const { return mInstance != nullptr; }
+        /* OTHER OPERATORS */
+        operator bool() { return mInstance != nullptr; }
+        operator bool() const { return mInstance != nullptr; }
 
-		T* operator->() { return mInstance; }
-		const T* operator->() const { return mInstance; }
+        T* operator->() { return mInstance; }
+        const T* operator->() const { return mInstance; }
 
-		T& operator*() { return *mInstance; }
-		const T& operator*() const { return *mInstance; }
-
-
-		/* FUNCTIONS */
-		bool Expired() const { return mInstance != nullptr; }
-		void Reset() noexcept { mInstance = nullptr; }
-
-		Ref<T> AsRef() { return Ref<T>(mInstance); }
+        T& operator*() { return *mInstance; }
+        const T& operator*() const { return *mInstance; }
 
 
-		~WeakRef()
-		{
-			DecWeakRef();
-		}
-	private:
-		void IncWeakRef() const
-		{
-			if (mInstance)
-				mInstance->IncWeakRefCount();
-		}
+        /* FUNCTIONS */
+        bool Expired() const { return mInstance != nullptr; }
+        void Reset() noexcept { mInstance = nullptr; }
 
-		void DecWeakRef() const
-		{
-			if (mInstance)
-				mInstance->DecWeakRefCount();
-		}
+        Ref<T> AsRef() { return Ref<T>(mInstance); }
 
-		friend class WeakRef;
-		T* mInstance;
-	};
+        ~WeakRef()
+        {
+            DecWeakRef();
+        }
+    private:
+        void IncWeakRef() const
+        {
+            if (mInstance)
+                mInstance->IncWeakRefCount();
+        }
 
+        void DecWeakRef() const
+        {
+            if (mInstance)
+                mInstance->DecWeakRefCount();
+        }
 
+        friend class WeakRef;
+        T* mInstance;
+    };
 }

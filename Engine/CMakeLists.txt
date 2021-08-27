@@ -8,6 +8,7 @@ file(GLOB_RECURSE SOURCE_FILES
 set(INCLUDE_DIRS
     Source
     Vendor/fmt/Include
+    Vendor/glm
 )
 
 set(LIB_LINKS
