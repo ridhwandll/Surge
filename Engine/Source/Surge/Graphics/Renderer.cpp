@@ -4,5 +4,13 @@
 
 namespace Surge
 {
-    //TODO
+    void Renderer::Initialize()
+    {
+        // TODO(Rid)
+    }
+
+    void Renderer::Shutdown()
+    {
+        // TODO(Rid)
+    }
 }

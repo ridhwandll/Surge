@@ -26,7 +26,7 @@ public:
             else if (e.GetKeyCode() == Surge::Key::A)
             {
                 window->SetPos({ 0, 0 });
-                Surge::Log<Surge::LogSeverity::Info>("Current window pos: {0}, {1}", window->GetPos().Data1, window->GetPos().Data2);
+                Surge::Log<Surge::LogSeverity::Info>("Current window pos: {0}, {1}", window->GetPos().x, window->GetPos().y);
             }
             window->SetTitle(e.ToString());
         });

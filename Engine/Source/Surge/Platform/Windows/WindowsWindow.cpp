@@ -10,6 +10,7 @@ namespace Surge
 
     WindowsWindow::WindowsWindow(const WindowData& windowData)
     {
+        mRenderContext = RenderContext::Create();
         mWindowData = windowData;
         hInstance = GetModuleHandle(nullptr);
 
@@ -37,10 +38,13 @@ namespace Surge
             Log<LogSeverity::Info>("Created {0} ({1}, {2})", mWindowData.Title, mWindowData.Width, mWindowData.Height);
         else
             Log<LogSeverity::Error>("WindowsWindow creation failure!");
+
+        mRenderContext->Initialize(this);
     }
 
     WindowsWindow::~WindowsWindow()
     {
+        mRenderContext->Shutdown();
         DestroyWindow(mWin32Window);
     }
 
@@ -70,29 +74,29 @@ namespace Surge
         SetWindowText(mWin32Window, mWindowData.Title.c_str());
     }
 
-    Surge::Pair<float, float> WindowsWindow::GetPos() const
+    glm::vec2 WindowsWindow::GetPos() const
     {
         POINT pos = { 0, 0 };
         ClientToScreen(mWin32Window, &pos);
         return { static_cast<float>(pos.x), static_cast<float>(pos.y) };
     }
 
-    void WindowsWindow::SetPos(const Pair<float, float>& pos) const
+    void WindowsWindow::SetPos(const glm::vec2& pos) const
     {
-        RECT rect = { (LONG)pos.Data1, (LONG)pos.Data2, (LONG)pos.Data1, (LONG)pos.Data2 };
+        RECT rect = { (LONG)pos.x, (LONG)pos.y, (LONG)pos.x, (LONG)pos.y };
         SetWindowPos(mWin32Window, nullptr, rect.left, rect.top, 0, 0, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSIZE);
     }
 
-    Surge::Pair<float, float> WindowsWindow::GetSize() const
+    glm::vec2 WindowsWindow::GetSize() const
     {
         RECT area;
         GetClientRect(mWin32Window, &area);
         return { static_cast<float>(area.right), static_cast<float>(area.bottom) };
     }
 
-    void WindowsWindow::SetSize(const Pair<float, float>& size) const
+    void WindowsWindow::SetSize(const glm::vec2& size) const
     {
-        RECT rect = { 0, 0, (LONG)size.Data1, (LONG)size.Data2 };
+        RECT rect = { 0, 0, (LONG)size.x, (LONG)size.y };
         SetWindowPos(mWin32Window, HWND_TOP, 0, 0, rect.right - rect.left, rect.bottom - rect.top, SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_NOZORDER);
     }
 

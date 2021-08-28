@@ -2,6 +2,7 @@
 #pragma once
 #include "Surge/Core/Defines.hpp"
 #include "Surge/Core/Application.hpp"
+#include <glm/glm.hpp>
 
 namespace Surge
 {
@@ -47,15 +48,17 @@ namespace Surge
         virtual void SetTitle(const String& name) = 0;
 
         // Get/Set the position of the Window(in pixels)
-        virtual Pair<float, float> GetPos() const = 0;
-        virtual void SetPos(const Pair<float, float>& pos) const = 0;
+        virtual glm::vec2 GetPos() const = 0;
+        virtual void SetPos(const glm::vec2& pos) const = 0;
 
         // Get/Set the size of the Window(in pixels)
-        virtual Pair<float, float> GetSize() const = 0;
-        virtual void SetSize(const Pair<float, float>& size) const = 0;
+        virtual glm::vec2 GetSize() const = 0;
+        virtual void SetSize(const glm::vec2& size) const = 0;
 
         // Turn in/off the console window
         virtual void ShowConsole(bool show) const = 0;
+
+        virtual void* GetNativeWindowHandle() = 0;
 
         const WindowData& GetData() const { return mWindowData; }
         static Scope<Window> Create(const WindowData& windowData);

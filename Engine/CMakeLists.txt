@@ -9,10 +9,13 @@ set(INCLUDE_DIRS
     Source
     Vendor/fmt/Include
     Vendor/glm
+    Vendor/Vulkan-Headers/Include
+    Vendor/volk
 )
 
 set(LIB_LINKS
     fmt
+    volk
 )
 
 add_library(Surge SHARED ${SOURCE_FILES})
@@ -38,6 +41,10 @@ add_custom_command(
         ${CMAKE_BINARY_DIR}/Sandbox/$<CONFIGURATION>
     )
 
+if (WIN32)
+set(PLATFORM_COMPILE_DEFS VK_USE_PLATFORM_WIN32_KHR)
+endif (WIN32)
+
 target_compile_definitions(
     Surge
 
@@ -47,6 +54,7 @@ target_compile_definitions(
 
     PUBLIC
     "GLM_FORCE_DEPTH_ZERO_TO_ONE"
+    ${PLATFORM_COMPILE_DEFS}
 
     $<$<CONFIG:Debug>:SURGE_DEBUG>
     $<$<CONFIG:Release>:SURGE_RELEASE>

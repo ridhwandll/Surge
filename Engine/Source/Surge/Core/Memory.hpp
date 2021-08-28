@@ -4,7 +4,7 @@
 
 namespace Surge
 {
-    class RefCounted
+    class SURGE_API RefCounted
     {
     public:
         void IncRefCount() const
@@ -183,7 +183,7 @@ namespace Surge
     };
 
     template<typename T>
-    class WeakRef
+    class SURGE_API WeakRef
     {
     public:
 
