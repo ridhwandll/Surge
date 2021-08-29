@@ -53,7 +53,7 @@ namespace Surge
     // NOTE(Rid):
     // Owned by Vulkan Context
     // Represents the "Debug Layer" of Vulkan
-    class VulkanDiagnostics
+    class SURGE_API VulkanDiagnostics
     {
     public:
         void Create(VkInstanceCreateInfo& vkInstanceCreateInfo);

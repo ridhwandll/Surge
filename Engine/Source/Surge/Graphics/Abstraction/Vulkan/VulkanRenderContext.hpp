@@ -2,6 +2,7 @@
 #pragma once
 #include "Surge/Graphics/Abstraction/RenderContext.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDiagnostics.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanDevice.hpp"
 #include <volk.h>
 
 namespace Surge
@@ -15,8 +16,8 @@ namespace Surge
         Vector<const char*> GetRequiredInstanceExtensions();
         Vector<const char*> GetRequiredInstanceLayers();
     private:
-        // TODO(Rid): PhysicalDevice and LogicalDevice
         VkInstance mVulkanInstance;
         VulkanDiagnostics mVulkanDiagnostics;
+        VulkanDevice mDevice;
     };
 }

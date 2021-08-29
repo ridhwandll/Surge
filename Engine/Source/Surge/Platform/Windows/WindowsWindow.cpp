@@ -6,12 +6,10 @@
 
 namespace Surge
 {
-    HINSTANCE hInstance;
-
     WindowsWindow::WindowsWindow(const WindowData& windowData)
     {
         mWindowData = windowData;
-        hInstance = GetModuleHandle(nullptr);
+        HINSTANCE hInstance = GetModuleHandle(nullptr);
 
         WNDCLASSEX wc = {};
         wc.cbSize = sizeof(WNDCLASSEX);

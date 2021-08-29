@@ -1,5 +1,5 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
-#pragma once
+#include "Pch.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDiagnostics.hpp"
 
 namespace Surge
@@ -47,19 +47,18 @@ namespace Surge
     {
         const char* validationLayerName = "VK_LAYER_KHRONOS_validation";
         uint32_t instanceLayerCount;
-        vkEnumerateInstanceLayerProperties(&instanceLayerCount, nullptr);
+        VK_CALL(vkEnumerateInstanceLayerProperties(&instanceLayerCount, nullptr));
         Vector<VkLayerProperties> instanceLayerProperties(instanceLayerCount);
-        vkEnumerateInstanceLayerProperties(&instanceLayerCount, instanceLayerProperties.data());
+        VK_CALL(vkEnumerateInstanceLayerProperties(&instanceLayerCount, instanceLayerProperties.data()));
 
         bool validationLayerPresent = false;
-        Log<LogSeverity::Trace>("{0} Vulkan Instance Layers:", instanceLayerCount);
         for (const VkLayerProperties& layer : instanceLayerProperties)
         {
-            Log<LogSeverity::Trace>("  {0}", layer.layerName);
             if (strcmp(layer.layerName, validationLayerName) == 0)
             {
                 validationLayerPresent = true;
                 outInstanceLayers.push_back(validationLayerName);
+                break;
             }
         }
 

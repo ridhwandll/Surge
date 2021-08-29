@@ -9,6 +9,5 @@ namespace Surge
     public:
         void Initialize();
         void Shutdown();
-        // TODO(Rid)
     };
 }

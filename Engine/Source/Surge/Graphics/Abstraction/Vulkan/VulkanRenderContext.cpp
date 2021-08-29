@@ -1,4 +1,5 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
+#include "Pch.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderContext.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDiagnostics.hpp"
 
@@ -43,11 +44,14 @@ namespace Surge
         VK_CALL(vkCreateInstance(&createInfo, nullptr, &mVulkanInstance));
         ENABLE_IF_VK_VALIDATION(mVulkanDiagnostics.StartDiagnostics(mVulkanInstance));
         volkLoadInstance(mVulkanInstance);
+
+        mDevice = VulkanDevice(mVulkanInstance);
     }
 
     void VulkanRenderContext::Shutdown()
     {
         mVulkanDiagnostics.EndDiagnostics(mVulkanInstance);
+        mDevice.Destroy();
         vkDestroyInstance(mVulkanInstance, nullptr);
     }
 
