@@ -1,6 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "Surge/Graphics/Abstraction/RenderContext.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanDiagnostics.hpp"
 #include <volk.h>
 
 namespace Surge
@@ -14,10 +15,8 @@ namespace Surge
         Vector<const char*> GetRequiredInstanceExtensions();
         Vector<const char*> GetRequiredInstanceLayers();
     private:
-        struct PriveteData
-        {
-            VkInstance VulkanInstance;
-        };
-        PriveteData mPrivateData;
+        // TODO(Rid): PhysicalDevice and LogicalDevice
+        VkInstance mVulkanInstance;
+        VulkanDiagnostics mVulkanDiagnostics;
     };
 }

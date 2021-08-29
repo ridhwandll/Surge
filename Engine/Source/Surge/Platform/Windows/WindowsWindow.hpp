@@ -1,7 +1,6 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "Surge/Core/Window/Window.hpp"
-#include "Surge/Graphics/Abstraction/RenderContext.hpp"
 
 namespace Surge
 {
@@ -32,7 +31,6 @@ namespace Surge
     private:
         void ApplyFlags();
     private:
-        Scope<RenderContext> mRenderContext;
         Application* mApplication = nullptr;
         bool mIsOpen = false;
         HWND mWin32Window;

@@ -10,7 +10,6 @@ namespace Surge
 
     WindowsWindow::WindowsWindow(const WindowData& windowData)
     {
-        mRenderContext = RenderContext::Create();
         mWindowData = windowData;
         hInstance = GetModuleHandle(nullptr);
 
@@ -38,13 +37,10 @@ namespace Surge
             Log<LogSeverity::Info>("Created {0} ({1}, {2})", mWindowData.Title, mWindowData.Width, mWindowData.Height);
         else
             Log<LogSeverity::Error>("WindowsWindow creation failure!");
-
-        mRenderContext->Initialize(this);
     }
 
     WindowsWindow::~WindowsWindow()
     {
-        mRenderContext->Shutdown();
         DestroyWindow(mWin32Window);
     }
 

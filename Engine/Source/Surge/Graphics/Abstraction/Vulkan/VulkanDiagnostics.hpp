@@ -49,6 +49,24 @@ namespace Surge
         }
         return nullptr;
     }
+
+    // NOTE(Rid):
+    // Owned by Vulkan Context
+    // Represents the "Debug Layer" of Vulkan
+    class VulkanDiagnostics
+    {
+    public:
+        void Create(VkInstanceCreateInfo& vkInstanceCreateInfo);
+        void AddValidationLayers(Vector<const char*>& outInstanceLayers);
+        void AddValidationExtensions(Vector<const char*>& outInstanceExtensions);
+        void StartDiagnostics(VkInstance& instance);
+        void EndDiagnostics(VkInstance& instance);
+    private:
+        void PopulateDebugCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& debugCreateInfo);
+    private:
+        VkDebugUtilsMessengerEXT mDebugMessenger;
+        VkDebugUtilsMessengerCreateInfoEXT mDebugCreateInfo{};
+    };
 }
 
 #define VK_CALL(res)\

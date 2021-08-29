@@ -4,13 +4,15 @@
 #include "Surge/Core/Time/Clock.hpp"
 #include "Surge/Core/Window/Window.hpp"
 #include "Surge/Core/Input/Input.hpp"
+#include "Surge/Graphics/Abstraction/RenderContext.hpp"
 
 namespace Surge
 {
     struct CoreData
     {
-        Application* mApplication = nullptr;
-        Scope<Window> mWindow = nullptr;
+        Application* SurgeApplication = nullptr;
+        Scope<Window> SurgeWindow = nullptr;
+        Scope<RenderContext> SurgeRenderContext = nullptr;
         bool mRunning = false;
     };
 
@@ -19,11 +21,15 @@ namespace Surge
     void Initialize(Application* application)
     {
         Clock::Start();
+        sCoreData.SurgeApplication = application;
 
-        sCoreData.mApplication = application;
-        sCoreData.mWindow = Window::Create({ 1280, 720, "Surge", WindowFlags::CreateDefault });
-        sCoreData.mWindow->RegisterApplication(application);
-        sCoreData.mApplication->OnInitialize();
+        sCoreData.SurgeWindow = Window::Create({ 1280, 720, "Surge", WindowFlags::CreateDefault });
+        sCoreData.SurgeWindow->RegisterApplication(application);
+
+        sCoreData.SurgeRenderContext = RenderContext::Create();
+        sCoreData.SurgeRenderContext->Initialize(sCoreData.SurgeWindow.get());
+
+        sCoreData.SurgeApplication->OnInitialize();
         sCoreData.mRunning = true;
     }
 
@@ -32,14 +38,15 @@ namespace Surge
         while (sCoreData.mRunning)
         {
             Clock::Update();
-            sCoreData.mApplication->OnUpdate();
-            sCoreData.mWindow->Update();
+            sCoreData.SurgeApplication->OnUpdate();
+            sCoreData.SurgeWindow->Update();
         }
     }
 
     void Shutdown()
     {
-        sCoreData.mApplication->OnShutdown();
+        sCoreData.SurgeApplication->OnShutdown();
+        sCoreData.SurgeRenderContext->Shutdown();
     }
 
     void Close()
@@ -49,6 +56,6 @@ namespace Surge
 
     SURGE_API Scope<Surge::Window>& GetWindow()
     {
-        return sCoreData.mWindow;
+        return sCoreData.SurgeWindow;
     }
 }

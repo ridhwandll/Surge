@@ -59,7 +59,6 @@ namespace Surge
         virtual void ShowConsole(bool show) const = 0;
 
         virtual void* GetNativeWindowHandle() = 0;
-
         const WindowData& GetData() const { return mWindowData; }
         static Scope<Window> Create(const WindowData& windowData);
     protected:

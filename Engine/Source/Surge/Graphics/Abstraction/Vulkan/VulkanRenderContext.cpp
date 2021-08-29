@@ -10,6 +10,8 @@ namespace Surge
     static bool sValidation = false;
 #endif // SURGE_DEBUG
 
+#define ENABLE_IF_VK_VALIDATION(x) if (sValidation) { x; }
+
     void VulkanRenderContext::Initialize(Window* window)
     {
         VK_CALL(volkInitialize());
@@ -22,10 +24,12 @@ namespace Surge
         appInfo.pEngineName = "Surge Engine";
         appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.apiVersion = VK_API_VERSION_1_2; // TODO(Rid): Check which version is available, use 1.1 if necessary
+        appInfo.pNext = 0;
 
         /// VkInstanceCreateInfo ///
         Vector<const char*> instanceExtensions = GetRequiredInstanceExtensions();
         Vector<const char*> instanceLayers = GetRequiredInstanceLayers();
+
         VkInstanceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         createInfo.pApplicationInfo = &appInfo;
@@ -33,14 +37,18 @@ namespace Surge
         createInfo.ppEnabledLayerNames = instanceLayers.data();
         createInfo.enabledExtensionCount = static_cast<Uint>(instanceExtensions.size());
         createInfo.ppEnabledExtensionNames = instanceExtensions.data();
+        createInfo.pNext = nullptr;
 
-        VK_CALL(vkCreateInstance(&createInfo, nullptr, &mPrivateData.VulkanInstance));
-        volkLoadInstance(mPrivateData.VulkanInstance);
+        ENABLE_IF_VK_VALIDATION(mVulkanDiagnostics.Create(createInfo));
+        VK_CALL(vkCreateInstance(&createInfo, nullptr, &mVulkanInstance));
+        ENABLE_IF_VK_VALIDATION(mVulkanDiagnostics.StartDiagnostics(mVulkanInstance));
+        volkLoadInstance(mVulkanInstance);
     }
 
     void VulkanRenderContext::Shutdown()
     {
-
+        mVulkanDiagnostics.EndDiagnostics(mVulkanInstance);
+        vkDestroyInstance(mVulkanInstance, nullptr);
     }
 
     Vector<const char*> VulkanRenderContext::GetRequiredInstanceExtensions()
@@ -56,43 +64,14 @@ namespace Surge
         instanceExtensions.push_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
 #endif
 
-        if (sValidation)
-        {
-            instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-            instanceExtensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-            instanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-        }
-
+        ENABLE_IF_VK_VALIDATION(mVulkanDiagnostics.AddValidationExtensions(instanceExtensions));
         return instanceExtensions;
     }
 
     Vector<const char*> VulkanRenderContext::GetRequiredInstanceLayers()
     {
         Vector<const char*> instanceLayers;
-        if (sValidation)
-        {
-            const char* validationLayerName = "VK_LAYER_KHRONOS_validation";
-
-            uint32_t instanceLayerCount;
-            vkEnumerateInstanceLayerProperties(&instanceLayerCount, nullptr);
-            std::vector<VkLayerProperties> instanceLayerProperties(instanceLayerCount);
-            vkEnumerateInstanceLayerProperties(&instanceLayerCount, instanceLayerProperties.data());
-
-            bool validationLayerPresent = false;
-            Log<LogSeverity::Trace>("{0} Vulkan Instance Layers:", instanceLayerCount);
-            for (const VkLayerProperties& layer : instanceLayerProperties)
-            {
-                Log<LogSeverity::Trace>("  {0}", layer.layerName);
-                if (strcmp(layer.layerName, validationLayerName) == 0)
-                {
-                    validationLayerPresent = true;
-                    instanceLayers.push_back(validationLayerName);
-                }
-            }
-
-            if (!validationLayerPresent)
-                Log<LogSeverity::Error>("Validation layer {0} not present, validation is disabled", validationLayerName);
-        }
+        ENABLE_IF_VK_VALIDATION(mVulkanDiagnostics.AddValidationLayers(instanceLayers));
         return instanceLayers;
     }
 }

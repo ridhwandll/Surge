@@ -5,8 +5,8 @@
 namespace Surge
 {
     // NOTE(Rid):
-    // A Window owns the RenderContext
-    // RenderContext owns the LogicalDevice, SwapChain and PhysicalDevice
+    // The "Core" owns the RenderContext
+    // RenderContext owns the API Instance, LogicalDevice, SwapChain and PhysicalDevice
 
     class SURGE_API RenderContext
     {
