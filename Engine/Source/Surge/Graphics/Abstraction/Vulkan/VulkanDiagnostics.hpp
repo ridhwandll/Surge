@@ -72,6 +72,5 @@ namespace Surge
 #define VK_CALL(res)\
 if(res != VK_SUCCESS)\
 {\
-    Log<LogSeverity::Error>("[Vulkan] Returned value is {0}", ::Surge::VKResultToString(res));\
-    __debugbreak();\
+    SG_ASSERT_INTERNAL(std::string("[Vulkan] Returned value: ") + Surge::VKResultToString(res));\
 }\
