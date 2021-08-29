@@ -13,7 +13,7 @@ namespace Surge
 #ifdef SURGE_WINDOWS
         return CreateScope<WindowsWindow>(windowData);
 #else
-        __debugbreak(); //TODO(Rid): Assertions
+        SG_ASSERT_INTERNAL("Only windows currently is supported!");
 #endif
     }
 }

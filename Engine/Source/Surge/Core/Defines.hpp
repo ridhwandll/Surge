@@ -20,6 +20,17 @@
     #define SURGE_LINUX
 #endif
 
+#ifdef SURGE_DEBUG
+    #define ASSERT() __debugbreak()
+    #define SG_ASSERT(condition, ...)  { if(!(condition)) { Surge::Log<Surge::LogSeverity::Fatal>("Assertion Failed: {0}", __VA_ARGS__); ASSERT(); } }
+    #define SG_ASSERT_NOMSG(condition) { if(!(condition)) { Surge::Log<Surge::LogSeverity::Fatal>("Assertion Failed"); ASSERT(); } }
+    #define SG_ASSERT_INTERNAL(...)    { Surge::Log<Surge::LogSeverity::Fatal>("Assertion Failed: {0}", __VA_ARGS__); ASSERT(); }
+#else
+    #define SG_ASSERT(...)
+    #define SG_ASSERT_NOMSG(...)
+    #define SG_ASSERT_INTERNAL(...)
+#endif
+
 #define BIT(x) (1 << x)
 
 #define MAKE_BIT_ENUM(type)\
