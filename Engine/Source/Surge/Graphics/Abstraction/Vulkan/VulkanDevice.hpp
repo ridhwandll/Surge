@@ -29,7 +29,7 @@ namespace Surge
         void QueryDeviceExtensions();
         void QueryPhysicalDeviceFeatures();
         void QueryPhysicalDeviceProperties();
-        void DumpPhysicalDeviceProperties(VkPhysicalDeviceProperties physicalDeviceProperties);
+        void DumpPhysicalDeviceProperties();
         void FillQueueFamilyIndicesAndStructures(int flags, VulkanQueueFamilyIndices& outQueueFamilyIndices, Vector<VkDeviceQueueCreateInfo>& outQueueInfo);
         int RatePhysicalDevice(VkPhysicalDevice physicalDevice);
     private:

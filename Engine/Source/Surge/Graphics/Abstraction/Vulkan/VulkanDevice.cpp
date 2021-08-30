@@ -27,9 +27,7 @@ namespace Surge
             QueryPhysicalDeviceProperties();
             QueryPhysicalDeviceFeatures();
 
-            VkPhysicalDeviceProperties physicalDeviceFeatures;
-            vkGetPhysicalDeviceProperties(mPhysicalDevice, &physicalDeviceFeatures);
-            DumpPhysicalDeviceProperties(physicalDeviceFeatures);
+            DumpPhysicalDeviceProperties();
 
             Log<LogSeverity::Info>("Surge Device Score: {0}", candidates.rbegin()->first);
         }
@@ -107,13 +105,10 @@ namespace Surge
 
     void VulkanDevice::QueryPhysicalDeviceProperties()
     {
-        // Credit to: https://github.com/rtryan98/Yggdrasil
-
-        VkPhysicalDeviceProperties2 props{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
         mProperties.vk10Properties.pNext = &mProperties.vk11Properties;
         mProperties.vk11Properties.pNext = &mProperties.vk12Properties;
         mProperties.vk12Properties.pNext = nullptr;
-        vkGetPhysicalDeviceProperties2(mPhysicalDevice, &props);
+        vkGetPhysicalDeviceProperties2(mPhysicalDevice, &mProperties.vk10Properties);
     }
 
     void VulkanDevice::QueryPhysicalDeviceFeatures()
@@ -130,7 +125,6 @@ namespace Surge
         mFeatures.sync2Features.pNext = nullptr;
 
         VkPhysicalDeviceFeatures requestedVulkan10Features{};
-        requestedVulkan10Features.textureCompressionBC = VK_TRUE;
         requestedVulkan10Features.samplerAnisotropy = VK_TRUE;
         requestedVulkan10Features.multiDrawIndirect = VK_TRUE;
         requestedVulkan10Features.imageCubeArray = VK_TRUE;
@@ -141,45 +135,17 @@ namespace Surge
         requestedVulkan11Features.shaderDrawParameters = VK_TRUE;
 
         VkPhysicalDeviceVulkan12Features requestedVulkan12Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
-        requestedVulkan12Features.storageBuffer8BitAccess = VK_TRUE;
-        requestedVulkan12Features.uniformAndStorageBuffer8BitAccess = VK_TRUE;
         requestedVulkan12Features.drawIndirectCount = VK_TRUE;
         requestedVulkan12Features.imagelessFramebuffer = VK_TRUE;
         requestedVulkan12Features.shaderInt8 = VK_TRUE;
-        requestedVulkan12Features.descriptorIndexing = VK_TRUE;
-        requestedVulkan12Features.shaderInputAttachmentArrayDynamicIndexing = VK_TRUE;
-        requestedVulkan12Features.shaderUniformTexelBufferArrayDynamicIndexing = VK_TRUE;
-        requestedVulkan12Features.shaderStorageTexelBufferArrayDynamicIndexing = VK_TRUE;
-        requestedVulkan12Features.shaderUniformBufferArrayNonUniformIndexing = VK_TRUE;
-        requestedVulkan12Features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
-        requestedVulkan12Features.shaderStorageBufferArrayNonUniformIndexing = VK_TRUE;
-        requestedVulkan12Features.shaderStorageImageArrayNonUniformIndexing = VK_TRUE;
-        requestedVulkan12Features.shaderInputAttachmentArrayNonUniformIndexing = VK_TRUE;
-        requestedVulkan12Features.shaderUniformTexelBufferArrayNonUniformIndexing = VK_TRUE;
-        requestedVulkan12Features.shaderStorageTexelBufferArrayNonUniformIndexing = VK_TRUE;
-        requestedVulkan12Features.descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE;
-        requestedVulkan12Features.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
-        requestedVulkan12Features.descriptorBindingStorageImageUpdateAfterBind = VK_TRUE;
-        requestedVulkan12Features.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
-        requestedVulkan12Features.descriptorBindingUniformTexelBufferUpdateAfterBind = VK_TRUE;
-        requestedVulkan12Features.descriptorBindingStorageTexelBufferUpdateAfterBind = VK_TRUE;
-        requestedVulkan12Features.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
-        requestedVulkan12Features.descriptorBindingPartiallyBound = VK_TRUE;
-        requestedVulkan12Features.descriptorBindingVariableDescriptorCount = VK_TRUE;
-        requestedVulkan12Features.runtimeDescriptorArray = VK_TRUE;
 
         VkPhysicalDeviceSynchronization2FeaturesKHR requestedSync2Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR };
         requestedSync2Features.synchronization2 = VK_TRUE;
-
-        VkPhysicalDeviceMeshShaderFeaturesNV requestedMeshShaderFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV };
-        requestedMeshShaderFeatures.meshShader = VK_TRUE;
-        requestedMeshShaderFeatures.taskShader = VK_TRUE;
 
         VkPhysicalDeviceFeatures2 availableVulkan10Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
         VkPhysicalDeviceVulkan11Features availableVulkan11Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES };
         VkPhysicalDeviceVulkan12Features availableVulkan12Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
         VkPhysicalDeviceSynchronization2FeaturesKHR availableSync2Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR };
-        VkPhysicalDeviceMeshShaderFeaturesNV availableMeshShaderFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV };
 
         availableVulkan10Features.pNext = &availableVulkan11Features;
         availableVulkan11Features.pNext = &availableVulkan12Features;
@@ -229,12 +195,12 @@ namespace Surge
 
     }
 
-    void VulkanDevice::DumpPhysicalDeviceProperties(VkPhysicalDeviceProperties physicalDeviceProperties)
+    void VulkanDevice::DumpPhysicalDeviceProperties()
     {
         Log<LogSeverity::Info>("Picked PhysicalDevice Properties:");
-        Log<LogSeverity::Info>("  Device Name   : {0}", physicalDeviceProperties.deviceName);
-        Log<LogSeverity::Info>("  Device ID     : {0}", physicalDeviceProperties.deviceID);
-        Log<LogSeverity::Info>("  Driver Version: {0}", physicalDeviceProperties.driverVersion);
+        Log<LogSeverity::Info>("  Device Name   : {0}", mProperties.vk12Properties.driverName);
+        Log<LogSeverity::Info>("  Device ID     : {0}", mProperties.vk12Properties.driverID);
+        Log<LogSeverity::Info>("  Driver Version: {0}", mProperties.vk12Properties.driverInfo);
     }
 
     void VulkanDevice::FillQueueFamilyIndicesAndStructures(int flags, VulkanQueueFamilyIndices& outQueueFamilyIndices, Vector<VkDeviceQueueCreateInfo>& outQueueInfo)
