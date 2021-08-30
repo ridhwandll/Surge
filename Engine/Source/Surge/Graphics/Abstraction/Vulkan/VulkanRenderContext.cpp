@@ -46,13 +46,21 @@ namespace Surge
         volkLoadInstance(mVulkanInstance);
 
         mDevice = VulkanDevice(mVulkanInstance);
+
+        mSwapChain = VulkanSwapChain(window);
     }
 
     void VulkanRenderContext::Shutdown()
     {
         mVulkanDiagnostics.EndDiagnostics(mVulkanInstance);
+        mSwapChain.Destroy();
         mDevice.Destroy();
         vkDestroyInstance(mVulkanInstance, nullptr);
+    }
+
+    void VulkanRenderContext::OnResize(Uint width, Uint height)
+    {
+        mSwapChain.Resize(width, height);
     }
 
     Vector<const char*> VulkanRenderContext::GetRequiredInstanceExtensions()
@@ -78,4 +86,5 @@ namespace Surge
         ENABLE_IF_VK_VALIDATION(mVulkanDiagnostics.AddValidationLayers(instanceLayers));
         return instanceLayers;
     }
+
 }

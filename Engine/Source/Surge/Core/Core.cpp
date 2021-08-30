@@ -4,7 +4,6 @@
 #include "Surge/Core/Time/Clock.hpp"
 #include "Surge/Core/Window/Window.hpp"
 #include "Surge/Core/Input/Input.hpp"
-#include "Surge/Graphics/Abstraction/RenderContext.hpp"
 
 namespace Surge
 {
@@ -52,6 +51,11 @@ namespace Surge
     void Close()
     {
         sCoreData.mRunning = false;
+    }
+
+    SURGE_API Scope<RenderContext>& GetRenderContext()
+    {
+        return sCoreData.SurgeRenderContext;
     }
 
     SURGE_API Scope<Surge::Window>& GetWindow()
