@@ -3,6 +3,7 @@
 #include "Surge/Core/Defines.hpp"
 #include "Surge/Core/Application.hpp"
 #include "Surge/Core/Window/Window.hpp"
+#include "Surge/Graphics/Abstraction/RenderContext.hpp"
 
 namespace Surge
 {
@@ -17,6 +18,9 @@ namespace Surge
 
     // Ends the engine loop, returns from "Run"
     SURGE_API void Close();
+
+    // Gets the graphics render context
+    SURGE_API Scope<RenderContext>& GetRenderContext();
 
     // Ends the engine loop, returns from "Run"
     SURGE_API Scope<Window>& GetWindow();

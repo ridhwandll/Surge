@@ -23,16 +23,21 @@ namespace Surge
         if (candidates.rbegin()->first > 0)
         {
             mPhysicalDevice = candidates.rbegin()->second;
-            vkGetPhysicalDeviceProperties(mPhysicalDevice, &mProperties);
-            vkGetPhysicalDeviceFeatures(mPhysicalDevice, &mFeatures);
-            DumpPhysicalDeviceProperties(mProperties);
+            
+            QueryPhysicalDeviceProperties();
+            QueryPhysicalDeviceFeatures();
+
+            VkPhysicalDeviceProperties physicalDeviceFeatures;
+            vkGetPhysicalDeviceProperties(mPhysicalDevice, &physicalDeviceFeatures);
+            DumpPhysicalDeviceProperties(physicalDeviceFeatures);
+
             Log<LogSeverity::Info>("Surge Device Score: {0}", candidates.rbegin()->first);
         }
         else
         {
-            // TODO: Assert
-            Log<LogSeverity::Error>("No discrete Graphics Processing Unit(GPU) found!");
+            SG_ASSERT_INTERNAL("No discrete Graphics Processing Unit(GPU) found!");
         }
+
 
         QueryDeviceExtensions();
 
@@ -59,10 +64,10 @@ namespace Surge
 
         VkDeviceCreateInfo deviceCreateInfo{};
         deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-        deviceCreateInfo.pEnabledFeatures = &enabledFeatures;
+        deviceCreateInfo.pEnabledFeatures = nullptr;
         deviceCreateInfo.queueCreateInfoCount = static_cast<Uint>(queueCreateInfos.size());;
         deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
-        deviceCreateInfo.pNext = nullptr;
+        deviceCreateInfo.pNext = &mFeatures;
 
         if (!deviceExtensions.empty())
         {
@@ -88,7 +93,7 @@ namespace Surge
             Vector<VkExtensionProperties> extensions(extCount);
             if (vkEnumerateDeviceExtensionProperties(mPhysicalDevice, nullptr, &extCount, &extensions.front()) == VK_SUCCESS)
             {
-                Log<LogSeverity::Trace>("{0} has {1} extensions, they are:", mProperties.deviceName, extensions.size());
+                Log<LogSeverity::Trace>("{0} has {1} extensions, they are:", mProperties.vk10Properties.properties.deviceName, extensions.size());
                 int i = 1;
                 for (const auto& ext : extensions)
                 {
@@ -98,6 +103,130 @@ namespace Surge
                 }
             }
         }
+    }
+
+    void VulkanDevice::QueryPhysicalDeviceProperties()
+    {
+        // Credit to: https://github.com/rtryan98/Yggdrasil
+
+        VkPhysicalDeviceProperties2 props{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
+        mProperties.vk10Properties.pNext = &mProperties.vk11Properties;
+        mProperties.vk11Properties.pNext = &mProperties.vk12Properties;
+        mProperties.vk12Properties.pNext = nullptr;
+        vkGetPhysicalDeviceProperties2(mPhysicalDevice, &props);
+    }
+
+    void VulkanDevice::QueryPhysicalDeviceFeatures()
+    {
+        // Credit to: https://github.com/rtryan98/Yggdrasil
+
+        mFeatures.vk10Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+        mFeatures.vk10Features.pNext = &mFeatures.vk11Features;
+        mFeatures.vk11Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+        mFeatures.vk11Features.pNext = &mFeatures.vk12Features;
+        mFeatures.vk12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+        mFeatures.vk12Features.pNext = &mFeatures.sync2Features;
+        mFeatures.sync2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR;
+        mFeatures.sync2Features.pNext = nullptr;
+
+        VkPhysicalDeviceFeatures requestedVulkan10Features{};
+        requestedVulkan10Features.textureCompressionBC = VK_TRUE;
+        requestedVulkan10Features.samplerAnisotropy = VK_TRUE;
+        requestedVulkan10Features.multiDrawIndirect = VK_TRUE;
+        requestedVulkan10Features.imageCubeArray = VK_TRUE;
+        requestedVulkan10Features.shaderInt16 = VK_TRUE;
+        requestedVulkan10Features.shaderInt64 = VK_TRUE;
+
+        VkPhysicalDeviceVulkan11Features requestedVulkan11Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES };
+        requestedVulkan11Features.shaderDrawParameters = VK_TRUE;
+
+        VkPhysicalDeviceVulkan12Features requestedVulkan12Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
+        requestedVulkan12Features.storageBuffer8BitAccess = VK_TRUE;
+        requestedVulkan12Features.uniformAndStorageBuffer8BitAccess = VK_TRUE;
+        requestedVulkan12Features.drawIndirectCount = VK_TRUE;
+        requestedVulkan12Features.imagelessFramebuffer = VK_TRUE;
+        requestedVulkan12Features.shaderInt8 = VK_TRUE;
+        requestedVulkan12Features.descriptorIndexing = VK_TRUE;
+        requestedVulkan12Features.shaderInputAttachmentArrayDynamicIndexing = VK_TRUE;
+        requestedVulkan12Features.shaderUniformTexelBufferArrayDynamicIndexing = VK_TRUE;
+        requestedVulkan12Features.shaderStorageTexelBufferArrayDynamicIndexing = VK_TRUE;
+        requestedVulkan12Features.shaderUniformBufferArrayNonUniformIndexing = VK_TRUE;
+        requestedVulkan12Features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+        requestedVulkan12Features.shaderStorageBufferArrayNonUniformIndexing = VK_TRUE;
+        requestedVulkan12Features.shaderStorageImageArrayNonUniformIndexing = VK_TRUE;
+        requestedVulkan12Features.shaderInputAttachmentArrayNonUniformIndexing = VK_TRUE;
+        requestedVulkan12Features.shaderUniformTexelBufferArrayNonUniformIndexing = VK_TRUE;
+        requestedVulkan12Features.shaderStorageTexelBufferArrayNonUniformIndexing = VK_TRUE;
+        requestedVulkan12Features.descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE;
+        requestedVulkan12Features.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+        requestedVulkan12Features.descriptorBindingStorageImageUpdateAfterBind = VK_TRUE;
+        requestedVulkan12Features.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
+        requestedVulkan12Features.descriptorBindingUniformTexelBufferUpdateAfterBind = VK_TRUE;
+        requestedVulkan12Features.descriptorBindingStorageTexelBufferUpdateAfterBind = VK_TRUE;
+        requestedVulkan12Features.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
+        requestedVulkan12Features.descriptorBindingPartiallyBound = VK_TRUE;
+        requestedVulkan12Features.descriptorBindingVariableDescriptorCount = VK_TRUE;
+        requestedVulkan12Features.runtimeDescriptorArray = VK_TRUE;
+
+        VkPhysicalDeviceSynchronization2FeaturesKHR requestedSync2Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR };
+        requestedSync2Features.synchronization2 = VK_TRUE;
+
+        VkPhysicalDeviceMeshShaderFeaturesNV requestedMeshShaderFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV };
+        requestedMeshShaderFeatures.meshShader = VK_TRUE;
+        requestedMeshShaderFeatures.taskShader = VK_TRUE;
+
+        VkPhysicalDeviceFeatures2 availableVulkan10Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+        VkPhysicalDeviceVulkan11Features availableVulkan11Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES };
+        VkPhysicalDeviceVulkan12Features availableVulkan12Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
+        VkPhysicalDeviceSynchronization2FeaturesKHR availableSync2Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR };
+        VkPhysicalDeviceMeshShaderFeaturesNV availableMeshShaderFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV };
+
+        availableVulkan10Features.pNext = &availableVulkan11Features;
+        availableVulkan11Features.pNext = &availableVulkan12Features;
+        availableVulkan12Features.pNext = &availableSync2Features;
+
+        vkGetPhysicalDeviceFeatures2(mPhysicalDevice, &availableVulkan10Features);
+
+        VkBool32* requested{ nullptr };
+        VkBool32* available{ nullptr };
+
+        requested = &requestedVulkan10Features.robustBufferAccess;
+        available = &availableVulkan10Features.features.robustBufferAccess;
+        for (uint32_t i{ 0 }; i < (sizeof(VkPhysicalDeviceFeatures) / sizeof(VkBool32)); i++)
+        {
+            if (requested[i] && available[i])
+            {
+                VkBool32* feature{ (&mFeatures.vk10Features.features.robustBufferAccess) + i };
+                *feature = VK_TRUE;
+            }
+        }
+
+        requested = &requestedVulkan11Features.storageBuffer16BitAccess;
+        available = &availableVulkan11Features.storageBuffer16BitAccess;
+        for (uint32_t i{ 0 }; i < ((sizeof(VkPhysicalDeviceVulkan11Features) - sizeof(void*) - sizeof(VkStructureType)) / sizeof(VkBool32)) - 1; i++)
+        {
+            if (requested[i] && available[i])
+            {
+                VkBool32* feature{ (&mFeatures.vk11Features.storageBuffer16BitAccess) + i };
+                *feature = VK_TRUE;
+            }
+        }
+
+        requested = &requestedVulkan12Features.samplerMirrorClampToEdge;
+        available = &availableVulkan12Features.samplerMirrorClampToEdge;
+        for (uint32_t i{ 0 }; i < ((sizeof(VkPhysicalDeviceVulkan12Features) - sizeof(void*) - sizeof(VkStructureType)) / sizeof(VkBool32)) - 1; i++)
+        {
+            if (requested[i] && available[i])
+            {
+                VkBool32* feature{ (&mFeatures.vk12Features.samplerMirrorClampToEdge) + i };
+                *feature = VK_TRUE;
+            }
+        }
+        if (requestedSync2Features.synchronization2 && availableSync2Features.synchronization2)
+        {
+            mFeatures.sync2Features.synchronization2 = VK_TRUE;
+        }
+
     }
 
     void VulkanDevice::DumpPhysicalDeviceProperties(VkPhysicalDeviceProperties physicalDeviceProperties)

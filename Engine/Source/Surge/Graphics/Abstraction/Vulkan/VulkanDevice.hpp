@@ -22,10 +22,13 @@ namespace Surge
 
         VkDevice GetLogicaldevice() { return mLogicalDevice; }
         VkPhysicalDevice GetSelectedPhysicalDevice() { return mPhysicalDevice; }
+        const VulkanQueueFamilyIndices& GetQueueFamilyIndices() const { return mQueueFamilyIndices;  }
         bool IsExtensionSupported(const String& extensionName) { return mSupportedExtensions.find(extensionName) != mSupportedExtensions.end(); };
         void Destroy();
     private:
         void QueryDeviceExtensions();
+        void QueryPhysicalDeviceFeatures();
+        void QueryPhysicalDeviceProperties();
         void DumpPhysicalDeviceProperties(VkPhysicalDeviceProperties physicalDeviceProperties);
         void FillQueueFamilyIndicesAndStructures(int flags, VulkanQueueFamilyIndices& outQueueFamilyIndices, Vector<VkDeviceQueueCreateInfo>& outQueueInfo);
         int RatePhysicalDevice(VkPhysicalDevice physicalDevice);
@@ -35,12 +38,25 @@ namespace Surge
 
         // PhysicalDevice
         VkPhysicalDevice mPhysicalDevice = VK_NULL_HANDLE;
-        VkPhysicalDeviceProperties mProperties{};
-        VkPhysicalDeviceFeatures mFeatures{};
 
         // LogicalDevice
         VkDevice mLogicalDevice;
 
         std::unordered_set<String> mSupportedExtensions;
+
+        struct VkFeatures
+        {
+            VkPhysicalDeviceFeatures2 vk10Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+            VkPhysicalDeviceVulkan11Features vk11Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES };
+            VkPhysicalDeviceVulkan12Features vk12Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
+            VkPhysicalDeviceSynchronization2FeaturesKHR sync2Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR };
+        } mFeatures{};
+
+        struct VkProperties
+        {
+            VkPhysicalDeviceProperties2 vk10Properties{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
+            VkPhysicalDeviceVulkan11Properties vk11Properties{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_PROPERTIES };
+            VkPhysicalDeviceVulkan12Properties vk12Properties{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES };
+        } mProperties{};
     };
 }
