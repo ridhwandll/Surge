@@ -17,13 +17,24 @@ namespace Surge
 
     static CoreData sCoreData;
 
+    void CoreOnEvent(Event& e)
+    {
+        sCoreData.SurgeApplication->OnEvent(e);
+
+        Surge::EventDispatcher dispatcher(e);
+        dispatcher.Dispatch<Surge::WindowResizeEvent>([](Surge::WindowResizeEvent& e)
+            {
+                sCoreData.SurgeRenderContext->OnResize(e.GetWidth(), e.GetHeight());
+            });
+    }
+
     void Initialize(Application* application)
     {
         Clock::Start();
         sCoreData.SurgeApplication = application;
 
         sCoreData.SurgeWindow = Window::Create({ 1280, 720, "Surge", WindowFlags::CreateDefault });
-        sCoreData.SurgeWindow->RegisterApplication(application);
+        sCoreData.SurgeWindow->RegisterEventCallback(Surge::CoreOnEvent);
 
         sCoreData.SurgeRenderContext = RenderContext::Create();
         sCoreData.SurgeRenderContext->Initialize(sCoreData.SurgeWindow.get());
@@ -37,7 +48,10 @@ namespace Surge
         while (sCoreData.mRunning)
         {
             Clock::Update();
-            sCoreData.SurgeApplication->OnUpdate();
+            if (sCoreData.SurgeWindow->GetWindowState() != WindowState::Minimized)
+            {
+                sCoreData.SurgeApplication->OnUpdate();
+            }
             sCoreData.SurgeWindow->Update();
         }
     }

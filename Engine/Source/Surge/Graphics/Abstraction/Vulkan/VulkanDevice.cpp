@@ -23,19 +23,13 @@ namespace Surge
         if (candidates.rbegin()->first > 0)
         {
             mPhysicalDevice = candidates.rbegin()->second;
-            
             QueryPhysicalDeviceProperties();
             QueryPhysicalDeviceFeatures();
-
             DumpPhysicalDeviceProperties();
-
             Log<LogSeverity::Info>("Surge Device Score: {0}", candidates.rbegin()->first);
         }
         else
-        {
             SG_ASSERT_INTERNAL("No discrete Graphics Processing Unit(GPU) found!");
-        }
-
 
         QueryDeviceExtensions();
 
@@ -55,10 +49,6 @@ namespace Surge
 
         VkPhysicalDeviceFeatures enabledFeatures;
         memset(&enabledFeatures, 0, sizeof(VkPhysicalDeviceFeatures));
-        enabledFeatures.samplerAnisotropy = true;
-        enabledFeatures.wideLines = true;
-        enabledFeatures.fillModeNonSolid = true;
-        enabledFeatures.pipelineStatisticsQuery = true;
 
         VkDeviceCreateInfo deviceCreateInfo{};
         deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -91,14 +81,10 @@ namespace Surge
             Vector<VkExtensionProperties> extensions(extCount);
             if (vkEnumerateDeviceExtensionProperties(mPhysicalDevice, nullptr, &extCount, &extensions.front()) == VK_SUCCESS)
             {
-                Log<LogSeverity::Trace>("{0} has {1} extensions, they are:", mProperties.vk10Properties.properties.deviceName, extensions.size());
+                Log<LogSeverity::Trace>("Found {1} extensions on {0}", mProperties.vk10Properties.properties.deviceName, extensions.size());
                 int i = 1;
-                for (const auto& ext : extensions)
-                {
+                for (const VkExtensionProperties& ext : extensions)
                     mSupportedExtensions.emplace(ext.extensionName);
-                    Log<LogSeverity::Trace>("  {0} - {1}", i, ext.extensionName);
-                    i++;
-                }
             }
         }
     }
@@ -114,7 +100,6 @@ namespace Surge
     void VulkanDevice::QueryPhysicalDeviceFeatures()
     {
         // Credit to: https://github.com/rtryan98/Yggdrasil
-
         mFeatures.vk10Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
         mFeatures.vk10Features.pNext = &mFeatures.vk11Features;
         mFeatures.vk11Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
@@ -128,8 +113,9 @@ namespace Surge
         requestedVulkan10Features.samplerAnisotropy = VK_TRUE;
         requestedVulkan10Features.multiDrawIndirect = VK_TRUE;
         requestedVulkan10Features.imageCubeArray = VK_TRUE;
-        requestedVulkan10Features.shaderInt16 = VK_TRUE;
-        requestedVulkan10Features.shaderInt64 = VK_TRUE;
+        requestedVulkan10Features.pipelineStatisticsQuery = VK_TRUE;
+        requestedVulkan10Features.wideLines = VK_TRUE;
+        requestedVulkan10Features.fillModeNonSolid = VK_TRUE;
 
         VkPhysicalDeviceVulkan11Features requestedVulkan11Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES };
         requestedVulkan11Features.shaderDrawParameters = VK_TRUE;
@@ -153,12 +139,12 @@ namespace Surge
 
         vkGetPhysicalDeviceFeatures2(mPhysicalDevice, &availableVulkan10Features);
 
-        VkBool32* requested{ nullptr };
-        VkBool32* available{ nullptr };
+        VkBool32* requested = nullptr;
+        VkBool32* available = nullptr;
 
         requested = &requestedVulkan10Features.robustBufferAccess;
         available = &availableVulkan10Features.features.robustBufferAccess;
-        for (uint32_t i{ 0 }; i < (sizeof(VkPhysicalDeviceFeatures) / sizeof(VkBool32)); i++)
+        for (Uint i = 0; i < (sizeof(VkPhysicalDeviceFeatures) / sizeof(VkBool32)); i++)
         {
             if (requested[i] && available[i])
             {
@@ -169,7 +155,7 @@ namespace Surge
 
         requested = &requestedVulkan11Features.storageBuffer16BitAccess;
         available = &availableVulkan11Features.storageBuffer16BitAccess;
-        for (uint32_t i{ 0 }; i < ((sizeof(VkPhysicalDeviceVulkan11Features) - sizeof(void*) - sizeof(VkStructureType)) / sizeof(VkBool32)) - 1; i++)
+        for (Uint i = 0; i < ((sizeof(VkPhysicalDeviceVulkan11Features) - sizeof(void*) - sizeof(VkStructureType)) / sizeof(VkBool32)) - 1; i++)
         {
             if (requested[i] && available[i])
             {
@@ -180,7 +166,7 @@ namespace Surge
 
         requested = &requestedVulkan12Features.samplerMirrorClampToEdge;
         available = &availableVulkan12Features.samplerMirrorClampToEdge;
-        for (uint32_t i{ 0 }; i < ((sizeof(VkPhysicalDeviceVulkan12Features) - sizeof(void*) - sizeof(VkStructureType)) / sizeof(VkBool32)) - 1; i++)
+        for (Uint i = 0; i < ((sizeof(VkPhysicalDeviceVulkan12Features) - sizeof(void*) - sizeof(VkStructureType)) / sizeof(VkBool32)) - 1; i++)
         {
             if (requested[i] && available[i])
             {
@@ -192,7 +178,6 @@ namespace Surge
         {
             mFeatures.sync2Features.synchronization2 = VK_TRUE;
         }
-
     }
 
     void VulkanDevice::DumpPhysicalDeviceProperties()
@@ -318,6 +303,11 @@ namespace Surge
         else if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU)
             score += 50;
 
+        Uint extCount = 0;
+        Uint layerCount = 0;
+        vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extCount, nullptr);
+        vkEnumerateDeviceLayerProperties(physicalDevice, &layerCount, nullptr);
+
         // Bonus
         score += properties.limits.maxColorAttachments;
         score += properties.limits.framebufferColorSampleCounts;
@@ -327,6 +317,8 @@ namespace Surge
         score += properties.limits.maxMemoryAllocationCount / 8;
         score += properties.limits.maxPushConstantsSize / 2;
         score += properties.limits.maxPerStageResources;
+        score += extCount;
+        score += layerCount;
 
         return score;
     }

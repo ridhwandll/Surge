@@ -13,8 +13,11 @@ public:
 
     virtual void OnEvent(Surge::Event& e) override
     {
-        //Surge::EventDispatcher dispatcher(e);
-        //dispatcher.Dispatch<Surge::KeyPressedEvent>([this](Surge::KeyPressedEvent& e) {});
+        Surge::EventDispatcher dispatcher(e);
+        dispatcher.Dispatch<Surge::KeyPressedEvent>([this](Surge::KeyPressedEvent& e)
+            {
+                Surge::Log("{0}", e.ToString());
+            });
     }
 
     virtual void OnShutdown() override

@@ -9,12 +9,12 @@ namespace Surge
         switch (messageSeverity)
         {
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-            Log<LogSeverity::Warn>("[VulkanDiagnostics] {0}", pCallbackData->pMessage);
-            Log<LogSeverity::Debug>("------------------------------------------------");
+            Log("[VulkanDiagnostics]");
+            Log<LogSeverity::Warn>("{0}", pCallbackData->pMessage);
             break;
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-            Log<LogSeverity::Error>("[VulkanDiagnostics] {0}", pCallbackData->pMessage);
-            Log<LogSeverity::Debug>("------------------------------------------------");
+            Log("[VulkanDiagnostics]");
+            Log<LogSeverity::Error>("{0}", pCallbackData->pMessage);
             break;
         }
 

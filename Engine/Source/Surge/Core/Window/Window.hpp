@@ -3,6 +3,7 @@
 #include "Surge/Core/Defines.hpp"
 #include "Surge/Core/Application.hpp"
 #include <glm/glm.hpp>
+#include <functional>
 
 namespace Surge
 {
@@ -15,6 +16,12 @@ namespace Surge
         CreateDefault = BIT(4)
     };
     MAKE_BIT_ENUM(WindowFlags);
+
+    enum class WindowState
+    {
+        Normal = 0,
+        Minimized
+    };
 
     struct WindowData
     {
@@ -41,7 +48,7 @@ namespace Surge
         virtual void Update() = 0;
         virtual void Minimize() = 0;
         virtual void Maximize() = 0;
-        virtual void RegisterApplication(Application* application) = 0;
+        virtual void RegisterEventCallback(std::function<void(Event&)> eventCallback) = 0;
 
         // Get/Set the title Window(in pixels)
         virtual String GetTitle() const = 0;
@@ -55,10 +62,10 @@ namespace Surge
         virtual glm::vec2 GetSize() const = 0;
         virtual void SetSize(const glm::vec2& size) const = 0;
 
-        // Turn in/off the console window
+        virtual WindowState GetWindowState() const = 0;
         virtual void ShowConsole(bool show) const = 0;
-
         virtual void* GetNativeWindowHandle() = 0;
+
         const WindowData& GetData() const { return mWindowData; }
         static Scope<Window> Create(const WindowData& windowData);
     protected:

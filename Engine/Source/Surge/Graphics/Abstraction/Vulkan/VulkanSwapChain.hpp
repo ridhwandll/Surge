@@ -5,7 +5,6 @@
 
 namespace Surge
 {
-
     class SURGE_API VulkanSwapChain
     {
     public:
@@ -19,7 +18,6 @@ namespace Surge
         Uint GetHeight() const { return mSwapChainExtent.height; }
         VkFormat GetColorFormat() const { return mColorFormat.format; }
         VkSwapchainKHR GetVulkanSwapChain() const { return mSwapChain; }
-
         void Destroy();
     private:
         VkResult AcquireNextImage(VkSemaphore imageAvailableSemaphore, Uint* imageIndex);
@@ -28,7 +26,6 @@ namespace Surge
         void CreateSwapChain();
         void CreateRenderPass();
         void CreateFramebuffer();
-
     private:
         VkSwapchainKHR mSwapChain = VK_NULL_HANDLE;
         VkSurfaceKHR mSurface;
@@ -42,10 +39,10 @@ namespace Surge
         VkExtent2D mSwapChainExtent;
         VkSurfaceFormatKHR mColorFormat;
 
+        // Presentation Queue stuff
         VkQueue mPresentQueue;
         Uint mPresentQueueIndex;
 
         bool mVsync = false;
     };
-
 }

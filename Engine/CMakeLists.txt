@@ -10,6 +10,7 @@ set(INCLUDE_DIRS
     Vendor/fmt/Include
     Vendor/glm
     Vendor/Vulkan-Headers/Include
+    Vendor/VulkanMemoryAllocator/Include
     Vendor/volk
 )
 

@@ -9,25 +9,27 @@ namespace Surge
 {
     namespace VulkanUtils
     {
-
         void CreateWindowSurface(VkInstance instance, HWND windowHandle, VkSurfaceKHR* surface)
         {
+#ifdef SURGE_WINDOWS
             PFN_vkCreateWin32SurfaceKHR vkCreateWin32SurfaceKHR;
 
             // Getting the vkCreateWin32SurfaceKHR function pointer and assert if it doesnt exist
-            vkCreateWin32SurfaceKHR = (PFN_vkCreateWin32SurfaceKHR) vkGetInstanceProcAddr(instance, "vkCreateWin32SurfaceKHR");
+            vkCreateWin32SurfaceKHR = (PFN_vkCreateWin32SurfaceKHR)vkGetInstanceProcAddr(instance, "vkCreateWin32SurfaceKHR");
             if (!vkCreateWin32SurfaceKHR)
-                SG_ASSERT_INTERNAL("Win32: Vulkan instance missing VK_KHR_win32_surface extension");
+                SG_ASSERT_INTERNAL("[Win32] Vulkan instance missing VK_KHR_win32_surface extension");
 
             VkWin32SurfaceCreateInfoKHR sci;
             memset(&sci, 0, sizeof(sci)); // Clear the info
             sci.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-            sci.hinstance = GetModuleHandle(NULL);
+            sci.hinstance = GetModuleHandle(nullptr);
             sci.hwnd = windowHandle;
 
             VK_CALL(vkCreateWin32SurfaceKHR(instance, &sci, nullptr, surface));
+#else
+            SG_ASSERT_INTERNAL("Surge is currently Windows Only! :(");
+#endif
         }
-
     }
 
     VulkanSwapChain::VulkanSwapChain(Window* window)
@@ -45,16 +47,14 @@ namespace Surge
         VkPhysicalDevice physicalDevice = static_cast<VulkanDevice*>(GetRenderContext()->GetInteralDevice())->GetSelectedPhysicalDevice();
         VkDevice device = static_cast<VulkanDevice*>(GetRenderContext()->GetInteralDevice())->GetLogicaldevice();
 
-
         VkSurfaceCapabilitiesKHR surfaceCapabilities;
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, mSurface, &surfaceCapabilities);
 
         Uint imageCount = surfaceCapabilities.minImageCount + 1;
 
         VkExtent2D swapChainExtent = {};
-        if (surfaceCapabilities.currentExtent.width != UINT32_MAX)
+        if (surfaceCapabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
             swapChainExtent = surfaceCapabilities.currentExtent;
-
 
         // Getting all swapchain formats
         Uint availableFormatCount = 0;
@@ -65,14 +65,11 @@ namespace Surge
 
         // Selecting the best swapchain format
         VkSurfaceFormatKHR pickedFormat = availableFormats[0]; // Default one is `availableFormats[0]`
-        for (const auto& availableFormat : availableFormats)
+        for (const VkSurfaceFormatKHR& availableFormat : availableFormats)
         {
             if (availableFormat.format == VK_FORMAT_R8G8B8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-            {
                 pickedFormat = availableFormat;
-            }
         }
-
 
         // Getting all swapchain presentModes
         Uint availablePresentModeCount = 0;
@@ -85,12 +82,9 @@ namespace Surge
         VkPresentModeKHR pickedPresentMode = VK_PRESENT_MODE_FIFO_KHR; // Default one
         for (const auto& availablePresentMode : avaialbePresentModes)
         {
-            if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR && mVsync != true)
-            {
+            if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR && !mVsync)
                 pickedPresentMode = availablePresentMode;
-            }
         }
-
 
         VkSwapchainCreateInfoKHR createInfo{ VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
         createInfo.surface = mSurface;
@@ -107,10 +101,9 @@ namespace Surge
         createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
         createInfo.presentMode = pickedPresentMode;
         createInfo.clipped = VK_TRUE;
-        createInfo.oldSwapchain = mSwapChain ? mSwapChain : VK_NULL_HANDLE;
+        createInfo.oldSwapchain = VK_NULL_HANDLE;
 
         VK_CALL(vkCreateSwapchainKHR(device, &createInfo, nullptr, &mSwapChain));
-
 
         vkGetSwapchainImagesKHR(device, mSwapChain, &imageCount, nullptr);
         mSwapChainImages.resize(imageCount);
@@ -125,8 +118,6 @@ namespace Surge
     {
         // Creating here the renderPass because we need it for the framebuffer, for imgui and other stuff.
         // The rendered image will be passed to this renderpass by rendering a quad with the final texture or viewport and then it will pe presented
-
-
         VkDevice device = static_cast<VulkanDevice*>(GetRenderContext()->GetInteralDevice())->GetLogicaldevice();
 
         VkAttachmentDescription colorAttachment{};
@@ -148,7 +139,6 @@ namespace Surge
         subpass.colorAttachmentCount = 1;
         subpass.pColorAttachments = &colorAttachmentRef;
 
-
         VkSubpassDependency dependency{};
         dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
         dependency.dstSubpass = 0;
@@ -167,7 +157,6 @@ namespace Surge
         renderPassInfo.pDependencies = &dependency;
 
         VK_CALL(vkCreateRenderPass(device, &renderPassInfo, nullptr, &mRenderPass));
-
     }
 
     void VulkanSwapChain::CreateFramebuffer()
@@ -198,7 +187,6 @@ namespace Surge
 
             VK_CALL(vkCreateImageView(device, &createInfo, nullptr, &mSwapChainImageViews[i]));
         }
-
 
         // Imageless framebuffer (Vulkan Core feature 1.2)
         // Firstly we tell vulkan how we are gonna use the image views
@@ -234,19 +222,21 @@ namespace Surge
 
     void VulkanSwapChain::Resize(Uint width, Uint height)
     {
-        // TODO: Fix resizing (currently this function is not called)
-
+        VkInstance instance = static_cast<VkInstance>(GetRenderContext()->GetInteralInstance());
         VkDevice device = static_cast<VulkanDevice*>(GetRenderContext()->GetInteralDevice())->GetLogicaldevice();
 
         // Wait till everything has finished rendering before deleting it
         vkDeviceWaitIdle(device);
 
-        // Deleting the old framebuffer (with its imageViews)
+        vkDestroyRenderPass(device, mRenderPass, nullptr);
         vkDestroyFramebuffer(device, mFramebuffer, nullptr);
-        for (auto imageView : mSwapChainImageViews)
+        for (auto& imageView : mSwapChainImageViews)
             vkDestroyImageView(device, imageView, nullptr);
 
+        vkDestroySwapchainKHR(device, mSwapChain, nullptr);
+
         CreateSwapChain();
+        CreateRenderPass();
         CreateFramebuffer();
     }
 
@@ -258,7 +248,7 @@ namespace Surge
         vkDestroyRenderPass(device, mRenderPass, nullptr);
         vkDestroyFramebuffer(device, mFramebuffer, nullptr);
 
-        for (auto imageView : mSwapChainImageViews)
+        for (auto& imageView : mSwapChainImageViews)
             vkDestroyImageView(device, imageView, nullptr);
 
         vkDestroySwapchainKHR(device, mSwapChain, nullptr);
@@ -269,7 +259,7 @@ namespace Surge
     {
         VkDevice device = static_cast<VulkanDevice*>(GetRenderContext()->GetInteralDevice())->GetLogicaldevice();
         VkResult result = vkAcquireNextImageKHR(device, mSwapChain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, imageIndex);
-
+        VK_CALL(result);
         return result;
     }
 
@@ -284,6 +274,7 @@ namespace Surge
         presentInfo.pImageIndices = &imageIndex;
 
         VkResult result = vkQueuePresentKHR(mPresentQueue, &presentInfo);
+        VK_CALL(result);
         return result;
     }
 
@@ -304,7 +295,7 @@ namespace Surge
         {
             VkBool32 presentSupport = false;
             vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, mSurface, &presentSupport);
-            
+
             if (presentSupport)
             {
                 mPresentQueueIndex = i;
@@ -315,5 +306,4 @@ namespace Surge
         // Getting the VkQueue using the presentQueueIndex
         vkGetDeviceQueue(device, mPresentQueueIndex, 0, &mPresentQueue);
     }
-
 }

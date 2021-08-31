@@ -137,7 +137,7 @@ namespace Surge
         {
             WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
             WindowClosedEvent event;
-            data->mApplication->OnEvent(event);
+            data->mEventCallback(event);
             data->mIsOpen = false;
             Surge::Close();
             PostQuitMessage(0);
@@ -150,22 +150,22 @@ namespace Surge
             data->mWindowData.Height = (UINT)HIWORD(lParam);
 
             WindowResizeEvent event((UINT)LOWORD(lParam), (UINT)HIWORD(lParam));
-            if (data->mApplication != nullptr)
-                data->mApplication->OnEvent(event);
+            if (data->mEventCallback != nullptr)
+                data->mEventCallback(event);
             break;
         }
         case WM_KEYUP:
         {
             WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
             KeyReleasedEvent event(static_cast<KeyCode>(wParam));
-            data->mApplication->OnEvent(event);
+            data->mEventCallback(event);
             break;
         }
         case WM_CHAR:
         {
             WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
             KeyTypedEvent event(static_cast<KeyCode>(wParam));
-            data->mApplication->OnEvent(event);
+            data->mEventCallback(event);
             break;
         }
         case WM_KEYDOWN:
@@ -173,63 +173,83 @@ namespace Surge
             WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
             int repeatCount = (lParam & 0xffff);
             KeyPressedEvent event(static_cast<KeyCode>(wParam), repeatCount);
-            data->mApplication->OnEvent(event);
+            data->mEventCallback(event);
             break;
         }
         case WM_MOUSEMOVE:
         {
             WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
             MouseMovedEvent event((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam));
-            data->mApplication->OnEvent(event);
+            data->mEventCallback(event);
             break;
         }
         case WM_MOUSEWHEEL:
         {
             WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
             MouseScrolledEvent event((float)GET_WHEEL_DELTA_WPARAM(wParam) / (float)WHEEL_DELTA);
-            data->mApplication->OnEvent(event);
+            data->mEventCallback(event);
             break;
         }
         case WM_LBUTTONDOWN:
         {
             WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
             MouseButtonPressedEvent event(static_cast<MouseCode>(VK_LBUTTON));
-            data->mApplication->OnEvent(event);
+            data->mEventCallback(event);
             break;
         }
         case WM_LBUTTONUP:
         {
             WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
             MouseButtonReleasedEvent event(static_cast<MouseCode>(VK_LBUTTON));
-            data->mApplication->OnEvent(event);
+            data->mEventCallback(event);
             break;
         }
         case WM_MBUTTONDOWN:
         {
             WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
             MouseButtonPressedEvent event(static_cast<MouseCode>(VK_MBUTTON));
-            data->mApplication->OnEvent(event);
+            data->mEventCallback(event);
             break;
         }
         case WM_MBUTTONUP:
         {
             WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
             MouseButtonReleasedEvent event(static_cast<MouseCode>(VK_MBUTTON));
-            data->mApplication->OnEvent(event);
+            data->mEventCallback(event);
             break;
         }
         case WM_RBUTTONDOWN:
         {
             WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
             MouseButtonPressedEvent event(static_cast<MouseCode>(VK_RBUTTON));
-            data->mApplication->OnEvent(event);
+            data->mEventCallback(event);
             break;
         }
         case WM_RBUTTONUP:
         {
             WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
             MouseButtonReleasedEvent event(static_cast<MouseCode>(VK_RBUTTON));
-            data->mApplication->OnEvent(event);
+            data->mEventCallback(event);
+            break;
+        }
+        case WM_SYSCOMMAND:
+        {
+            switch (wParam)
+            {
+            case SC_MINIMIZE:
+            {
+                WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+                data->mWindowState = WindowState::Minimized;
+                break;
+            }
+            case SC_RESTORE:
+            {
+                WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+                data->mWindowState = WindowState::Normal;
+                break;
+            }
+            }
+            return DefWindowProc(hWnd, msg, wParam, lParam);
             break;
         }
         default:

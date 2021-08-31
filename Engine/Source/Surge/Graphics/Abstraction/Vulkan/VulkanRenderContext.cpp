@@ -31,8 +31,7 @@ namespace Surge
         Vector<const char*> instanceExtensions = GetRequiredInstanceExtensions();
         Vector<const char*> instanceLayers = GetRequiredInstanceLayers();
 
-        VkInstanceCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+        VkInstanceCreateInfo createInfo{ VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
         createInfo.pApplicationInfo = &appInfo;
         createInfo.enabledLayerCount = static_cast<Uint>(instanceLayers.size());
         createInfo.ppEnabledLayerNames = instanceLayers.data();
@@ -46,13 +45,12 @@ namespace Surge
         volkLoadInstance(mVulkanInstance);
 
         mDevice = VulkanDevice(mVulkanInstance);
-
         mSwapChain = VulkanSwapChain(window);
     }
 
     void VulkanRenderContext::Shutdown()
     {
-        mVulkanDiagnostics.EndDiagnostics(mVulkanInstance);
+        ENABLE_IF_VK_VALIDATION(mVulkanDiagnostics.EndDiagnostics(mVulkanInstance));
         mSwapChain.Destroy();
         mDevice.Destroy();
         vkDestroyInstance(mVulkanInstance, nullptr);
@@ -60,22 +58,15 @@ namespace Surge
 
     void VulkanRenderContext::OnResize(Uint width, Uint height)
     {
-        mSwapChain.Resize(width, height);
+        if (width != 0 || height != 0)
+            mSwapChain.Resize(width, height);
     }
 
     Vector<const char*> VulkanRenderContext::GetRequiredInstanceExtensions()
     {
         Vector<const char*> instanceExtensions;
         instanceExtensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
-
-#ifdef SURGE_WINDOWS
-        instanceExtensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-#elif SURGE_APPLE
-        instanceExtensions.push_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
-#elif SURGE_LINUX
-        instanceExtensions.push_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
-#endif
-
+        instanceExtensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME); // Currently windows Only
         ENABLE_IF_VK_VALIDATION(mVulkanDiagnostics.AddValidationExtensions(instanceExtensions));
         return instanceExtensions;
     }

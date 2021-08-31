@@ -22,6 +22,6 @@ namespace Surge
     // Gets the graphics render context
     SURGE_API Scope<RenderContext>& GetRenderContext();
 
-    // Ends the engine loop, returns from "Run"
+    // Returns the Window
     SURGE_API Scope<Window>& GetWindow();
 }

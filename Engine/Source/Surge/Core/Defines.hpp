@@ -26,12 +26,14 @@
     #define SG_ASSERT_NOMSG(condition) { if(!(condition)) { Surge::Log<Surge::LogSeverity::Fatal>("Assertion Failed"); ASSERT(); } }
     #define SG_ASSERT_INTERNAL(...)    { Surge::Log<Surge::LogSeverity::Fatal>("Assertion Failed: {0}", __VA_ARGS__); ASSERT(); }
 #else
+    #define ASSERT()
     #define SG_ASSERT(...)
     #define SG_ASSERT_NOMSG(...)
     #define SG_ASSERT_INTERNAL(...)
 #endif
 
 #define BIT(x) (1 << x)
+#define SURGE_FORCEINLINE __forceinline
 
 #define MAKE_BIT_ENUM(type)\
 inline type operator|(type a, type b) { return static_cast<type>(static_cast<int>(a) | static_cast<int>(b)); }\
