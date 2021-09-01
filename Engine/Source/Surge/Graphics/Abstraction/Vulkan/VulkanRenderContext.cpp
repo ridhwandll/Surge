@@ -44,13 +44,15 @@ namespace Surge
         ENABLE_IF_VK_VALIDATION(mVulkanDiagnostics.StartDiagnostics(mVulkanInstance));
         volkLoadInstance(mVulkanInstance);
 
-        mDevice = VulkanDevice(mVulkanInstance);
-        mSwapChain = VulkanSwapChain(window);
+        mDevice.Initialize(mVulkanInstance);
+        mSwapChain.Initialize(window);
+        mMemoryAllocator.Initialize(mVulkanInstance, mDevice);
     }
 
     void VulkanRenderContext::Shutdown()
     {
         ENABLE_IF_VK_VALIDATION(mVulkanDiagnostics.EndDiagnostics(mVulkanInstance));
+        mMemoryAllocator.Destroy();
         mSwapChain.Destroy();
         mDevice.Destroy();
         vkDestroyInstance(mVulkanInstance, nullptr);

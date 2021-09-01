@@ -4,7 +4,7 @@
 
 namespace Surge
 {
-    class Application
+    class SURGE_API Application
     {
     public:
         Application() = default;

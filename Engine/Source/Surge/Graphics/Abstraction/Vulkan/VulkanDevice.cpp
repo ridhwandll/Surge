@@ -6,7 +6,7 @@
 
 namespace Surge
 {
-    VulkanDevice::VulkanDevice(VkInstance& instance)
+    void VulkanDevice::Initialize(VkInstance instance)
     {
         Uint deviceCount = 0;
         VK_CALL(vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr));
@@ -47,8 +47,7 @@ namespace Surge
         Vector<const char*> deviceExtensions;
         deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
-        VkPhysicalDeviceFeatures enabledFeatures;
-        memset(&enabledFeatures, 0, sizeof(VkPhysicalDeviceFeatures));
+        VkPhysicalDeviceFeatures enabledFeatures{};
 
         VkDeviceCreateInfo deviceCreateInfo{};
         deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -82,7 +81,6 @@ namespace Surge
             if (vkEnumerateDeviceExtensionProperties(mPhysicalDevice, nullptr, &extCount, &extensions.front()) == VK_SUCCESS)
             {
                 Log<LogSeverity::Trace>("Found {1} extensions on {0}", mProperties.vk10Properties.properties.deviceName, extensions.size());
-                int i = 1;
                 for (const VkExtensionProperties& ext : extensions)
                     mSupportedExtensions.emplace(ext.extensionName);
             }

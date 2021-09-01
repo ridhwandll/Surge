@@ -40,7 +40,7 @@ namespace Surge
     };
 
     template<typename T>
-    class Ref
+    class SURGE_API Ref
     {
     public:
         /* CONSTRUCTORS */

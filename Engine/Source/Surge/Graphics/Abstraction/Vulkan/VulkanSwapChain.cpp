@@ -32,7 +32,7 @@ namespace Surge
         }
     }
 
-    VulkanSwapChain::VulkanSwapChain(Window* window)
+    void VulkanSwapChain::Initialize(Window* window)
     {
         VkInstance instance = static_cast<VkInstance>(GetRenderContext()->GetInteralInstance());
         VulkanUtils::CreateWindowSurface(instance, (HWND)window->GetNativeWindowHandle(), &mSurface);
@@ -228,7 +228,6 @@ namespace Surge
         // Wait till everything has finished rendering before deleting it
         vkDeviceWaitIdle(device);
 
-        vkDestroyRenderPass(device, mRenderPass, nullptr);
         vkDestroyFramebuffer(device, mFramebuffer, nullptr);
         for (auto& imageView : mSwapChainImageViews)
             vkDestroyImageView(device, imageView, nullptr);
@@ -236,7 +235,6 @@ namespace Surge
         vkDestroySwapchainKHR(device, mSwapChain, nullptr);
 
         CreateSwapChain();
-        CreateRenderPass();
         CreateFramebuffer();
     }
 

@@ -9,6 +9,8 @@ public:
 
     virtual void OnUpdate() override
     {
+        //Surge::GPUMemoryStats memoryStatus = Surge::GetRenderContext()->GetMemoryStatus();
+        //Surge::Log<Surge::LogSeverity::Info>("Used: {0} | Free: {1}", memoryStatus.Used, memoryStatus.Free);
     }
 
     virtual void OnEvent(Surge::Event& e) override

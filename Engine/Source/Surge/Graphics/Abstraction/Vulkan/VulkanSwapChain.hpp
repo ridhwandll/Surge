@@ -9,8 +9,9 @@ namespace Surge
     {
     public:
         VulkanSwapChain() = default;
-        VulkanSwapChain(Window* window);
+        ~VulkanSwapChain() = default;
 
+        void Initialize(Window* window);
         void Resize(Uint width, Uint height);
 
         Uint GetImageCount() const { return mImageCount; }

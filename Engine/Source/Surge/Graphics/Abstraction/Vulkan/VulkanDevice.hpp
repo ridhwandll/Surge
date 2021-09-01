@@ -17,14 +17,16 @@ namespace Surge
     {
     public:
         VulkanDevice() = default;
-        VulkanDevice(VkInstance& instance);
         ~VulkanDevice() = default;
 
+        void Initialize(VkInstance instance);
+        void Destroy();
+
+        VkPhysicalDevice GetPhysicaldevice() { return mPhysicalDevice; }
         VkDevice GetLogicaldevice() { return mLogicalDevice; }
         VkPhysicalDevice GetSelectedPhysicalDevice() { return mPhysicalDevice; }
         const VulkanQueueFamilyIndices& GetQueueFamilyIndices() const { return mQueueFamilyIndices;  }
         bool IsExtensionSupported(const String& extensionName) { return mSupportedExtensions.find(extensionName) != mSupportedExtensions.end(); };
-        void Destroy();
     private:
         void QueryDeviceExtensions();
         void QueryPhysicalDeviceFeatures();
