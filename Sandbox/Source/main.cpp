@@ -1,10 +1,27 @@
 #include <Surge/Surge.hpp>
 
-class MyApp : public Surge::Application
+using namespace Surge; //Ooof
+
+struct Vertex
+{
+    glm::vec2 Pos;
+    glm::vec3 Color;
+};
+
+const std::vector<Vertex> vertices =
+{
+    {{ 0.0f, -0.5f }, { 1.0f, 0.0f, 0.0f }},
+    {{ 0.5f,  0.5f }, { 0.0f, 1.0f, 0.0f }},
+    {{-0.5f,  0.5f }, { 0.0f, 0.0f, 1.0f }}
+};
+
+class MyApp : public Application
 {
 public:
+    Ref<Buffer> buffer;
     virtual void OnInitialize() override
     {
+        buffer = Buffer::Create(vertices.data(), static_cast<Uint>(sizeof(vertices[0]) * vertices.size()), BufferType::VertexBuffer);
     }
 
     virtual void OnUpdate() override
@@ -13,12 +30,12 @@ public:
         //Surge::Log<Surge::LogSeverity::Info>("Used: {0} | Free: {1}", memoryStatus.Used, memoryStatus.Free);
     }
 
-    virtual void OnEvent(Surge::Event& e) override
+    virtual void OnEvent(Event& e) override
     {
-        Surge::EventDispatcher dispatcher(e);
-        dispatcher.Dispatch<Surge::KeyPressedEvent>([this](Surge::KeyPressedEvent& e)
+        EventDispatcher dispatcher(e);
+        dispatcher.Dispatch<Surge::KeyPressedEvent>([this](KeyPressedEvent& e)
             {
-                Surge::Log("{0}", e.ToString());
+                Log("{0}", e.ToString());
             });
     }
 
@@ -29,8 +46,8 @@ public:
 
 int main()
 {
-    MyApp app;
-    Surge::Initialize(&app);
+    MyApp* app = new MyApp();
+    Surge::Initialize(app);
     Surge::Run();
     Surge::Shutdown();
 }

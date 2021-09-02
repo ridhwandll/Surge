@@ -4,7 +4,7 @@
 
 namespace Surge
 {
-    class SURGE_API Renderer : public RefCounted
+    class Renderer : public RefCounted
     {
     public:
         void Initialize();

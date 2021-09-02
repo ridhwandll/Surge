@@ -1,9 +1,10 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
-#define VMA_IMPLEMENTATION
 #include "Pch.hpp"
+
+#define VMA_IMPLEMENTATION
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanMemoryAllocator.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDevice.hpp"
-#include "Surge/Graphics/Abstraction/RenderContext.hpp"
+#include "Surge/Graphics/RenderContext.hpp"
 #include "VulkanDiagnostics.hpp"
 
 namespace Surge
@@ -62,6 +63,18 @@ namespace Surge
     void VulkanMemoryAllocator::Free(VmaAllocation allocation)
     {
         vmaFreeMemory(mAllocator, allocation);
+    }
+
+    void* VulkanMemoryAllocator::MapMemory(VmaAllocation allocation)
+    {
+        void* mappedMemory;
+        vmaMapMemory(mAllocator, allocation, (void**)&mappedMemory);
+        return mappedMemory;
+    }
+
+    void VulkanMemoryAllocator::UnmapMemory(VmaAllocation allocation)
+    {
+        vmaUnmapMemory(mAllocator, allocation);
     }
 
     GPUMemoryStats VulkanMemoryAllocator::GetStats() const

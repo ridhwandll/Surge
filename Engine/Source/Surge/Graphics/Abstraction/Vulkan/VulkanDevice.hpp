@@ -8,12 +8,19 @@ namespace Surge
 {
     struct VulkanQueueFamilyIndices
     {
-        std::optional<int32_t> GraphicsQueue;
-        std::optional<int32_t> ComputeQueue;
-        std::optional<int32_t> TransferQueue;
+        int32_t GraphicsQueue = -1;
+        int32_t ComputeQueue = -1;
+        int32_t TransferQueue = -1;
     };
 
-    class SURGE_API VulkanDevice
+    enum class VulkanQueueType
+    {
+        Graphics = 0,
+        Compute,
+        Transfer
+    };
+
+    class VulkanDevice
     {
     public:
         VulkanDevice() = default;
@@ -25,7 +32,15 @@ namespace Surge
         VkPhysicalDevice GetPhysicaldevice() { return mPhysicalDevice; }
         VkDevice GetLogicaldevice() { return mLogicalDevice; }
         VkPhysicalDevice GetSelectedPhysicalDevice() { return mPhysicalDevice; }
-        const VulkanQueueFamilyIndices& GetQueueFamilyIndices() const { return mQueueFamilyIndices;  }
+        VulkanQueueFamilyIndices GetQueueFamilyIndices() { return mQueueFamilyIndices; }
+
+        void BeginCmdBuffer(VkCommandBuffer& commandBuffer, VulkanQueueType type);
+        void EndCmdBuffer(VkCommandBuffer commandBuffer, VulkanQueueType type);
+
+        VkQueue GetGraphicsQueue() { return mGraphicsQueue; }
+        VkQueue GetComputeQueue() { return mComputeQueue; }
+        VkQueue GetTransferQueue() { return mComputeQueue; }
+
         bool IsExtensionSupported(const String& extensionName) { return mSupportedExtensions.find(extensionName) != mSupportedExtensions.end(); };
     private:
         void QueryDeviceExtensions();
@@ -33,7 +48,8 @@ namespace Surge
         void QueryPhysicalDeviceProperties();
         void DumpPhysicalDeviceProperties();
         void FillQueueFamilyIndicesAndStructures(int flags, VulkanQueueFamilyIndices& outQueueFamilyIndices, Vector<VkDeviceQueueCreateInfo>& outQueueInfo);
-        int RatePhysicalDevice(VkPhysicalDevice physicalDevice);
+        void CreateCommandPools();
+        int32_t RatePhysicalDevice(VkPhysicalDevice physicalDevice);
     private:
         VulkanQueueFamilyIndices mQueueFamilyIndices;
         Vector<VkQueueFamilyProperties> mQueueFamilyProperties;
@@ -43,7 +59,6 @@ namespace Surge
 
         // LogicalDevice
         VkDevice mLogicalDevice;
-
         std::unordered_set<String> mSupportedExtensions;
 
         struct VkFeatures
@@ -60,5 +75,13 @@ namespace Surge
             VkPhysicalDeviceVulkan11Properties vk11Properties{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_PROPERTIES };
             VkPhysicalDeviceVulkan12Properties vk12Properties{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES };
         } mProperties{};
+
+        VkQueue mGraphicsQueue;
+        VkQueue mComputeQueue;
+        VkQueue mTransferQueue;
+
+        VkCommandPool mCommandPool;
+        VkCommandPool mComputeCommandPool;
+        VkCommandPool mTransferCommandPool;
     };
 }

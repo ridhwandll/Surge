@@ -9,5 +9,9 @@
 #include "Surge/Core/Thread/ThreadPool.hpp"
 #include "Surge/Core/Defines.hpp"
 #include "Surge/Core/Input/Input.hpp"
+#include "Surge/Core/Memory.hpp"
 
 #include "Surge/Events/Event.hpp"
+
+#include "Surge/Graphics/RenderContext.hpp"
+#include "Surge/Graphics/Buffer.hpp"

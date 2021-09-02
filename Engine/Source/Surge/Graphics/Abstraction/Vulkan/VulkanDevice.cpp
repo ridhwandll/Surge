@@ -16,7 +16,7 @@ namespace Surge
         std::multimap<int, VkPhysicalDevice> candidates;
         for (const auto& device : physicalDevices)
         {
-            int score = RatePhysicalDevice(device);
+            int32_t score = RatePhysicalDevice(device);
             candidates.insert(std::make_pair(score, device));
         }
 
@@ -63,12 +63,89 @@ namespace Surge
         }
         VK_CALL(vkCreateDevice(mPhysicalDevice, &deviceCreateInfo, nullptr, &mLogicalDevice));
         volkLoadDevice(mLogicalDevice);
+
+        CreateCommandPools();
+
+        vkGetDeviceQueue(mLogicalDevice, mQueueFamilyIndices.GraphicsQueue, 0, &mGraphicsQueue);
+        vkGetDeviceQueue(mLogicalDevice, mQueueFamilyIndices.ComputeQueue, 0, &mComputeQueue);
+        vkGetDeviceQueue(mLogicalDevice, mQueueFamilyIndices.TransferQueue, 0, &mTransferQueue);
     }
 
     void VulkanDevice::Destroy()
     {
+        vkDestroyCommandPool(mLogicalDevice, mCommandPool, nullptr);
+        vkDestroyCommandPool(mLogicalDevice, mComputeCommandPool, nullptr);
+        vkDestroyCommandPool(mLogicalDevice, mTransferCommandPool, nullptr);
+
         vkDeviceWaitIdle(mLogicalDevice);
         vkDestroyDevice(mLogicalDevice, nullptr);
+    }
+
+    void VulkanDevice::BeginCmdBuffer(VkCommandBuffer& commandBuffer, VulkanQueueType type)
+    {
+        VkCommandBufferAllocateInfo cmdBufAllocateInfo = {};
+        cmdBufAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+
+        switch (type)
+        {
+        case VulkanQueueType::Graphics:
+            cmdBufAllocateInfo.commandPool = mCommandPool;
+            break;
+        case VulkanQueueType::Compute:
+            cmdBufAllocateInfo.commandPool = mComputeCommandPool;
+            break;
+        case VulkanQueueType::Transfer:
+            cmdBufAllocateInfo.commandPool = mTransferCommandPool;
+            break;
+        }
+
+        cmdBufAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        cmdBufAllocateInfo.commandBufferCount = 1;
+
+        VK_CALL(vkAllocateCommandBuffers(mLogicalDevice, &cmdBufAllocateInfo, &commandBuffer));
+
+        VkCommandBufferBeginInfo cmdBufferBeginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+        VK_CALL(vkBeginCommandBuffer(commandBuffer, &cmdBufferBeginInfo));
+    }
+
+    void VulkanDevice::EndCmdBuffer(VkCommandBuffer commandBuffer, VulkanQueueType type)
+    {
+        const uint64_t fenceTimeout = 100000000000;
+
+        SG_ASSERT_NOMSG(commandBuffer != VK_NULL_HANDLE);
+        VK_CALL(vkEndCommandBuffer(commandBuffer));
+
+        VkSubmitInfo submitInfo = {};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &commandBuffer;
+
+        // Create fence to ensure that the command buffer has finished executing
+        VkFenceCreateInfo fenceCreateInfo = {};
+        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        fenceCreateInfo.flags = 0;
+        VkFence fence;
+        VK_CALL(vkCreateFence(mLogicalDevice, &fenceCreateInfo, nullptr, &fence));
+
+        // Submit to the queue
+        switch (type)
+        {
+        case VulkanQueueType::Graphics: { VK_CALL(vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, fence)); break; }
+        case VulkanQueueType::Compute:  { VK_CALL(vkQueueSubmit(mComputeQueue, 1, &submitInfo, fence));  break; }
+        case VulkanQueueType::Transfer: { VK_CALL(vkQueueSubmit(mTransferQueue, 1, &submitInfo, fence)); break; }
+        }
+
+        // Wait for the fence to signal that command buffer has finished executing
+        VK_CALL(vkWaitForFences(mLogicalDevice, 1, &fence, VK_TRUE, fenceTimeout));
+
+        switch (type)
+        {
+        case VulkanQueueType::Graphics: { vkFreeCommandBuffers(mLogicalDevice, mCommandPool, 1, &commandBuffer); break; }
+        case VulkanQueueType::Compute:  { vkFreeCommandBuffers(mLogicalDevice, mComputeCommandPool, 1, &commandBuffer);  break; }
+        case VulkanQueueType::Transfer: { vkFreeCommandBuffers(mLogicalDevice, mTransferCommandPool, 1, &commandBuffer); break; }
+        }
+
+        vkDestroyFence(mLogicalDevice, fence, nullptr);
     }
 
     void VulkanDevice::QueryDeviceExtensions()
@@ -246,7 +323,7 @@ namespace Surge
         {
             VkDeviceQueueCreateInfo queueInfo{};
             queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-            queueInfo.queueFamilyIndex = *mQueueFamilyIndices.GraphicsQueue;
+            queueInfo.queueFamilyIndex = mQueueFamilyIndices.GraphicsQueue;
             queueInfo.queueCount = 1;
             queueInfo.pQueuePriorities = &defaultQueuePriority;
             outQueueInfo.push_back(queueInfo);
@@ -257,10 +334,9 @@ namespace Surge
         {
             if (mQueueFamilyIndices.ComputeQueue != mQueueFamilyIndices.GraphicsQueue)
             {
-                // If compute family index differs, we need an additional queue create info for the compute queue
                 VkDeviceQueueCreateInfo queueInfo{};
                 queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-                queueInfo.queueFamilyIndex = *mQueueFamilyIndices.ComputeQueue;
+                queueInfo.queueFamilyIndex = mQueueFamilyIndices.ComputeQueue;
                 queueInfo.queueCount = 1;
                 queueInfo.pQueuePriorities = &defaultQueuePriority;
                 outQueueInfo.push_back(queueInfo);
@@ -272,10 +348,9 @@ namespace Surge
         {
             if ((mQueueFamilyIndices.TransferQueue != mQueueFamilyIndices.GraphicsQueue) && (mQueueFamilyIndices.TransferQueue != mQueueFamilyIndices.ComputeQueue))
             {
-                // If compute family index differs, we need an additional queue create info for the compute queue
                 VkDeviceQueueCreateInfo queueInfo{};
                 queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-                queueInfo.queueFamilyIndex = *mQueueFamilyIndices.TransferQueue;
+                queueInfo.queueFamilyIndex = mQueueFamilyIndices.TransferQueue;
                 queueInfo.queueCount = 1;
                 queueInfo.pQueuePriorities = &defaultQueuePriority;
                 outQueueInfo.push_back(queueInfo);
@@ -283,13 +358,28 @@ namespace Surge
         }
     }
 
-    int VulkanDevice::RatePhysicalDevice(VkPhysicalDevice physicalDevice)
+    void VulkanDevice::CreateCommandPools()
+    {
+        VkCommandPoolCreateInfo cmdPoolInfo = {};
+        cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        cmdPoolInfo.queueFamilyIndex = mQueueFamilyIndices.GraphicsQueue;
+        cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        VK_CALL(vkCreateCommandPool(mLogicalDevice, &cmdPoolInfo, nullptr, &mCommandPool));
+
+        cmdPoolInfo.queueFamilyIndex = mQueueFamilyIndices.ComputeQueue;
+        VK_CALL(vkCreateCommandPool(mLogicalDevice, &cmdPoolInfo, nullptr, &mComputeCommandPool));
+
+        cmdPoolInfo.queueFamilyIndex = mQueueFamilyIndices.TransferQueue;
+        VK_CALL(vkCreateCommandPool(mLogicalDevice, &cmdPoolInfo, nullptr, &mTransferCommandPool));
+    }
+
+    int32_t VulkanDevice::RatePhysicalDevice(VkPhysicalDevice physicalDevice)
     {
         VkPhysicalDeviceFeatures features{};
         VkPhysicalDeviceProperties properties{};
         vkGetPhysicalDeviceProperties(physicalDevice, &properties);
         vkGetPhysicalDeviceFeatures(physicalDevice, &features);
-        int score = -50;
+        int32_t score = -50;
 
         if (!features.geometryShader)
             return 0;

@@ -7,7 +7,7 @@ namespace Surge
 {
     class VulkanDevice;
     struct GPUMemoryStats;
-    class SURGE_API VulkanMemoryAllocator
+    class VulkanMemoryAllocator
     {
     public:
         VulkanMemoryAllocator() = default;
@@ -25,6 +25,9 @@ namespace Surge
         void DestroyImage(VkImage image, VmaAllocation allocation);
 
         void Free(VmaAllocation allocation);
+
+        void* MapMemory(VmaAllocation allocation);
+        void UnmapMemory(VmaAllocation allocation);
 
         GPUMemoryStats GetStats() const;
         VmaAllocator GetInternalAllocator() { return mAllocator; }

@@ -59,6 +59,9 @@ namespace Surge
     void Shutdown()
     {
         sCoreData.SurgeApplication->OnShutdown();
+        delete sCoreData.SurgeApplication;
+        sCoreData.SurgeApplication = nullptr;
+
         sCoreData.SurgeRenderContext->Shutdown();
     }
 
@@ -67,12 +70,12 @@ namespace Surge
         sCoreData.mRunning = false;
     }
 
-    SURGE_API Scope<RenderContext>& GetRenderContext()
+    Scope<RenderContext>& GetRenderContext()
     {
         return sCoreData.SurgeRenderContext;
     }
 
-    SURGE_API Scope<Surge::Window>& GetWindow()
+    Scope<Surge::Window>& GetWindow()
     {
         return sCoreData.SurgeWindow;
     }

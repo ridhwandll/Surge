@@ -6,7 +6,6 @@
 namespace Surge
 {
     static std::chrono::high_resolution_clock::time_point sStart;
-
     static std::chrono::high_resolution_clock::time_point sThen;
     static std::chrono::high_resolution_clock::time_point sNow;
 

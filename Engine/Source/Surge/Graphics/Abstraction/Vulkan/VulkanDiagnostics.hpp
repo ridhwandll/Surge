@@ -53,7 +53,7 @@ namespace Surge
     // NOTE(Rid):
     // Owned by Vulkan Context
     // Represents the "Debug Layer" of Vulkan
-    class SURGE_API VulkanDiagnostics
+    class VulkanDiagnostics
     {
     public:
         void Create(VkInstanceCreateInfo& vkInstanceCreateInfo);
@@ -69,8 +69,8 @@ namespace Surge
     };
 }
 
-#define VK_CALL(res)\
-if(res != VK_SUCCESS)\
-{\
-    SG_ASSERT_INTERNAL(std::string("[Vulkan] Returned value: ") + Surge::VKResultToString(res));\
-}\
+#ifdef SURGE_DEBUG
+#define VK_CALL(res) if(res != VK_SUCCESS) { SG_ASSERT_INTERNAL(std::string("[Vulkan] Returned value: ") + Surge::VKResultToString(res)); }
+#else
+#define VK_CALL(res)
+#endif

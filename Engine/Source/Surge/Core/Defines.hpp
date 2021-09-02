@@ -4,12 +4,7 @@
 #include <string>
 #include <vector>
 #include <deque>
-
-#ifdef SURGE_DLL_EXPORT
-    #define SURGE_API __declspec(dllexport)
-#else
-    #define SURGE_API __declspec(dllimport)
-#endif
+#include "Surge/Core/Logger/Logger.hpp"
 
 // Platform detection
 #ifdef _WIN32

@@ -6,7 +6,7 @@ namespace Surge
 {
     // NOTE(Rid):
     // The "Core" owns the RenderContext
-    // RenderContext owns the API Instance, LogicalDevice, SwapChain and PhysicalDevice
+    // RenderContext owns the API Instance, LogicalDevice, SwapChain, PhysicalDevice, MemoryAllocator etc.
 
     struct GPUMemoryStats
     {
@@ -18,7 +18,7 @@ namespace Surge
         uint64_t Free = 0;
     };
 
-    class SURGE_API RenderContext
+    class RenderContext
     {
     public:
         RenderContext() = default;
@@ -33,6 +33,7 @@ namespace Surge
         virtual void* GetInteralInstance() = 0;
 
         virtual GPUMemoryStats GetMemoryStatus() const = 0;
+        virtual void* GetMemoryAllocator() const = 0;
 
         static Scope<RenderContext> Create();
     };

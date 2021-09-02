@@ -1,6 +1,6 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
-#include "Surge/Graphics/Abstraction/RenderContext.hpp"
+#include "Surge/Graphics/RenderContext.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDiagnostics.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDevice.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanSwapChain.hpp"
@@ -9,7 +9,7 @@
 
 namespace Surge
 {
-    class SURGE_API VulkanRenderContext : public RenderContext
+    class VulkanRenderContext : public RenderContext
     {
     public:
         virtual void Initialize(Window* window) override;
@@ -21,6 +21,7 @@ namespace Surge
         virtual void* GetInteralInstance() override { return mVulkanInstance; }
 
         virtual GPUMemoryStats GetMemoryStatus() const override { return mMemoryAllocator.GetStats(); };
+        virtual void* GetMemoryAllocator() const override { return (void*)&mMemoryAllocator; }
     private:
         Vector<const char*> GetRequiredInstanceExtensions();
         Vector<const char*> GetRequiredInstanceLayers();
