@@ -47,6 +47,7 @@ namespace Surge
     {
         VmaAllocationCreateInfo allocCreateInfo = {};
         allocCreateInfo.usage = usage;
+        allocCreateInfo.flags = allocationInfo ? VMA_ALLOCATION_CREATE_MAPPED_BIT : 0;
 
         VmaAllocation allocation;
         vmaCreateImage(mAllocator, &imageCreateInfo, &allocCreateInfo, &outImage, &allocation, allocationInfo);

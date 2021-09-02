@@ -22,7 +22,7 @@ const std::vector<Uint> indices =
     1, 2, 3
 };
 
-const glm::mat4 transform_matrix = glm::mat4(1.0f);
+const glm::mat4 transformMatrix = glm::mat4(1.0f);
 
 class MyApp : public Application
 {
@@ -35,7 +35,7 @@ public:
     {
         mVertexBuffer = Buffer::Create(vertices.data(), static_cast<Uint>(sizeof(vertices[0]) * vertices.size()), BufferType::VertexBuffer);
         mIndexBuffer = Buffer::Create(indices.data(), static_cast<Uint>(sizeof(indices[0]) * indices.size()), BufferType::IndexBuffer);
-        mUniformBuffer = Buffer::Create(&transform_matrix, sizeof(glm::mat4), BufferType::UniformBuffer);
+        mUniformBuffer = Buffer::Create(&transformMatrix, sizeof(glm::mat4), BufferType::UniformBuffer);
     }
 
     virtual void OnUpdate() override
@@ -43,10 +43,10 @@ public:
         //Surge::GPUMemoryStats memoryStatus = Surge::GetRenderContext()->GetMemoryStatus();
         //Surge::Log<Surge::LogSeverity::Info>("Used: {0} | Free: {1}", memoryStatus.Used, memoryStatus.Free);
 
-        glm::mat4 new_matrix = glm::mat4(2.0f);
-        glm::mat4 final_matrix = transform_matrix + new_matrix;
+        glm::mat4 newMatrix = glm::mat4(2.0f);
+        glm::mat4 finalMatrix = transformMatrix + newMatrix;
 
-        mUniformBuffer->SetData(&final_matrix, sizeof(glm::mat4));
+        mUniformBuffer->SetData(&finalMatrix, sizeof(glm::mat4));
     }
 
     virtual void OnEvent(Event& e) override
