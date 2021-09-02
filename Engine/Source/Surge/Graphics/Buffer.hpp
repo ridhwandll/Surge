@@ -8,7 +8,8 @@ namespace Surge
     {
         None = -1,
         VertexBuffer = 0,
-        IndexBuffer
+        IndexBuffer,
+        UniformBuffer
     };
 
     class Buffer : public RefCounted
@@ -18,6 +19,7 @@ namespace Surge
         virtual ~Buffer() {}
 
         virtual Uint GetSize() = 0;
+        virtual void SetData(const void* data, const Uint& size) = 0;
 
         static Ref<Buffer> Create(const void* data, const Uint& size, const BufferType& type);
     };

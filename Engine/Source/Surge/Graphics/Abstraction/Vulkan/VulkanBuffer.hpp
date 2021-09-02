@@ -14,15 +14,19 @@ namespace Surge
         virtual ~VulkanBuffer() override;
 
         virtual Uint GetSize() override { return mSize; }
+        virtual void SetData(const void* data, const Uint& size) override;
     public:
         VkBuffer GetVulkanBuffer() { return mVulkanBuffer; }
         VmaAllocation GetAllocation() { return mAllocation; }
     private:
         void CreateVertexBuffer(const void* data);
+        void CreateIndexBuffer(const void* data);
+        void CreateUniformBuffer(const void* data);
     private:
         Uint mSize = 0;
         BufferType mType = BufferType::None;
         VkBuffer mVulkanBuffer = VK_NULL_HANDLE;
         VmaAllocation mAllocation = VK_NULL_HANDLE;
+        VmaAllocationInfo mAllocationInfo = {};
     };
 }
