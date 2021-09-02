@@ -24,13 +24,14 @@ namespace Surge
         vmaDestroyAllocator(mAllocator);
     }
 
-    VmaAllocation VulkanMemoryAllocator::AllocateBuffer(VkBufferCreateInfo bufferCreateInfo, VmaMemoryUsage usage, VkBuffer& outBuffer)
+    VmaAllocation VulkanMemoryAllocator::AllocateBuffer(VkBufferCreateInfo bufferCreateInfo, VmaMemoryUsage usage, VkBuffer& outBuffer, VmaAllocationInfo* allocationInfo)
     {
         VmaAllocationCreateInfo allocCreateInfo = {};
         allocCreateInfo.usage = usage;
+        allocCreateInfo.flags = allocationInfo ? VMA_ALLOCATION_CREATE_MAPPED_BIT : 0;
 
         VmaAllocation allocation;
-        vmaCreateBuffer(mAllocator, &bufferCreateInfo, &allocCreateInfo, &outBuffer, &allocation, nullptr);
+        vmaCreateBuffer(mAllocator, &bufferCreateInfo, &allocCreateInfo, &outBuffer, &allocation, allocationInfo);
 
         return allocation;
     }
@@ -42,13 +43,13 @@ namespace Surge
         vmaDestroyBuffer(mAllocator, buffer, allocation);
     }
 
-    VmaAllocation VulkanMemoryAllocator::AllocateImage(VkImageCreateInfo imageCreateInfo, VmaMemoryUsage usage, VkImage& outImage)
+    VmaAllocation VulkanMemoryAllocator::AllocateImage(VkImageCreateInfo imageCreateInfo, VmaMemoryUsage usage, VkImage& outImage, VmaAllocationInfo* allocationInfo)
     {
         VmaAllocationCreateInfo allocCreateInfo = {};
         allocCreateInfo.usage = usage;
 
         VmaAllocation allocation;
-        vmaCreateImage(mAllocator, &imageCreateInfo, &allocCreateInfo, &outImage, &allocation, nullptr);
+        vmaCreateImage(mAllocator, &imageCreateInfo, &allocCreateInfo, &outImage, &allocation, allocationInfo);
 
         return allocation;
     }

@@ -17,11 +17,11 @@ namespace Surge
         void Destroy();
 
         // Buffer
-        VmaAllocation AllocateBuffer(VkBufferCreateInfo bufferCreateInfo, VmaMemoryUsage usage, VkBuffer& outBuffer);
+        VmaAllocation AllocateBuffer(VkBufferCreateInfo bufferCreateInfo, VmaMemoryUsage usage, VkBuffer& outBuffer, VmaAllocationInfo* allocationInfo);
         void DestroyBuffer(VkBuffer buffer, VmaAllocation allocation);
 
         // Image
-        VmaAllocation AllocateImage(VkImageCreateInfo imageCreateInfo, VmaMemoryUsage usage, VkImage& outImage);
+        VmaAllocation AllocateImage(VkImageCreateInfo imageCreateInfo, VmaMemoryUsage usage, VkImage& outImage, VmaAllocationInfo* allocationInfo);
         void DestroyImage(VkImage image, VmaAllocation allocation);
 
         void Free(VmaAllocation allocation);

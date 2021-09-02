@@ -10,24 +10,43 @@ struct Vertex
 
 const std::vector<Vertex> vertices =
 {
-    {{ 0.0f, -0.5f }, { 1.0f, 0.0f, 0.0f }},
-    {{ 0.5f,  0.5f }, { 0.0f, 1.0f, 0.0f }},
-    {{-0.5f,  0.5f }, { 0.0f, 0.0f, 1.0f }}
+    {{ 0.5f,  0.5f }, { 1.0f, 0.0f, 0.0f }},
+    {{ 0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f }},
+    {{-0.5f, -0.5f }, { 0.0f, 0.0f, 1.0f }},
+    {{-0.5f,  0.5f }, { 1.0f, 0.0f, 1.0f }}
 };
+
+const std::vector<Uint> indices =
+{   
+    0, 1, 2,
+    1, 2, 3
+};
+
+const glm::mat4 transform_matrix = glm::mat4(1.0f);
 
 class MyApp : public Application
 {
 public:
-    Ref<Buffer> buffer;
+    Ref<Buffer> mVertexBuffer;
+    Ref<Buffer> mIndexBuffer;
+    Ref<Buffer> mUniformBuffer;
+
     virtual void OnInitialize() override
     {
-        buffer = Buffer::Create(vertices.data(), static_cast<Uint>(sizeof(vertices[0]) * vertices.size()), BufferType::VertexBuffer);
+        mVertexBuffer = Buffer::Create(vertices.data(), static_cast<Uint>(sizeof(vertices[0]) * vertices.size()), BufferType::VertexBuffer);
+        mIndexBuffer = Buffer::Create(indices.data(), static_cast<Uint>(sizeof(indices[0]) * indices.size()), BufferType::IndexBuffer);
+        mUniformBuffer = Buffer::Create(&transform_matrix, sizeof(glm::mat4), BufferType::UniformBuffer);
     }
 
     virtual void OnUpdate() override
     {
         //Surge::GPUMemoryStats memoryStatus = Surge::GetRenderContext()->GetMemoryStatus();
         //Surge::Log<Surge::LogSeverity::Info>("Used: {0} | Free: {1}", memoryStatus.Used, memoryStatus.Free);
+
+        glm::mat4 new_matrix = glm::mat4(2.0f);
+        glm::mat4 final_matrix = transform_matrix + new_matrix;
+
+        mUniformBuffer->SetData(&final_matrix, sizeof(glm::mat4));
     }
 
     virtual void OnEvent(Event& e) override
