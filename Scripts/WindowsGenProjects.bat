@@ -1,5 +1,7 @@
 @echo off
 pushd %~dp0\..\
-call Scripts\premake5.exe vs2019
+call mkdir build
+call cd build
+call cmake ..
 popd
 PAUSE

@@ -17,9 +17,9 @@
 
 #ifdef SURGE_DEBUG
     #define ASSERT() __debugbreak()
-    #define SG_ASSERT(condition, ...)  { if(!(condition)) { Surge::Log<Surge::LogSeverity::Fatal>("Assertion Failed: {0}", __VA_ARGS__); ASSERT(); } }
+    #define SG_ASSERT(condition, ...)  { if(!(condition)) { Surge::Log<Surge::LogSeverity::Fatal>(__VA_ARGS__); ASSERT(); } }
     #define SG_ASSERT_NOMSG(condition) { if(!(condition)) { Surge::Log<Surge::LogSeverity::Fatal>("Assertion Failed!"); ASSERT(); } }
-    #define SG_ASSERT_INTERNAL(...)    { Surge::Log<Surge::LogSeverity::Fatal>("Assertion Failed: {0}", __VA_ARGS__); ASSERT(); }
+    #define SG_ASSERT_INTERNAL(...)    { Surge::Log<Surge::LogSeverity::Fatal>(__VA_ARGS__); ASSERT(); }
 #else
     #define ASSERT()
     #define SG_ASSERT(...)
@@ -40,6 +40,9 @@ namespace Surge
     using String = std::string;
     using Uint = uint32_t;
     using byte = uint8_t;
+
+    //TODO(Rid): Have a dedicated path class
+    using Path = std::string;
 
     template<typename T>
     using Vector = std::vector<T>;

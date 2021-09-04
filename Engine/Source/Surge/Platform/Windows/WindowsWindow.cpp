@@ -6,15 +6,6 @@
 
 namespace Surge
 {
-    inline std::wstring ToWideString(const std::string& as)
-    {
-        size_t reqLength = ::MultiByteToWideChar(CP_UTF8, 0, as.c_str(), (int)as.length(), 0, 0);
-
-        std::wstring ret(reqLength, L'\0');
-        MultiByteToWideChar(CP_UTF8, 0, as.c_str(), (int)as.length(), &ret[0], (int)ret.length());
-
-        return ret;
-    }
     WindowsWindow::WindowsWindow(const WindowData& windowData)
     {
         mWindowData = windowData;
@@ -25,7 +16,7 @@ namespace Surge
         wc.lpfnWndProc = WindowProc;
         wc.style = CS_CLASSDC;
         wc.hInstance = hInstance;
-        wc.lpszClassName = L"(Surge Win32Window)";
+        wc.lpszClassName = "Surge Win32Window";
         wc.hbrBackground = (HBRUSH)GetStockObject(LTGRAY_BRUSH);
         wc.hCursor = LoadCursor(hInstance, IDC_ARROW);
         wc.hIcon = nullptr;
@@ -35,7 +26,7 @@ namespace Surge
         if (!RegisterClassEx(&wc))
             Log<LogSeverity::Error>("Could not initialize the window class!");
 
-        mWin32Window = CreateWindow(wc.lpszClassName, ToWideString(mWindowData.Title).c_str(),
+        mWin32Window = CreateWindow(wc.lpszClassName, mWindowData.Title.c_str(),
             mWindowData.Flags & WindowFlags::NonResizeable ? WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX : WS_OVERLAPPEDWINDOW,
             0, 0, mWindowData.Width, mWindowData.Height, nullptr, NULL, wc.hInstance, this);
 
@@ -74,7 +65,7 @@ namespace Surge
     void WindowsWindow::SetTitle(const String& name)
     {
         mWindowData.Title = name;
-        SetWindowText(mWin32Window, ToWideString(mWindowData.Title).c_str());
+        SetWindowText(mWin32Window, mWindowData.Title.c_str());
     }
 
     glm::vec2 WindowsWindow::GetPos() const

@@ -21,4 +21,5 @@ jobs:
 
     - name: Build Solution
       run: |
-        msbuild -property:Configuration=Release,MultiProcessorCompilation=true -maxCpuCount -verbosity:minimal -noLogo Surge.sln
+        cd build
+        msbuild -property:Configuration=Release,MultiProcessorCompilation=true -maxCpuCount -verbosity:minimal -noLogo SurgeEngine.sln

@@ -15,3 +15,4 @@
 
 #include "Surge/Graphics/RenderContext.hpp"
 #include "Surge/Graphics/Buffer.hpp"
+#include "Surge/Graphics/Shader.hpp"
