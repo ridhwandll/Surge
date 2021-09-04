@@ -63,7 +63,7 @@ namespace Surge
         }
 
         if (!validationLayerPresent)
-            Log<LogSeverity::Error>("Validation layer {0} not present, validation is disabled", validationLayerName);
+            Log<LogSeverity::Error>("Validation layer requested, but it is not present ({0}), validation is disabled", validationLayerName);
     }
 
     void VulkanDiagnostics::AddValidationExtensions(Vector<const char*>& outInstanceExtensions)
@@ -73,7 +73,7 @@ namespace Surge
 
     void VulkanDiagnostics::StartDiagnostics(VkInstance& instance)
     {
-        VK_CALL(CreateDebugUtilsMessengerEXT(instance, &mDebugCreateInfo, nullptr, &mDebugMessenger))
+        VK_CALL(CreateDebugUtilsMessengerEXT(instance, &mDebugCreateInfo, nullptr, &mDebugMessenger));
     }
 
     void VulkanDiagnostics::EndDiagnostics(VkInstance& instance)

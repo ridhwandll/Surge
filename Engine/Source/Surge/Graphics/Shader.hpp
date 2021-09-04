@@ -6,9 +6,10 @@ namespace Surge
 {
     enum class ShaderType
     {
-        None = -1,
+        None = 0,
         VertexShader,
         PixelShader,
+        ComputeShader
     };
 
     class Shader : public RefCounted

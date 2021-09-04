@@ -20,7 +20,6 @@ set(LIB_LINKS
     fmt
     volk
     ${CMAKE_SOURCE_DIR}/Engine/Vendor/shaderc/Lib/shaderc_shared.lib
-    ${CMAKE_SOURCE_DIR}/Engine/Vendor/shaderc/Lib/shaderc_util.lib
 )
 
 add_library(Surge STATIC ${SOURCE_FILES})

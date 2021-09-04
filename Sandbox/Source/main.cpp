@@ -37,13 +37,13 @@ public:
         mVertexBuffer = Buffer::Create(vertices.data(), static_cast<Uint>(sizeof(vertices[0]) * vertices.size()), BufferType::VertexBuffer);
         mIndexBuffer = Buffer::Create(indices.data(), static_cast<Uint>(sizeof(indices[0]) * indices.size()), BufferType::IndexBuffer);
         mUniformBuffer = Buffer::Create(&transformMatrix, sizeof(glm::mat4), BufferType::UniformBuffer);
-        mShader = Shader::Create("KEKW");
+        mShader = Shader::Create("Engine/Assets/Shaders/Simple.glsl");
     }
 
     virtual void OnUpdate() override
     {
-        Surge::GPUMemoryStats memoryStatus = Surge::GetRenderContext()->GetMemoryStatus();
-        Surge::Log<Surge::LogSeverity::Info>("Used: {0} | Free: {1}", memoryStatus.Used, memoryStatus.Free);
+        //Surge::GPUMemoryStats memoryStatus = Surge::GetRenderContext()->GetMemoryStatus();
+        //Surge::Log<Surge::LogSeverity::Info>("Used: {0} | Free: {1}", memoryStatus.Used, memoryStatus.Free);
 
         glm::mat4 newMatrix = glm::mat4(2.0f);
         glm::mat4 finalMatrix = transformMatrix + newMatrix;

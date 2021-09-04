@@ -18,8 +18,7 @@ namespace Surge
         VK_CALL(volkInitialize());
 
         /// VkApplicationInfo ///
-        VkApplicationInfo appInfo{};
-        appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+        VkApplicationInfo appInfo{ VK_STRUCTURE_TYPE_APPLICATION_INFO };
         appInfo.pApplicationName = "SurgeProtector";
         appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.pEngineName = "Surge Engine";
@@ -79,5 +78,4 @@ namespace Surge
         ENABLE_IF_VK_VALIDATION(mVulkanDiagnostics.AddValidationLayers(instanceLayers));
         return instanceLayers;
     }
-
 }

@@ -15,12 +15,12 @@ namespace Surge
     private:
         void Reload();
         void ParseShader();
-
-        // Compiles to SPIR-V
         void Compile();
+        void Clear();
     private:
         Path mPath;
         std::unordered_map<ShaderType, String> mShaderSources{};
         std::unordered_map<ShaderType, Vector<Uint>> mShaderSPIRVs{};
+        std::unordered_map<ShaderType, VkShaderModule> mVkShaderModules{};
     };
 }

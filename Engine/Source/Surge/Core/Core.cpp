@@ -20,7 +20,6 @@ namespace Surge
     void CoreOnEvent(Event& e)
     {
         sCoreData.SurgeApplication->OnEvent(e);
-
         Surge::EventDispatcher dispatcher(e);
         dispatcher.Dispatch<Surge::WindowResizeEvent>([](Surge::WindowResizeEvent& e)
             {

@@ -3,6 +3,7 @@
 
 #include "Surge/Core/Defines.hpp"
 #include "Surge/Core/Logger/Logger.hpp"
+#include "Surge/Core/Time/Timer.hpp"
 #include <string>
 #include <memory>
 #include <vector>

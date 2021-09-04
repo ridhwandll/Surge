@@ -70,7 +70,7 @@ namespace Surge
 }
 
 #ifdef SURGE_DEBUG
-#define VK_CALL(res) if(res != VK_SUCCESS) { SG_ASSERT_INTERNAL("[Vulkan] Returned value: {0}", Surge::VKResultToString(res)); }
+    #define VK_CALL(res) if(res != VK_SUCCESS) { SG_ASSERT_INTERNAL("[Vulkan] Returned value: {0}", Surge::VKResultToString(res)); }
 #else
-#define VK_CALL(res)
+    #define VK_CALL(res) res
 #endif
