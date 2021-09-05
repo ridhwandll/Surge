@@ -7,22 +7,22 @@ namespace Surge::Filesystem
     String ReadFile(const Path& path)
     {
         String result;
-        std::ifstream in(path, std::ios::in | std::ios::binary);
-        if (in)
+        std::ifstream inStream(path, std::ios::in | std::ios::binary);
+        if (inStream)
         {
-            in.seekg(0, std::ios::end);
-            size_t size = in.tellg();
+            inStream.seekg(0, std::ios::end);
+            size_t size = inStream.tellg();
             if (size != -1)
             {
                 result.resize(size);
-                in.seekg(0, std::ios::beg);
-                in.read(result.data(), size);
+                inStream.seekg(0, std::ios::beg);
+                inStream.read(result.data(), size);
             }
-            else
-            {
-                SG_ASSERT_INTERNAL("Cannot open path \"{0}\"", path);
-            }
-            in.close();
+            inStream.close();
+        }
+        else
+        {
+            SG_ASSERT_INTERNAL("Cannot open path \"{0}\"", path);
         }
 
         return result;

@@ -14,11 +14,13 @@ set(INCLUDE_DIRS
     Vendor/VulkanMemoryAllocator/Include
     Vendor/volk
     Vendor/shaderc/Include
+    Vendor/SPIRV-Cross/Include
 )
 
 set(LIB_LINKS
     fmt
     volk
+    SPIRV-Cross
     ${CMAKE_SOURCE_DIR}/Engine/Vendor/shaderc/Lib/shaderc_shared.lib
 )
 

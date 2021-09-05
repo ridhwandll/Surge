@@ -3,8 +3,8 @@
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanShader.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDevice.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDiagnostics.hpp"
+#include "Surge/Graphics/ShaderReflector.hpp"
 #include "Surge/Utility/Filesystem.hpp"
-#include <fstream>
 #include <shaderc/shaderc.hpp>
 
 namespace Surge
@@ -59,11 +59,9 @@ namespace Surge
 
     void VulkanShader::Reload()
     {
-        Timer t;
         Clear();
         ParseShader();
         Compile();
-        Log("{0} - Shader compilation took: {1}", mPath, t.Elapsed());
     }
 
     void VulkanShader::Compile()
@@ -71,14 +69,17 @@ namespace Surge
         Scope<RenderContext>& context = GetRenderContext();
         VkDevice device = static_cast<VulkanDevice*>(context->GetInteralDevice())->GetLogicaldevice();
 
+        ShaderReflector reflector;
         shaderc::Compiler compiler;
         shaderc::CompileOptions options;
         options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2);
-        options.SetOptimizationLevel(shaderc_optimization_level_performance);
+
+        // NOTE(Rid - AC3R) If we enable optimization, it removes the names :kekCry:
+        //options.SetOptimizationLevel(shaderc_optimization_level_performance);
 
         for (auto&& [stage, source] : mShaderSources)
         {
-            Vector<Uint>& spirv = mShaderSPIRVs[stage];
+            SPIRVHandle spirvHandle;
             shaderc::CompilationResult result = compiler.CompileGlslToSpv(source, Utils::ShadercShaderKindFromSurgeShaderType(stage), mPath.c_str(), options);
             if (result.GetCompilationStatus() != shaderc_compilation_status_success)
             {
@@ -88,14 +89,20 @@ namespace Surge
             }
             else
             {
-                spirv = Vector<Uint>(result.cbegin(), result.cend());
+                spirvHandle.Type = stage;
+                spirvHandle.SPIRV = Vector<Uint>(result.cbegin(), result.cend());
 
                 VkShaderModuleCreateInfo createInfo{};
                 createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-                createInfo.codeSize = spirv.size() * 4;
-                createInfo.pCode = spirv.data();
+                createInfo.codeSize = spirvHandle.SPIRV.size() * sizeof(Uint);
+                createInfo.pCode = spirvHandle.SPIRV.data();
 
                 VK_CALL(vkCreateShaderModule(device, &createInfo, nullptr, &mVkShaderModules[stage]));
+                mShaderSPIRVs.push_back(spirvHandle);
+
+                // Run Reflection
+                ShaderReflectionData reflectionData = reflector.Reflect(spirvHandle);
+                mReflectionData[stage] = reflectionData;
             }
         }
     }
