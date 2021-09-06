@@ -31,6 +31,7 @@ namespace Surge
 
         virtual void* GetInteralDevice() = 0;
         virtual void* GetInteralInstance() = 0;
+        virtual void* GetSwapChain() = 0;
 
         virtual GPUMemoryStats GetMemoryStatus() const = 0;
         virtual void* GetMemoryAllocator() const = 0;

@@ -13,8 +13,11 @@ namespace Surge
 
         virtual void Reload() override;
         virtual const std::unordered_map<ShaderType, ShaderReflectionData>& GetReflectionData() const override { return mReflectionData; }
+        HashMap<ShaderType, VkShaderModule> GetVulkanShaderModules() const { return mVkShaderModules; }
         virtual const Vector<SPIRVHandle>& GetSPIRVs() const override { return mShaderSPIRVs; }
         virtual const Path& GetPath() const override { return mPath; }
+
+        static VkShaderStageFlagBits GetVulkanShaderStage(ShaderType type);
     private:
         void ParseShader();
         void Compile();

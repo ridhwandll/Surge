@@ -10,6 +10,7 @@ namespace Surge
     // Represents Textures
     struct ShaderResource
     {
+        Uint Set = 0;
         Uint Binding = 0;
         String Name = "";
     };
@@ -24,6 +25,7 @@ namespace Surge
     // Represents a ConstantBuffer
     struct ShaderBuffer
     {
+        Uint Set = 0;
         Uint Binding = 0;
         String BufferName = "";
         Uint Size = 0;
