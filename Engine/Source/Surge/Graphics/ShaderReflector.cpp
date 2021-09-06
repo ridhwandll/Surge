@@ -17,6 +17,7 @@ namespace Surge
         {
             ShaderResource res;
             res.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+            res.Set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
             res.Name = resource.name;
             result.PushResource(res);
         }
@@ -28,6 +29,7 @@ namespace Surge
             const spirv_cross::SPIRType& bufferType = compiler.get_type(resource.base_type_id);
 
             buffer.Size = static_cast<Uint>(compiler.get_declared_struct_size(bufferType));
+            buffer.Set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
             buffer.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
             buffer.BufferName = resource.name;
 

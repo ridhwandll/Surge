@@ -19,6 +19,7 @@ namespace Surge
 
         virtual void* GetInteralDevice() override { return &mDevice; }
         virtual void* GetInteralInstance() override { return mVulkanInstance; }
+        virtual void* GetSwapChain() override { return &mSwapChain; }
 
         virtual GPUMemoryStats GetMemoryStatus() const override { return mMemoryAllocator.GetStats(); };
         virtual void* GetMemoryAllocator() const override { return (void*)&mMemoryAllocator; }

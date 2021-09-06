@@ -19,6 +19,7 @@ namespace Surge
         Uint GetHeight() const { return mSwapChainExtent.height; }
         VkFormat GetColorFormat() const { return mColorFormat.format; }
         VkSwapchainKHR GetVulkanSwapChain() const { return mSwapChain; }
+        VkRenderPass GetVulkanRenderPass() const { return mRenderPass; }
         void Destroy();
     private:
         VkResult AcquireNextImage(VkSemaphore imageAvailableSemaphore, Uint* imageIndex);

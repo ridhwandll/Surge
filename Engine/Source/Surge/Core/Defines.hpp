@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <deque>
+#include <unordered_map>
 #include "Surge/Core/Logger/Logger.hpp"
 
 // Platform detection
@@ -54,6 +55,9 @@ namespace Surge
     using Scope = std::unique_ptr<T>;
     template<typename T, typename ... Args>
     constexpr Scope<T> CreateScope(Args&& ... args) { return std::make_unique<T>(std::forward<Args>(args)...); }
+
+    template<typename T1, typename T2>
+    using HashMap = std::unordered_map<T1, T2>;
 
     template<typename T1, typename T2>
     struct Pair
