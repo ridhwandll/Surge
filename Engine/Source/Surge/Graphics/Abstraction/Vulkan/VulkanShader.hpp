@@ -12,10 +12,11 @@ namespace Surge
         virtual ~VulkanShader() override;
 
         virtual void Reload() override;
-        virtual const std::unordered_map<ShaderType, ShaderReflectionData>& GetReflectionData() const override { return mReflectionData; }
-        HashMap<ShaderType, VkShaderModule> GetVulkanShaderModules() const { return mVkShaderModules; }
+        virtual const HashMap<ShaderType, ShaderReflectionData>& GetReflectionData() const override { return mReflectionData; }
         virtual const Vector<SPIRVHandle>& GetSPIRVs() const override { return mShaderSPIRVs; }
         virtual const Path& GetPath() const override { return mPath; }
+
+        const HashMap<ShaderType, VkShaderModule>& GetVulkanShaderModules() const { return mVkShaderModules; }
 
         static VkShaderStageFlagBits GetVulkanShaderStage(ShaderType type);
     private:
@@ -24,9 +25,9 @@ namespace Surge
         void Clear();
     private:
         Path mPath;
-        std::unordered_map<ShaderType, String> mShaderSources{};
-        std::unordered_map<ShaderType, VkShaderModule> mVkShaderModules{};
-        std::unordered_map<ShaderType, ShaderReflectionData> mReflectionData{};
+        HashMap<ShaderType, String> mShaderSources{};
+        HashMap<ShaderType, VkShaderModule> mVkShaderModules{};
+        HashMap<ShaderType, ShaderReflectionData> mReflectionData{};
         Vector<SPIRVHandle> mShaderSPIRVs{};
     };
 }

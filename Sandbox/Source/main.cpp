@@ -31,6 +31,7 @@ public:
     Ref<Buffer> mIndexBuffer;
     Ref<Buffer> mUniformBuffer;
     Ref<Shader> mShader;
+    Ref<GraphicsPipeline> mPipeline;
 
     virtual void OnInitialize() override
     {
@@ -38,6 +39,13 @@ public:
         mIndexBuffer = Buffer::Create(indices.data(), static_cast<Uint>(sizeof(indices[0]) * indices.size()), BufferType::IndexBuffer);
         mUniformBuffer = Buffer::Create(&transformMatrix, sizeof(glm::mat4), BufferType::UniformBuffer);
         mShader = Shader::Create("Engine/Assets/Shaders/Simple.glsl");
+
+        GraphicsPipelineSpecification pipelineSpec{};
+        pipelineSpec.Shader = mShader;
+        pipelineSpec.Topology = PrimitiveTopology::Triangles;
+        pipelineSpec.UseDepth = true;
+        pipelineSpec.UseStencil = false;
+        mPipeline = GraphicsPipeline::Create(pipelineSpec);
     }
 
     virtual void OnUpdate() override

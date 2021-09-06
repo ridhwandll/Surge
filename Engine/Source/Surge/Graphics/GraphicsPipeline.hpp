@@ -5,9 +5,7 @@
 
 namespace Surge
 {
-    struct VertexBufferLayout {}; // TODO: This is not made??
-
-    enum class PrimitiveType
+    enum class PrimitiveTopology
     {
         None,
         Points,
@@ -20,8 +18,7 @@ namespace Surge
     struct GraphicsPipelineSpecification
     {
         Ref<Shader> Shader;
-        VertexBufferLayout VertexBufferLayout;
-        PrimitiveType Topology = PrimitiveType::Triangles;
+        PrimitiveTopology Topology = PrimitiveTopology::Triangles;
         float LineWidth = 1.0f;
         bool UseDepth = true;
         bool UseStencil = false;
@@ -31,7 +28,7 @@ namespace Surge
     {
     public:
         GraphicsPipeline() = default;
-        virtual ~GraphicsPipeline() {}
+        virtual ~GraphicsPipeline() = default;
 
         virtual const GraphicsPipelineSpecification& GetPipelineSpecification() const = 0;
         virtual void Bind() = 0;

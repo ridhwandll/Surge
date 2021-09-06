@@ -141,15 +141,15 @@ namespace Surge
         }
     }
 
-	VkShaderStageFlagBits VulkanShader::GetVulkanShaderStage(ShaderType type)
-	{
-		switch (type)
-		{
-		case ShaderType::VertexShader:  return VK_SHADER_STAGE_VERTEX_BIT;
-		case ShaderType::PixelShader:   return VK_SHADER_STAGE_FRAGMENT_BIT;
-		case ShaderType::ComputeShader: return VK_SHADER_STAGE_COMPUTE_BIT;
-		case ShaderType::None: SG_ASSERT_INTERNAL("ShaderType::None is invalid in this case!");
-		}
-		return VkShaderStageFlagBits();
-	}
+    VkShaderStageFlagBits VulkanShader::GetVulkanShaderStage(ShaderType type)
+    {
+        switch (type)
+        {
+        case ShaderType::VertexShader:  return VK_SHADER_STAGE_VERTEX_BIT;
+        case ShaderType::PixelShader:   return VK_SHADER_STAGE_FRAGMENT_BIT;
+        case ShaderType::ComputeShader: return VK_SHADER_STAGE_COMPUTE_BIT;
+        case ShaderType::None: SG_ASSERT_INTERNAL("ShaderType::None is invalid in this case!");
+        }
+        return VkShaderStageFlagBits();
+    }
 }

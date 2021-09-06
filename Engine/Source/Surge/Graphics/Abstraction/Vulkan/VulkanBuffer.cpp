@@ -47,7 +47,7 @@ namespace Surge
         bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
         bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         VkBuffer stagingBuffer = VK_NULL_HANDLE;
-        VmaAllocation stagingBufferAllocation = allocator->AllocateBuffer(bufferCreateInfo, VMA_MEMORY_USAGE_CPU_TO_GPU, stagingBuffer, nullptr);
+        VmaAllocation stagingBufferAllocation = allocator->AllocateBuffer(bufferCreateInfo, VMA_MEMORY_USAGE_CPU_ONLY, stagingBuffer, nullptr);
 
         // Copy data to staging buffer
         void* destData = allocator->MapMemory(stagingBufferAllocation);
@@ -83,7 +83,7 @@ namespace Surge
         bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
         bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         VkBuffer stagingBuffer = VK_NULL_HANDLE;
-        VmaAllocation stagingBufferAllocation = allocator->AllocateBuffer(bufferCreateInfo, VMA_MEMORY_USAGE_CPU_TO_GPU, stagingBuffer, nullptr);
+        VmaAllocation stagingBufferAllocation = allocator->AllocateBuffer(bufferCreateInfo, VMA_MEMORY_USAGE_CPU_ONLY, stagingBuffer, nullptr);
 
         // Copy data to staging buffer
         void* destData = allocator->MapMemory(stagingBufferAllocation);
