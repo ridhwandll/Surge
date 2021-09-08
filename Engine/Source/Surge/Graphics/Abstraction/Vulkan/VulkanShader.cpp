@@ -69,7 +69,6 @@ namespace Surge
         Scope<RenderContext>& context = GetRenderContext();
         VkDevice device = static_cast<VulkanDevice*>(context->GetInteralDevice())->GetLogicaldevice();
 
-        ShaderReflector reflector;
         shaderc::Compiler compiler;
         shaderc::CompileOptions options;
         options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2);
@@ -99,12 +98,11 @@ namespace Surge
 
                 VK_CALL(vkCreateShaderModule(device, &createInfo, nullptr, &mVkShaderModules[stage]));
                 mShaderSPIRVs.push_back(spirvHandle);
-
-                // Run Reflection
-                ShaderReflectionData reflectionData = reflector.Reflect(spirvHandle);
-                mReflectionData[stage] = reflectionData;
             }
         }
+
+        ShaderReflector reflector;
+        mReflectionData = reflector.Reflect(mShaderSPIRVs);
     }
 
     void VulkanShader::Clear()

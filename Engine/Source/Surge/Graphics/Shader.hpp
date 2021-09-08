@@ -67,7 +67,7 @@ namespace Surge
         virtual ~Shader() = default;
 
         virtual void Reload() = 0;
-        virtual const std::unordered_map<ShaderType, ShaderReflectionData>& GetReflectionData() const = 0;
+        virtual const ShaderReflectionData& GetReflectionData() const = 0;
         virtual const Vector<SPIRVHandle>& GetSPIRVs() const = 0;
         virtual const Path& GetPath() const = 0;
 

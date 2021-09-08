@@ -34,62 +34,119 @@ namespace Surge
         }
     };
 
-    ShaderReflectionData ShaderReflector::Reflect(const SPIRVHandle& spirvHandle)
+    ShaderReflectionData ShaderReflector::Reflect(const Vector<SPIRVHandle>& spirvHandles)
     {
-        spirv_cross::Compiler compiler(spirvHandle.SPIRV);
-        spirv_cross::ShaderResources resources = compiler.get_shader_resources();
-
         ShaderReflectionData result;
-        result.SetDomain(spirvHandle.Type);
-
-        // Fetch the textures
-        for (const spirv_cross::Resource& resource : resources.separate_images)
+        for (auto& handle : spirvHandles)
         {
-            ShaderResource res;
-            res.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
-            res.Set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
-            res.Name = resource.name;
-            result.PushResource(res);
-        }
+            spirv_cross::Compiler compiler(handle.SPIRV);
+            spirv_cross::ShaderResources resources = compiler.get_shader_resources();
 
-        // Fetch the StageInputs
-        Uint elementOffset = 0;
-        for (const spirv_cross::Resource& resource : resources.stage_inputs)
-        {
-            ShaderStageInput stageInput;
-
-            const spirv_cross::SPIRType& spvType = compiler.get_type(resource.base_type_id);
-            stageInput.Location = compiler.get_decoration(resource.id, spv::DecorationLocation);
-            stageInput.Name = resource.name;
-            stageInput.DataType = Utils::SPVTypeToShaderDataType(spvType);
-            stageInput.Size = ShaderDataTypeSize(stageInput.DataType);
-            stageInput.Offset = elementOffset;
-
-            result.PushStageInput(stageInput);
-            elementOffset += stageInput.Size;
-        }
-
-        // Fetch all the Uniform/Constannt buffers
-        for (const spirv_cross::Resource& resource : resources.uniform_buffers)
-        {
-            ShaderBuffer buffer;
-            const spirv_cross::SPIRType& bufferType = compiler.get_type(resource.base_type_id);
-
-            buffer.Size = static_cast<Uint>(compiler.get_declared_struct_size(bufferType));
-            buffer.Set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
-            buffer.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
-            buffer.BufferName = resource.name;
-
-            for (Uint i = 0; i < bufferType.member_types.size(); i++)
+            // Fetch the sampled textures
+            for (const spirv_cross::Resource& resource : resources.sampled_images)
             {
-                ShaderBufferMember bufferMember;
-                bufferMember.Name = buffer.BufferName + '.' + compiler.get_member_name(bufferType.self, i);
-                bufferMember.MemoryOffset = compiler.type_struct_member_offset(bufferType, i); // In bytes
-                buffer.Members.emplace_back(bufferMember);
+                ShaderResource res;
+                res.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+                res.Set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
+                res.Name = resource.name;
+                res.ShaderStages.push_back(handle.Type);
+                res.Type = ShaderResource::Usage::Sampled;
+                result.PushResource(res);
             }
 
-            result.PushBuffer(buffer);
+            // Fetch the storage textures
+            for (const spirv_cross::Resource& resource : resources.storage_images)
+            {
+                ShaderResource res;
+                res.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+                res.Set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
+                res.Name = resource.name;
+                res.ShaderStages.push_back(handle.Type);
+                res.Type = ShaderResource::Usage::Storage;
+                result.PushResource(res);
+            }
+
+            // Fetch all the Uniform/Constant buffers
+            for (const spirv_cross::Resource& resource : resources.uniform_buffers)
+            {
+                ShaderBuffer buffer;
+                const spirv_cross::SPIRType& bufferType = compiler.get_type(resource.base_type_id);
+
+                buffer.Size = static_cast<Uint>(compiler.get_declared_struct_size(bufferType));
+                buffer.Set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
+                buffer.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+                buffer.BufferName = resource.name;
+                buffer.ShaderStages.push_back(handle.Type);
+                buffer.Type = ShaderBuffer::Usage::Uniform;
+
+                for (Uint i = 0; i < bufferType.member_types.size(); i++)
+                {
+                    ShaderBufferMember bufferMember;
+                    bufferMember.Name = buffer.BufferName + '.' + compiler.get_member_name(bufferType.self, i);
+                    bufferMember.MemoryOffset = compiler.type_struct_member_offset(bufferType, i); // In bytes
+                    buffer.Members.emplace_back(bufferMember);
+                }
+
+                result.PushBuffer(buffer);
+            }
+
+            // Fetch all the Storage buffers
+            for (const spirv_cross::Resource& resource : resources.storage_buffers)
+            {
+                ShaderBuffer buffer;
+                const spirv_cross::SPIRType& bufferType = compiler.get_type(resource.base_type_id);
+
+                buffer.Size = static_cast<Uint>(compiler.get_declared_struct_size(bufferType));
+                buffer.Set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
+                buffer.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+                buffer.BufferName = resource.name;
+                buffer.ShaderStages.push_back(handle.Type);
+                buffer.Type = ShaderBuffer::Usage::Storage;
+
+                for (Uint i = 0; i < bufferType.member_types.size(); i++)
+                {
+                    ShaderBufferMember bufferMember;
+                    bufferMember.Name = buffer.BufferName + '.' + compiler.get_member_name(bufferType.self, i);
+                    bufferMember.MemoryOffset = compiler.type_struct_member_offset(bufferType, i); // In bytes
+                    buffer.Members.emplace_back(bufferMember);
+                }
+
+                result.PushBuffer(buffer);
+            }
+
+            // Fetch the StageInputs
+            Uint elementOffset = 0;
+            for (const spirv_cross::Resource& resource : resources.stage_inputs)
+            {
+                ShaderStageInput stageInput;
+
+                const spirv_cross::SPIRType& spvType = compiler.get_type(resource.base_type_id);
+                stageInput.Location = compiler.get_decoration(resource.id, spv::DecorationLocation);
+                stageInput.Name = resource.name;
+                stageInput.DataType = Utils::SPVTypeToShaderDataType(spvType);
+                stageInput.Size = ShaderDataTypeSize(stageInput.DataType);
+                stageInput.Offset = elementOffset;
+
+                result.PushStageInput(stageInput);
+                elementOffset += stageInput.Size;
+            }
+
+            // Fetch Push Constants
+            for (const spirv_cross::Resource& resource : resources.push_constant_buffers)
+            {
+                ShaderPushConstant pushConstant;
+                const spirv_cross::SPIRType& bufferType = compiler.get_type(resource.base_type_id);
+
+                pushConstant.BufferName = resource.name;
+                pushConstant.Size = static_cast<Uint>(compiler.get_declared_struct_size(bufferType));
+                pushConstant.ShaderStages.push_back(handle.Type);
+                result.PushBufferPushConstant(pushConstant);
+            }
         }
+
+        result.ClearRepeatedMembers();
+        result.CalculateDescriptorSetCount();
         return result;
     }
+
 }

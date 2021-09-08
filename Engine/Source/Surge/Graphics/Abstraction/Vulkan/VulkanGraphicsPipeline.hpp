@@ -12,15 +12,19 @@ namespace Surge
         virtual ~VulkanGraphicsPipeline();
     
         virtual void Bind() override;
-        void SetPushConstantData(void* data);
+        void SetPushConstantData(String bufferName, void* data);
 
         VkPipeline GetVulkanPipeline() const { return mPipeline; }
         VkPipelineLayout GetPipelineLayout() const { return mPipelineLayout; }
         virtual const GraphicsPipelineSpecification& GetPipelineSpecification() const override { return mSpecification; }
     private:
+        void CreateVulkanDescriptorSetLayouts();
+        void CreatePushConstantRanges();
+    private:
         VkPipeline mPipeline;
         VkPipelineLayout mPipelineLayout;
-        VkPushConstantRange mPushConstantRangeCache; // TODO(AC3R): Add push constants
+        HashMap<String, VkPushConstantRange> mPushConstants;
+        HashMap<Uint, VkDescriptorSetLayout> mDescriptorSetLayouts;
         GraphicsPipelineSpecification mSpecification;
     };
 }

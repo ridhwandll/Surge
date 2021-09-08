@@ -10,9 +10,15 @@ namespace Surge
     // Represents Textures
     struct ShaderResource
     {
+        enum class Usage {
+            Sampled, Storage
+        };
+
         Uint Set = 0;
         Uint Binding = 0;
         String Name = "";
+        ShaderResource::Usage Type;
+        Vector<ShaderType> ShaderStages; // Specify what shader stages the buffer is being used for
     };
 
     struct ShaderStageInput
@@ -34,11 +40,24 @@ namespace Surge
     // Represents a ConstantBuffer
     struct ShaderBuffer
     {
+        enum class Usage {
+            Storage, Uniform
+        };
+
         Uint Set = 0;
         Uint Binding = 0;
         String BufferName = "";
         Uint Size = 0;
         Vector<ShaderBufferMember> Members = {};
+        ShaderBuffer::Usage Type;
+        Vector<ShaderType> ShaderStages;  // Specify what shader stages the buffer is being used for
+    };
+
+    struct ShaderPushConstant
+    {
+        String BufferName = "";
+        Uint Size = 0;
+        Vector<ShaderType> ShaderStages;  // Specify what shader stages the buffer is being used for
     };
 
     class ShaderReflectionData
@@ -47,8 +66,6 @@ namespace Surge
         ShaderReflectionData() = default;
         ~ShaderReflectionData() = default;
 
-        void SetDomain(const ShaderType& shaderType) { mShaderType = shaderType; }
-
         void PushResource(const ShaderResource& res) { mShaderResources.push_back(res); }
         void PushStageInput(const ShaderStageInput& input) { mStageInputs.push_back(input); }
         void PushBuffer(const ShaderBuffer& buffer)
@@ -56,17 +73,29 @@ namespace Surge
             SG_ASSERT(!buffer.BufferName.empty() || buffer.Members.size() != 0 || buffer.Size != 0, "ShaderBuffer is invalid!");
             mShaderBuffers.push_back(buffer);
         }
+        void PushBufferPushConstant(const ShaderPushConstant& pushConstant) { mPushConstants.push_back(pushConstant); }
 
         const ShaderBuffer& GetBuffer(const String& name) const;
         const Vector<ShaderBuffer>& GetBuffers() const { return mShaderBuffers; }
+        const Vector<ShaderPushConstant> GetPushConstantBuffers() const { return mPushConstants; }
         const ShaderBufferMember& GetBufferMember(const ShaderBuffer& buffer, const String& memberName) const;
 
         const Vector<ShaderResource>& GetResources() const { return mShaderResources; }
         const Vector<ShaderStageInput>& GetStageInputs() const { return mStageInputs; }
+
+        const Vector<Uint> GetDescriptorSetCount() const { return mDescriptorSetsCount; }
     private:
-        ShaderType mShaderType = ShaderType::None;
+        void ClearRepeatedMembers();
+        void CalculateDescriptorSetCount();
+    private:
         Vector<ShaderResource> mShaderResources{};
         Vector<ShaderBuffer> mShaderBuffers{};
         Vector<ShaderStageInput> mStageInputs{};
+        Vector<ShaderPushConstant> mPushConstants;
+
+        // NOTE(AC3R): Keeping track of how many descriptor set we will need for the descriptor layout
+        Vector<Uint> mDescriptorSetsCount;
+
+        friend class ShaderReflector;
     };
 }
