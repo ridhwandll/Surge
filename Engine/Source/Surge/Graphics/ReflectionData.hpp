@@ -10,7 +10,8 @@ namespace Surge
     // Represents Textures
     struct ShaderResource
     {
-        enum class Usage {
+        enum class Usage
+        {
             Sampled, Storage
         };
 
@@ -40,7 +41,8 @@ namespace Surge
     // Represents a ConstantBuffer
     struct ShaderBuffer
     {
-        enum class Usage {
+        enum class Usage
+        {
             Storage, Uniform
         };
 

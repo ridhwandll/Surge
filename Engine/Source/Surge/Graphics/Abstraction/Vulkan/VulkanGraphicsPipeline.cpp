@@ -224,9 +224,9 @@ namespace Surge
     {
         VkCommandBuffer cmdBuf = VK_NULL_HANDLE; // TODO: We will need to add a render commandbuffer to the swap chain
         vkCmdPushConstants(cmdBuf, mPipelineLayout,
-			mPushConstants[bufferName].stageFlags,
-			mPushConstants[bufferName].offset,
-			mPushConstants[bufferName].size,
+            mPushConstants[bufferName].stageFlags,
+            mPushConstants[bufferName].offset,
+            mPushConstants[bufferName].size,
             data
         );
     }
