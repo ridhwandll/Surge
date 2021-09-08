@@ -8,7 +8,7 @@ struct Vertex
     glm::vec3 Color;
 };
 
-const std::vector<Vertex> vertices =
+const Vector<Vertex> vertices =
 {
     {{ 0.5f,  0.5f }, { 1.0f, 0.0f, 0.0f }},
     {{ 0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f }},
@@ -16,7 +16,7 @@ const std::vector<Vertex> vertices =
     {{-0.5f,  0.5f }, { 1.0f, 0.0f, 1.0f }}
 };
 
-const std::vector<Uint> indices =
+const Vector<Uint> indices =
 {   
     0, 1, 2,
     1, 2, 3

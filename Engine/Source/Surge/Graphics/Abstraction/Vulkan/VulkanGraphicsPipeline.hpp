@@ -12,7 +12,7 @@ namespace Surge
         virtual ~VulkanGraphicsPipeline();
     
         virtual void Bind() override;
-        void SetPushConstantData(String bufferName, void* data);
+        void SetPushConstantData(const String& bufferName, void* data);
 
         VkPipeline GetVulkanPipeline() const { return mPipeline; }
         VkPipelineLayout GetPipelineLayout() const { return mPipelineLayout; }

@@ -9,7 +9,5 @@ namespace Surge
     public:
         ShaderReflector() = default;
         ShaderReflectionData Reflect(const Vector<SPIRVHandle>& spirvHandles);
-    private:
-        Ref<Shader> mShader;
     };
 }

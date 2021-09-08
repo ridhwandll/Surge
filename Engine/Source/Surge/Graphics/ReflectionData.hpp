@@ -69,7 +69,7 @@ namespace Surge
         ~ShaderReflectionData() = default;
 
         void PushResource(const ShaderResource& res) { mShaderResources.push_back(res); }
-        void PushStageInput(const ShaderStageInput& input) { mStageInputs.push_back(input); }
+        void PushStageInput(const ShaderStageInput& input, const ShaderType& stage) { mStageInputs[stage].push_back(input); }
         void PushBuffer(const ShaderBuffer& buffer)
         {
             SG_ASSERT(!buffer.BufferName.empty() || buffer.Members.size() != 0 || buffer.Size != 0, "ShaderBuffer is invalid!");
@@ -81,10 +81,8 @@ namespace Surge
         const Vector<ShaderBuffer>& GetBuffers() const { return mShaderBuffers; }
         const Vector<ShaderPushConstant> GetPushConstantBuffers() const { return mPushConstants; }
         const ShaderBufferMember& GetBufferMember(const ShaderBuffer& buffer, const String& memberName) const;
-
         const Vector<ShaderResource>& GetResources() const { return mShaderResources; }
-        const Vector<ShaderStageInput>& GetStageInputs() const { return mStageInputs; }
-
+        const HashMap<ShaderType, Vector<ShaderStageInput>>& GetStageInputs() const { return mStageInputs; }
         const Vector<Uint> GetDescriptorSetCount() const { return mDescriptorSetsCount; }
     private:
         void ClearRepeatedMembers();
@@ -92,11 +90,13 @@ namespace Surge
     private:
         Vector<ShaderResource> mShaderResources{};
         Vector<ShaderBuffer> mShaderBuffers{};
-        Vector<ShaderStageInput> mStageInputs{};
         Vector<ShaderPushConstant> mPushConstants;
 
         // NOTE(AC3R): Keeping track of how many descriptor set we will need for the descriptor layout
         Vector<Uint> mDescriptorSetsCount;
+
+        // Stage inputs, per shader stage
+        HashMap<ShaderType, Vector<ShaderStageInput>> mStageInputs{};
 
         friend class ShaderReflector;
     };

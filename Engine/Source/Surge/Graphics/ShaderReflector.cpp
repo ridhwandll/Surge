@@ -127,7 +127,7 @@ namespace Surge
                 stageInput.Size = ShaderDataTypeSize(stageInput.DataType);
                 stageInput.Offset = elementOffset;
 
-                result.PushStageInput(stageInput);
+                result.PushStageInput(stageInput, handle.Type);
                 elementOffset += stageInput.Size;
             }
 

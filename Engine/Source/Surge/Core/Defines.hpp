@@ -21,11 +21,13 @@
     #define SG_ASSERT(condition, ...)  { if(!(condition)) { Surge::Log<Surge::LogSeverity::Fatal>(__VA_ARGS__); ASSERT(); } }
     #define SG_ASSERT_NOMSG(condition) { if(!(condition)) { Surge::Log<Surge::LogSeverity::Fatal>("Assertion Failed!"); ASSERT(); } }
     #define SG_ASSERT_INTERNAL(...)    { Surge::Log<Surge::LogSeverity::Fatal>(__VA_ARGS__); ASSERT(); }
+    #define SCOPED_TIMER(name) Timer tImEr(name, true)
 #else
     #define ASSERT()
     #define SG_ASSERT(...)
     #define SG_ASSERT_NOMSG(...)
     #define SG_ASSERT_INTERNAL(...)
+    #define SCOPED_TIMER(name)
 #endif
 
 #define BIT(x) (1 << x)

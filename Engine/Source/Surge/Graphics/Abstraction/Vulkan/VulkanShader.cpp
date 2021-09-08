@@ -3,49 +3,13 @@
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanShader.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDevice.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDiagnostics.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanUtils.hpp"
 #include "Surge/Graphics/ShaderReflector.hpp"
 #include "Surge/Utility/Filesystem.hpp"
 #include <shaderc/shaderc.hpp>
 
 namespace Surge
 {
-    namespace Utils
-    {
-        ShaderType ShaderTypeFromString(const String& type)
-        {
-            if (type == "Vertex]")  return ShaderType::VertexShader;
-            if (type == "Pixel]")   return ShaderType::PixelShader;
-            if (type == "Compute]") return ShaderType::ComputeShader;
-
-            return ShaderType::None;
-        }
-
-        String ShaderTypeToString(const ShaderType& type)
-        {
-            switch (type)
-            {
-            case ShaderType::VertexShader:  return "Vertex";
-            case ShaderType::PixelShader:   return "Pixel";
-            case ShaderType::ComputeShader: return "Compute";
-            case ShaderType::None: SG_ASSERT_INTERNAL("ShaderType::None is invalid in this case!");
-            }
-            return "";
-        }
-
-        shaderc_shader_kind ShadercShaderKindFromSurgeShaderType(const ShaderType& type)
-        {
-            switch (type)
-            {
-            case ShaderType::VertexShader:  return shaderc_glsl_vertex_shader;
-            case ShaderType::PixelShader:   return shaderc_glsl_fragment_shader;
-            case ShaderType::ComputeShader: return shaderc_glsl_compute_shader;
-            case ShaderType::None: SG_ASSERT_INTERNAL("ShaderType::None is invalid in this case!");
-            }
-
-            return static_cast<shaderc_shader_kind>(-1);
-        }
-    }
-
     VulkanShader::VulkanShader(const Path& path)
         : mPath(path)
     {
@@ -79,10 +43,10 @@ namespace Surge
         for (auto&& [stage, source] : mShaderSources)
         {
             SPIRVHandle spirvHandle;
-            shaderc::CompilationResult result = compiler.CompileGlslToSpv(source, Utils::ShadercShaderKindFromSurgeShaderType(stage), mPath.c_str(), options);
+            shaderc::CompilationResult result = compiler.CompileGlslToSpv(source, VulkanUtils::ShadercShaderKindFromSurgeShaderType(stage), mPath.c_str(), options);
             if (result.GetCompilationStatus() != shaderc_compilation_status_success)
             {
-                Log<LogSeverity::Error>("{0} Shader compilation failure!", Utils::ShaderTypeToString(stage));
+                Log<LogSeverity::Error>("{0} Shader compilation failure!", VulkanUtils::ShaderTypeToString(stage));
                 Log<LogSeverity::Error>("{0} Error(s): \n{1}", result.GetNumErrors(), result.GetErrorMessage());
                 SG_ASSERT_INTERNAL("Shader Compilation failure!");
             }
@@ -131,11 +95,11 @@ namespace Surge
             size_t begin = pos + typeTokenLength + 1;
             String type = source.substr(begin, eol - begin);
 
-            SG_ASSERT((int)Utils::ShaderTypeFromString(type), "Invalid shader type!");
+            SG_ASSERT((int)VulkanUtils::ShaderTypeFromString(type), "Invalid shader type!");
             size_t nextLinePos = source.find_first_not_of("\r\n", eol);
 
             pos = source.find(typeToken, nextLinePos);
-            mShaderSources[Utils::ShaderTypeFromString(type)] = (pos == std::string::npos) ? source.substr(nextLinePos) : source.substr(nextLinePos, pos - nextLinePos);
+            mShaderSources[VulkanUtils::ShaderTypeFromString(type)] = (pos == std::string::npos) ? source.substr(nextLinePos) : source.substr(nextLinePos, pos - nextLinePos);
         }
     }
 
