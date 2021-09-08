@@ -1,6 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "Surge/Graphics/Shader.hpp"
+#include "Surge/Graphics/ShaderReflector.hpp"
 #include <volk.h>
 
 namespace Surge
@@ -12,7 +13,7 @@ namespace Surge
         virtual ~VulkanShader() override;
 
         virtual void Reload() override;
-        virtual const HashMap<ShaderType, ShaderReflectionData>& GetReflectionData() const override { return mReflectionData; }
+        virtual const ShaderReflectionData& GetReflectionData() const override { return mReflectionData; }
         virtual const Vector<SPIRVHandle>& GetSPIRVs() const override { return mShaderSPIRVs; }
         virtual const Path& GetPath() const override { return mPath; }
 
@@ -27,7 +28,7 @@ namespace Surge
         Path mPath;
         HashMap<ShaderType, String> mShaderSources{};
         HashMap<ShaderType, VkShaderModule> mVkShaderModules{};
-        HashMap<ShaderType, ShaderReflectionData> mReflectionData{};
+        ShaderReflectionData mReflectionData{};
         Vector<SPIRVHandle> mShaderSPIRVs{};
     };
 }
