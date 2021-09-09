@@ -10,11 +10,11 @@ namespace Surge
         {
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
             Log("[VulkanDiagnostics]");
-            Log<LogSeverity::Warn>("{0}", pCallbackData->pMessage);
+            Log<Severity::Warn>("{0}", pCallbackData->pMessage);
             break;
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
             Log("[VulkanDiagnostics]");
-            Log<LogSeverity::Error>("{0}", pCallbackData->pMessage);
+            Log<Severity::Error>("{0}", pCallbackData->pMessage);
             break;
         }
 
@@ -63,7 +63,7 @@ namespace Surge
         }
 
         if (!validationLayerPresent)
-            Log<LogSeverity::Error>("Validation layer requested, but it is not present ({0}), validation is disabled", validationLayerName);
+            Log<Severity::Error>("Validation layer requested, but it is not present ({0}), validation is disabled", validationLayerName);
     }
 
     void VulkanDiagnostics::AddValidationExtensions(Vector<const char*>& outInstanceExtensions)

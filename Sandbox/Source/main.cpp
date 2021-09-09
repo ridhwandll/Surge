@@ -45,6 +45,7 @@ public:
         pipelineSpec.Topology = PrimitiveTopology::Triangles;
         pipelineSpec.UseDepth = true;
         pipelineSpec.UseStencil = false;
+        pipelineSpec.DebugName = "TestPipeline";
         mPipeline = GraphicsPipeline::Create(pipelineSpec);
     }
 

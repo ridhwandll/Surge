@@ -18,13 +18,8 @@ namespace Surge
         VkPipelineLayout GetPipelineLayout() const { return mPipelineLayout; }
         virtual const GraphicsPipelineSpecification& GetPipelineSpecification() const override { return mSpecification; }
     private:
-        void CreateVulkanDescriptorSetLayouts();
-        void CreatePushConstantRanges();
-    private:
         VkPipeline mPipeline;
         VkPipelineLayout mPipelineLayout;
-        HashMap<String, VkPushConstantRange> mPushConstants;
-        HashMap<Uint, VkDescriptorSetLayout> mDescriptorSetLayouts;
         GraphicsPipelineSpecification mSpecification;
     };
 }

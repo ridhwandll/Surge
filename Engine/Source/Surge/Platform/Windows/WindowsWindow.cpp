@@ -24,7 +24,7 @@ namespace Surge
         wc.cbClsExtra = 0;
 
         if (!RegisterClassEx(&wc))
-            Log<LogSeverity::Error>("Could not initialize the window class!");
+            Log<Severity::Error>("Could not initialize the window class!");
 
         mWin32Window = CreateWindow(wc.lpszClassName, mWindowData.Title.c_str(),
             mWindowData.Flags & WindowFlags::NonResizeable ? WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX : WS_OVERLAPPEDWINDOW,
@@ -32,9 +32,9 @@ namespace Surge
 
         ApplyFlags();
         if (mWin32Window)
-            Log<LogSeverity::Info>("Created {0} ({1}, {2})", mWindowData.Title, mWindowData.Width, mWindowData.Height);
+            Log<Severity::Info>("Created {0} ({1}, {2})", mWindowData.Title, mWindowData.Width, mWindowData.Height);
         else
-            Log<LogSeverity::Error>("WindowsWindow creation failure!");
+            Log<Severity::Error>("WindowsWindow creation failure!");
     }
 
     WindowsWindow::~WindowsWindow()

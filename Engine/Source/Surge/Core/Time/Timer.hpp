@@ -16,7 +16,7 @@ namespace Surge
         ~Timer()
         {
             if (mLogOnDestructor)
-                Log<LogSeverity::Info>("{0} took {1} seconds({2} ms)!", mName, Elapsed(), ElapsedMillis());
+                Log<Severity::Info>("{0} took {1} seconds({2} ms)!", mName, Elapsed(), ElapsedMillis());
         }
 
         void Reset()

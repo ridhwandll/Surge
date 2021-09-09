@@ -22,6 +22,7 @@ namespace Surge
         float LineWidth = 1.0f;
         bool UseDepth = true;
         bool UseStencil = false;
+        String DebugName = "";
     };
 
     class GraphicsPipeline : public RefCounted

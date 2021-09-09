@@ -5,104 +5,17 @@
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDevice.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanSwapChain.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDiagnostics.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanUtils.hpp"
 #include "Surge/Graphics/ReflectionData.hpp"
 #include <array>
 
 namespace Surge
 {
-    namespace Utils
-    {
-        VkPrimitiveTopology GetVulkanPrimitiveTopology(PrimitiveTopology primitive)
-        {
-            switch (primitive)
-            {
-            case PrimitiveTopology::Points:         return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
-            case PrimitiveTopology::Lines:          return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-            case PrimitiveTopology::LineStrip:      return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
-            case PrimitiveTopology::Triangles:      return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-            case PrimitiveTopology::TriangleStrip:  return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-            case PrimitiveTopology::None:           SG_ASSERT_INTERNAL("PrimitiveType::None is invalid!");
-            }
-
-            SG_ASSERT_INTERNAL("No Surge::PrimitiveType maps to VkPrimitiveTopology!");
-            return VkPrimitiveTopology();
-        }
-
-        VkFormat ShaderDataTypeToVulkanFormat(ShaderDataType type)
-        {
-            switch (type)
-            {
-            case ShaderDataType::Float:     return VK_FORMAT_R32_SFLOAT;
-            case ShaderDataType::Float2:    return VK_FORMAT_R32G32_SFLOAT;
-            case ShaderDataType::Float3:    return VK_FORMAT_R32G32B32_SFLOAT;
-            case ShaderDataType::Float4:    return VK_FORMAT_R32G32B32A32_SFLOAT;
-            default: SG_ASSERT_INTERNAL("Undefined!");
-            }
-
-            SG_ASSERT_INTERNAL("No Surge::ShaderDataType maps to VkFormat!");
-            return VK_FORMAT_UNDEFINED;
-        }
-
-        Vector<VkDescriptorSetLayout> GetDescriptorSetLayoutVectorFromHashMap(const HashMap<Uint, VkDescriptorSetLayout>& descriptorSetLayouts)
-        {
-            Vector<VkDescriptorSetLayout> descriptorSetLayout;
-            for (auto layout : descriptorSetLayouts)
-                descriptorSetLayout.push_back(layout.second);
-            return descriptorSetLayout;
-        }
-
-        Vector<VkPushConstantRange> GetPushConstantRangesVectorFromHashMap(const HashMap<String, VkPushConstantRange>& pushConstants)
-        {
-            Vector<VkPushConstantRange> pushConstantsVector;
-            for (auto pushConstant : pushConstants)
-                pushConstantsVector.push_back(pushConstant.second);
-            return pushConstantsVector;
-        }
-
-        VkDescriptorType ShaderBufferTypeToVulkan(ShaderBuffer::Usage type)
-        {
-            switch (type)
-            {
-            case ShaderBuffer::Usage::Storage: return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-            case ShaderBuffer::Usage::Uniform: return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            }
-            SG_ASSERT(false, "ShaderBuffer::Usage is invalid");
-            return VkDescriptorType();
-        }
-
-        VkDescriptorType ShaderImageTypeToVulkan(ShaderResource::Usage type)
-        {
-            switch (type)
-            {
-            case ShaderResource::Usage::Sampled: return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-            case ShaderResource::Usage::Storage: return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-            }
-            SG_ASSERT(false, "ShaderResource::Usage is invalid");
-            return VkDescriptorType();
-        }
-
-        VkShaderStageFlags GetShaderStagesFlagsFromShaderTypes(const Vector<ShaderType>& shaderStages)
-        {
-            VkShaderStageFlags stageFlags{};
-            for (auto stage : shaderStages)
-            {
-                //None = 0, VertexShader, PixelShader, ComputeShader
-                switch (stage)
-                {
-                case ShaderType::VertexShader:  stageFlags |= VK_SHADER_STAGE_VERTEX_BIT;   break;
-                case ShaderType::PixelShader:   stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT; break;
-                case ShaderType::ComputeShader: stageFlags |= VK_SHADER_STAGE_COMPUTE_BIT;  break;
-                case ShaderType::None: SG_ASSERT(false, "Shader::None is invalid!");
-                }
-            }
-            return stageFlags;
-        }
-    }
-
     VulkanGraphicsPipeline::VulkanGraphicsPipeline(const GraphicsPipelineSpecification& pipelineSpec)
         : mSpecification(pipelineSpec)
     {
-        SCOPED_TIMER("Pipeline Creation");
+        SCOPED_TIMER("[{0}] Pipeline Creation", mSpecification.DebugName);
+
         VkDevice device = static_cast<VulkanDevice*>(GetRenderContext()->GetInteralDevice())->GetLogicaldevice();
 
         // Setting up all the shaders into a create info class
@@ -138,7 +51,7 @@ namespace Surge
             const ShaderStageInput& stageInput = stageInputs[i];
             vertexAttributeDescriptions[i].binding = 0;
             vertexAttributeDescriptions[i].location = stageInput.Location;
-            vertexAttributeDescriptions[i].format = Utils::ShaderDataTypeToVulkanFormat(stageInput.DataType);
+            vertexAttributeDescriptions[i].format = VulkanUtils::ShaderDataTypeToVulkanFormat(stageInput.DataType);
             vertexAttributeDescriptions[i].offset = stageInput.Offset;
         }
 
@@ -150,7 +63,7 @@ namespace Surge
 
         // Input Assembly
         VkPipelineInputAssemblyStateCreateInfo inputAssembly{ VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
-        inputAssembly.topology = Utils::GetVulkanPrimitiveTopology(pipelineSpec.Topology);
+        inputAssembly.topology = VulkanUtils::GetVulkanPrimitiveTopology(pipelineSpec.Topology);
         inputAssembly.primitiveRestartEnable = VK_FALSE;
         inputAssembly.flags = 0;
         inputAssembly.pNext = nullptr;
@@ -204,10 +117,9 @@ namespace Surge
         colorBlending.blendConstants[3] = 0.0f;
 
         // Setting up the pipeline layout
-        CreateVulkanDescriptorSetLayouts();
-        CreatePushConstantRanges();
-        Vector<VkDescriptorSetLayout> descriptorSetLayouts = Utils::GetDescriptorSetLayoutVectorFromHashMap(mDescriptorSetLayouts);
-        Vector<VkPushConstantRange> pushConstants = Utils::GetPushConstantRangesVectorFromHashMap(mPushConstants);
+        Ref<VulkanShader>& vulkanShader = mSpecification.Shader.As<VulkanShader>();
+        Vector<VkDescriptorSetLayout> descriptorSetLayouts = VulkanUtils::GetDescriptorSetLayoutVectorFromHashMap(vulkanShader->GetDescriptorSetLayouts());
+        Vector<VkPushConstantRange> pushConstants = VulkanUtils::GetPushConstantRangesVectorFromHashMap(vulkanShader->GetPushConstantRanges());
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
         pipelineLayoutInfo.setLayoutCount = descriptorSetLayouts.size();
@@ -247,10 +159,6 @@ namespace Surge
     VulkanGraphicsPipeline::~VulkanGraphicsPipeline()
     {
         VkDevice device = static_cast<VulkanDevice*>(GetRenderContext()->GetInteralDevice())->GetLogicaldevice();
-
-        for (auto& descriptorSetLayout : mDescriptorSetLayouts)
-            vkDestroyDescriptorSetLayout(device, descriptorSetLayout.second, nullptr);
-
         vkDestroyPipeline(device, mPipeline, nullptr);
         vkDestroyPipelineLayout(device, mPipelineLayout, nullptr);
     }
@@ -264,65 +172,7 @@ namespace Surge
     void VulkanGraphicsPipeline::SetPushConstantData(const String& bufferName, void* data)
     {
         VkCommandBuffer cmdBuf = VK_NULL_HANDLE; // TODO: We will need to add a render commandbuffer to the swap chain
-        vkCmdPushConstants(cmdBuf, mPipelineLayout,
-            mPushConstants[bufferName].stageFlags,
-            mPushConstants[bufferName].offset,
-            mPushConstants[bufferName].size,
-            data
-        );
-    }
-
-    void VulkanGraphicsPipeline::CreateVulkanDescriptorSetLayouts()
-    {
-        VkDevice device = static_cast<VulkanDevice*>(GetRenderContext()->GetInteralDevice())->GetLogicaldevice();
-        ShaderReflectionData reflectedData = mSpecification.Shader->GetReflectionData();
-
-        // Iterate through all the sets and creating the layouts
-        // (descriptor layouts use HashMap<Uint, VkDescriptorSetLayout> because the Uint specifies at which set number the layout is going to be used
-        for (auto& descriptorSet : reflectedData.GetDescriptorSetCount())
-        {
-            Vector<VkDescriptorSetLayoutBinding> layoutBindings;
-            for (const ShaderBuffer& buffer : reflectedData.GetBuffers())
-            {
-                if (buffer.Set != descriptorSet) continue;;
-
-                VkDescriptorSetLayoutBinding& LayoutBinding = layoutBindings.emplace_back();
-                LayoutBinding.binding = buffer.Binding;
-                LayoutBinding.descriptorCount = 1; // TODO: Need to add arrays
-                LayoutBinding.descriptorType = Utils::ShaderBufferTypeToVulkan(buffer.Type);
-                LayoutBinding.stageFlags = Utils::GetShaderStagesFlagsFromShaderTypes(buffer.ShaderStages);
-            }
-
-            for (const ShaderResource& texture : reflectedData.GetResources())
-            {
-                if (texture.Set != descriptorSet) continue;;
-
-                VkDescriptorSetLayoutBinding& LayoutBinding = layoutBindings.emplace_back();
-                LayoutBinding.binding = texture.Binding;
-                LayoutBinding.descriptorCount = 1; // TODO: Need to add arrays
-                LayoutBinding.descriptorType = Utils::ShaderImageTypeToVulkan(texture.Type);
-                LayoutBinding.stageFlags = Utils::GetShaderStagesFlagsFromShaderTypes(texture.ShaderStages);
-            }
-
-            VkDescriptorSetLayoutCreateInfo layoutInfo{};
-            layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-            layoutInfo.flags = 0;
-            layoutInfo.bindingCount = static_cast<Uint>(layoutBindings.size());
-            layoutInfo.pBindings = layoutBindings.data();
-
-            VK_CALL(vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &mDescriptorSetLayouts[descriptorSet]));
-        }
-    }
-    
-    void VulkanGraphicsPipeline::CreatePushConstantRanges()
-    {
-        ShaderReflectionData reflectionData = mSpecification.Shader->GetReflectionData();
-        for (auto& pushConstant : reflectionData.GetPushConstantBuffers())
-        {
-            VkPushConstantRange& pushConstantRange = mPushConstants[pushConstant.BufferName];
-            pushConstantRange.offset = 0;
-            pushConstantRange.size = pushConstant.Size;
-            pushConstantRange.stageFlags = Utils::GetShaderStagesFlagsFromShaderTypes(pushConstant.ShaderStages);
-        }
+        VkPushConstantRange& pushConstant = mSpecification.Shader.As<VulkanShader>()->GetPushConstantRanges()[bufferName];
+        vkCmdPushConstants(cmdBuf, mPipelineLayout, pushConstant.stageFlags, pushConstant.offset, pushConstant.size, data);
     }
 }

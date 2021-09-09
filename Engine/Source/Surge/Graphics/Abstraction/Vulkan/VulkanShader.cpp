@@ -26,6 +26,8 @@ namespace Surge
         Clear();
         ParseShader();
         Compile();
+        CreateVulkanDescriptorSetLayouts();
+        CreateVulkanPushConstantRanges();
     }
 
     void VulkanShader::Compile()
@@ -46,8 +48,8 @@ namespace Surge
             shaderc::CompilationResult result = compiler.CompileGlslToSpv(source, VulkanUtils::ShadercShaderKindFromSurgeShaderType(stage), mPath.c_str(), options);
             if (result.GetCompilationStatus() != shaderc_compilation_status_success)
             {
-                Log<LogSeverity::Error>("{0} Shader compilation failure!", VulkanUtils::ShaderTypeToString(stage));
-                Log<LogSeverity::Error>("{0} Error(s): \n{1}", result.GetNumErrors(), result.GetErrorMessage());
+                Log<Severity::Error>("{0} Shader compilation failure!", VulkanUtils::ShaderTypeToString(stage));
+                Log<Severity::Error>("{0} Error(s): \n{1}", result.GetNumErrors(), result.GetErrorMessage());
                 SG_ASSERT_INTERNAL("Shader Compilation failure!");
             }
             else
@@ -79,7 +81,66 @@ namespace Surge
         for (auto&& [stage, source] : mVkShaderModules)
             vkDestroyShaderModule(device, mVkShaderModules[stage], nullptr);
 
+        for (auto& descriptorSetLayout : mDescriptorSetLayouts)
+            vkDestroyDescriptorSetLayout(device, descriptorSetLayout.second, nullptr);
+
+        mDescriptorSetLayouts.clear();
+        mPushConstants.clear();
         mVkShaderModules.clear();
+    }
+
+    void VulkanShader::CreateVulkanDescriptorSetLayouts()
+    {
+        VkDevice device = static_cast<VulkanDevice*>(GetRenderContext()->GetInteralDevice())->GetLogicaldevice();
+
+        // Iterate through all the sets and creating the layouts
+        // (descriptor layouts use HashMap<Uint, VkDescriptorSetLayout> because the Uint specifies at which set number the layout is going to be used
+        for (const Uint& descriptorSet : mReflectionData.GetDescriptorSetCount())
+        {
+            Vector<VkDescriptorSetLayoutBinding> layoutBindings;
+            for (const ShaderBuffer& buffer : mReflectionData.GetBuffers())
+            {
+                if (buffer.Set != descriptorSet)
+                    continue;
+
+                VkDescriptorSetLayoutBinding& LayoutBinding = layoutBindings.emplace_back();
+                LayoutBinding.binding = buffer.Binding;
+                LayoutBinding.descriptorCount = 1; // TODO: Need to add arrays
+                LayoutBinding.descriptorType = VulkanUtils::ShaderBufferTypeToVulkan(buffer.Type);
+                LayoutBinding.stageFlags = VulkanUtils::GetShaderStagesFlagsFromShaderTypes(buffer.ShaderStages);
+            }
+
+            for (const ShaderResource& texture : mReflectionData.GetResources())
+            {
+                if (texture.Set != descriptorSet)
+                    continue;
+
+                VkDescriptorSetLayoutBinding& LayoutBinding = layoutBindings.emplace_back();
+                LayoutBinding.binding = texture.Binding;
+                LayoutBinding.descriptorCount = 1; // TODO: Need to add arrays
+                LayoutBinding.descriptorType = VulkanUtils::ShaderImageTypeToVulkan(texture.Type);
+                LayoutBinding.stageFlags = VulkanUtils::GetShaderStagesFlagsFromShaderTypes(texture.ShaderStages);
+            }
+
+            VkDescriptorSetLayoutCreateInfo layoutInfo{};
+            layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+            layoutInfo.flags = 0;
+            layoutInfo.bindingCount = static_cast<Uint>(layoutBindings.size());
+            layoutInfo.pBindings = layoutBindings.data();
+
+            VK_CALL(vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &mDescriptorSetLayouts[descriptorSet]));
+        }
+    }
+
+    void VulkanShader::CreateVulkanPushConstantRanges()
+    {
+        for (const ShaderPushConstant& pushConstant : mReflectionData.GetPushConstantBuffers())
+        {
+            VkPushConstantRange& pushConstantRange = mPushConstants[pushConstant.BufferName];
+            pushConstantRange.offset = 0;
+            pushConstantRange.size = pushConstant.Size;
+            pushConstantRange.stageFlags = VulkanUtils::GetShaderStagesFlagsFromShaderTypes(pushConstant.ShaderStages);
+        }
     }
 
     void VulkanShader::ParseShader()

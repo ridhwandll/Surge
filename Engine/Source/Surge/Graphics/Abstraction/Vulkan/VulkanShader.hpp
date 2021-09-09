@@ -17,18 +17,26 @@ namespace Surge
         virtual const Vector<SPIRVHandle>& GetSPIRVs() const override { return mShaderSPIRVs; }
         virtual const Path& GetPath() const override { return mPath; }
 
-        const HashMap<ShaderType, VkShaderModule>& GetVulkanShaderModules() const { return mVkShaderModules; }
+        // Vulkan Specific (Used by different Pipelines)
+        HashMap<ShaderType, VkShaderModule>& GetVulkanShaderModules() { return mVkShaderModules; }
+        HashMap<Uint, VkDescriptorSetLayout>& GetDescriptorSetLayouts() { return mDescriptorSetLayouts; }
+        HashMap<String, VkPushConstantRange>& GetPushConstantRanges() { return mPushConstants; }
 
         static VkShaderStageFlagBits GetVulkanShaderStage(ShaderType type);
     private:
         void ParseShader();
         void Compile();
         void Clear();
+        void CreateVulkanDescriptorSetLayouts();
+        void CreateVulkanPushConstantRanges();
     private:
         Path mPath;
-        HashMap<ShaderType, String> mShaderSources{};
-        HashMap<ShaderType, VkShaderModule> mVkShaderModules{};
-        ShaderReflectionData mReflectionData{};
+        HashMap<ShaderType, String> mShaderSources;
+        HashMap<ShaderType, VkShaderModule> mVkShaderModules;
+        HashMap<Uint, VkDescriptorSetLayout> mDescriptorSetLayouts;
+        HashMap<String, VkPushConstantRange> mPushConstants;
+
         Vector<SPIRVHandle> mShaderSPIRVs{};
+        ShaderReflectionData mReflectionData;
     };
 }

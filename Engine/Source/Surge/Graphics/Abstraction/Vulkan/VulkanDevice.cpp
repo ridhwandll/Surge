@@ -26,7 +26,7 @@ namespace Surge
             QueryPhysicalDeviceProperties();
             QueryPhysicalDeviceFeatures();
             DumpPhysicalDeviceProperties();
-            Log<LogSeverity::Info>("Surge Device Score: {0}", candidates.rbegin()->first);
+            Log<Severity::Info>("Surge Device Score: {0}", candidates.rbegin()->first);
         }
         else
             SG_ASSERT_INTERNAL("No discrete Graphics Processing Unit(GPU) found!");
@@ -157,7 +157,7 @@ namespace Surge
             Vector<VkExtensionProperties> extensions(extCount);
             if (vkEnumerateDeviceExtensionProperties(mPhysicalDevice, nullptr, &extCount, &extensions.front()) == VK_SUCCESS)
             {
-                Log<LogSeverity::Trace>("Found {1} extensions on {0}", mProperties.vk10Properties.properties.deviceName, extensions.size());
+                Log<Severity::Trace>("Found {1} extensions on {0}", mProperties.vk10Properties.properties.deviceName, extensions.size());
                 for (const VkExtensionProperties& ext : extensions)
                     mSupportedExtensions.emplace(ext.extensionName);
             }
@@ -257,10 +257,10 @@ namespace Surge
 
     void VulkanDevice::DumpPhysicalDeviceProperties()
     {
-        Log<LogSeverity::Info>("Picked PhysicalDevice Properties:");
-        Log<LogSeverity::Info>("  Device Name   : {0}", mProperties.vk12Properties.driverName);
-        Log<LogSeverity::Info>("  Device ID     : {0}", mProperties.vk12Properties.driverID);
-        Log<LogSeverity::Info>("  Driver Version: {0}", mProperties.vk12Properties.driverInfo);
+        Log<Severity::Info>("Picked PhysicalDevice Properties:");
+        Log<Severity::Info>("  Device Name   : {0}", mProperties.vk12Properties.driverName);
+        Log<Severity::Info>("  Device ID     : {0}", mProperties.vk12Properties.driverID);
+        Log<Severity::Info>("  Driver Version: {0}", mProperties.vk12Properties.driverInfo);
     }
 
     void VulkanDevice::FillQueueFamilyIndicesAndStructures(int flags, VulkanQueueFamilyIndices& outQueueFamilyIndices, Vector<VkDeviceQueueCreateInfo>& outQueueInfo)

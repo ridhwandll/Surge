@@ -18,16 +18,16 @@
 
 #ifdef SURGE_DEBUG
     #define ASSERT() __debugbreak()
-    #define SG_ASSERT(condition, ...)  { if(!(condition)) { Surge::Log<Surge::LogSeverity::Fatal>(__VA_ARGS__); ASSERT(); } }
-    #define SG_ASSERT_NOMSG(condition) { if(!(condition)) { Surge::Log<Surge::LogSeverity::Fatal>("Assertion Failed!"); ASSERT(); } }
-    #define SG_ASSERT_INTERNAL(...)    { Surge::Log<Surge::LogSeverity::Fatal>(__VA_ARGS__); ASSERT(); }
-    #define SCOPED_TIMER(name) Timer tImEr(name, true)
+    #define SG_ASSERT(condition, ...)  { if(!(condition)) { Surge::Log<Surge::Severity::Fatal>(__VA_ARGS__); ASSERT(); } }
+    #define SG_ASSERT_NOMSG(condition) { if(!(condition)) { Surge::Log<Surge::Severity::Fatal>("Assertion Failed!"); ASSERT(); } }
+    #define SG_ASSERT_INTERNAL(...)    { Surge::Log<Surge::Severity::Fatal>(__VA_ARGS__); ASSERT(); }
+    #define SCOPED_TIMER(...) Timer tImEr(fmt::format(__VA_ARGS__), true)
 #else
     #define ASSERT()
     #define SG_ASSERT(...)
     #define SG_ASSERT_NOMSG(...)
     #define SG_ASSERT_INTERNAL(...)
-    #define SCOPED_TIMER(name)
+    #define SCOPED_TIMER(...)
 #endif
 
 #define BIT(x) (1 << x)

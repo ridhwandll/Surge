@@ -6,38 +6,14 @@
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDiagnostics.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderContext.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDevice.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanUtils.hpp"
 
 namespace Surge
 {
-    namespace VulkanUtils
-    {
-        void CreateWindowSurface(VkInstance instance, HWND windowHandle, VkSurfaceKHR* surface)
-        {
-#ifdef SURGE_WINDOWS
-            PFN_vkCreateWin32SurfaceKHR vkCreateWin32SurfaceKHR;
-
-            // Getting the vkCreateWin32SurfaceKHR function pointer and assert if it doesnt exist
-            vkCreateWin32SurfaceKHR = (PFN_vkCreateWin32SurfaceKHR)vkGetInstanceProcAddr(instance, "vkCreateWin32SurfaceKHR");
-            if (!vkCreateWin32SurfaceKHR)
-                SG_ASSERT_INTERNAL("[Win32] Vulkan instance missing VK_KHR_win32_surface extension");
-
-            VkWin32SurfaceCreateInfoKHR sci;
-            memset(&sci, 0, sizeof(sci)); // Clear the info
-            sci.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-            sci.hinstance = GetModuleHandle(nullptr);
-            sci.hwnd = windowHandle;
-
-            VK_CALL(vkCreateWin32SurfaceKHR(instance, &sci, nullptr, surface));
-#else
-            SG_ASSERT_INTERNAL("Surge is currently Windows Only! :(");
-#endif
-        }
-    }
-
     void VulkanSwapChain::Initialize(Window* window)
     {
         VkInstance instance = static_cast<VkInstance>(GetRenderContext()->GetInteralInstance());
-        VulkanUtils::CreateWindowSurface(instance, (HWND)window->GetNativeWindowHandle(), &mSurface);
+        VulkanUtils::CreateWindowSurface(instance, window, &mSurface);
         PickPresentQueue();
         CreateSwapChain();
         CreateRenderPass();
