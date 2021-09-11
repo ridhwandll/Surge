@@ -81,7 +81,7 @@ namespace Surge
         rasterizer.rasterizerDiscardEnable = VK_FALSE;
         rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
         rasterizer.lineWidth = pipelineSpec.LineWidth;
-        rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+        rasterizer.cullMode = VK_CULL_MODE_NONE;
         rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         rasterizer.depthBiasEnable = VK_FALSE;
         rasterizer.depthBiasConstantFactor = 0.0f;
@@ -129,9 +129,10 @@ namespace Surge
         VK_CALL(vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &mPipelineLayout));
 
         // Using dynamic pipeline states to avoid pipeline recreation when resizing
-        std::array<VkDynamicState, 2> dynamicStates;
+        std::array<VkDynamicState, 3> dynamicStates;
         dynamicStates[0] = VK_DYNAMIC_STATE_VIEWPORT;
         dynamicStates[1] = VK_DYNAMIC_STATE_SCISSOR;
+        dynamicStates[2] = VK_DYNAMIC_STATE_LINE_WIDTH;
         VkPipelineDynamicStateCreateInfo dynamicStatesCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
         dynamicStatesCreateInfo.dynamicStateCount = dynamicStates.size();
         dynamicStatesCreateInfo.pDynamicStates = dynamicStates.data();

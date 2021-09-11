@@ -4,10 +4,11 @@
 
 namespace Surge
 {
-    class Renderer : public RefCounted
+    class Renderer
     {
     public:
         void Initialize();
+        void RenderDatDamnTriangle(); // TODO: Remove
         void Shutdown();
     };
 }

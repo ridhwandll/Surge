@@ -16,7 +16,7 @@ namespace Surge
         virtual Uint GetSize() override { return mSize; }
         virtual void SetData(const void* data, const Uint& size) override;
     public:
-        VkBuffer GetVulkanBuffer() { return mVulkanBuffer; }
+        const VkBuffer GetVulkanBuffer() const { return mVulkanBuffer; }
         VmaAllocation GetAllocation() { return mAllocation; }
     private:
         void CreateVertexBuffer(const void* data);

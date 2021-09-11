@@ -32,5 +32,6 @@ namespace Surge
         VulkanDevice mDevice{};
         VulkanSwapChain mSwapChain{};
         VulkanMemoryAllocator mMemoryAllocator{};
+        friend class Renderer; // TODO: Remove friend
     };
 }

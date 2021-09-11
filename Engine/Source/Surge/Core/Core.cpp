@@ -9,9 +9,12 @@ namespace Surge
 {
     struct CoreData
     {
-        Application* SurgeApplication = nullptr;
+        Application* SurgeApplication = nullptr; // Provided by the User
+
         Scope<Window> SurgeWindow = nullptr;
         Scope<RenderContext> SurgeRenderContext = nullptr;
+        Scope<Renderer> SurgeRenderer = nullptr;
+
         bool mRunning = false;
     };
 
@@ -29,14 +32,20 @@ namespace Surge
 
     void Initialize(Application* application)
     {
+        SCOPED_TIMER("Initialization");
         Clock::Start();
         sCoreData.SurgeApplication = application;
 
         sCoreData.SurgeWindow = Window::Create({ 1280, 720, "Surge", WindowFlags::CreateDefault });
         sCoreData.SurgeWindow->RegisterEventCallback(Surge::CoreOnEvent);
 
+        // Render Context
         sCoreData.SurgeRenderContext = RenderContext::Create();
         sCoreData.SurgeRenderContext->Initialize(sCoreData.SurgeWindow.get());
+
+        // Renderer
+        sCoreData.SurgeRenderer = CreateScope<Renderer>();
+        sCoreData.SurgeRenderer->Initialize();
 
         sCoreData.SurgeApplication->OnInitialize();
         sCoreData.mRunning = true;
@@ -49,6 +58,7 @@ namespace Surge
             Clock::Update();
             if (sCoreData.SurgeWindow->GetWindowState() != WindowState::Minimized)
             {
+                sCoreData.SurgeRenderer->RenderDatDamnTriangle();
                 sCoreData.SurgeApplication->OnUpdate();
             }
             sCoreData.SurgeWindow->Update();
@@ -57,10 +67,13 @@ namespace Surge
 
     void Shutdown()
     {
+        SCOPED_TIMER("Shutdown");
+
         sCoreData.SurgeApplication->OnShutdown();
         delete sCoreData.SurgeApplication;
         sCoreData.SurgeApplication = nullptr;
 
+        sCoreData.SurgeRenderer->Shutdown();
         sCoreData.SurgeRenderContext->Shutdown();
     }
 
@@ -74,7 +87,7 @@ namespace Surge
         return sCoreData.SurgeRenderContext;
     }
 
-    Scope<Surge::Window>& GetWindow()
+    Scope<Window>& GetWindow()
     {
         return sCoreData.SurgeWindow;
     }

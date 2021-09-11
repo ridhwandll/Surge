@@ -2,62 +2,17 @@
 
 using namespace Surge; //Ooof
 
-struct Vertex
-{
-    glm::vec2 Pos;
-    glm::vec3 Color;
-};
-
-const Vector<Vertex> vertices =
-{
-    {{ 0.5f,  0.5f }, { 1.0f, 0.0f, 0.0f }},
-    {{ 0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f }},
-    {{-0.5f, -0.5f }, { 0.0f, 0.0f, 1.0f }},
-    {{-0.5f,  0.5f }, { 1.0f, 0.0f, 1.0f }}
-};
-
-const Vector<Uint> indices =
-{   
-    0, 1, 2,
-    1, 2, 3
-};
-
-const glm::mat4 transformMatrix = glm::mat4(1.0f);
-
 class MyApp : public Application
 {
 public:
-    Ref<Buffer> mVertexBuffer;
-    Ref<Buffer> mIndexBuffer;
-    Ref<Buffer> mUniformBuffer;
-    Ref<Shader> mShader;
-    Ref<GraphicsPipeline> mPipeline;
-
     virtual void OnInitialize() override
     {
-        mVertexBuffer = Buffer::Create(vertices.data(), static_cast<Uint>(sizeof(vertices[0]) * vertices.size()), BufferType::VertexBuffer);
-        mIndexBuffer = Buffer::Create(indices.data(), static_cast<Uint>(sizeof(indices[0]) * indices.size()), BufferType::IndexBuffer);
-        mUniformBuffer = Buffer::Create(&transformMatrix, sizeof(glm::mat4), BufferType::UniformBuffer);
-        mShader = Shader::Create("Engine/Assets/Shaders/Simple.glsl");
-
-        GraphicsPipelineSpecification pipelineSpec{};
-        pipelineSpec.Shader = mShader;
-        pipelineSpec.Topology = PrimitiveTopology::Triangles;
-        pipelineSpec.UseDepth = true;
-        pipelineSpec.UseStencil = false;
-        pipelineSpec.DebugName = "TestPipeline";
-        mPipeline = GraphicsPipeline::Create(pipelineSpec);
     }
 
     virtual void OnUpdate() override
     {
         //Surge::GPUMemoryStats memoryStatus = Surge::GetRenderContext()->GetMemoryStatus();
         //Surge::Log<Surge::LogSeverity::Info>("Used: {0} | Free: {1}", memoryStatus.Used, memoryStatus.Free);
-
-        glm::mat4 newMatrix = glm::mat4(2.0f);
-        glm::mat4 finalMatrix = transformMatrix + newMatrix;
-
-        mUniformBuffer->SetData(&finalMatrix, sizeof(glm::mat4));
     }
 
     virtual void OnEvent(Event& e) override
