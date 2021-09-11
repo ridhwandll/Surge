@@ -16,7 +16,7 @@ namespace Surge
     {
         SCOPED_TIMER("[{0}] Pipeline Creation", mSpecification.DebugName);
 
-        VkDevice device = static_cast<VulkanDevice*>(GetRenderContext()->GetInteralDevice())->GetLogicaldevice();
+        VkDevice device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInteralDevice())->GetLogicaldevice();
 
         // Setting up all the shaders into a create info class
         HashMap<ShaderType, VkShaderModule> shaderModules = pipelineSpec.Shader.As<VulkanShader>()->GetVulkanShaderModules();
@@ -151,7 +151,7 @@ namespace Surge
         pipelineInfo.layout = mPipelineLayout;
 
         // TODO(AC3R): This is temporary becase we dont have renderpass absctraction yet
-        pipelineInfo.renderPass = static_cast<VulkanSwapChain*>(GetRenderContext()->GetSwapChain())->GetVulkanRenderPass();
+        pipelineInfo.renderPass = static_cast<VulkanSwapChain*>(CoreGetRenderContext()->GetSwapChain())->GetVulkanRenderPass();
         pipelineInfo.subpass = 0;
 
         VK_CALL(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mPipeline));
@@ -159,7 +159,7 @@ namespace Surge
 
     VulkanGraphicsPipeline::~VulkanGraphicsPipeline()
     {
-        VkDevice device = static_cast<VulkanDevice*>(GetRenderContext()->GetInteralDevice())->GetLogicaldevice();
+        VkDevice device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInteralDevice())->GetLogicaldevice();
         vkDestroyPipeline(device, mPipeline, nullptr);
         vkDestroyPipelineLayout(device, mPipelineLayout, nullptr);
     }

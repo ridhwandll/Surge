@@ -27,7 +27,7 @@ namespace Surge
 
     VulkanBuffer::~VulkanBuffer()
     {
-        VulkanMemoryAllocator* allocator = static_cast<VulkanMemoryAllocator*>(GetRenderContext()->GetMemoryAllocator());
+        VulkanMemoryAllocator* allocator = static_cast<VulkanMemoryAllocator*>(CoreGetRenderContext()->GetMemoryAllocator());
         allocator->DestroyBuffer(mVulkanBuffer, mAllocation);
     }
 
@@ -38,7 +38,7 @@ namespace Surge
 
     void VulkanBuffer::CreateVertexBuffer(const void* data)
     {
-        Scope<RenderContext>& context = GetRenderContext();
+        Scope<RenderContext>& context = CoreGetRenderContext();
         VulkanDevice* device = static_cast<VulkanDevice*>(context->GetInteralDevice());
         VulkanMemoryAllocator* allocator = static_cast<VulkanMemoryAllocator*>(context->GetMemoryAllocator());
 
@@ -74,7 +74,7 @@ namespace Surge
 
     void VulkanBuffer::CreateIndexBuffer(const void* data)
     {
-        Scope<RenderContext>& context = GetRenderContext();
+        Scope<RenderContext>& context = CoreGetRenderContext();
         VulkanDevice* device = static_cast<VulkanDevice*>(context->GetInteralDevice());
         VulkanMemoryAllocator* allocator = static_cast<VulkanMemoryAllocator*>(context->GetMemoryAllocator());
 
@@ -110,7 +110,7 @@ namespace Surge
 
     void VulkanBuffer::CreateUniformBuffer(const void* data)
     {
-        Scope<RenderContext>& context = GetRenderContext();
+        Scope<RenderContext>& context = CoreGetRenderContext();
         VulkanDevice* device = static_cast<VulkanDevice*>(context->GetInteralDevice());
         VulkanMemoryAllocator* allocator = static_cast<VulkanMemoryAllocator*>(context->GetMemoryAllocator());
 

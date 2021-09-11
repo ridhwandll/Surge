@@ -13,6 +13,7 @@ namespace Surge
 
         void Initialize(Window* window);
         void Resize(Uint width, Uint height);
+        void Destroy();
 
         Uint GetImageCount() const { return mImageCount; }
         Uint GetWidth() const { return mSwapChainExtent.width; }
@@ -23,7 +24,6 @@ namespace Surge
         VkRenderPass GetVulkanRenderPass() const { return mRenderPass; }
         VkFramebuffer GetFramebuffer() const { return mFramebuffer; }
         Vector<VkImageView> GetImageViews() const { return mSwapChainImageViews; }
-        void Destroy();
     private:
         VkResult AcquireNextImage(VkSemaphore imageAvailableSemaphore, Uint* imageIndex);
         VkResult Present(Uint imageIndex, VkSemaphore waitSempahore);

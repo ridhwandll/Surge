@@ -32,7 +32,7 @@ namespace Surge
 
     void VulkanShader::Compile()
     {
-        Scope<RenderContext>& context = GetRenderContext();
+        Scope<RenderContext>& context = CoreGetRenderContext();
         VkDevice device = static_cast<VulkanDevice*>(context->GetInteralDevice())->GetLogicaldevice();
 
         shaderc::Compiler compiler;
@@ -73,7 +73,7 @@ namespace Surge
 
     void VulkanShader::Clear()
     {
-        VkDevice device = static_cast<VulkanDevice*>(GetRenderContext()->GetInteralDevice())->GetLogicaldevice();
+        VkDevice device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInteralDevice())->GetLogicaldevice();
 
         mShaderSources.clear();
         mShaderSPIRVs.clear();
@@ -91,7 +91,7 @@ namespace Surge
 
     void VulkanShader::CreateVulkanDescriptorSetLayouts()
     {
-        VkDevice device = static_cast<VulkanDevice*>(GetRenderContext()->GetInteralDevice())->GetLogicaldevice();
+        VkDevice device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInteralDevice())->GetLogicaldevice();
 
         // Iterate through all the sets and creating the layouts
         // (descriptor layouts use HashMap<Uint, VkDescriptorSetLayout> because the Uint specifies at which set number the layout is going to be used

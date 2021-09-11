@@ -4,4 +4,5 @@
 namespace Surge::Filesystem
 {
     String ReadFile(const Path& path);
+    String RemoveExtension(const Path& path);
 }

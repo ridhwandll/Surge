@@ -27,4 +27,11 @@ namespace Surge::Filesystem
 
         return result;
     }
+
+    String RemoveExtension(const Path& path)
+    {
+        size_t lastindex = path.find_last_of(".");
+        String rawName = path.substr(0, lastindex);
+        return rawName;
+    }
 }

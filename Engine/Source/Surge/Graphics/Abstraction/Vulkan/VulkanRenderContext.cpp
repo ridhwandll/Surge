@@ -48,6 +48,11 @@ namespace Surge
         mMemoryAllocator.Initialize(mVulkanInstance, mDevice);
     }
 
+    void VulkanRenderContext::Present()
+    {
+        //mSwapChain.Present();
+    }
+
     void VulkanRenderContext::Shutdown()
     {
         ENABLE_IF_VK_VALIDATION(mVulkanDiagnostics.EndDiagnostics(mVulkanInstance));

@@ -13,6 +13,7 @@ public:
     {
         //Surge::GPUMemoryStats memoryStatus = Surge::GetRenderContext()->GetMemoryStatus();
         //Surge::Log<Surge::LogSeverity::Info>("Used: {0} | Free: {1}", memoryStatus.Used, memoryStatus.Free);
+        CoreGetRenderer()->RenderDatDamnTriangle();
     }
 
     virtual void OnEvent(Event& e) override

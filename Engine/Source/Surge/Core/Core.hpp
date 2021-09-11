@@ -20,9 +20,10 @@ namespace Surge
     // Ends the engine loop, returns from "Run"
     void Close();
 
-    // Gets the graphics render context
-    Scope<RenderContext>& GetRenderContext();
+    // Core Getters
+    Scope<Window>& CoreGetWindow();
 
-    // Returns the Window
-    Scope<Window>& GetWindow();
+    Scope<RenderContext>& CoreGetRenderContext();
+
+    Scope<Renderer>& CoreGetRenderer();
 }

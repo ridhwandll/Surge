@@ -58,7 +58,6 @@ namespace Surge
             Clock::Update();
             if (sCoreData.SurgeWindow->GetWindowState() != WindowState::Minimized)
             {
-                sCoreData.SurgeRenderer->RenderDatDamnTriangle();
                 sCoreData.SurgeApplication->OnUpdate();
             }
             sCoreData.SurgeWindow->Update();
@@ -82,13 +81,18 @@ namespace Surge
         sCoreData.mRunning = false;
     }
 
-    Scope<RenderContext>& GetRenderContext()
+    Scope<RenderContext>& CoreGetRenderContext()
     {
         return sCoreData.SurgeRenderContext;
     }
 
-    Scope<Window>& GetWindow()
+    Scope<Window>& CoreGetWindow()
     {
         return sCoreData.SurgeWindow;
+    }
+
+    Scope<Renderer>& CoreGetRenderer()
+    {
+        return sCoreData.SurgeRenderer;
     }
 }

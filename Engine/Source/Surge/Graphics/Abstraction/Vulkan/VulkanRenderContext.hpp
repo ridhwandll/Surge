@@ -13,6 +13,7 @@ namespace Surge
     {
     public:
         virtual void Initialize(Window* window) override;
+        virtual void Present() override;
         virtual void Shutdown() override;
 
         virtual void OnResize(Uint width, Uint height) override;
