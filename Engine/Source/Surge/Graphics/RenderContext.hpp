@@ -28,7 +28,7 @@ namespace Surge
         virtual void Present() = 0;
         virtual void Shutdown() = 0;
 
-        virtual void OnResize(Uint width, Uint height) = 0;
+        virtual void OnResize() = 0;
 
         // Internal Data [Retrieves the Renderer API specific data]
         virtual void* GetInteralDevice() = 0;

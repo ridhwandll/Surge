@@ -3,6 +3,7 @@ include(${CMAKE_SOURCE_DIR}/scripts/CMakeUtils.cmake)
 file(GLOB_RECURSE SOURCE_FILES
     Source/Surge/*.cpp
     Source/Surge/*.hpp
+    Vendor/stb/stb_image.cpp
 )
 
 set(INCLUDE_DIRS
@@ -15,6 +16,7 @@ set(INCLUDE_DIRS
     Vendor/volk
     Vendor/shaderc/Include
     Vendor/SPIRV-Cross/Include
+    Vendor/stb
 )
 
 set(LIB_LINKS

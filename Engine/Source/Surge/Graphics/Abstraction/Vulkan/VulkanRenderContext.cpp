@@ -62,10 +62,9 @@ namespace Surge
         vkDestroyInstance(mVulkanInstance, nullptr);
     }
 
-    void VulkanRenderContext::OnResize(Uint width, Uint height)
+    void VulkanRenderContext::OnResize()
     {
-        if (width != 0 || height != 0)
-            mSwapChain.Resize(width, height);
+        mSwapChain.Resize();
     }
 
     Vector<const char*> VulkanRenderContext::GetRequiredInstanceExtensions()

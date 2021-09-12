@@ -12,7 +12,7 @@ namespace Surge
         ~VulkanSwapChain() = default;
 
         void Initialize(Window* window);
-        void Resize(Uint width, Uint height);
+        void Resize();
         void Destroy();
 
         Uint GetImageCount() const { return mImageCount; }

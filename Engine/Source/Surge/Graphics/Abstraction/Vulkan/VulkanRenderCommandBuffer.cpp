@@ -29,7 +29,7 @@ namespace Surge
         VkFenceCreateInfo fenceCreateInfo{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
         fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
         mWaitFences.resize(size);
-        for (VkFence fence : mWaitFences)
+        for (VkFence& fence : mWaitFences)
         {
             VK_CALL(vkCreateFence(logicalDevice, &fenceCreateInfo, nullptr, &fence));
         }
@@ -38,7 +38,12 @@ namespace Surge
     VulkanRenderCommandBuffer::~VulkanRenderCommandBuffer()
     {
         VulkanDevice* device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInteralDevice());
-        vkDestroyCommandPool(device->GetLogicaldevice(), mCommandPool, nullptr);
+        VkDevice logicalDevice = device->GetLogicaldevice();
+        vkDestroyCommandPool(logicalDevice, mCommandPool, nullptr);
+        for (VkFence& fence : mWaitFences)
+        {
+            vkDestroyFence(logicalDevice, fence, nullptr);
+        }
     }
 
     void VulkanRenderCommandBuffer::BeginRecording()

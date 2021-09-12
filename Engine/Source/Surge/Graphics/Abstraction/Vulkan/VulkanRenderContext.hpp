@@ -16,7 +16,7 @@ namespace Surge
         virtual void Present() override;
         virtual void Shutdown() override;
 
-        virtual void OnResize(Uint width, Uint height) override;
+        virtual void OnResize() override;
 
         virtual void* GetInteralDevice() override { return &mDevice; }
         virtual void* GetInteralInstance() override { return mVulkanInstance; }

@@ -26,7 +26,8 @@ namespace Surge
         Surge::EventDispatcher dispatcher(e);
         dispatcher.Dispatch<Surge::WindowResizeEvent>([](Surge::WindowResizeEvent& e)
             {
-                sCoreData.SurgeRenderContext->OnResize(e.GetWidth(), e.GetHeight());
+                if (CoreGetWindow()->GetWindowState() != WindowState::Minimized)
+                    sCoreData.SurgeRenderContext->OnResize();
             });
     }
 

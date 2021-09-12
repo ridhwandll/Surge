@@ -79,7 +79,7 @@ namespace Surge
         createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
         createInfo.presentMode = pickedPresentMode;
         createInfo.clipped = VK_TRUE;
-        createInfo.oldSwapchain = VK_NULL_HANDLE;
+        createInfo.oldSwapchain = mSwapChain ? mSwapChain : VK_NULL_HANDLE;
 
         VK_CALL(vkCreateSwapchainKHR(device, &createInfo, nullptr, &mSwapChain));
 
@@ -198,10 +198,11 @@ namespace Surge
         VK_CALL(vkCreateFramebuffer(device, &framebufferInfo, nullptr, &mFramebuffer));
     }
 
-    void VulkanSwapChain::Resize(Uint width, Uint height)
+    void VulkanSwapChain::Resize()
     {
-        VkInstance instance = static_cast<VkInstance>(CoreGetRenderContext()->GetInteralInstance());
-        VkDevice device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInteralDevice())->GetLogicaldevice();
+        VulkanRenderContext* vkContext = static_cast<VulkanRenderContext*>(CoreGetRenderContext().get());
+        VkInstance instance = static_cast<VkInstance>(vkContext->GetInteralInstance());
+        VkDevice device = static_cast<VulkanDevice*>(vkContext->GetInteralDevice())->GetLogicaldevice();
 
         // Wait till everything has finished rendering before deleting it
         vkDeviceWaitIdle(device);
@@ -210,16 +211,15 @@ namespace Surge
         for (auto& imageView : mSwapChainImageViews)
             vkDestroyImageView(device, imageView, nullptr);
 
-        vkDestroySwapchainKHR(device, mSwapChain, nullptr);
-
         CreateSwapChain();
         CreateFramebuffer();
     }
 
     void VulkanSwapChain::Destroy()
     {
-        VkInstance instance = static_cast<VkInstance>(CoreGetRenderContext()->GetInteralInstance());
-        VkDevice device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInteralDevice())->GetLogicaldevice();
+        VulkanRenderContext* vkContext = static_cast<VulkanRenderContext*>(CoreGetRenderContext().get());
+        VkInstance instance = static_cast<VkInstance>(vkContext->GetInteralInstance());
+        VkDevice device = static_cast<VulkanDevice*>(vkContext->GetInteralDevice())->GetLogicaldevice();
 
         vkDestroyRenderPass(device, mRenderPass, nullptr);
         vkDestroyFramebuffer(device, mFramebuffer, nullptr);
