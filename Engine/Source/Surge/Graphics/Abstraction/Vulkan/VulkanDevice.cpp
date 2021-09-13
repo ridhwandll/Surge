@@ -379,7 +379,7 @@ namespace Surge
         VkPhysicalDeviceProperties properties{};
         vkGetPhysicalDeviceProperties(physicalDevice, &properties);
         vkGetPhysicalDeviceFeatures(physicalDevice, &features);
-        int32_t score = -50;
+        int32_t score = 0;
 
         if (!features.geometryShader)
             return 0;
@@ -402,9 +402,7 @@ namespace Surge
         score += properties.limits.framebufferDepthSampleCounts;
         score += properties.limits.maxClipDistances;
         score += properties.limits.maxBoundDescriptorSets;
-        score += properties.limits.maxMemoryAllocationCount / 8;
         score += properties.limits.maxPushConstantsSize / 2;
-        score += properties.limits.maxPerStageResources;
         score += extCount;
         score += layerCount;
 

@@ -35,6 +35,7 @@ namespace Surge
         WindowState mWindowState;
         bool mIsOpen = false;
         HWND mWin32Window;
+        RenderContext* mRenderingContext;
         static LRESULT CALLBACK WindowProc(HWND hWnd, UINT msg, WPARAM lparam, LPARAM wparam);
     };
 }

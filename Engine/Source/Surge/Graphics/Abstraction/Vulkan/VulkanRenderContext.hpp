@@ -14,6 +14,8 @@ namespace Surge
     public:
         virtual void Initialize(Window* window) override;
         virtual void Present() override;
+        virtual void BeginFrame() override;
+        virtual void EndFrame() override;
         virtual void Shutdown() override;
 
         virtual void OnResize() override;

@@ -50,7 +50,17 @@ namespace Surge
 
     void VulkanRenderContext::Present()
     {
-        //mSwapChain.Present();
+        mSwapChain.Present();
+    }
+
+    void VulkanRenderContext::BeginFrame()
+    {
+        mSwapChain.BeginFrame();
+    }
+
+    void VulkanRenderContext::EndFrame()
+    {
+        mSwapChain.EndFrame();
     }
 
     void VulkanRenderContext::Shutdown()

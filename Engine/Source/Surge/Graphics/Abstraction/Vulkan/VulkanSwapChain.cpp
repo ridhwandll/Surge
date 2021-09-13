@@ -18,6 +18,8 @@ namespace Surge
         CreateSwapChain();
         CreateRenderPass();
         CreateFramebuffer();
+        CreateCmdBuffers();
+        CreateSyncObjects();
     }
 
     void VulkanSwapChain::CreateSwapChain()
@@ -90,6 +92,7 @@ namespace Surge
         // Setting up the members
         mColorFormat = pickedFormat;
         mSwapChainExtent = swapChainExtent;
+        mImageCount = imageCount;
     }
 
     void VulkanSwapChain::CreateRenderPass()
@@ -151,7 +154,6 @@ namespace Surge
             VkImageViewUsageCreateInfo usageInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_USAGE_CREATE_INFO };
             usageInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-
             VkImageViewCreateInfo createInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
             createInfo.pNext = &usageInfo; // using pNext chain for letting vulkan know that this imageView is gonna be used for the imageless framebuffer
             createInfo.image = swapChainImage;
@@ -198,6 +200,47 @@ namespace Surge
         VK_CALL(vkCreateFramebuffer(device, &framebufferInfo, nullptr, &mFramebuffer));
     }
 
+    void VulkanSwapChain::CreateCmdBuffers()
+    {
+        VulkanRenderContext* vkContext = static_cast<VulkanRenderContext*>(CoreGetRenderContext().get());
+        VulkanDevice* device = static_cast<VulkanDevice*>(vkContext->GetInteralDevice());
+        VkDevice logicalDevice = device->GetLogicaldevice();
+
+        // Command Pool Creation
+        VkCommandPoolCreateInfo cmdPoolInfo{ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
+        cmdPoolInfo.queueFamilyIndex = device->GetQueueFamilyIndices().GraphicsQueue;
+        cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        VK_CALL(vkCreateCommandPool(logicalDevice, &cmdPoolInfo, nullptr, &mCommandPool));
+
+        // Command Buffers
+        VkCommandBufferAllocateInfo commandBufferAllocateInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
+        commandBufferAllocateInfo.commandPool = mCommandPool;
+        commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        commandBufferAllocateInfo.commandBufferCount = mImageCount;
+        mCommandBuffers.resize(mImageCount);
+        VK_CALL(vkAllocateCommandBuffers(logicalDevice, &commandBufferAllocateInfo, mCommandBuffers.data()));
+    }
+
+    void VulkanSwapChain::CreateSyncObjects()
+    {
+        Uint framesInFlight = FRAMES_IN_FLIGHT; //TODO: More than two Frames in Flight
+        VulkanRenderContext* vkContext = static_cast<VulkanRenderContext*>(CoreGetRenderContext().get());
+        VkDevice device = static_cast<VulkanDevice*>(vkContext->GetInteralDevice())->GetLogicaldevice();
+
+        // Semaphores
+        VkSemaphoreCreateInfo semaphoreCreateInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+        VK_CALL(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &mImageAvailable));
+        VK_CALL(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &mRenderAvailable));
+
+        // Fences
+        VkFenceCreateInfo fenceCreateInfo{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
+        fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+        mWaitFences.resize(framesInFlight);
+        for (VkFence& fence : mWaitFences)
+            VK_CALL(vkCreateFence(device, &fenceCreateInfo, nullptr, &fence));
+    }
+
     void VulkanSwapChain::Resize()
     {
         VulkanRenderContext* vkContext = static_cast<VulkanRenderContext*>(CoreGetRenderContext().get());
@@ -221,6 +264,8 @@ namespace Surge
         VkInstance instance = static_cast<VkInstance>(vkContext->GetInteralInstance());
         VkDevice device = static_cast<VulkanDevice*>(vkContext->GetInteralDevice())->GetLogicaldevice();
 
+        vkDeviceWaitIdle(device);
+
         vkDestroyRenderPass(device, mRenderPass, nullptr);
         vkDestroyFramebuffer(device, mFramebuffer, nullptr);
 
@@ -229,28 +274,61 @@ namespace Surge
 
         vkDestroySwapchainKHR(device, mSwapChain, nullptr);
         vkDestroySurfaceKHR(instance, mSurface, nullptr);
+
+        vkDestroyCommandPool(device, mCommandPool, nullptr);
+        vkDestroySemaphore(device, mImageAvailable, nullptr);
+        vkDestroySemaphore(device, mRenderAvailable, nullptr);
+        for (VkFence& fence : mWaitFences)
+            vkDestroyFence(device, fence, nullptr);
     }
 
     VkResult VulkanSwapChain::AcquireNextImage(VkSemaphore imageAvailableSemaphore, Uint* imageIndex)
     {
+        // By setting timeout to UINT64_MAX we will always wait until the next image has been acquired
         VkDevice device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInteralDevice())->GetLogicaldevice();
-        VkResult result = vkAcquireNextImageKHR(device, mSwapChain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, imageIndex);
-        VK_CALL(result);
-        return result;
+        return vkAcquireNextImageKHR(device, mSwapChain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, imageIndex);
     }
 
-    VkResult VulkanSwapChain::Present(Uint imageIndex, VkSemaphore waitSempahore)
+    void VulkanSwapChain::BeginFrame()
     {
-        VkPresentInfoKHR presentInfo{};
-        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        VulkanDevice* device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInteralDevice());
+        VK_CALL(vkWaitForFences(device->GetLogicaldevice(), 1, &mWaitFences[mCurrentFrameIndex], VK_TRUE, UINT64_MAX));
+        VK_CALL(AcquireNextImage(mImageAvailable, &mCurrentImageIndex));
+    }
+
+    void VulkanSwapChain::Present()
+    {
+        VulkanDevice* device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInteralDevice());
+        Uint framesInFlight = FRAMES_IN_FLIGHT; //TODO: More than two Frames in Flight
+
+        VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
+        submitInfo.pWaitDstStageMask = &waitStageMask;
+        submitInfo.pWaitSemaphores = &mImageAvailable;
+        submitInfo.waitSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = &mRenderAvailable;
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pCommandBuffers = &mCommandBuffers[mCurrentFrameIndex];
+        submitInfo.commandBufferCount = 1;
+
+        VK_CALL(vkResetFences(device->GetLogicaldevice(), 1, &mWaitFences[mCurrentFrameIndex]));
+        VK_CALL(vkQueueSubmit(device->GetGraphicsQueue(), 1, &submitInfo, mWaitFences[mCurrentFrameIndex]));
+
+        // Present
+        VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
         presentInfo.waitSemaphoreCount = 1;
-        presentInfo.pWaitSemaphores = &waitSempahore;
+        presentInfo.pWaitSemaphores = &mRenderAvailable;
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains = &mSwapChain;
-        presentInfo.pImageIndices = &imageIndex;
+        presentInfo.pImageIndices = &mCurrentFrameIndex;
+        VK_CALL(vkQueuePresentKHR(mPresentQueue, &presentInfo));
 
-        VkResult result = vkQueuePresentKHR(mPresentQueue, &presentInfo);
-        return result;
+        mCurrentFrameIndex = (mCurrentFrameIndex + 1) % framesInFlight; //TODO: More than two Frames in Flight
+    }
+
+    void VulkanSwapChain::EndFrame()
+    {
+        //Kekw? Empty for now.
     }
 
     void VulkanSwapChain::PickPresentQueue()

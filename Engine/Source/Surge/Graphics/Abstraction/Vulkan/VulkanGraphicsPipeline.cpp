@@ -160,6 +160,7 @@ namespace Surge
     VulkanGraphicsPipeline::~VulkanGraphicsPipeline()
     {
         VkDevice device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInteralDevice())->GetLogicaldevice();
+        vkDeviceWaitIdle(device);
         vkDestroyPipeline(device, mPipeline, nullptr);
         vkDestroyPipelineLayout(device, mPipelineLayout, nullptr);
     }

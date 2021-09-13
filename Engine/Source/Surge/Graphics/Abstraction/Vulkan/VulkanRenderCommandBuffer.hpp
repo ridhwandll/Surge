@@ -8,7 +8,7 @@ namespace Surge
     class VulkanRenderCommandBuffer : public RenderCommandBuffer
     {
     public:
-        VulkanRenderCommandBuffer(Uint size = 0, const String& debugName = "");
+        VulkanRenderCommandBuffer(Uint size = 0, bool createFromSwapchain = false, const String& debugName = "");
         virtual ~VulkanRenderCommandBuffer() override;
 
         virtual void BeginRecording() override;
@@ -18,6 +18,7 @@ namespace Surge
         VkCommandPool GetVulkanCommandPool() const { mCommandPool; }
         VkCommandBuffer GetVulkanCommandBuffer(Uint index) const { return mCommandBuffers[index]; }
     private:
+        bool mCreatedFromSwapchain;
         VkCommandPool mCommandPool{};
         Vector<VkCommandBuffer> mCommandBuffers{};
 

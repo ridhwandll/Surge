@@ -12,6 +12,6 @@ namespace Surge
         virtual void EndRecording() = 0;
         virtual void Submit() = 0;
 
-        static Ref<RenderCommandBuffer> Create(Uint size = 0, const String& debugName = "");
+        static Ref<RenderCommandBuffer> Create(Uint size = 0, bool createFromSwapchain = false, const String& debugName = "");
     };
 }

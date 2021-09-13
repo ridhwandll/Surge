@@ -16,7 +16,7 @@ namespace Surge
     {
     public:
         Buffer() = default;
-        virtual ~Buffer() {}
+        virtual ~Buffer() = default;
 
         virtual Uint GetSize() = 0;
         virtual void SetData(const void* data, const Uint& size) = 0;

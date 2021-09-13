@@ -57,11 +57,15 @@ namespace Surge
         while (sCoreData.mRunning)
         {
             Clock::Update();
+            sCoreData.SurgeRenderContext->BeginFrame();
+
             if (sCoreData.SurgeWindow->GetWindowState() != WindowState::Minimized)
             {
                 sCoreData.SurgeApplication->OnUpdate();
             }
             sCoreData.SurgeWindow->Update();
+
+            sCoreData.SurgeRenderContext->EndFrame();
         }
     }
 

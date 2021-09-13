@@ -27,6 +27,8 @@ namespace Surge
 
     VulkanBuffer::~VulkanBuffer()
     {
+        VulkanDevice* device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInteralDevice());
+        vkDeviceWaitIdle(device->GetLogicaldevice());
         VulkanMemoryAllocator* allocator = static_cast<VulkanMemoryAllocator*>(CoreGetRenderContext()->GetMemoryAllocator());
         allocator->DestroyBuffer(mVulkanBuffer, mAllocation);
     }

@@ -2,7 +2,7 @@
 #include "Pch.hpp"
 #include "Surge/Core/Core.hpp"
 #include "Surge/Platform/Windows/WindowsWindow.hpp"
-#include <windowsx.h>
+#include <windowsx.h> // For GET_X/Y_LPARAM macro
 
 namespace Surge
 {
@@ -35,6 +35,8 @@ namespace Surge
             Log<Severity::Info>("Created {0} ({1}, {2})", mWindowData.Title, mWindowData.Width, mWindowData.Height);
         else
             Log<Severity::Error>("WindowsWindow creation failure!");
+
+        mRenderingContext = CoreGetRenderContext().get();
     }
 
     WindowsWindow::~WindowsWindow()
@@ -50,6 +52,8 @@ namespace Surge
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
+        if(CoreGetRenderContext())
+            CoreGetRenderContext()->Present();
     }
 
     void WindowsWindow::Minimize()

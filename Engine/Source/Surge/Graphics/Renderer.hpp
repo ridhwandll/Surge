@@ -3,6 +3,8 @@
 #include "Surge/Core/Memory.hpp"
 #include "Surge/Graphics/RendererBase.hpp"
 
+#define FRAMES_IN_FLIGHT 3
+
 namespace Surge
 {
     class Renderer
