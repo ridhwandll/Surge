@@ -52,8 +52,8 @@ namespace Surge
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
-        if(CoreGetRenderContext())
-            CoreGetRenderContext()->Present();
+        //if(CoreGetRenderContext())
+        //    CoreGetRenderContext()->Present();
     }
 
     void WindowsWindow::Minimize()

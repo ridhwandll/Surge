@@ -8,7 +8,7 @@ namespace Surge
     class VulkanRenderCommandBuffer : public RenderCommandBuffer
     {
     public:
-        VulkanRenderCommandBuffer(Uint size = 0, bool createFromSwapchain = false, const String& debugName = "");
+        VulkanRenderCommandBuffer(bool createFromSwapchain, Uint size = 0, const String& debugName = "");
         virtual ~VulkanRenderCommandBuffer() override;
 
         virtual void BeginRecording() override;

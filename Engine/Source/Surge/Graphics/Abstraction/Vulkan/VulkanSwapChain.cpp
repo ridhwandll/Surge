@@ -8,6 +8,8 @@
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDevice.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanUtils.hpp"
 
+#include <array>
+
 namespace Surge
 {
     void VulkanSwapChain::Initialize(Window* window)
@@ -243,9 +245,8 @@ namespace Surge
 
     void VulkanSwapChain::Resize()
     {
-        VulkanRenderContext* vkContext = static_cast<VulkanRenderContext*>(CoreGetRenderContext().get());
-        VkInstance instance = static_cast<VkInstance>(vkContext->GetInteralInstance());
-        VkDevice device = static_cast<VulkanDevice*>(vkContext->GetInteralDevice())->GetLogicaldevice();
+        VkDevice device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInteralDevice())->GetLogicaldevice();
+        mCurrentFrameIndex = 0;
 
         // Wait till everything has finished rendering before deleting it
         vkDeviceWaitIdle(device);
@@ -320,7 +321,7 @@ namespace Surge
         presentInfo.pWaitSemaphores = &mRenderAvailable;
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains = &mSwapChain;
-        presentInfo.pImageIndices = &mCurrentFrameIndex;
+        presentInfo.pImageIndices = &mCurrentImageIndex;
         VK_CALL(vkQueuePresentKHR(mPresentQueue, &presentInfo));
 
         mCurrentFrameIndex = (mCurrentFrameIndex + 1) % framesInFlight; //TODO: More than two Frames in Flight
@@ -328,7 +329,35 @@ namespace Surge
 
     void VulkanSwapChain::EndFrame()
     {
-        //Kekw? Empty for now.
+        // Empty for now, here is a sympathy "kekw" for you...
+    }
+
+    void VulkanSwapChain::BeginRenderPass()
+    {
+        VkRenderPassAttachmentBeginInfo attachmentInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO };
+        attachmentInfo.attachmentCount = 1;
+        attachmentInfo.pAttachments = &mSwapChainImageViews[mCurrentImageIndex];
+
+        std::array<VkClearValue, 2> clearValues;
+        clearValues[0].color = { 0.1f, 0.1f, 0.1f, 1.0f };
+        clearValues[1].depthStencil = { 1.0f, 0 };
+
+        VkRenderPassBeginInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass = mRenderPass;
+        renderPassInfo.framebuffer = mFramebuffer;
+        renderPassInfo.renderArea.offset = { 0, 0 };
+        renderPassInfo.renderArea.extent = mSwapChainExtent;
+        renderPassInfo.pNext = &attachmentInfo; // Imageless framebuffer
+        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+        renderPassInfo.pClearValues = clearValues.data();
+
+        vkCmdBeginRenderPass(mCommandBuffers[mCurrentFrameIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    }
+
+    void VulkanSwapChain::EndRenderPass()
+    {
+        vkCmdEndRenderPass(mCommandBuffers[mCurrentFrameIndex]);
     }
 
     void VulkanSwapChain::PickPresentQueue()

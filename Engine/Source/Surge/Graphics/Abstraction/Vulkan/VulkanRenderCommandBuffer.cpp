@@ -6,15 +6,15 @@
 
 namespace Surge
 {
-    VulkanRenderCommandBuffer::VulkanRenderCommandBuffer(Uint size, bool createFromSwapchain, const String& debugName)
+    VulkanRenderCommandBuffer::VulkanRenderCommandBuffer(bool createFromSwapchain, Uint size, const String& debugName)
         : mCreatedFromSwapchain(createFromSwapchain)
     {
         SCOPED_TIMER("[{0}] RenderCommandBuffer Creation", debugName);
-        VulkanDevice* device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInteralDevice());
-        VkDevice logicalDevice = device->GetLogicaldevice();
-
         if (!mCreatedFromSwapchain)
         {
+            VulkanDevice* device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInteralDevice());
+            VkDevice logicalDevice = device->GetLogicaldevice();
+
             // Command Pool Creation
             VkCommandPoolCreateInfo cmdPoolInfo{ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
             cmdPoolInfo.queueFamilyIndex = device->GetQueueFamilyIndices().GraphicsQueue;
@@ -26,7 +26,7 @@ namespace Surge
             commandBufferAllocateInfo.commandPool = mCommandPool;
             commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
             commandBufferAllocateInfo.commandBufferCount = size;
-            if (size != 0) mCommandBuffers.resize(size);
+            size == 0 ? mCommandBuffers.resize(FRAMES_IN_FLIGHT) : mCommandBuffers.resize(size);
             VK_CALL(vkAllocateCommandBuffers(logicalDevice, &commandBufferAllocateInfo, mCommandBuffers.data()));
 
             // Sync Objects
@@ -64,10 +64,11 @@ namespace Surge
 
     void VulkanRenderCommandBuffer::BeginRecording()
     {
-        Uint frameIndex = ((VulkanSwapChain*)(CoreGetRenderContext()->GetSwapChain()))->GetCurrentFrameIndex(); //TODO: More than two Frames in Flight
-        //vkResetCommandBuffer(mCommandBuffers[frameIndex], 0);
+        Uint frameIndex = ((VulkanSwapChain*)(CoreGetRenderContext()->GetSwapChain()))->GetCurrentFrameIndex();
         VkCommandBufferBeginInfo cmdBufInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-        cmdBufInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+        if(!mCreatedFromSwapchain)
+            cmdBufInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
         VkCommandBuffer commandBuffer = mCommandBuffers[frameIndex];
         vkBeginCommandBuffer(commandBuffer, &cmdBufInfo);
@@ -75,7 +76,7 @@ namespace Surge
 
     void VulkanRenderCommandBuffer::EndRecording()
     {
-        Uint frameIndex = ((VulkanSwapChain*)(CoreGetRenderContext()->GetSwapChain()))->GetCurrentFrameIndex(); //TODO: More than two Frames in Flight
+        Uint frameIndex = ((VulkanSwapChain*)(CoreGetRenderContext()->GetSwapChain()))->GetCurrentFrameIndex();
         VkCommandBuffer commandBuffer = mCommandBuffers[frameIndex];
         VK_CALL(vkEndCommandBuffer(commandBuffer));
     }
@@ -87,7 +88,7 @@ namespace Surge
 
         VulkanDevice* device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInteralDevice());
         VkDevice logicalDevice = device->GetLogicaldevice();
-        Uint frameIndex = ((VulkanSwapChain*)(CoreGetRenderContext()->GetSwapChain()))->GetCurrentFrameIndex(); //TODO: More than two Frames in Flight
+        Uint frameIndex = ((VulkanSwapChain*)(CoreGetRenderContext()->GetSwapChain()))->GetCurrentFrameIndex();
 
         VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
         submitInfo.commandBufferCount = 1;

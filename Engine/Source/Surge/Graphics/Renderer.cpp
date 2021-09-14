@@ -56,7 +56,7 @@ namespace Surge
         pipelineSpec.DebugName = "TestPipeline";
         sData->Pipeline = GraphicsPipeline::Create(pipelineSpec);
 
-        sData->RenderCmdBuffer = RenderCommandBuffer::Create(1, true); //Create command buffer from swapchain
+        sData->RenderCmdBuffer = RenderCommandBuffer::Create(true);
     }
 
     void Renderer::RenderDatDamnTriangle()
@@ -67,31 +67,12 @@ namespace Surge
         VkRenderPass renderPass = vkContext->mSwapChain.GetVulkanRenderPass();
         Uint imageIndex = vkContext->mSwapChain.GetCurrentFrameIndex();
 
-        VkImageView swapChainImageView = vkContext->mSwapChain.GetVulkanImageViews()[imageIndex];
+        VkCommandBuffer cmd = sData->RenderCmdBuffer.As<VulkanRenderCommandBuffer>()->GetVulkanCommandBuffer(imageIndex);
         VkExtent2D extent = vkContext->mSwapChain.GetVulkanExtent2D();
 
-        VkRenderPassAttachmentBeginInfo attachmentInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO };
-        attachmentInfo.attachmentCount = 1;
-        attachmentInfo.pAttachments = &swapChainImageView;
-
-        VkRenderPassBeginInfo renderPassInfo{};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = renderPass;
-        renderPassInfo.framebuffer = vkContext->mSwapChain.GetVulkanFramebuffer();
-        renderPassInfo.renderArea.offset = { 0, 0 };
-        renderPassInfo.renderArea.extent = { extent.width, extent.height };
-        renderPassInfo.pNext = &attachmentInfo; // Imageless framebuffer
-
-        std::array<VkClearValue, 2> vkClearValues;
-        vkClearValues[0].color = { 0.1f, 0.1f, 0.1f, 1.0f };
-        vkClearValues[1].depthStencil = { 1.0f, 0 };
-
-        renderPassInfo.clearValueCount = static_cast<uint32_t>(vkClearValues.size());
-        renderPassInfo.pClearValues = vkClearValues.data();
-
-        VkCommandBuffer cmd = sData->RenderCmdBuffer.As<VulkanRenderCommandBuffer>()->GetVulkanCommandBuffer(imageIndex);
+        // Begin command buffer recording
         sData->RenderCmdBuffer->BeginRecording();
-        vkCmdBeginRenderPass(cmd, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkContext->mSwapChain.BeginRenderPass();
 
         VkViewport viewport{};
         viewport.width = (float)extent.width;
@@ -109,18 +90,23 @@ namespace Surge
         vkCmdSetViewport(cmd, 0, 1, &viewport);
         vkCmdSetScissor(cmd, 0, 1, &scissor);
         vkCmdSetLineWidth(cmd, 5.0f);
+
         const VkBuffer vertexBuffer = sData->VertexBuffer.As<VulkanBuffer>()->GetVulkanBuffer();
         VkDeviceSize offset = 0;
         vkCmdBindVertexBuffers(cmd, 0, 1, &vertexBuffer, &offset);
         const VkBuffer indexBuffer = sData->IndexBuffer.As<VulkanBuffer>()->GetVulkanBuffer();
         vkCmdBindIndexBuffer(cmd, indexBuffer, 0, VK_INDEX_TYPE_UINT32);;
         vkCmdDrawIndexed(cmd, indices.size(), 1, 0, 0, 0);
-        vkCmdEndRenderPass(cmd);
+
+        vkContext->mSwapChain.EndRenderPass();
         sData->RenderCmdBuffer->EndRecording();
     }
 
     void Renderer::Shutdown()
     {
+        VulkanRenderContext* vkContext = static_cast<VulkanRenderContext*>(CoreGetRenderContext().get());
+        VkDevice device = vkContext->mDevice.GetLogicaldevice();
+        vkDeviceWaitIdle(device);
         sData.reset();
         mBase.Shutdown();
     }

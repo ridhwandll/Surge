@@ -17,6 +17,8 @@ namespace Surge
         void Resize();
         void Present();
         void Destroy();
+        void BeginRenderPass();
+        void EndRenderPass();
 
         Uint GetImageCount() const { return mImageCount; }
         Uint GetWidth() const { return mSwapChainExtent.width; }
