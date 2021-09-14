@@ -300,7 +300,6 @@ namespace Surge
     void VulkanSwapChain::Present()
     {
         VulkanDevice* device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInteralDevice());
-        Uint framesInFlight = FRAMES_IN_FLIGHT; //TODO: More than two Frames in Flight
 
         VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
         VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
@@ -324,7 +323,7 @@ namespace Surge
         presentInfo.pImageIndices = &mCurrentImageIndex;
         VK_CALL(vkQueuePresentKHR(mPresentQueue, &presentInfo));
 
-        mCurrentFrameIndex = (mCurrentFrameIndex + 1) % framesInFlight; //TODO: More than two Frames in Flight
+        mCurrentFrameIndex = (mCurrentFrameIndex + 1) % FRAMES_IN_FLIGHT;
     }
 
     void VulkanSwapChain::EndFrame()

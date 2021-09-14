@@ -32,7 +32,7 @@ namespace Surge
         VkCommandPool GetVulkanCommandPool() const { return mCommandPool; }
         Vector<VkImageView> GetVulkanImageViews() const { return mSwapChainImageViews; }
         Vector<VkCommandBuffer> GetVulkanCommandBuffers() const { return mCommandBuffers; }
-        Uint GetCurrentFrameIndex() { return mCurrentFrameIndex; }
+        Uint GetCurrentFrameIndex() const { return mCurrentFrameIndex; }
     private:
         VkResult AcquireNextImage(VkSemaphore imageAvailableSemaphore, Uint* imageIndex);
         void PickPresentQueue();

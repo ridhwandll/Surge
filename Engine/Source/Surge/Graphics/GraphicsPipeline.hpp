@@ -2,6 +2,7 @@
 #pragma once
 #include "Surge/Core/Memory.hpp"
 #include "Surge/Graphics/Shader.hpp"
+#include "Surge/Graphics/RenderCommandBuffer.hpp"
 
 namespace Surge
 {
@@ -32,7 +33,7 @@ namespace Surge
         virtual ~GraphicsPipeline() = default;
 
         virtual const GraphicsPipelineSpecification& GetPipelineSpecification() const = 0;
-        virtual void Bind() = 0;
+        virtual void Bind(const Ref<RenderCommandBuffer>& cmdBuffer) = 0;
 
         static Ref<GraphicsPipeline> Create(const GraphicsPipelineSpecification& pipelineSpec);
     };

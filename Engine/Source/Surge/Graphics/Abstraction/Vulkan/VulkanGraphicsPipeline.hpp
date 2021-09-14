@@ -11,7 +11,7 @@ namespace Surge
         VulkanGraphicsPipeline(const GraphicsPipelineSpecification& pipelineSpec);
         virtual ~VulkanGraphicsPipeline();
     
-        virtual void Bind() override;
+        virtual void Bind(const Ref<RenderCommandBuffer>& cmdBuffer) override;
         void SetPushConstantData(const String& bufferName, void* data);
 
         VkPipeline GetVulkanPipeline() const { return mPipeline; }

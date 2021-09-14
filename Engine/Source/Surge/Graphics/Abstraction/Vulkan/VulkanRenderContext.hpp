@@ -17,8 +17,9 @@ namespace Surge
         virtual void BeginFrame() override;
         virtual void EndFrame() override;
         virtual void Shutdown() override;
-
         virtual void OnResize() override;
+
+        Uint GetFrameIndex() const override { return mSwapChain.GetCurrentFrameIndex(); }
 
         virtual void* GetInteralDevice() override { return &mDevice; }
         virtual void* GetInteralInstance() override { return mVulkanInstance; }

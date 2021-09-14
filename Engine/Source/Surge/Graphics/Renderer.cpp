@@ -1,24 +1,24 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Surge/Graphics/Renderer.hpp"
-#include "Shader.hpp"
-#include "Buffer.hpp"
-#include "GraphicsPipeline.hpp"
+#include "Surge/Graphics/Shader.hpp"
+#include "Surge/Graphics/VertexBuffer.hpp"
+#include "Surge/Graphics/IndexBuffer.hpp"
+#include "Surge/Graphics/GraphicsPipeline.hpp"
+#include "Surge/Graphics/RenderCommandBuffer.hpp"
 #include "Abstraction/Vulkan/VulkanDevice.hpp"
 #include "Abstraction/Vulkan/VulkanRenderContext.hpp"
 #include "Abstraction/Vulkan/VulkanDiagnostics.hpp"
 #include "Abstraction/Vulkan/VulkanGraphicsPipeline.hpp"
-#include <array>
-#include "Abstraction/Vulkan/VulkanBuffer.hpp"
-#include "RenderCommandBuffer.hpp"
 #include "Abstraction/Vulkan/VulkanRenderCommandBuffer.hpp"
+#include "Abstraction/Vulkan/VulkanVertexBuffer.hpp"
 
 namespace Surge
 {
     // TODO: Very temporary, move initialization to something like "RendererBase"
     struct RendererData
     {
-        Ref<Buffer> VertexBuffer;
-        Ref<Buffer> IndexBuffer;
+        Ref<VertexBuffer> VertexBuffer;
+        Ref<IndexBuffer> IndexBuffer;
         Ref<GraphicsPipeline> Pipeline;
         Ref<RenderCommandBuffer> RenderCmdBuffer;
     };
@@ -45,8 +45,8 @@ namespace Surge
     void Renderer::Initialize()
     {
         mBase.Initialize();
-        sData->VertexBuffer = Buffer::Create(vertices.data(), static_cast<Uint>(sizeof(Vertex) * vertices.size()), BufferType::VertexBuffer);
-        sData->IndexBuffer = Buffer::Create(indices.data(), static_cast<Uint>(sizeof(indices[0]) * indices.size()), BufferType::IndexBuffer);
+        sData->VertexBuffer = VertexBuffer::Create(vertices.data(), static_cast<Uint>(sizeof(Vertex) * vertices.size()));
+        sData->IndexBuffer = IndexBuffer::Create(indices.data(), static_cast<Uint>(sizeof(indices[0]) * indices.size()));
 
         GraphicsPipelineSpecification pipelineSpec{};
         pipelineSpec.Shader = mBase.GetShader("Simple");
@@ -62,9 +62,6 @@ namespace Surge
     void Renderer::RenderDatDamnTriangle()
     {
         VulkanRenderContext* vkContext = static_cast<VulkanRenderContext*>(CoreGetRenderContext().get());
-        VkDevice device = vkContext->mDevice.GetLogicaldevice();
-        VkSwapchainKHR swapChain = vkContext->mSwapChain.GetVulkanSwapChain();
-        VkRenderPass renderPass = vkContext->mSwapChain.GetVulkanRenderPass();
         Uint imageIndex = vkContext->mSwapChain.GetCurrentFrameIndex();
 
         VkCommandBuffer cmd = sData->RenderCmdBuffer.As<VulkanRenderCommandBuffer>()->GetVulkanCommandBuffer(imageIndex);
@@ -75,8 +72,8 @@ namespace Surge
         vkContext->mSwapChain.BeginRenderPass();
 
         VkViewport viewport{};
-        viewport.width = (float)extent.width;
-        viewport.height = (float)extent.height;
+        viewport.width = static_cast<float>(extent.width);
+        viewport.height = static_cast<float>(extent.height);
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
         vkCmdSetViewport(cmd, 0, 1, &viewport);
@@ -86,16 +83,13 @@ namespace Surge
         scissor.offset = { 0, 0 };
         vkCmdSetScissor(cmd, 0, 1, &scissor);
 
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, sData->Pipeline.As<VulkanGraphicsPipeline>()->GetVulkanPipeline());
         vkCmdSetViewport(cmd, 0, 1, &viewport);
         vkCmdSetScissor(cmd, 0, 1, &scissor);
         vkCmdSetLineWidth(cmd, 5.0f);
 
-        const VkBuffer vertexBuffer = sData->VertexBuffer.As<VulkanBuffer>()->GetVulkanBuffer();
-        VkDeviceSize offset = 0;
-        vkCmdBindVertexBuffers(cmd, 0, 1, &vertexBuffer, &offset);
-        const VkBuffer indexBuffer = sData->IndexBuffer.As<VulkanBuffer>()->GetVulkanBuffer();
-        vkCmdBindIndexBuffer(cmd, indexBuffer, 0, VK_INDEX_TYPE_UINT32);;
+        sData->Pipeline->Bind(sData->RenderCmdBuffer);
+        sData->VertexBuffer->Bind(sData->RenderCmdBuffer);
+        sData->IndexBuffer->Bind(sData->RenderCmdBuffer);
         vkCmdDrawIndexed(cmd, indices.size(), 1, 0, 0, 0);
 
         vkContext->mSwapChain.EndRenderPass();
@@ -104,9 +98,6 @@ namespace Surge
 
     void Renderer::Shutdown()
     {
-        VulkanRenderContext* vkContext = static_cast<VulkanRenderContext*>(CoreGetRenderContext().get());
-        VkDevice device = vkContext->mDevice.GetLogicaldevice();
-        vkDeviceWaitIdle(device);
         sData.reset();
         mBase.Shutdown();
     }

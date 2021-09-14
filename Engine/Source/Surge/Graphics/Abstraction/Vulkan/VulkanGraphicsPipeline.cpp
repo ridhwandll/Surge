@@ -1,13 +1,12 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
-#include "Pch.hpp"
 #include "VulkanGraphicsPipeline.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanShader.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDevice.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanSwapChain.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDiagnostics.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderCommandBuffer.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanUtils.hpp"
 #include "Surge/Graphics/ReflectionData.hpp"
-#include <array>
 
 namespace Surge
 {
@@ -165,10 +164,11 @@ namespace Surge
         vkDestroyPipelineLayout(device, mPipelineLayout, nullptr);
     }
 
-    void VulkanGraphicsPipeline::Bind()
+    void VulkanGraphicsPipeline::Bind(const Ref<RenderCommandBuffer>& cmdBuffer)
     {
-        VkCommandBuffer cmdBuf = VK_NULL_HANDLE; // TODO: We will need to add a render commandbuffer to the swap chain
-        vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline);
+        Uint frameIndex = CoreGetRenderContext()->GetFrameIndex();
+        VkCommandBuffer vulkanCmdBuffer = cmdBuffer.As<VulkanRenderCommandBuffer>()->GetVulkanCommandBuffer(frameIndex);
+        vkCmdBindPipeline(vulkanCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline);
     }
 
     void VulkanGraphicsPipeline::SetPushConstantData(const String& bufferName, void* data)

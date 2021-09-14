@@ -1,30 +1,27 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
-#include "Surge/Graphics/Buffer.hpp"
+#include "Surge/Graphics/VertexBuffer.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanMemoryAllocator.hpp"
 #include <volk.h>
 
 namespace Surge
 {
-    class VulkanBuffer : public Buffer
+    class VulkanVertexBuffer : public VertexBuffer
     {
     public:
-        VulkanBuffer() = default;
-        VulkanBuffer(const void* data, const Uint& size, const BufferType& type);
-        virtual ~VulkanBuffer() override;
+        VulkanVertexBuffer() = default;
+        VulkanVertexBuffer(const void* data, const Uint& size);
+        virtual ~VulkanVertexBuffer() override;
 
         virtual Uint GetSize() override { return mSize; }
-        virtual void SetData(const void* data, const Uint& size) override;
-    public:
+        virtual void Bind(const Ref<RenderCommandBuffer>& cmdBuffer) override;
+
         const VkBuffer GetVulkanBuffer() const { return mVulkanBuffer; }
         VmaAllocation GetAllocation() { return mAllocation; }
     private:
         void CreateVertexBuffer(const void* data);
-        void CreateIndexBuffer(const void* data);
-        void CreateUniformBuffer(const void* data);
     private:
         Uint mSize = 0;
-        BufferType mType = BufferType::None;
         VkBuffer mVulkanBuffer = VK_NULL_HANDLE;
         VmaAllocation mAllocation = VK_NULL_HANDLE;
         VmaAllocationInfo mAllocationInfo = {};

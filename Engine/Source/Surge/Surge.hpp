@@ -14,6 +14,7 @@
 #include "Surge/Events/Event.hpp"
 
 #include "Surge/Graphics/RenderContext.hpp"
-#include "Surge/Graphics/Buffer.hpp"
+#include "Surge/Graphics/VertexBuffer.hpp"
+#include "Surge/Graphics/IndexBuffer.hpp"
 #include "Surge/Graphics/Shader.hpp"
 #include "Surge/Graphics/GraphicsPipeline.hpp"
