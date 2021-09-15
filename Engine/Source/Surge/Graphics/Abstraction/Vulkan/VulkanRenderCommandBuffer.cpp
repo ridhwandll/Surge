@@ -11,7 +11,7 @@ namespace Surge
     {
         SCOPED_TIMER("[{0}] RenderCommandBuffer Creation", debugName);
         mRenderContext = CoreGetRenderContext().get();
-        mVulkanDevice = static_cast<VulkanDevice*>(mRenderContext->GetInteralDevice());
+        mVulkanDevice = static_cast<VulkanDevice*>(mRenderContext->GetInternalDevice());
         mLogicalDevice = mVulkanDevice->GetLogicaldevice();
 
         if (!mCreatedFromSwapchain)

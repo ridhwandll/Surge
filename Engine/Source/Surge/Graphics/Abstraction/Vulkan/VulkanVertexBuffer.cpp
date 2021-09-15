@@ -13,9 +13,11 @@ namespace Surge
 
     VulkanVertexBuffer::~VulkanVertexBuffer()
     {
-        VulkanDevice* device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInteralDevice());
+        Scope<RenderContext>& renderContext = CoreGetRenderContext();
+        VulkanDevice* device = static_cast<VulkanDevice*>(renderContext->GetInternalDevice());
+        VulkanMemoryAllocator* allocator = static_cast<VulkanMemoryAllocator*>(renderContext->GetMemoryAllocator());
+
         vkDeviceWaitIdle(device->GetLogicaldevice());
-        VulkanMemoryAllocator* allocator = static_cast<VulkanMemoryAllocator*>(CoreGetRenderContext()->GetMemoryAllocator());
         allocator->DestroyBuffer(mVulkanBuffer, mAllocation);
     }
 
@@ -30,7 +32,7 @@ namespace Surge
     void VulkanVertexBuffer::CreateVertexBuffer(const void* data)
     {
         Scope<RenderContext>& context = CoreGetRenderContext();
-        VulkanDevice* device = static_cast<VulkanDevice*>(context->GetInteralDevice());
+        VulkanDevice* device = static_cast<VulkanDevice*>(context->GetInternalDevice());
         VulkanMemoryAllocator* allocator = static_cast<VulkanMemoryAllocator*>(context->GetMemoryAllocator());
 
         VkBufferCreateInfo bufferCreateInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };

@@ -13,7 +13,6 @@ namespace Surge
     {
     public:
         virtual void Initialize(Window* window) override;
-        virtual void Present() override;
         virtual void BeginFrame() override;
         virtual void EndFrame() override;
         virtual void Shutdown() override;
@@ -21,8 +20,8 @@ namespace Surge
 
         Uint GetFrameIndex() const override { return mSwapChain.GetCurrentFrameIndex(); }
 
-        virtual void* GetInteralDevice() override { return &mDevice; }
-        virtual void* GetInteralInstance() override { return mVulkanInstance; }
+        virtual void* GetInternalDevice() override { return &mDevice; }
+        virtual void* GetInternalInstance() override { return mVulkanInstance; }
         virtual void* GetSwapChain() override { return &mSwapChain; }
 
         virtual GPUMemoryStats GetMemoryStatus() const override { return mMemoryAllocator.GetStats(); };

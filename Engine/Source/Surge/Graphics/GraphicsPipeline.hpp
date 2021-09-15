@@ -34,6 +34,7 @@ namespace Surge
 
         virtual const GraphicsPipelineSpecification& GetPipelineSpecification() const = 0;
         virtual void Bind(const Ref<RenderCommandBuffer>& cmdBuffer) = 0;
+        virtual void SetPushConstantData(const Ref<RenderCommandBuffer>& cmdBuffer, const String& bufferName, void* data) = 0;
 
         static Ref<GraphicsPipeline> Create(const GraphicsPipelineSpecification& pipelineSpec);
     };

@@ -48,11 +48,6 @@ namespace Surge
         mMemoryAllocator.Initialize(mVulkanInstance, mDevice);
     }
 
-    void VulkanRenderContext::Present()
-    {
-        mSwapChain.Present();
-    }
-
     void VulkanRenderContext::BeginFrame()
     {
         mSwapChain.BeginFrame();

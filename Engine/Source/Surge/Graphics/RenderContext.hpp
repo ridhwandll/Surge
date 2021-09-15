@@ -25,7 +25,6 @@ namespace Surge
         virtual ~RenderContext() = default;
 
         virtual void Initialize(Window* window) = 0;
-        virtual void Present() = 0;
         virtual void BeginFrame() = 0;
         virtual void EndFrame() = 0;
         virtual void Shutdown() = 0;
@@ -34,8 +33,8 @@ namespace Surge
         virtual Uint GetFrameIndex() const = 0;
 
         // Internal Data [Retrieves the Renderer API specific data]
-        virtual void* GetInteralDevice() = 0;
-        virtual void* GetInteralInstance() = 0;
+        virtual void* GetInternalDevice() = 0;
+        virtual void* GetInternalInstance() = 0;
         virtual void* GetSwapChain() = 0;
 
         virtual GPUMemoryStats GetMemoryStatus() const = 0;

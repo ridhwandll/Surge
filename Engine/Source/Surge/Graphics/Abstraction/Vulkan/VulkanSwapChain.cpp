@@ -14,7 +14,7 @@ namespace Surge
 {
     void VulkanSwapChain::Initialize(Window* window)
     {
-        VkInstance instance = static_cast<VkInstance>(CoreGetRenderContext()->GetInteralInstance());
+        VkInstance instance = static_cast<VkInstance>(CoreGetRenderContext()->GetInternalInstance());
         VulkanUtils::CreateWindowSurface(instance, window, &mSurface);
         PickPresentQueue();
         CreateSwapChain();
@@ -26,8 +26,8 @@ namespace Surge
 
     void VulkanSwapChain::CreateSwapChain()
     {
-        VkPhysicalDevice physicalDevice = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInteralDevice())->GetSelectedPhysicalDevice();
-        VkDevice device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInteralDevice())->GetLogicaldevice();
+        VkPhysicalDevice physicalDevice = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInternalDevice())->GetSelectedPhysicalDevice();
+        VkDevice device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInternalDevice())->GetLogicaldevice();
 
         VkSurfaceCapabilitiesKHR surfaceCapabilities;
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, mSurface, &surfaceCapabilities);
@@ -101,7 +101,7 @@ namespace Surge
     {
         // Creating here the renderPass because we need it for the framebuffer, for imgui and other stuff.
         // The rendered image will be passed to this renderpass by rendering a quad with the final texture or viewport and then it will pe presented
-        VkDevice device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInteralDevice())->GetLogicaldevice();
+        VkDevice device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInternalDevice())->GetLogicaldevice();
 
         VkAttachmentDescription colorAttachment{};
         colorAttachment.format = mColorFormat.format;
@@ -144,7 +144,7 @@ namespace Surge
 
     void VulkanSwapChain::CreateFramebuffer()
     {
-        VkDevice device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInteralDevice())->GetLogicaldevice();
+        VkDevice device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInternalDevice())->GetLogicaldevice();
 
         // Creating the VkImageViews
         mSwapChainImageViews.resize(mSwapChainImages.size());
@@ -205,7 +205,7 @@ namespace Surge
     void VulkanSwapChain::CreateCmdBuffers()
     {
         VulkanRenderContext* vkContext = static_cast<VulkanRenderContext*>(CoreGetRenderContext().get());
-        VulkanDevice* device = static_cast<VulkanDevice*>(vkContext->GetInteralDevice());
+        VulkanDevice* device = static_cast<VulkanDevice*>(vkContext->GetInternalDevice());
         VkDevice logicalDevice = device->GetLogicaldevice();
 
         // Command Pool Creation
@@ -227,7 +227,7 @@ namespace Surge
     {
         Uint framesInFlight = FRAMES_IN_FLIGHT; //TODO: More than two Frames in Flight
         VulkanRenderContext* vkContext = static_cast<VulkanRenderContext*>(CoreGetRenderContext().get());
-        VkDevice device = static_cast<VulkanDevice*>(vkContext->GetInteralDevice())->GetLogicaldevice();
+        VkDevice device = static_cast<VulkanDevice*>(vkContext->GetInternalDevice())->GetLogicaldevice();
 
         // Semaphores
         VkSemaphoreCreateInfo semaphoreCreateInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
@@ -245,7 +245,7 @@ namespace Surge
 
     void VulkanSwapChain::Resize()
     {
-        VkDevice device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInteralDevice())->GetLogicaldevice();
+        VkDevice device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInternalDevice())->GetLogicaldevice();
         mCurrentFrameIndex = 0;
 
         // Wait till everything has finished rendering before deleting it
@@ -262,8 +262,8 @@ namespace Surge
     void VulkanSwapChain::Destroy()
     {
         VulkanRenderContext* vkContext = static_cast<VulkanRenderContext*>(CoreGetRenderContext().get());
-        VkInstance instance = static_cast<VkInstance>(vkContext->GetInteralInstance());
-        VkDevice device = static_cast<VulkanDevice*>(vkContext->GetInteralDevice())->GetLogicaldevice();
+        VkInstance instance = static_cast<VkInstance>(vkContext->GetInternalInstance());
+        VkDevice device = static_cast<VulkanDevice*>(vkContext->GetInternalDevice())->GetLogicaldevice();
 
         vkDeviceWaitIdle(device);
 
@@ -286,20 +286,20 @@ namespace Surge
     VkResult VulkanSwapChain::AcquireNextImage(VkSemaphore imageAvailableSemaphore, Uint* imageIndex)
     {
         // By setting timeout to UINT64_MAX we will always wait until the next image has been acquired
-        VkDevice device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInteralDevice())->GetLogicaldevice();
+        VkDevice device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInternalDevice())->GetLogicaldevice();
         return vkAcquireNextImageKHR(device, mSwapChain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, imageIndex);
     }
 
     void VulkanSwapChain::BeginFrame()
     {
-        VulkanDevice* device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInteralDevice());
+        VulkanDevice* device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInternalDevice());
         VK_CALL(vkWaitForFences(device->GetLogicaldevice(), 1, &mWaitFences[mCurrentFrameIndex], VK_TRUE, UINT64_MAX));
         VK_CALL(AcquireNextImage(mImageAvailable, &mCurrentImageIndex));
     }
 
     void VulkanSwapChain::Present()
     {
-        VulkanDevice* device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInteralDevice());
+        VulkanDevice* device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInternalDevice());
 
         VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
         VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
@@ -328,7 +328,7 @@ namespace Surge
 
     void VulkanSwapChain::EndFrame()
     {
-        // Empty for now, here is a sympathy "kekw" for you...
+        Present();
     }
 
     void VulkanSwapChain::BeginRenderPass()
@@ -361,8 +361,8 @@ namespace Surge
 
     void VulkanSwapChain::PickPresentQueue()
     {
-        VkPhysicalDevice physicalDevice = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInteralDevice())->GetSelectedPhysicalDevice();
-        VkDevice device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInteralDevice())->GetLogicaldevice();
+        VkPhysicalDevice physicalDevice = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInternalDevice())->GetSelectedPhysicalDevice();
+        VkDevice device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInternalDevice())->GetLogicaldevice();
 
         // Getting all the queueFamilies
         Vector<VkQueueFamilyProperties> queueFamilyProps;

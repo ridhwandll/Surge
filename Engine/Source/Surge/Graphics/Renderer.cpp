@@ -30,15 +30,14 @@ namespace Surge
     struct Vertex
     {
         glm::vec3 Pos;
-        glm::vec3 Color;
     };
 
     const std::vector<Vertex> vertices =
     {
-        {{-0.5f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f }},
-        {{ 0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f }},
-        {{ 0.5f,  0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }},
-        {{-0.5f,  0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f }}
+        {{ -0.5f, -0.5f, 0.0f }},
+        {{  0.5f, -0.5f, 0.0f }},
+        {{  0.5f,  0.5f, 0.0f }},
+        {{ -0.5f,  0.5f, 0.0f }}
     };
     const std::vector<Uint> indices = { 0, 1, 2, 2, 3, 0 };
 
@@ -90,6 +89,8 @@ namespace Surge
         sData->Pipeline->Bind(sData->RenderCmdBuffer);
         sData->VertexBuffer->Bind(sData->RenderCmdBuffer);
         sData->IndexBuffer->Bind(sData->RenderCmdBuffer);
+        glm::vec4 color = { 0.0f, 1.0f, 0.0f, 1.0f };
+        sData->Pipeline->SetPushConstantData(sData->RenderCmdBuffer, "PushConstants", &color);
         vkCmdDrawIndexed(cmd, indices.size(), 1, 0, 0, 0);
 
         vkContext->mSwapChain.EndRenderPass();

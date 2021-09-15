@@ -63,7 +63,6 @@ namespace Surge
             {
                 sCoreData.SurgeRenderContext->BeginFrame();
                 sCoreData.SurgeApplication->OnUpdate();
-                sCoreData.SurgeRenderContext->Present();
                 sCoreData.SurgeRenderContext->EndFrame();
             }
         }

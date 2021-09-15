@@ -14,8 +14,8 @@ namespace Surge
         : mSpecification(pipelineSpec)
     {
         SCOPED_TIMER("[{0}] Pipeline Creation", mSpecification.DebugName);
-
-        VkDevice device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInteralDevice())->GetLogicaldevice();
+        mRenderContext = CoreGetRenderContext().get();
+        VkDevice device = static_cast<VulkanDevice*>(mRenderContext->GetInternalDevice())->GetLogicaldevice();
 
         // Setting up all the shaders into a create info class
         HashMap<ShaderType, VkShaderModule> shaderModules = pipelineSpec.Shader.As<VulkanShader>()->GetVulkanShaderModules();
@@ -150,7 +150,7 @@ namespace Surge
         pipelineInfo.layout = mPipelineLayout;
 
         // TODO(AC3R): This is temporary becase we dont have renderpass absctraction yet
-        pipelineInfo.renderPass = static_cast<VulkanSwapChain*>(CoreGetRenderContext()->GetSwapChain())->GetVulkanRenderPass();
+        pipelineInfo.renderPass = static_cast<VulkanSwapChain*>(mRenderContext->GetSwapChain())->GetVulkanRenderPass();
         pipelineInfo.subpass = 0;
 
         VK_CALL(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mPipeline));
@@ -158,7 +158,7 @@ namespace Surge
 
     VulkanGraphicsPipeline::~VulkanGraphicsPipeline()
     {
-        VkDevice device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInteralDevice())->GetLogicaldevice();
+        VkDevice device = static_cast<VulkanDevice*>(mRenderContext->GetInternalDevice())->GetLogicaldevice();
         vkDeviceWaitIdle(device);
         vkDestroyPipeline(device, mPipeline, nullptr);
         vkDestroyPipelineLayout(device, mPipelineLayout, nullptr);
@@ -166,15 +166,16 @@ namespace Surge
 
     void VulkanGraphicsPipeline::Bind(const Ref<RenderCommandBuffer>& cmdBuffer)
     {
-        Uint frameIndex = CoreGetRenderContext()->GetFrameIndex();
+        Uint frameIndex = mRenderContext->GetFrameIndex();
         VkCommandBuffer vulkanCmdBuffer = cmdBuffer.As<VulkanRenderCommandBuffer>()->GetVulkanCommandBuffer(frameIndex);
         vkCmdBindPipeline(vulkanCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline);
     }
 
-    void VulkanGraphicsPipeline::SetPushConstantData(const String& bufferName, void* data)
+    void VulkanGraphicsPipeline::SetPushConstantData(const Ref<RenderCommandBuffer>& cmdBuffer, const String& bufferName, void* data)
     {
-        VkCommandBuffer cmdBuf = VK_NULL_HANDLE; // TODO: We will need to add a render commandbuffer to the swap chain
+        Uint frameIndex = mRenderContext->GetFrameIndex();
+        VkCommandBuffer vulkanCmdBuffer = cmdBuffer.As<VulkanRenderCommandBuffer>()->GetVulkanCommandBuffer(frameIndex);
         VkPushConstantRange& pushConstant = mSpecification.Shader.As<VulkanShader>()->GetPushConstantRanges()[bufferName];
-        vkCmdPushConstants(cmdBuf, mPipelineLayout, pushConstant.stageFlags, pushConstant.offset, pushConstant.size, data);
+        vkCmdPushConstants(vulkanCmdBuffer, mPipelineLayout, pushConstant.stageFlags, pushConstant.offset, pushConstant.size, data);
     }
 }

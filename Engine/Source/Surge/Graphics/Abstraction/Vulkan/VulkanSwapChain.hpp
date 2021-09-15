@@ -15,7 +15,6 @@ namespace Surge
         void BeginFrame();
         void EndFrame();
         void Resize();
-        void Present();
         void Destroy();
         void BeginRenderPass();
         void EndRenderPass();
@@ -34,6 +33,7 @@ namespace Surge
         Vector<VkCommandBuffer> GetVulkanCommandBuffers() const { return mCommandBuffers; }
         Uint GetCurrentFrameIndex() const { return mCurrentFrameIndex; }
     private:
+        void Present();
         VkResult AcquireNextImage(VkSemaphore imageAvailableSemaphore, Uint* imageIndex);
         void PickPresentQueue();
         void CreateSwapChain();
