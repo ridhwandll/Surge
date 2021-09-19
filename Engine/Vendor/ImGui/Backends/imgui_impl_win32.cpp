@@ -21,7 +21,7 @@
 #include <windows.h>
 #include <tchar.h>
 #include <dwmapi.h>
-
+#include <volk.h> // SURGE_EDIT
 // Configuration flags to add in your imconfig.h file:
 //#define IMGUI_IMPL_WIN32_DISABLE_GAMEPAD              // Disable gamepad support. This was meaningful before <1.81 but we now load XInput dynamically so the option is now less relevant.
 
@@ -31,6 +31,7 @@
 typedef DWORD (WINAPI *PFN_XInputGetCapabilities)(DWORD, DWORD, XINPUT_CAPABILITIES*);
 typedef DWORD (WINAPI *PFN_XInputGetState)(DWORD, XINPUT_STATE*);
 #endif
+#include "vulkan/vulkan_win32.h"
 
 // CHANGELOG
 // (minor and older changes stripped away, please see git history for details)
@@ -914,6 +915,25 @@ static void ImGui_ImplWin32_OnChangedViewport(ImGuiViewport* viewport)
 #endif
 }
 
+// SURGE_EDIT
+static int SurgeImGui_ImplWin32_CreateVkSurface(ImGuiViewport* viewport, ImU64 vk_instance, const void* vk_allocator, ImU64* out_vk_surface)
+{
+    ImGui_ImplWin32_Data* bd = ImGui_ImplWin32_GetBackendData();
+    ImGui_ImplWin32_ViewportData* vd = (ImGui_ImplWin32_ViewportData*)viewport->PlatformUserData;
+    IM_UNUSED(bd);
+
+    PFN_vkCreateWin32SurfaceKHR vkCreateWin32SurfaceKHR;
+    vkCreateWin32SurfaceKHR = (PFN_vkCreateWin32SurfaceKHR)vkGetInstanceProcAddr((VkInstance)vk_instance, "vkCreateWin32SurfaceKHR");
+    IM_ASSERT(vkCreateWin32SurfaceKHR && "[Win32] Vulkan instance missing VK_KHR_win32_surface extension");
+
+    VkWin32SurfaceCreateInfoKHR sci{ VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
+    sci.hinstance = GetModuleHandle(nullptr);
+    sci.hwnd = vd->Hwnd;
+    VkResult err = vkCreateWin32SurfaceKHR((VkInstance)vk_instance, &sci, nullptr, (VkSurfaceKHR*)out_vk_surface);
+
+    return (int)err;
+}
+
 static LRESULT CALLBACK ImGui_ImplWin32_WndProcHandler_PlatformWindow(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
@@ -986,6 +1006,7 @@ static void ImGui_ImplWin32_InitPlatformInterface()
     platform_io.Platform_UpdateWindow = ImGui_ImplWin32_UpdateWindow;
     platform_io.Platform_GetWindowDpiScale = ImGui_ImplWin32_GetWindowDpiScale; // FIXME-DPI
     platform_io.Platform_OnChangedViewport = ImGui_ImplWin32_OnChangedViewport; // FIXME-DPI
+    platform_io.Platform_CreateVkSurface = SurgeImGui_ImplWin32_CreateVkSurface; // SURGE_EDIT
 #if HAS_WIN32_IME
     platform_io.Platform_SetImeInputPos = ImGui_ImplWin32_SetImeInputPos;
 #endif

@@ -27,6 +27,7 @@ add_library(ImGui
 
 target_include_directories(ImGui PRIVATE
     .
+    ${CMAKE_SOURCE_DIR}/Engine/Vendor/volk
     ${CMAKE_SOURCE_DIR}/Engine/Vendor/Vulkan-Headers/Include
 )
 
