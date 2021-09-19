@@ -58,17 +58,18 @@ namespace Surge
         sData->RenderCmdBuffer = RenderCommandBuffer::Create(true);
     }
 
-    void Renderer::RenderDatDamnTriangle()
+    void Renderer::RenderRectangle(const glm::vec3& color)
     {
         VulkanRenderContext* vkContext = static_cast<VulkanRenderContext*>(CoreGetRenderContext().get());
-        Uint imageIndex = vkContext->mSwapChain.GetCurrentFrameIndex();
+        VulkanSwapChain* swapchain = static_cast<VulkanSwapChain*>(vkContext->GetSwapChain());
+        Uint imageIndex = vkContext->GetFrameIndex();
 
         VkCommandBuffer cmd = sData->RenderCmdBuffer.As<VulkanRenderCommandBuffer>()->GetVulkanCommandBuffer(imageIndex);
-        VkExtent2D extent = vkContext->mSwapChain.GetVulkanExtent2D();
+        VkExtent2D extent = swapchain->GetVulkanExtent2D();
 
         // Begin command buffer recording
         sData->RenderCmdBuffer->BeginRecording();
-        vkContext->mSwapChain.BeginRenderPass();
+        swapchain->BeginRenderPass();
 
         VkViewport viewport{};
         viewport.width = static_cast<float>(extent.width);
@@ -89,11 +90,12 @@ namespace Surge
         sData->Pipeline->Bind(sData->RenderCmdBuffer);
         sData->VertexBuffer->Bind(sData->RenderCmdBuffer);
         sData->IndexBuffer->Bind(sData->RenderCmdBuffer);
-        glm::vec4 color = { 0.0f, 1.0f, 0.0f, 1.0f };
-        sData->Pipeline->SetPushConstantData(sData->RenderCmdBuffer, "PushConstants", &color);
+        sData->Pipeline->SetPushConstantData(sData->RenderCmdBuffer, "PushConstants", (void*)&color);
         vkCmdDrawIndexed(cmd, indices.size(), 1, 0, 0, 0);
 
-        vkContext->mSwapChain.EndRenderPass();
+        vkContext->RenderImGui();
+
+        swapchain->EndRenderPass();
         sData->RenderCmdBuffer->EndRecording();
     }
 

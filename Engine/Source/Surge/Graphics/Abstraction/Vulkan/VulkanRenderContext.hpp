@@ -5,6 +5,7 @@
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDevice.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanSwapChain.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanMemoryAllocator.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanImGuiContext.hpp"
 #include <volk.h>
 
 namespace Surge
@@ -17,6 +18,7 @@ namespace Surge
         virtual void EndFrame() override;
         virtual void Shutdown() override;
         virtual void OnResize() override;
+        virtual void RenderImGui() override;
 
         Uint GetFrameIndex() const override { return mSwapChain.GetCurrentFrameIndex(); }
 
@@ -35,6 +37,9 @@ namespace Surge
         VulkanDevice mDevice{};
         VulkanSwapChain mSwapChain{};
         VulkanMemoryAllocator mMemoryAllocator{};
-        friend class Renderer; // TODO: Remove friend
+        VulkanImGuiContext mImGuiContext;
+
+        friend class VulkanImGuiContext;
+        friend class VulkanDevice;
     };
 }

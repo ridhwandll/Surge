@@ -56,11 +56,11 @@ namespace Surge
 
         VkCommandBuffer cmdBuffer = VK_NULL_HANDLE;
 
-        device->BeginCmdBuffer(cmdBuffer, VulkanQueueType::Transfer);
+        device->BeginOneTimeCmdBuffer(cmdBuffer, VulkanQueueType::Transfer);
         VkBufferCopy copyRegion = {};
         copyRegion.size = mSize;
         vkCmdCopyBuffer(cmdBuffer, stagingBuffer, mVulkanBuffer, 1, &copyRegion);
-        device->EndCmdBuffer(cmdBuffer, VulkanQueueType::Transfer);
+        device->EndOneTimeCmdBuffer(cmdBuffer, VulkanQueueType::Transfer);
 
         allocator->DestroyBuffer(stagingBuffer, stagingBufferAllocation);
     }

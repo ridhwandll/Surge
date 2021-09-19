@@ -26,7 +26,7 @@ namespace Surge
 
     void VulkanSwapChain::CreateSwapChain()
     {
-        VkPhysicalDevice physicalDevice = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInternalDevice())->GetSelectedPhysicalDevice();
+        VkPhysicalDevice physicalDevice = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInternalDevice())->GetPhysicaldevice();
         VkDevice device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInternalDevice())->GetLogicaldevice();
 
         VkSurfaceCapabilitiesKHR surfaceCapabilities;
@@ -122,16 +122,15 @@ namespace Surge
         subpass.colorAttachmentCount = 1;
         subpass.pColorAttachments = &colorAttachmentRef;
 
-        VkSubpassDependency dependency{};
+        VkSubpassDependency dependency = {};
         dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
         dependency.dstSubpass = 0;
-        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
         dependency.srcAccessMask = 0;
-        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-        VkRenderPassCreateInfo renderPassInfo{};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        VkRenderPassCreateInfo renderPassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
         renderPassInfo.attachmentCount = 1;
         renderPassInfo.pAttachments = &colorAttachment;
         renderPassInfo.subpassCount = 1;
@@ -188,13 +187,12 @@ namespace Surge
         attachmentCreateInfo.pAttachmentImageInfos = &attachmentImageInfo;
 
         // Creation of the framebuffer is done using the pNext chain and with the flag `VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT`
-        VkFramebufferCreateInfo framebufferInfo{};
-        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        VkFramebufferCreateInfo framebufferInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
         framebufferInfo.pNext = &attachmentCreateInfo;
         framebufferInfo.flags = VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT;
         framebufferInfo.renderPass = mRenderPass;
         framebufferInfo.attachmentCount = 1;
-        framebufferInfo.pAttachments = nullptr;
+        framebufferInfo.pAttachments = nullptr; // Yes, nullptr
         framebufferInfo.width = mSwapChainExtent.width;
         framebufferInfo.height = mSwapChainExtent.height;
         framebufferInfo.layers = 1;
@@ -341,8 +339,7 @@ namespace Surge
         clearValues[0].color = { 0.1f, 0.1f, 0.1f, 1.0f };
         clearValues[1].depthStencil = { 1.0f, 0 };
 
-        VkRenderPassBeginInfo renderPassInfo{};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        VkRenderPassBeginInfo renderPassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
         renderPassInfo.renderPass = mRenderPass;
         renderPassInfo.framebuffer = mFramebuffer;
         renderPassInfo.renderArea.offset = { 0, 0 };
@@ -361,7 +358,7 @@ namespace Surge
 
     void VulkanSwapChain::PickPresentQueue()
     {
-        VkPhysicalDevice physicalDevice = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInternalDevice())->GetSelectedPhysicalDevice();
+        VkPhysicalDevice physicalDevice = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInternalDevice())->GetPhysicaldevice();
         VkDevice device = static_cast<VulkanDevice*>(CoreGetRenderContext()->GetInternalDevice())->GetLogicaldevice();
 
         // Getting all the queueFamilies

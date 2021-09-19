@@ -23,6 +23,7 @@ namespace Surge
         Uint GetWidth() const { return mSwapChainExtent.width; }
         Uint GetHeight() const { return mSwapChainExtent.height; }
 
+        VkCommandPool GetCommandPool() { return mCommandPool; }
         VkExtent2D GetVulkanExtent2D() const { return mSwapChainExtent; }
         VkFormat GetVulkanColorFormat() const { return mColorFormat.format; }
         VkSwapchainKHR GetVulkanSwapChain() const { return mSwapChain; }
@@ -32,6 +33,7 @@ namespace Surge
         Vector<VkImageView> GetVulkanImageViews() const { return mSwapChainImageViews; }
         Vector<VkCommandBuffer> GetVulkanCommandBuffers() const { return mCommandBuffers; }
         Uint GetCurrentFrameIndex() const { return mCurrentFrameIndex; }
+        Uint GetCurrentImageIndex() const { return mCurrentImageIndex; }
     private:
         void Present();
         VkResult AcquireNextImage(VkSemaphore imageAvailableSemaphore, Uint* imageIndex);

@@ -3,6 +3,9 @@
 #include "Surge/Core/Core.hpp"
 #include "Surge/Platform/Windows/WindowsWindow.hpp"
 #include <windowsx.h> // For GET_X/Y_LPARAM macro
+#include <imgui.h>
+
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace Surge
 {
@@ -126,6 +129,9 @@ namespace Surge
 
     LRESULT WindowsWindow::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     {
+        if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
+            return true;
+
         switch (msg)
         {
         case WM_CREATE:

@@ -14,7 +14,6 @@ namespace Surge
         Scope<Window> SurgeWindow = nullptr;
         Scope<RenderContext> SurgeRenderContext = nullptr;
         Scope<Renderer> SurgeRenderer = nullptr;
-
         bool mRunning = false;
     };
 
@@ -62,6 +61,7 @@ namespace Surge
             if (sCoreData.SurgeWindow->GetWindowState() != WindowState::Minimized)
             {
                 sCoreData.SurgeRenderContext->BeginFrame();
+                sCoreData.SurgeApplication->OnImGuiRender();
                 sCoreData.SurgeApplication->OnUpdate();
                 sCoreData.SurgeRenderContext->EndFrame();
             }

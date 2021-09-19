@@ -29,6 +29,7 @@ namespace Surge
         virtual void EndFrame() = 0;
         virtual void Shutdown() = 0;
         virtual void OnResize() = 0;
+        virtual void RenderImGui() = 0;
 
         virtual Uint GetFrameIndex() const = 0;
 

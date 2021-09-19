@@ -13,6 +13,7 @@ namespace Surge
         virtual void OnInitialize() {};
         virtual void OnUpdate() {};
         virtual void OnEvent(Event& e) {};
+        virtual void OnImGuiRender() {};
         virtual void OnShutdown() {};
     };
 }

@@ -46,23 +46,27 @@ namespace Surge
         mDevice.Initialize(mVulkanInstance);
         mSwapChain.Initialize(window);
         mMemoryAllocator.Initialize(mVulkanInstance, mDevice);
+        mImGuiContext.Initialize(this);
     }
 
     void VulkanRenderContext::BeginFrame()
     {
         mSwapChain.BeginFrame();
+        mImGuiContext.BeginFrame();
     }
 
     void VulkanRenderContext::EndFrame()
     {
+        mImGuiContext.EndFrame();
         mSwapChain.EndFrame();
     }
 
     void VulkanRenderContext::Shutdown()
     {
-        ENABLE_IF_VK_VALIDATION(mVulkanDiagnostics.EndDiagnostics(mVulkanInstance));
+        mImGuiContext.Destroy();
         mMemoryAllocator.Destroy();
         mSwapChain.Destroy();
+        ENABLE_IF_VK_VALIDATION(mVulkanDiagnostics.EndDiagnostics(mVulkanInstance));
         mDevice.Destroy();
         vkDestroyInstance(mVulkanInstance, nullptr);
     }
@@ -70,6 +74,11 @@ namespace Surge
     void VulkanRenderContext::OnResize()
     {
         mSwapChain.Resize();
+    }
+
+    void VulkanRenderContext::RenderImGui()
+    {
+        mImGuiContext.Render();
     }
 
     Vector<const char*> VulkanRenderContext::GetRequiredInstanceExtensions()

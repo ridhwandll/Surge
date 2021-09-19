@@ -31,15 +31,18 @@ namespace Surge
 
         VkPhysicalDevice GetPhysicaldevice() { return mPhysicalDevice; }
         VkDevice GetLogicaldevice() { return mLogicalDevice; }
-        VkPhysicalDevice GetSelectedPhysicalDevice() { return mPhysicalDevice; }
         VulkanQueueFamilyIndices GetQueueFamilyIndices() { return mQueueFamilyIndices; }
 
-        void BeginCmdBuffer(VkCommandBuffer& commandBuffer, VulkanQueueType type);
-        void EndCmdBuffer(VkCommandBuffer commandBuffer, VulkanQueueType type);
+        void BeginOneTimeCmdBuffer(VkCommandBuffer& commandBuffer, VulkanQueueType type);
+        void EndOneTimeCmdBuffer(VkCommandBuffer commandBuffer, VulkanQueueType type);
 
         VkQueue GetGraphicsQueue() { return mGraphicsQueue; }
         VkQueue GetComputeQueue() { return mComputeQueue; }
-        VkQueue GetTransferQueue() { return mComputeQueue; }
+        VkQueue GetTransferQueue() { return mTransferQueue; }
+
+        VkCommandPool GetGraphicsCommandPool() { return mGraphicsCommandPool; }
+        VkCommandPool GetComputeCommandPool() { return mComputeCommandPool; }
+        VkCommandPool GetTransferCommandPool() { return mTransferCommandPool; }
 
         bool IsExtensionSupported(const String& extensionName) { return mSupportedExtensions.find(extensionName) != mSupportedExtensions.end(); };
     private:
@@ -80,7 +83,7 @@ namespace Surge
         VkQueue mComputeQueue;
         VkQueue mTransferQueue;
 
-        VkCommandPool mCommandPool;
+        VkCommandPool mGraphicsCommandPool;
         VkCommandPool mComputeCommandPool;
         VkCommandPool mTransferCommandPool;
     };

@@ -11,9 +11,18 @@ public:
 
     virtual void OnUpdate() override
     {
-        //Surge::GPUMemoryStats memoryStatus = Surge::GetRenderContext()->GetMemoryStatus();
-        //Surge::Log<Surge::LogSeverity::Info>("Used: {0} | Free: {1}", memoryStatus.Used, memoryStatus.Free);
-        CoreGetRenderer()->RenderDatDamnTriangle();
+        CoreGetRenderer()->RenderRectangle(mColor);
+    }
+
+    virtual void OnImGuiRender() override
+    {
+        Surge::GPUMemoryStats memoryStatus = CoreGetRenderContext()->GetMemoryStatus();
+
+        ImGui::Begin("General");
+        ImGui::ColorEdit3("Color", glm::value_ptr(mColor));
+        ImGui::TextUnformatted("GPU memory status:");
+        ImGui::Text("Used: %lli | Free: %lli", memoryStatus.Used, memoryStatus.Free);
+        ImGui::End();
     }
 
     virtual void OnEvent(Event& e) override
@@ -28,6 +37,8 @@ public:
     virtual void OnShutdown() override
     {
     }
+private:
+    glm::vec3 mColor = glm::vec3(1.0f, 0.5f, 0.0f);
 };
 
 int main()

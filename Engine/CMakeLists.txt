@@ -17,12 +17,14 @@ set(INCLUDE_DIRS
     Vendor/shaderc/Include
     Vendor/SPIRV-Cross/Include
     Vendor/stb
+    Vendor/ImGui
 )
 
 set(LIB_LINKS
     fmt
     volk
     SPIRV-Cross
+    ImGui
     ${CMAKE_SOURCE_DIR}/Engine/Vendor/shaderc/Lib/shaderc_shared.lib
 )
 

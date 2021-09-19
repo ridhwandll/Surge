@@ -73,7 +73,7 @@ namespace Surge
 
     void VulkanDevice::Destroy()
     {
-        vkDestroyCommandPool(mLogicalDevice, mCommandPool, nullptr);
+        vkDestroyCommandPool(mLogicalDevice, mGraphicsCommandPool, nullptr);
         vkDestroyCommandPool(mLogicalDevice, mComputeCommandPool, nullptr);
         vkDestroyCommandPool(mLogicalDevice, mTransferCommandPool, nullptr);
 
@@ -81,7 +81,7 @@ namespace Surge
         vkDestroyDevice(mLogicalDevice, nullptr);
     }
 
-    void VulkanDevice::BeginCmdBuffer(VkCommandBuffer& commandBuffer, VulkanQueueType type)
+    void VulkanDevice::BeginOneTimeCmdBuffer(VkCommandBuffer& commandBuffer, VulkanQueueType type)
     {
         VkCommandBufferAllocateInfo cmdBufAllocateInfo = {};
         cmdBufAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -89,7 +89,7 @@ namespace Surge
         switch (type)
         {
         case VulkanQueueType::Graphics:
-            cmdBufAllocateInfo.commandPool = mCommandPool;
+            cmdBufAllocateInfo.commandPool = mGraphicsCommandPool;
             break;
         case VulkanQueueType::Compute:
             cmdBufAllocateInfo.commandPool = mComputeCommandPool;
@@ -108,7 +108,7 @@ namespace Surge
         VK_CALL(vkBeginCommandBuffer(commandBuffer, &cmdBufferBeginInfo));
     }
 
-    void VulkanDevice::EndCmdBuffer(VkCommandBuffer commandBuffer, VulkanQueueType type)
+    void VulkanDevice::EndOneTimeCmdBuffer(VkCommandBuffer commandBuffer, VulkanQueueType type)
     {
         const uint64_t fenceTimeout = 100000000000;
 
@@ -124,7 +124,7 @@ namespace Surge
         VkFenceCreateInfo fenceCreateInfo = {};
         fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         fenceCreateInfo.flags = 0;
-        VkFence fence;
+        VkFence fence = VK_NULL_HANDLE;
         VK_CALL(vkCreateFence(mLogicalDevice, &fenceCreateInfo, nullptr, &fence));
 
         // Submit to the queue
@@ -140,7 +140,7 @@ namespace Surge
 
         switch (type)
         {
-        case VulkanQueueType::Graphics: { vkFreeCommandBuffers(mLogicalDevice, mCommandPool, 1, &commandBuffer); break; }
+        case VulkanQueueType::Graphics: { vkFreeCommandBuffers(mLogicalDevice, mGraphicsCommandPool, 1, &commandBuffer); break; }
         case VulkanQueueType::Compute:  { vkFreeCommandBuffers(mLogicalDevice, mComputeCommandPool, 1, &commandBuffer);  break; }
         case VulkanQueueType::Transfer: { vkFreeCommandBuffers(mLogicalDevice, mTransferCommandPool, 1, &commandBuffer); break; }
         }
@@ -364,7 +364,7 @@ namespace Surge
         cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         cmdPoolInfo.queueFamilyIndex = mQueueFamilyIndices.GraphicsQueue;
         cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        VK_CALL(vkCreateCommandPool(mLogicalDevice, &cmdPoolInfo, nullptr, &mCommandPool));
+        VK_CALL(vkCreateCommandPool(mLogicalDevice, &cmdPoolInfo, nullptr, &mGraphicsCommandPool));
 
         cmdPoolInfo.queueFamilyIndex = mQueueFamilyIndices.ComputeQueue;
         VK_CALL(vkCreateCommandPool(mLogicalDevice, &cmdPoolInfo, nullptr, &mComputeCommandPool));
