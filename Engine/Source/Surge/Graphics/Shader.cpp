@@ -1,5 +1,4 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
-#include "Pch.hpp"
 #include "Surge/Graphics/Shader.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanShader.hpp"
 

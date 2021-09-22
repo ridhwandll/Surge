@@ -11,17 +11,19 @@ public:
 
     virtual void OnUpdate() override
     {
-        CoreGetRenderer()->RenderRectangle(mColor);
+        CoreGetRenderer()->RenderRectangle(mPosition);
     }
 
     virtual void OnImGuiRender() override
     {
         Surge::GPUMemoryStats memoryStatus = CoreGetRenderContext()->GetMemoryStatus();
 
-        ImGui::Begin("General");
-        ImGui::ColorEdit3("Color", glm::value_ptr(mColor));
-        ImGui::TextUnformatted("GPU memory status:");
-        ImGui::Text("Used: %lli | Free: %lli", memoryStatus.Used, memoryStatus.Free);
+        if (ImGui::Begin("Settings"))
+        {
+            ImGui::DragFloat3("Translation", glm::value_ptr(mPosition), 0.1);
+            ImGui::TextUnformatted("GPU memory status:");
+            ImGui::Text("Used: %lli | Free: %lli Bytes", memoryStatus.Used, memoryStatus.Free);
+        }
         ImGui::End();
     }
 
@@ -38,7 +40,7 @@ public:
     {
     }
 private:
-    glm::vec3 mColor = glm::vec3(1.0f, 0.5f, 0.0f);
+    glm::vec3 mPosition = glm::vec3(0.0f, 0.0f, 1.0f);
 };
 
 int main()

@@ -5,12 +5,8 @@
 #include "Surge/Graphics/IndexBuffer.hpp"
 #include "Surge/Graphics/GraphicsPipeline.hpp"
 #include "Surge/Graphics/RenderCommandBuffer.hpp"
-#include "Abstraction/Vulkan/VulkanDevice.hpp"
-#include "Abstraction/Vulkan/VulkanRenderContext.hpp"
-#include "Abstraction/Vulkan/VulkanDiagnostics.hpp"
 #include "Abstraction/Vulkan/VulkanGraphicsPipeline.hpp"
-#include "Abstraction/Vulkan/VulkanRenderCommandBuffer.hpp"
-#include "Abstraction/Vulkan/VulkanVertexBuffer.hpp"
+#include <glm/gtc/matrix_transform.hpp>
 
 namespace Surge
 {
@@ -58,40 +54,34 @@ namespace Surge
         sData->RenderCmdBuffer = RenderCommandBuffer::Create(true);
     }
 
-    void Renderer::RenderRectangle(const glm::vec3& color)
+    void Renderer::RenderRectangle(const glm::vec3& position)
     {
         VulkanRenderContext* vkContext = static_cast<VulkanRenderContext*>(CoreGetRenderContext().get());
         VulkanSwapChain* swapchain = static_cast<VulkanSwapChain*>(vkContext->GetSwapChain());
-        Uint imageIndex = vkContext->GetFrameIndex();
-
-        VkCommandBuffer cmd = sData->RenderCmdBuffer.As<VulkanRenderCommandBuffer>()->GetVulkanCommandBuffer(imageIndex);
         VkExtent2D extent = swapchain->GetVulkanExtent2D();
 
+        glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        glm::mat4 projection = glm::perspective(glm::radians(45.0f), extent.width / (float)extent.height, 0.1f, 1000.0f);
+        projection[1][1] *= -1;
+
+        struct FrameData
+        {
+            glm::mat4 ViewProjection;
+            glm::mat4 Transform;
+        } uFrameData;
+        uFrameData.ViewProjection = projection * view;
+        uFrameData.Transform = glm::translate(glm::mat4(1.0f), position);
+
         // Begin command buffer recording
+        const Ref<RenderCommandBuffer>& cmd = sData->RenderCmdBuffer;
         sData->RenderCmdBuffer->BeginRecording();
         swapchain->BeginRenderPass();
 
-        VkViewport viewport{};
-        viewport.width = static_cast<float>(extent.width);
-        viewport.height = static_cast<float>(extent.height);
-        viewport.minDepth = 0.0f;
-        viewport.maxDepth = 1.0f;
-        vkCmdSetViewport(cmd, 0, 1, &viewport);
-
-        VkRect2D scissor{};
-        scissor.extent = extent;
-        scissor.offset = { 0, 0 };
-        vkCmdSetScissor(cmd, 0, 1, &scissor);
-
-        vkCmdSetViewport(cmd, 0, 1, &viewport);
-        vkCmdSetScissor(cmd, 0, 1, &scissor);
-        vkCmdSetLineWidth(cmd, 5.0f);
-
-        sData->Pipeline->Bind(sData->RenderCmdBuffer);
-        sData->VertexBuffer->Bind(sData->RenderCmdBuffer);
-        sData->IndexBuffer->Bind(sData->RenderCmdBuffer);
-        sData->Pipeline->SetPushConstantData(sData->RenderCmdBuffer, "PushConstants", (void*)&color);
-        vkCmdDrawIndexed(cmd, indices.size(), 1, 0, 0, 0);
+        sData->Pipeline->Bind(cmd);
+        sData->VertexBuffer->Bind(cmd);
+        sData->IndexBuffer->Bind(cmd);
+        sData->Pipeline->SetPushConstantData(cmd, "uFrameData", (void*)&uFrameData);
+        sData->Pipeline->DrawIndexed(cmd, indices.size());
 
         vkContext->RenderImGui();
 

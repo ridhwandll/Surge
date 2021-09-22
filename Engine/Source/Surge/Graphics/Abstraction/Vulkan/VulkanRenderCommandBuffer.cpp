@@ -10,17 +10,18 @@ namespace Surge
         : mCreatedFromSwapchain(createFromSwapchain)
     {
         SCOPED_TIMER("[{0}] RenderCommandBuffer Creation", debugName);
-        mRenderContext = CoreGetRenderContext().get();
-        mVulkanDevice = static_cast<VulkanDevice*>(mRenderContext->GetInternalDevice());
-        mLogicalDevice = mVulkanDevice->GetLogicaldevice();
+        VulkanRenderContext* renderContext = nullptr; SURGE_GET_VULKAN_CONTEXT(renderContext);
+        VulkanDevice* vulkanDevice = renderContext->GetDevice();
+        VkDevice logicalDevice = vulkanDevice->GetLogicalDevice();
+
 
         if (!mCreatedFromSwapchain)
         {
             // Command Pool Creation
             VkCommandPoolCreateInfo cmdPoolInfo{ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
-            cmdPoolInfo.queueFamilyIndex = mVulkanDevice->GetQueueFamilyIndices().GraphicsQueue;
+            cmdPoolInfo.queueFamilyIndex = vulkanDevice->GetQueueFamilyIndices().GraphicsQueue;
             cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-            VK_CALL(vkCreateCommandPool(mLogicalDevice, &cmdPoolInfo, nullptr, &mCommandPool));
+            VK_CALL(vkCreateCommandPool(logicalDevice, &cmdPoolInfo, nullptr, &mCommandPool));
 
             // Command Buffers
             VkCommandBufferAllocateInfo commandBufferAllocateInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
@@ -28,7 +29,7 @@ namespace Surge
             commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
             commandBufferAllocateInfo.commandBufferCount = size;
             size == 0 ? mCommandBuffers.resize(FRAMES_IN_FLIGHT) : mCommandBuffers.resize(size);
-            VK_CALL(vkAllocateCommandBuffers(mLogicalDevice, &commandBufferAllocateInfo, mCommandBuffers.data()));
+            VK_CALL(vkAllocateCommandBuffers(logicalDevice, &commandBufferAllocateInfo, mCommandBuffers.data()));
 
             // Sync Objects
             VkFenceCreateInfo fenceCreateInfo{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
@@ -36,12 +37,12 @@ namespace Surge
             mWaitFences.resize(size);
             for (VkFence& fence : mWaitFences)
             {
-                VK_CALL(vkCreateFence(mLogicalDevice, &fenceCreateInfo, nullptr, &fence));
+                VK_CALL(vkCreateFence(logicalDevice, &fenceCreateInfo, nullptr, &fence));
             }
         }
         else
         {
-            VulkanSwapChain* swapchain = static_cast<VulkanSwapChain*>(CoreGetRenderContext()->GetSwapChain());
+            VulkanSwapChain* swapchain = renderContext->GetSwapChain();
             mCommandPool = swapchain->GetVulkanCommandPool();
             Vector<VkCommandBuffer>& swapchainCommandBuffers = swapchain->GetVulkanCommandBuffers();
             for (VkCommandBuffer& cmdBuffer : swapchainCommandBuffers)
@@ -53,17 +54,21 @@ namespace Surge
     {
         if (!mCreatedFromSwapchain)
         {
-            vkDestroyCommandPool(mLogicalDevice, mCommandPool, nullptr);
+            VulkanRenderContext* renderContext = nullptr; SURGE_GET_VULKAN_CONTEXT(renderContext);
+            VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
+            vkDestroyCommandPool(device, mCommandPool, nullptr);
             for (VkFence& fence : mWaitFences)
             {
-                vkDestroyFence(mLogicalDevice, fence, nullptr);
+                vkDestroyFence(device, fence, nullptr);
             }
         }
     }
 
     void VulkanRenderCommandBuffer::BeginRecording()
     {
-        Uint frameIndex = mRenderContext->GetFrameIndex();
+        VulkanRenderContext* renderContext = nullptr; SURGE_GET_VULKAN_CONTEXT(renderContext);
+
+        Uint frameIndex = renderContext->GetFrameIndex();
         vkResetCommandBuffer(mCommandBuffers[frameIndex], 0);
         VkCommandBufferBeginInfo cmdBufInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
         cmdBufInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -74,7 +79,8 @@ namespace Surge
 
     void VulkanRenderCommandBuffer::EndRecording()
     {
-        Uint frameIndex = mRenderContext->GetFrameIndex();
+        VulkanRenderContext* renderContext = nullptr; SURGE_GET_VULKAN_CONTEXT(renderContext);
+        Uint frameIndex = renderContext->GetFrameIndex();
         VK_CALL(vkEndCommandBuffer(mCommandBuffers[frameIndex]));
     }
 
@@ -83,14 +89,17 @@ namespace Surge
         if (mCreatedFromSwapchain)
             return;
 
-        Uint frameIndex = mRenderContext->GetFrameIndex();
+        VulkanRenderContext* renderContext = nullptr; SURGE_GET_VULKAN_CONTEXT(renderContext);
+        VulkanDevice* vulkanDevice = renderContext->GetDevice();
+        VkDevice logicalDevice = vulkanDevice->GetLogicalDevice();
+        Uint frameIndex = renderContext->GetFrameIndex();
 
         VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
         submitInfo.commandBufferCount = 1;
         VkCommandBuffer commandBuffer = mCommandBuffers[frameIndex];
 
-        VK_CALL(vkWaitForFences(mLogicalDevice, 1, &mWaitFences[frameIndex], VK_TRUE, UINT64_MAX));
-        VK_CALL(vkResetFences(mLogicalDevice, 1, &mWaitFences[frameIndex]));
-        VK_CALL(vkQueueSubmit(mVulkanDevice->GetGraphicsQueue(), 1, &submitInfo, mWaitFences[frameIndex]));
+        VK_CALL(vkWaitForFences(logicalDevice, 1, &mWaitFences[frameIndex], VK_TRUE, UINT64_MAX));
+        VK_CALL(vkResetFences(logicalDevice, 1, &mWaitFences[frameIndex]));
+        VK_CALL(vkQueueSubmit(vulkanDevice->GetGraphicsQueue(), 1, &submitInfo, mWaitFences[frameIndex]));
     }
 }

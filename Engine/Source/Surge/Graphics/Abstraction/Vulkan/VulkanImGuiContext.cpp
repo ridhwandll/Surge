@@ -16,7 +16,7 @@ namespace Surge
         mVulkanRenderContext = vulkanRenderContext;
         VulkanRenderContext* renderContext = static_cast<VulkanRenderContext*>(vulkanRenderContext);
         VulkanDevice* vulkanDevice = &renderContext->mDevice;
-        VkDevice logicalDevice = vulkanDevice->GetLogicaldevice();
+        VkDevice logicalDevice = vulkanDevice->GetLogicalDevice();
 
         VkDescriptorPoolSize poolSizes[] =
         {
@@ -60,7 +60,7 @@ namespace Surge
         ImGui_ImplWin32_Init(CoreGetWindow()->GetNativeWindowHandle());
         ImGui_ImplVulkan_InitInfo initInfo{};
         initInfo.Instance = renderContext->mVulkanInstance;
-        initInfo.PhysicalDevice = vulkanDevice->GetPhysicaldevice();
+        initInfo.PhysicalDevice = vulkanDevice->GetPhysicalDevice();
         initInfo.Device = logicalDevice;
         initInfo.QueueFamily = vulkanDevice->GetQueueFamilyIndices().GraphicsQueue;
         initInfo.Queue = vulkanDevice->GetGraphicsQueue();
@@ -76,15 +76,13 @@ namespace Surge
         vulkanDevice->BeginOneTimeCmdBuffer(cmd, VulkanQueueType::Graphics);
         ImGui_ImplVulkan_CreateFontsTexture(cmd);
         vulkanDevice->EndOneTimeCmdBuffer(cmd, VulkanQueueType::Graphics);
-
         ImGui_ImplVulkan_DestroyFontUploadObjects();
-        VulkanSwapChain* swapchain = (VulkanSwapChain*)CoreGetRenderContext()->GetSwapChain();
     }
 
     void VulkanImGuiContext::Destroy()
     {
         VulkanRenderContext* renderContext = static_cast<VulkanRenderContext*>(mVulkanRenderContext);
-        vkDestroyDescriptorPool(renderContext->mDevice.GetLogicaldevice(), mImguiPool, nullptr);
+        vkDestroyDescriptorPool(renderContext->mDevice.GetLogicalDevice(), mImguiPool, nullptr);
         ImGui_ImplWin32_Shutdown();
         ImGui_ImplVulkan_Shutdown();
         ImGui::DestroyContext();
@@ -95,24 +93,21 @@ namespace Surge
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
-        ImGui::ShowDemoWindow();
     }
 
     void VulkanImGuiContext::Render()
     {
-        VulkanSwapChain* swapchain = (VulkanSwapChain*)CoreGetRenderContext()->GetSwapChain();
-
+        VulkanSwapChain* swapchain = ((VulkanRenderContext*)CoreGetRenderContext().get())->GetSwapChain();
         ImGui::Render();
         ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), swapchain->GetVulkanCommandBuffers()[CoreGetRenderContext()->GetFrameIndex()]);
+    }
 
+    void VulkanImGuiContext::EndFrame()
+    {
         if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
         {
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
         }
-    }
-
-    void VulkanImGuiContext::EndFrame()
-    {
     }
 }

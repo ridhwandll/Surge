@@ -18,6 +18,7 @@ set(INCLUDE_DIRS
     Vendor/SPIRV-Cross/Include
     Vendor/stb
     Vendor/ImGui
+    Vendor/entt/Include
 )
 
 set(LIB_LINKS

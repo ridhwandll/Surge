@@ -36,6 +36,8 @@ namespace Surge
         virtual void Bind(const Ref<RenderCommandBuffer>& cmdBuffer) = 0;
         virtual void SetPushConstantData(const Ref<RenderCommandBuffer>& cmdBuffer, const String& bufferName, void* data) = 0;
 
+        virtual void DrawIndexed(const Ref<RenderCommandBuffer>& cmdBuffer, Uint indicesCount) = 0;
+
         static Ref<GraphicsPipeline> Create(const GraphicsPipelineSpecification& pipelineSpec);
     };
 }

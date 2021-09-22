@@ -2,6 +2,7 @@
 #pragma once
 #include "Surge/Graphics/RenderCommandBuffer.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDevice.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderContext.hpp"
 #include <volk.h>
 
 namespace Surge
@@ -22,10 +23,6 @@ namespace Surge
         bool mCreatedFromSwapchain;
         VkCommandPool mCommandPool{};
         Vector<VkCommandBuffer> mCommandBuffers{};
-
-        RenderContext* mRenderContext;
-        VulkanDevice* mVulkanDevice;
-        VkDevice mLogicalDevice;
 
         // Sync Objects
         Vector<VkFence> mWaitFences{};

@@ -13,11 +13,12 @@ namespace Surge
 
     VulkanIndexBuffer::~VulkanIndexBuffer()
     {
-        Scope<RenderContext>& renderContext = CoreGetRenderContext();
-        VulkanDevice* device = static_cast<VulkanDevice*>(renderContext->GetInternalDevice());
+        VulkanRenderContext* renderContext = nullptr;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
+
         VulkanMemoryAllocator* allocator = static_cast<VulkanMemoryAllocator*>(renderContext->GetMemoryAllocator());
 
-        vkDeviceWaitIdle(device->GetLogicaldevice());
+        vkDeviceWaitIdle(renderContext->GetDevice()->GetLogicalDevice());
         allocator->DestroyBuffer(mVulkanBuffer, mAllocation);
     }
 
@@ -31,9 +32,11 @@ namespace Surge
 
     void VulkanIndexBuffer::CreateIndexBuffer(const void* data)
     {
-        Scope<RenderContext>& context = CoreGetRenderContext();
-        VulkanDevice* device = static_cast<VulkanDevice*>(context->GetInternalDevice());
-        VulkanMemoryAllocator* allocator = static_cast<VulkanMemoryAllocator*>(context->GetMemoryAllocator());
+        VulkanRenderContext* renderContext = nullptr;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
+
+        VulkanMemoryAllocator* allocator = static_cast<VulkanMemoryAllocator*>(renderContext->GetMemoryAllocator());
+        VulkanDevice* vulkanDevice = renderContext->GetDevice();
 
         VkBufferCreateInfo bufferCreateInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
         bufferCreateInfo.size = mSize;
@@ -56,11 +59,11 @@ namespace Surge
 
         VkCommandBuffer cmdBuffer = VK_NULL_HANDLE;
 
-        device->BeginOneTimeCmdBuffer(cmdBuffer, VulkanQueueType::Transfer);
+        renderContext->GetDevice()->BeginOneTimeCmdBuffer(cmdBuffer, VulkanQueueType::Transfer);
         VkBufferCopy copyRegion = {};
         copyRegion.size = mSize;
         vkCmdCopyBuffer(cmdBuffer, stagingBuffer, mVulkanBuffer, 1, &copyRegion);
-        device->EndOneTimeCmdBuffer(cmdBuffer, VulkanQueueType::Transfer);
+        vulkanDevice->EndOneTimeCmdBuffer(cmdBuffer, VulkanQueueType::Transfer);
 
         allocator->DestroyBuffer(stagingBuffer, stagingBufferAllocation);
     }

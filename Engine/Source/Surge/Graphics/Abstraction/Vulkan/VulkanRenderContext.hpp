@@ -8,6 +8,8 @@
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanImGuiContext.hpp"
 #include <volk.h>
 
+#define SURGE_GET_VULKAN_CONTEXT(renderContext) renderContext = static_cast<VulkanRenderContext*>(CoreGetRenderContext().get())
+
 namespace Surge
 {
     class VulkanRenderContext : public RenderContext
@@ -21,13 +23,12 @@ namespace Surge
         virtual void RenderImGui() override;
 
         Uint GetFrameIndex() const override { return mSwapChain.GetCurrentFrameIndex(); }
-
-        virtual void* GetInternalDevice() override { return &mDevice; }
-        virtual void* GetInternalInstance() override { return mVulkanInstance; }
-        virtual void* GetSwapChain() override { return &mSwapChain; }
-
         virtual GPUMemoryStats GetMemoryStatus() const override { return mMemoryAllocator.GetStats(); };
         virtual void* GetMemoryAllocator() const override { return (void*)&mMemoryAllocator; }
+
+        VkInstance GetInstance() const { return mVulkanInstance; }
+        VulkanDevice* GetDevice() { return &mDevice; }
+        VulkanSwapChain* GetSwapChain() { return &mSwapChain; }
     private:
         Vector<const char*> GetRequiredInstanceExtensions();
         Vector<const char*> GetRequiredInstanceLayers();

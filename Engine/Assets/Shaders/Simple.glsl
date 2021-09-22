@@ -3,9 +3,15 @@
 
 layout(location = 0) in vec3 aPosition;
 
+layout(push_constant) uniform PushConstants
+{
+    mat4 ViewProjection;
+    mat4 Transform;
+} uFrameData;
+
 void main()
 {
-    gl_Position = vec4(aPosition, 1.0);
+    gl_Position = uFrameData.ViewProjection * uFrameData.Transform * vec4(aPosition, 1.0);
 }
 
 [SurgeShader: Pixel]
@@ -13,12 +19,7 @@ void main()
 
 layout(location = 0) out vec4 outColor;
 
-layout(push_constant) uniform constants
-{
-    vec3 color;
-} PushConstants;
-
 void main()
 {
-    outColor = vec4(PushConstants.color, 1.0);
+    outColor = vec4(1.0, 0.1, 0.1, 1.0);
 }

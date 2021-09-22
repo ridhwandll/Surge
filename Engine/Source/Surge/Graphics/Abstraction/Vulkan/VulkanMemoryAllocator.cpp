@@ -13,8 +13,8 @@ namespace Surge
     {
         VmaAllocatorCreateInfo allocatorInfo = {};
         allocatorInfo.vulkanApiVersion = VK_API_VERSION_1_2;
-        allocatorInfo.physicalDevice = device.GetPhysicaldevice();
-        allocatorInfo.device = device.GetLogicaldevice();
+        allocatorInfo.physicalDevice = device.GetPhysicalDevice();
+        allocatorInfo.device = device.GetLogicalDevice();
         allocatorInfo.instance = instance;
         VK_CALL(vmaCreateAllocator(&allocatorInfo, &mAllocator));
     }

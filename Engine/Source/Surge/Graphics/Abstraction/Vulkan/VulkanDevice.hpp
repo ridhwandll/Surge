@@ -29,8 +29,8 @@ namespace Surge
         void Initialize(VkInstance instance);
         void Destroy();
 
-        VkPhysicalDevice GetPhysicaldevice() { return mPhysicalDevice; }
-        VkDevice GetLogicaldevice() { return mLogicalDevice; }
+        VkPhysicalDevice GetPhysicalDevice() { return mPhysicalDevice; }
+        VkDevice GetLogicalDevice() { return mLogicalDevice; }
         VulkanQueueFamilyIndices GetQueueFamilyIndices() { return mQueueFamilyIndices; }
 
         void BeginOneTimeCmdBuffer(VkCommandBuffer& commandBuffer, VulkanQueueType type);
