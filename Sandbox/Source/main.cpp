@@ -22,7 +22,7 @@ public:
         {
             ImGui::DragFloat3("Translation", glm::value_ptr(mPosition), 0.1);
             ImGui::TextUnformatted("GPU memory status:");
-            ImGui::Text("Used: %lli | Free: %lli Bytes", memoryStatus.Used, memoryStatus.Free);
+            ImGui::Text("Used: %f Mb | Free: %f Mb", (float)memoryStatus.Used / 1000000.0f, (float)memoryStatus.Free / 1000000.0f);
         }
         ImGui::End();
     }

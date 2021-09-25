@@ -1,11 +1,12 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Surge/Graphics/Renderer.hpp"
-#include "Surge/Graphics/Shader.hpp"
 #include "Surge/Graphics/VertexBuffer.hpp"
 #include "Surge/Graphics/IndexBuffer.hpp"
 #include "Surge/Graphics/GraphicsPipeline.hpp"
-#include "Surge/Graphics/RenderCommandBuffer.hpp"
 #include "Abstraction/Vulkan/VulkanGraphicsPipeline.hpp"
+#include "Abstraction/Vulkan/VulkanShader.hpp"
+#include "Abstraction/Vulkan/VulkanRenderCommandBuffer.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanImage.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace Surge
@@ -17,6 +18,9 @@ namespace Surge
         Ref<IndexBuffer> IndexBuffer;
         Ref<GraphicsPipeline> Pipeline;
         Ref<RenderCommandBuffer> RenderCmdBuffer;
+        Ref<Texture2D> TestTexture;
+        VkDescriptorPool DescriptorPool;
+        VkDescriptorSet DescriptorSet;
     };
 
     // TODO: This should be per Renderer Instance!
@@ -26,14 +30,16 @@ namespace Surge
     struct Vertex
     {
         glm::vec3 Pos;
+        glm::vec2 TexCoord;
     };
 
     const std::vector<Vertex> vertices =
     {
-        {{ -0.5f, -0.5f, 0.0f }},
-        {{  0.5f, -0.5f, 0.0f }},
-        {{  0.5f,  0.5f, 0.0f }},
-        {{ -0.5f,  0.5f, 0.0f }}
+		// positions         // texture coords
+		{{  0.5f,  0.5f, 0.0f, }, { 1.0f, 0.0f }}, // top right
+		{{  0.5f, -0.5f, 0.0f, }, { 1.0f, 1.0f }}, // bottom right
+		{{ -0.5f, -0.5f, 0.0f, }, { 0.0f, 1.0f }}, // bottom left
+		{{ -0.5f,  0.5f, 0.0f, }, { 0.0f, 0.0f }}  // top left 
     };
     const std::vector<Uint> indices = { 0, 1, 2, 2, 3, 0 };
 
@@ -52,6 +58,59 @@ namespace Surge
         sData->Pipeline = GraphicsPipeline::Create(pipelineSpec);
 
         sData->RenderCmdBuffer = RenderCommandBuffer::Create(true);
+
+        {
+            // TODO(AC3R): Temporary
+            VulkanRenderContext* vkContext = static_cast<VulkanRenderContext*>(CoreGetRenderContext().get());
+            VkDevice device = vkContext->GetDevice()->GetLogicalDevice();
+            
+            TextureSpecification textureSpec{};
+            textureSpec.UseMips = true;
+            textureSpec.ShaderUsage = { ShaderType::PixelShader };
+            sData->TestTexture = Texture2D::Create("Engine/Assets/Textures/kekw.jpg", textureSpec);
+
+            VkDescriptorPoolSize pool_sizes[] =
+            {
+                { VK_DESCRIPTOR_TYPE_SAMPLER, 100 },
+                { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100 },
+                { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 100 },
+                { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 100 },
+                { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 100 },
+                { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 100 },
+                { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100 },
+                { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 100 },
+                { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 100 },
+                { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 100 },
+                { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 100 }
+            };
+            VkDescriptorPoolCreateInfo pool_info = {};
+            pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+            pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+            pool_info.maxSets = 100 * (sizeof(pool_sizes) / sizeof(VkDescriptorPoolSize));
+            pool_info.poolSizeCount = (uint32_t)(sizeof(pool_sizes) / sizeof(VkDescriptorPoolSize));
+            pool_info.pPoolSizes = pool_sizes;
+            VK_CALL(vkCreateDescriptorPool(device, &pool_info, nullptr, &sData->DescriptorPool));
+
+            auto descriptorSetLayout = mBase.GetShader("Simple").As<VulkanShader>()->GetDescriptorSetLayouts();
+
+            VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+            allocInfo.descriptorPool = sData->DescriptorPool;
+            allocInfo.descriptorSetCount = 1;
+            allocInfo.pSetLayouts = &descriptorSetLayout[0];
+            VK_CALL(vkAllocateDescriptorSets(device, &allocInfo, &sData->DescriptorSet));
+
+            VkDescriptorImageInfo imageInfo = sData->TestTexture->GetImage2D().As<VulkanImage2D>()->GetVulkanDescriptorInfo();
+
+            VkWriteDescriptorSet writeDescriptorSet{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+            writeDescriptorSet.dstBinding = 0;
+            writeDescriptorSet.dstArrayElement = 0;
+            writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            writeDescriptorSet.pImageInfo = &imageInfo;
+            writeDescriptorSet.descriptorCount = 1;
+            writeDescriptorSet.dstSet = sData->DescriptorSet;
+
+            vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
+        }
     }
 
     void Renderer::RenderRectangle(const glm::vec3& position)
@@ -81,6 +140,13 @@ namespace Surge
         sData->VertexBuffer->Bind(cmd);
         sData->IndexBuffer->Bind(cmd);
         sData->Pipeline->SetPushConstantData(cmd, "uFrameData", (void*)&uFrameData);
+
+        // TODO(AC3R): Temporary
+        Uint frameIndex = vkContext->GetFrameIndex();
+        VkCommandBuffer vulkanCmdBuffer = sData->RenderCmdBuffer.As<VulkanRenderCommandBuffer>()->GetVulkanCommandBuffer(frameIndex);
+        VkPipelineLayout pipelineLayout = sData->Pipeline.As<VulkanGraphicsPipeline>()->GetPipelineLayout();
+        vkCmdBindDescriptorSets(vulkanCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &sData->DescriptorSet, 0, nullptr);
+
         sData->Pipeline->DrawIndexed(cmd, indices.size());
 
         vkContext->RenderImGui();
@@ -91,6 +157,10 @@ namespace Surge
 
     void Renderer::Shutdown()
     {
+        VulkanRenderContext* vkContext = static_cast<VulkanRenderContext*>(CoreGetRenderContext().get());
+        VkDevice device = vkContext->GetDevice()->GetLogicalDevice();
+        vkDeviceWaitIdle(device);
+        vkDestroyDescriptorPool(device, sData->DescriptorPool, nullptr);
         sData.reset();
         mBase.Shutdown();
     }

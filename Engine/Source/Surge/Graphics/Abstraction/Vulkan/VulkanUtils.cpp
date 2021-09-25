@@ -100,7 +100,7 @@ namespace Surge
     {
         switch (type)
         {
-        case ShaderResource::Usage::Sampled: return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        case ShaderResource::Usage::Sampled: return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         case ShaderResource::Usage::Storage: return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
         }
         SG_ASSERT(false, "ShaderResource::Usage is invalid");
