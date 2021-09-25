@@ -19,6 +19,8 @@ namespace Surge
         // Buffer
         VmaAllocation AllocateBuffer(VkBufferCreateInfo bufferCreateInfo, VmaMemoryUsage usage, VkBuffer& outBuffer, VmaAllocationInfo* allocationInfo);
         void DestroyBuffer(VkBuffer buffer, VmaAllocation allocation);
+        //void BindBuffer(VkBuffer buffer, VmaAllocation allocation, void** data);
+        //void UnbindBuffer(VmaAllocation allocation);
 
         // Image
         VmaAllocation AllocateImage(VkImageCreateInfo imageCreateInfo, VmaMemoryUsage usage, VkImage& outImage, VmaAllocationInfo* allocationInfo);

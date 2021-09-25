@@ -3,12 +3,17 @@
 
 #define VMA_IMPLEMENTATION
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanMemoryAllocator.hpp"
-#include "Surge/Graphics/Abstraction/Vulkan/VulkanDevice.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderContext.hpp"
 #include "Surge/Graphics/RenderContext.hpp"
 #include "VulkanDiagnostics.hpp"
 
 namespace Surge
 {
+    namespace Utils
+    {
+        uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+    }
+
     void VulkanMemoryAllocator::Initialize(VkInstance instance, VulkanDevice& device)
     {
         VmaAllocatorCreateInfo allocatorInfo = {};
@@ -43,7 +48,7 @@ namespace Surge
         vmaDestroyBuffer(mAllocator, buffer, allocation);
     }
 
-    VmaAllocation VulkanMemoryAllocator::AllocateImage(VkImageCreateInfo imageCreateInfo, VmaMemoryUsage usage, VkImage& outImage, VmaAllocationInfo* allocationInfo)
+	VmaAllocation VulkanMemoryAllocator::AllocateImage(VkImageCreateInfo imageCreateInfo, VmaMemoryUsage usage, VkImage& outImage, VmaAllocationInfo* allocationInfo)
     {
         VmaAllocationCreateInfo allocCreateInfo = {};
         allocCreateInfo.usage = usage;
@@ -55,7 +60,7 @@ namespace Surge
         return allocation;
     }
 
-    void VulkanMemoryAllocator::DestroyImage(VkImage image, VmaAllocation allocation)
+	void VulkanMemoryAllocator::DestroyImage(VkImage image, VmaAllocation allocation)
     {
         SG_ASSERT_NOMSG(image);
         SG_ASSERT_NOMSG(allocation);
@@ -88,5 +93,26 @@ namespace Surge
         uint64_t freeMemory = stats.total.unusedBytes;
 
         return GPUMemoryStats(usedMemory, freeMemory);
+    }
+
+    namespace Utils
+    {
+		uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
+		{
+			VulkanRenderContext* renderContext = static_cast<VulkanRenderContext*>(CoreGetRenderContext().get());
+            VkPhysicalDevice physicalDevice = renderContext->GetDevice()->GetPhysicalDevice();
+
+			VkPhysicalDeviceMemoryProperties memProperties;
+			vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
+
+			for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+				if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+					return i;
+				}
+			}
+
+			SG_ASSERT(false, "Failed to find suitable memory type!");
+			return 0;
+		}
     }
 }

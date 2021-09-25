@@ -7,7 +7,7 @@
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderCommandBuffer.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanUtils.hpp"
 #include "Surge/Graphics/ReflectionData.hpp"
-#include "VulkanRenderContext.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanGraphicsPipeline.hpp"
 
 namespace Surge
 {
@@ -34,11 +34,11 @@ namespace Surge
         const ShaderReflectionData& reflectedData = mSpecification.Shader->GetReflectionData();
 
         // We only need the stage input of vertex shader to generate the input layout
-        const Vector<ShaderStageInput>& stageInputs = reflectedData.GetStageInputs().at(ShaderType::VertexShader);
+        const std::map<Uint, ShaderStageInput>& stageInputs = reflectedData.GetStageInputs().at(ShaderType::VertexShader);
 
         // Calculate the stride
         Uint stride = 0;
-        for (const ShaderStageInput& stageInput : stageInputs)
+        for (const auto& [location, stageInput] : stageInputs)
             stride += stageInput.Size;
 
         VkVertexInputBindingDescription vertexBindingDescriptions;
@@ -49,11 +49,11 @@ namespace Surge
         Vector<VkVertexInputAttributeDescription> vertexAttributeDescriptions(stageInputs.size());
         for (Uint i = 0; i < stageInputs.size(); i++)
         {
-            const ShaderStageInput& stageInput = stageInputs[i];
+            const ShaderStageInput& input = stageInputs.at(i);
             vertexAttributeDescriptions[i].binding = 0;
-            vertexAttributeDescriptions[i].location = stageInput.Location;
-            vertexAttributeDescriptions[i].format = VulkanUtils::ShaderDataTypeToVulkanFormat(stageInput.DataType);
-            vertexAttributeDescriptions[i].offset = stageInput.Offset;
+            vertexAttributeDescriptions[i].location = i;
+            vertexAttributeDescriptions[i].format = VulkanUtils::ShaderDataTypeToVulkanFormat(input.DataType);
+            vertexAttributeDescriptions[i].offset = input.Offset;
         }
 
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
@@ -212,5 +212,39 @@ namespace Surge
         VkCommandBuffer vulkanCmdBuffer = cmdBuffer.As<VulkanRenderCommandBuffer>()->GetVulkanCommandBuffer(frameIndex);
 
         vkCmdDrawIndexed(vulkanCmdBuffer, indicesCount, 1, 0, 0, 0);
+    }
+
+    namespace Utils
+    {
+
+        void InsertImageMemoryBarrier(VkCommandBuffer cmdbuffer, VkImage image,
+                                      VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask,
+                                      VkImageLayout oldImageLayout, VkImageLayout newImageLayout,
+                                      VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask,
+                                      VkImageSubresourceRange subresourceRange)
+        {
+            VkImageMemoryBarrier imageMemoryBarrier{};
+            imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+            imageMemoryBarrier.srcAccessMask = srcAccessMask;
+            imageMemoryBarrier.dstAccessMask = dstAccessMask;
+            imageMemoryBarrier.oldLayout = oldImageLayout;
+            imageMemoryBarrier.newLayout = newImageLayout;
+            imageMemoryBarrier.image = image;
+            imageMemoryBarrier.subresourceRange = subresourceRange;
+
+            vkCmdPipelineBarrier(
+                cmdbuffer,
+                srcStageMask,
+                dstStageMask,
+                0,
+                0, nullptr,
+                0, nullptr,
+                1, &imageMemoryBarrier
+            );
+        }
+
     }
 }

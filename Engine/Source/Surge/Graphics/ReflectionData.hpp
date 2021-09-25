@@ -2,6 +2,7 @@
 #pragma once
 #include "Surge/Core/Defines.hpp"
 #include "Surge/Graphics/Shader.hpp"
+#include <map>
 
 namespace Surge
 {
@@ -24,7 +25,6 @@ namespace Surge
 
     struct ShaderStageInput
     {
-        Uint Location = 0;
         String Name = "None";
         Uint Size = 0;
         Uint Offset;
@@ -69,7 +69,7 @@ namespace Surge
         ~ShaderReflectionData() = default;
 
         void PushResource(const ShaderResource& res) { mShaderResources.push_back(res); }
-        void PushStageInput(const ShaderStageInput& input, const ShaderType& stage) { mStageInputs[stage].push_back(input); }
+        void PushStageInput(const ShaderStageInput& input, const ShaderType& stage, Uint location) { mStageInputs[stage][location] = input; }
         void PushBuffer(const ShaderBuffer& buffer)
         {
             SG_ASSERT(!buffer.BufferName.empty() || buffer.Members.size() != 0 || buffer.Size != 0, "ShaderBuffer is invalid!");
@@ -82,7 +82,7 @@ namespace Surge
         const Vector<ShaderPushConstant> GetPushConstantBuffers() const { return mPushConstants; }
         const ShaderBufferMember& GetBufferMember(const ShaderBuffer& buffer, const String& memberName) const;
         const Vector<ShaderResource>& GetResources() const { return mShaderResources; }
-        const HashMap<ShaderType, Vector<ShaderStageInput>>& GetStageInputs() const { return mStageInputs; }
+        const HashMap<ShaderType, std::map<Uint, ShaderStageInput>>& GetStageInputs() const { return mStageInputs; }
         const Vector<Uint> GetDescriptorSetCount() const { return mDescriptorSetsCount; }
     private:
         void ClearRepeatedMembers();
@@ -96,7 +96,7 @@ namespace Surge
         Vector<Uint> mDescriptorSetsCount;
 
         // Stage inputs, per shader stage
-        HashMap<ShaderType, Vector<ShaderStageInput>> mStageInputs{};
+        HashMap<ShaderType, std::map<Uint/*location*/, ShaderStageInput/*Data*/>> mStageInputs{};
 
         friend class ShaderReflector;
     };

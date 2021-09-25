@@ -115,19 +115,25 @@ namespace Surge
             }
 
             // Fetch the StageInputs
-            Uint elementOffset = 0;
             for (const spirv_cross::Resource& resource : resources.stage_inputs)
             {
                 ShaderStageInput stageInput;
 
                 const spirv_cross::SPIRType& spvType = compiler.get_type(resource.base_type_id);
-                stageInput.Location = compiler.get_decoration(resource.id, spv::DecorationLocation);
+                Uint location = compiler.get_decoration(resource.id, spv::DecorationLocation);
                 stageInput.Name = resource.name;
                 stageInput.DataType = Utils::SPVTypeToShaderDataType(spvType);
                 stageInput.Size = ShaderDataTypeSize(stageInput.DataType);
-                stageInput.Offset = elementOffset;
+                stageInput.Offset = 0; // temporary
 
-                result.PushStageInput(stageInput, handle.Type);
+                result.PushStageInput(stageInput, handle.Type, location);
+            }
+
+            // Calculating the offsets after the locations are sorted
+            Uint elementOffset = 0;
+            for (auto& [location, stageInput] : result.mStageInputs.at(ShaderType::VertexShader))
+            {
+                stageInput.Offset = elementOffset;
                 elementOffset += stageInput.Size;
             }
 

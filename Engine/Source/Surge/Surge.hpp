@@ -18,6 +18,7 @@
 #include "Surge/Graphics/IndexBuffer.hpp"
 #include "Surge/Graphics/Shader.hpp"
 #include "Surge/Graphics/GraphicsPipeline.hpp"
+#include "Surge/Graphics/Texture.hpp"
 
 #include <imgui.h>
 #include <glm/glm.hpp>
