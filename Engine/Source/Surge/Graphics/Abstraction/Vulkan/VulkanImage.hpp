@@ -1,6 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
-//#include "Surge/Graphics/Image.hpp"
+#pragma once
 #include "Surge/Graphics/Texture.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanUtils.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanMemoryAllocator.hpp"
 #include <volk/volk.h>
 
@@ -42,30 +43,4 @@ namespace Surge
 
         VkDescriptorImageInfo mDescriptorInfo;
     };
-
-    namespace Utils
-    {
-        VkDeviceSize CalculateImageBufferSize(Uint width, Uint height, ImageFormat imageFormat);
-
-        VkFormat GetImageFormat(ImageFormat format);
-        VkImageLayout GetImageLayoutUsage(ImageUsage usage);
-        VkFilter GetImageFiltering(TextureFilter filtering);
-        VkImageUsageFlags GetImageUsageFlags(ImageUsage usage);
-        VkAccessFlags GetAccessFlagsFromLayout(VkImageLayout layout);
-        VkPipelineStageFlags GetPipelineStagesFromLayout(VkImageLayout layout);
-
-        void CreateImage(Uint width, Uint height, Uint texureDepth, Uint mipLevels,
-                         VkFormat format, VkImageType type, VkImageTiling tiling,
-                         VkImageUsageFlags usage, VmaMemoryUsage memoryUsage,
-                         VkImage& image, VmaAllocation& imageMemory);
-
-        void CreateImageView(VkImageView& imageView, VkImage& image, VkImageUsageFlags imageUsage, VkFormat format, Uint mipLevels, Uint textureDepth);
-        void CreateImageSampler(VkFilter filtering, Uint mipLevels, VkSampler& sampler);
-
-        void ChangeImageLayout(VkImage& image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, Uint mipLevels, Uint depthMap);
-        void CopyBufferToImage(VkCommandBuffer cmdBuffer, VkBuffer& buffer, VkImage& image, Uint width, Uint height);
-
-        void GenerateMipMaps(VkImage image, VkFormat imageFormat, VkImageLayout newLayout, int32_t texWidth, int32_t texHeight, Uint mipLevels);
-    }
-
 }

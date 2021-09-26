@@ -1,6 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "Surge/Core/Memory.hpp"
+#include "Surge/Core/Hash.hpp"
 
 namespace Surge
 {
@@ -83,6 +84,7 @@ namespace Surge
         virtual const ShaderReflectionData& GetReflectionData() const = 0;
         virtual const Vector<SPIRVHandle>& GetSPIRVs() const = 0;
         virtual const Path& GetPath() const = 0;
+        virtual const HashCode& GetHash(const ShaderType& type) const = 0;
 
         static Ref<Shader> Create(const Path& path);
     };

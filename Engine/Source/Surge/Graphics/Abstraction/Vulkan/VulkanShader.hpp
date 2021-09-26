@@ -16,6 +16,7 @@ namespace Surge
         virtual const ShaderReflectionData& GetReflectionData() const override { return mReflectionData; }
         virtual const Vector<SPIRVHandle>& GetSPIRVs() const override { return mShaderSPIRVs; }
         virtual const Path& GetPath() const override { return mPath; }
+        virtual const HashCode& GetHash(const ShaderType& type) const override { return mHashCodes.at(type); }
 
         // Vulkan Specific (Used by different Pipelines)
         HashMap<ShaderType, VkShaderModule>& GetVulkanShaderModules() { return mVkShaderModules; }
@@ -30,9 +31,13 @@ namespace Surge
         void CreateVulkanDescriptorSetLayouts();
         void CreateVulkanPushConstantRanges();
         void WriteSPIRVToFile(const SPIRVHandle& spirvHandle);
-        String GetCachePath(const ShaderType& type);
+        void WriteShaderHashToFile() const;
+        String GetCachePath(const ShaderType& type) const;
+        String GetCacheName(const ShaderType& type) const;
+        HashCode GetCacheHashCode(const ShaderType& type) const;
     private:
         Path mPath;
+        HashMap<ShaderType, HashCode> mHashCodes;
         HashMap<ShaderType, String> mShaderSources;
         HashMap<ShaderType, VkShaderModule> mVkShaderModules;
         HashMap<Uint, VkDescriptorSetLayout> mDescriptorSetLayouts;

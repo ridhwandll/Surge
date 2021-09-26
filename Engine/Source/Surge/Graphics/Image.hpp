@@ -1,9 +1,9 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
+#pragma once
 #include "Surge/Graphics/Shader.hpp"
 
 namespace Surge
 {
-
     enum class ImageFormat
     {
         None = 0,
@@ -69,5 +69,4 @@ namespace Surge
         static Ref<Image2D> Create(const ImageSpecification& specification);
         static Ref<Image2D> Create(const ImageSpecification& specification, const void* data);
     };
-
 }

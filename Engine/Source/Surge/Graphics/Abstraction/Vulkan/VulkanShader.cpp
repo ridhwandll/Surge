@@ -6,13 +6,14 @@
 #include "Surge/Utility/Filesystem.hpp"
 #include <shaderc/shaderc.hpp>
 #include <filesystem>
-
-// TODO: Temorary, we don't have an asset manager yet
+#include <json/json.hpp>
+// TODO: Temporary, we don't have an asset manager yet
 #define TEMP_ASSET_PATH "Engine/Assets/Temp"
 #define SHADER_CACHE_PATH "Engine/Assets/Temp/ShaderCache"
+#define SHADER_HASH_CACHE_PATH "Engine/Assets/Temp/ShaderCache/ShaderHash.txt"
 
 #ifdef SURGE_DEBUG
-#define SHADER_LOG(...) Log<Severity::Trace>(__VA_ARGS__);
+#define SHADER_LOG(...) Log<Severity::Debug>(__VA_ARGS__);
 #else
 #define SHADER_LOG(...)
 #endif
@@ -32,6 +33,7 @@ namespace Surge
 
     void VulkanShader::Reload()
     {
+        SCOPED_TIMER("Shader({0}) Compilation", Filesystem::GetNameWithExtension(mPath));
         Clear();
         ParseShader();
         Compile();
@@ -47,10 +49,10 @@ namespace Surge
         shaderc::Compiler compiler;
         shaderc::CompileOptions options;
         options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2);
+        bool saveHash = false;
 
         // NOTE(Rid - AC3R) If we enable optimization, it removes the names :kekCry:
         //options.SetOptimizationLevel(shaderc_optimization_level_performance);
-
         for (auto&& [stage, source] : mShaderSources)
         {
             SPIRVHandle spirvHandle;
@@ -58,8 +60,19 @@ namespace Surge
 
             String path = GetCachePath(stage);
 
+            bool compile = false;
+            const bool existsInCache = Filesystem::Exists(path);
+            const HashCode cacheHashCode = GetCacheHashCode(stage);
+            const HashCode currentHashCode = mHashCodes.at(stage);
+
+            if (!existsInCache || (existsInCache && cacheHashCode != currentHashCode))
+            {
+                compile = true;
+                saveHash = true;
+            }
+
             // Load or create the SPIRV
-            if (Filesystem::Exists(path))
+            if (!compile)
             {
                 // Load from cache
                 FILE* f;
@@ -103,6 +116,8 @@ namespace Surge
         }
         ShaderReflector reflector;
         mReflectionData = reflector.Reflect(mShaderSPIRVs);
+        if (saveHash)
+            WriteShaderHashToFile();
     }
 
     void VulkanShader::Clear()
@@ -196,10 +211,87 @@ namespace Surge
         }
     }
 
-    String VulkanShader::GetCachePath(const ShaderType& type)
+    void VulkanShader::WriteShaderHashToFile() const
     {
-        String path = fmt::format("{0}/{1}.{2}.spv", SHADER_CACHE_PATH, Filesystem::GetNameWithExtension(mPath), ShaderTypeToString(type));
+        FILE* f = nullptr;
+        errno_t e = 0;
+
+        e = fopen_s(&f, SHADER_HASH_CACHE_PATH, "r");
+
+        // If the file doesn't exists, create an empty file
+        if (e == ENOENT)
+        {
+            e = fopen_s(&f, SHADER_HASH_CACHE_PATH, "w");
+            if (f)
+                fclose(f);
+        }
+
+        // Load in the contents of the file, because we append to it later
+        String previousContents;
+        if (f)
+        {
+            fseek(f, 0, SEEK_END);
+            uint64_t size = ftell(f);
+            fseek(f, 0, SEEK_SET);
+            previousContents.resize(size / sizeof(char));
+            fread(previousContents.data(), sizeof(char), previousContents.size(), f);
+            fclose(f);
+            remove(SHADER_HASH_CACHE_PATH); // Remove the old file
+        }
+
+        // Create A JSON, from the previous file for writing the new contents
+        nlohmann::json j = previousContents.empty() ? nlohmann::json() : nlohmann::json::parse(previousContents);
+
+        // For each HashCodes, update it
+        for (auto& e : mHashCodes)
+        {
+            String name = GetCacheName(e.first);
+            j[name] = e.second;
+        }
+
+        String result = j.dump(4);
+        e = fopen_s(&f, SHADER_HASH_CACHE_PATH, "w");
+        if (f)
+        {
+            fwrite(result.c_str(), sizeof(char), result.size(), f);
+            fclose(f);
+        }
+    }
+
+    String VulkanShader::GetCachePath(const ShaderType& type) const
+    {
+        String path = fmt::format("{0}/{1}", SHADER_CACHE_PATH, GetCacheName(type));
         return path;
+    }
+
+    String VulkanShader::GetCacheName(const ShaderType& type) const
+    {
+        String name = fmt::format("{0}.{1}.spv", Filesystem::GetNameWithExtension(mPath), ShaderTypeToString(type));
+        return name;
+    }
+
+    HashCode VulkanShader::GetCacheHashCode(const ShaderType& type) const
+    {
+        FILE* f = nullptr;
+        errno_t e = fopen_s(&f, SHADER_HASH_CACHE_PATH, "r");
+        String previousContents;
+        if (f)
+        {
+            fseek(f, 0, SEEK_END);
+            uint64_t size = ftell(f);
+            fseek(f, 0, SEEK_SET);
+            previousContents.resize(size / sizeof(char));
+            fread(previousContents.data(), sizeof(char), previousContents.size(), f);
+            fclose(f);
+        }
+
+        String name = GetCacheName(type);
+        nlohmann::json j = previousContents.empty() ? nlohmann::json() : nlohmann::json::parse(previousContents);
+
+        HashCode result = 0;
+        if (j.contains(name))
+            result = j[name];
+        return result;
     }
 
     void VulkanShader::ParseShader()
@@ -214,12 +306,13 @@ namespace Surge
             size_t eol = source.find_first_of("\r\n", pos);
             size_t begin = pos + typeTokenLength + 1;
             String type = source.substr(begin, eol - begin);
-
-            SG_ASSERT((int)VulkanUtils::ShaderTypeFromString(type), "Invalid shader type!");
             size_t nextLinePos = source.find_first_not_of("\r\n", eol);
 
+            ShaderType shaderType = VulkanUtils::ShaderTypeFromString(type);
+            SG_ASSERT((int)shaderType, "Invalid shader type!");
             pos = source.find(typeToken, nextLinePos);
-            mShaderSources[VulkanUtils::ShaderTypeFromString(type)] = (pos == std::string::npos) ? source.substr(nextLinePos) : source.substr(nextLinePos, pos - nextLinePos);
+            mShaderSources[shaderType] = (pos == std::string::npos) ? source.substr(nextLinePos) : source.substr(nextLinePos, pos - nextLinePos);
+            mHashCodes[shaderType] = Hash().Generate<String>(mShaderSources.at(shaderType));
         }
     }
 

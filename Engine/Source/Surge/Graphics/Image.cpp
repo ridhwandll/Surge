@@ -14,5 +14,4 @@ namespace Surge
     {
         return Ref<VulkanImage2D>::Create(specification, data);
     }
-
 }

@@ -5,14 +5,6 @@
 
 namespace Surge
 {
-    namespace Utils
-    {
-        Uint CalculateMipChainLevels(Uint width, Uint height)
-        {
-            return std::floor(std::log2(std::max(width, height))) + 1;
-        }
-    }
-
     VulkanTexture2D::VulkanTexture2D(const String& filepath, TextureSpecification specification)
         : mFilePath(filepath), mSpecification(specification)
     {
@@ -33,7 +25,7 @@ namespace Surge
         SG_ASSERT(pixels, "Failed to load image!");
 
         // Getting the mip levels
-        Uint mipChainLevels = Utils::CalculateMipChainLevels(width, height);
+        Uint mipChainLevels = CalculateMipChainLevels(width, height);
 
         // Creating the image
         ImageSpecification imageSpec{};
@@ -46,9 +38,5 @@ namespace Surge
         imageSpec.Sampler.SamplerFilter = TextureFilter::Nearest;
         imageSpec.Sampler.SamplerWrap = TextureWrap::Repeat;
         mImage = Image2D::Create(imageSpec, pixels);
-    }
-
-    VulkanTexture2D::~VulkanTexture2D()
-    {
     }
 }

@@ -25,19 +25,4 @@ namespace Surge
         VkPipelineLayout mPipelineLayout;
         GraphicsPipelineSpecification mSpecification;
     };
-
-    namespace Utils
-    {
-        void InsertImageMemoryBarrier(
-            VkCommandBuffer cmdbuffer,
-            VkImage image,
-            VkAccessFlags srcAccessMask,
-            VkAccessFlags dstAccessMask,
-            VkImageLayout oldImageLayout,
-            VkImageLayout newImageLayout,
-            VkPipelineStageFlags srcStageMask,
-            VkPipelineStageFlags dstStageMask,
-            VkImageSubresourceRange subresourceRange
-        );
-    }
 }

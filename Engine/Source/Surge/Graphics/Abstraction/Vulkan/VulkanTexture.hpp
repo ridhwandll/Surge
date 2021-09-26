@@ -1,4 +1,5 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
+#pragma once
 #include "Surge/Graphics/Texture.hpp"
 
 namespace Surge
@@ -7,7 +8,7 @@ namespace Surge
     {
     public:
         VulkanTexture2D(const String& filepath, TextureSpecification specification);
-        virtual ~VulkanTexture2D();
+        virtual ~VulkanTexture2D() = default;
 
         virtual Uint GetWidth() const override { return mWidth; }
         virtual Uint GetHeight() const override { return mHeight; }

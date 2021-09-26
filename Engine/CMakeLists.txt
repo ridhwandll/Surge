@@ -19,6 +19,7 @@ set(INCLUDE_DIRS
     Vendor/stb
     Vendor/ImGui
     Vendor/entt/Include
+    Vendor/json/Include
 )
 
 set(LIB_LINKS
