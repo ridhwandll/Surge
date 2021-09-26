@@ -1,12 +1,21 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
-#include "Pch.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanShader.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDevice.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDiagnostics.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanUtils.hpp"
-#include "Surge/Graphics/ShaderReflector.hpp"
 #include "Surge/Utility/Filesystem.hpp"
 #include <shaderc/shaderc.hpp>
+#include <filesystem>
+
+// TODO: Temorary, we don't have an asset manager yet
+#define TEMP_ASSET_PATH "Engine/Assets/Temp"
+#define SHADER_CACHE_PATH "Engine/Assets/Temp/ShaderCache"
+
+#ifdef SURGE_DEBUG
+#define SHADER_LOG(...) Log<Severity::Trace>(__VA_ARGS__);
+#else
+#define SHADER_LOG(...)
+#endif
 
 namespace Surge
 {
@@ -45,28 +54,53 @@ namespace Surge
         for (auto&& [stage, source] : mShaderSources)
         {
             SPIRVHandle spirvHandle;
-            shaderc::CompilationResult result = compiler.CompileGlslToSpv(source, VulkanUtils::ShadercShaderKindFromSurgeShaderType(stage), mPath.c_str(), options);
-            if (result.GetCompilationStatus() != shaderc_compilation_status_success)
+            spirvHandle.Type = stage;
+
+            String path = GetCachePath(stage);
+
+            // Load or create the SPIRV
+            if (Filesystem::Exists(path))
             {
-                Log<Severity::Error>("{0} Shader compilation failure!", VulkanUtils::ShaderTypeToString(stage));
-                Log<Severity::Error>("{0} Error(s): \n{1}", result.GetNumErrors(), result.GetErrorMessage());
-                SG_ASSERT_INTERNAL("Shader Compilation failure!");
+                // Load from cache
+                FILE* f;
+                fopen_s(&f, path.c_str(), "rb");
+                if (f)
+                {
+                    fseek(f, 0, SEEK_END);
+                    uint64_t size = ftell(f);
+                    fseek(f, 0, SEEK_SET);
+                    spirvHandle.SPIRV = Vector<Uint>(size / sizeof(Uint));
+                    fread(spirvHandle.SPIRV.data(), sizeof(Uint), spirvHandle.SPIRV.size(), f);
+                    fclose(f);
+                    SHADER_LOG("Loaded Shader from cache: {0}", path);
+                }
             }
             else
             {
-                spirvHandle.Type = stage;
-                spirvHandle.SPIRV = Vector<Uint>(result.cbegin(), result.cend());
-
-                VkShaderModuleCreateInfo createInfo{};
-                createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-                createInfo.codeSize = spirvHandle.SPIRV.size() * sizeof(Uint);
-                createInfo.pCode = spirvHandle.SPIRV.data();
-
-                VK_CALL(vkCreateShaderModule(device, &createInfo, nullptr, &mVkShaderModules[stage]));
-                mShaderSPIRVs.push_back(spirvHandle);
+                // Compile, not present in cache
+                shaderc::CompilationResult result = compiler.CompileGlslToSpv(source, VulkanUtils::ShadercShaderKindFromSurgeShaderType(stage), mPath.c_str(), options);
+                if (result.GetCompilationStatus() != shaderc_compilation_status_success)
+                {
+                    Log<Severity::Error>("{0} Shader compilation failure!", VulkanUtils::ShaderTypeToString(stage));
+                    Log<Severity::Error>("{0} Error(s): \n{1}", result.GetNumErrors(), result.GetErrorMessage());
+                    SG_ASSERT_INTERNAL("Shader Compilation failure!");
+                }
+                else
+                {
+                    spirvHandle.SPIRV = Vector<Uint>(result.cbegin(), result.cend());
+                    WriteSPIRVToFile(spirvHandle); // Cache the shader
+                }
             }
-        }
+            SG_ASSERT(!spirvHandle.SPIRV.empty(), "Invalid SPIRV!");
 
+            // Create the VkShaderModule
+            VkShaderModuleCreateInfo createInfo{};
+            createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+            createInfo.codeSize = spirvHandle.SPIRV.size() * sizeof(Uint);
+            createInfo.pCode = spirvHandle.SPIRV.data();
+            VK_CALL(vkCreateShaderModule(device, &createInfo, nullptr, &mVkShaderModules[stage]));
+            mShaderSPIRVs.push_back(spirvHandle);
+        }
         ShaderReflector reflector;
         mReflectionData = reflector.Reflect(mShaderSPIRVs);
     }
@@ -97,7 +131,8 @@ namespace Surge
 
         // Iterate through all the sets and creating the layouts
         // (descriptor layouts use HashMap<Uint, VkDescriptorSetLayout> because the Uint specifies at which set number the layout is going to be used
-        for (const Uint& descriptorSet : mReflectionData.GetDescriptorSetCount())
+        const Vector<Uint>& descriptorSetCount = mReflectionData.GetDescriptorSetCount();
+        for (const Uint& descriptorSet : descriptorSetCount)
         {
             Vector<VkDescriptorSetLayoutBinding> layoutBindings;
             for (const ShaderBuffer& buffer : mReflectionData.GetBuffers())
@@ -145,6 +180,28 @@ namespace Surge
         }
     }
 
+    void VulkanShader::WriteSPIRVToFile(const SPIRVHandle& spirvHandle)
+    {
+        std::filesystem::create_directory(TEMP_ASSET_PATH);
+        std::filesystem::create_directory(SHADER_CACHE_PATH);
+
+        String path = GetCachePath(spirvHandle.Type);
+        FILE* f;
+        fopen_s(&f, path.c_str(), "wb");
+        if (f)
+        {
+            fwrite(spirvHandle.SPIRV.data(), sizeof(Uint), spirvHandle.SPIRV.size(), f);
+            fclose(f);
+            SHADER_LOG("Cached Shader at: {0}", path);
+        }
+    }
+
+    String VulkanShader::GetCachePath(const ShaderType& type)
+    {
+        String path = fmt::format("{0}/{1}.{2}.spv", SHADER_CACHE_PATH, Filesystem::GetNameWithExtension(mPath), ShaderTypeToString(type));
+        return path;
+    }
+
     void VulkanShader::ParseShader()
     {
         String source = Filesystem::ReadFile(mPath);
@@ -170,9 +227,9 @@ namespace Surge
     {
         switch (type)
         {
-        case ShaderType::VertexShader:  return VK_SHADER_STAGE_VERTEX_BIT;
-        case ShaderType::PixelShader:   return VK_SHADER_STAGE_FRAGMENT_BIT;
-        case ShaderType::ComputeShader: return VK_SHADER_STAGE_COMPUTE_BIT;
+        case ShaderType::Vertex:  return VK_SHADER_STAGE_VERTEX_BIT;
+        case ShaderType::Pixel:   return VK_SHADER_STAGE_FRAGMENT_BIT;
+        case ShaderType::Compute: return VK_SHADER_STAGE_COMPUTE_BIT;
         case ShaderType::None: SG_ASSERT_INTERNAL("ShaderType::None is invalid in this case!");
         }
         return VkShaderStageFlagBits();

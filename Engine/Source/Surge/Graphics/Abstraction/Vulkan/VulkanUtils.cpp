@@ -6,9 +6,9 @@ namespace Surge
 {
     ShaderType VulkanUtils::ShaderTypeFromString(const String& type)
     {
-        if (type == "Vertex]")  return ShaderType::VertexShader;
-        if (type == "Pixel]")   return ShaderType::PixelShader;
-        if (type == "Compute]") return ShaderType::ComputeShader;
+        if (type == "Vertex]")  return ShaderType::Vertex;
+        if (type == "Pixel]")   return ShaderType::Pixel;
+        if (type == "Compute]") return ShaderType::Compute;
 
         return ShaderType::None;
     }
@@ -17,9 +17,9 @@ namespace Surge
     {
         switch (type)
         {
-        case ShaderType::VertexShader:  return "Vertex";
-        case ShaderType::PixelShader:   return "Pixel";
-        case ShaderType::ComputeShader: return "Compute";
+        case ShaderType::Vertex:  return "Vertex";
+        case ShaderType::Pixel:   return "Pixel";
+        case ShaderType::Compute: return "Compute";
         case ShaderType::None: SG_ASSERT_INTERNAL("ShaderType::None is invalid in this case!");
         }
         return "";
@@ -29,9 +29,9 @@ namespace Surge
     {
         switch (type)
         {
-        case ShaderType::VertexShader:  return shaderc_glsl_vertex_shader;
-        case ShaderType::PixelShader:   return shaderc_glsl_fragment_shader;
-        case ShaderType::ComputeShader: return shaderc_glsl_compute_shader;
+        case ShaderType::Vertex:  return shaderc_glsl_vertex_shader;
+        case ShaderType::Pixel:   return shaderc_glsl_fragment_shader;
+        case ShaderType::Compute: return shaderc_glsl_compute_shader;
         case ShaderType::None: SG_ASSERT_INTERNAL("ShaderType::None is invalid in this case!");
         }
 
@@ -115,9 +115,9 @@ namespace Surge
             //None = 0, VertexShader, PixelShader, ComputeShader
             switch (stage)
             {
-            case ShaderType::VertexShader:  stageFlags |= VK_SHADER_STAGE_VERTEX_BIT;   break;
-            case ShaderType::PixelShader:   stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT; break;
-            case ShaderType::ComputeShader: stageFlags |= VK_SHADER_STAGE_COMPUTE_BIT;  break;
+            case ShaderType::Vertex:  stageFlags |= VK_SHADER_STAGE_VERTEX_BIT;   break;
+            case ShaderType::Pixel:   stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT; break;
+            case ShaderType::Compute: stageFlags |= VK_SHADER_STAGE_COMPUTE_BIT;  break;
             case ShaderType::None: SG_ASSERT(false, "Shader::None is invalid!");
             }
         }

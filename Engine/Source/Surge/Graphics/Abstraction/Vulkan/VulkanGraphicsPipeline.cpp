@@ -34,7 +34,7 @@ namespace Surge
         const ShaderReflectionData& reflectedData = mSpecification.Shader->GetReflectionData();
 
         // We only need the stage input of vertex shader to generate the input layout
-        const std::map<Uint, ShaderStageInput>& stageInputs = reflectedData.GetStageInputs().at(ShaderType::VertexShader);
+        const std::map<Uint, ShaderStageInput>& stageInputs = reflectedData.GetStageInputs().at(ShaderType::Vertex);
 
         // Calculate the stride
         Uint stride = 0;

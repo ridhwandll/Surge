@@ -131,7 +131,7 @@ namespace Surge
 
             // Calculating the offsets after the locations are sorted
             Uint elementOffset = 0;
-            for (auto& [location, stageInput] : result.mStageInputs.at(ShaderType::VertexShader))
+            for (auto& [location, stageInput] : result.mStageInputs.at(ShaderType::Vertex))
             {
                 stageInput.Offset = elementOffset;
                 elementOffset += stageInput.Size;

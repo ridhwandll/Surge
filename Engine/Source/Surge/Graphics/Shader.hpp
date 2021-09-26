@@ -6,15 +6,28 @@ namespace Surge
 {
     enum class ShaderType
     {
-        None = 0, VertexShader, PixelShader, ComputeShader
+        None = 0, Vertex, Pixel, Compute
     };
+
+    inline String ShaderTypeToString(const ShaderType& type)
+    {
+        switch (type)
+        {
+        case ShaderType::Vertex:  return "Vertex";
+        case ShaderType::Pixel:   return "Pixel";
+        case ShaderType::Compute: return "Compute";
+        case ShaderType::None: SG_ASSERT_INTERNAL("ShaderType::None is invalid in this case!");
+        }
+        SG_ASSERT_INTERNAL("Unknown ShaderType!");
+        return "None";
+    }
 
     enum class ShaderDataType
     {
         None, Int, UInt, Float, Float2, Float3, Float4, Mat2, Mat4, Mat3, Bool
     };
 
-    inline const char* ShaderDataTypeToString(const ShaderDataType& type)
+    inline String ShaderDataTypeToString(const ShaderDataType& type)
     {
         switch (type)
         {

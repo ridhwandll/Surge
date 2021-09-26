@@ -66,7 +66,7 @@ namespace Surge
             
             TextureSpecification textureSpec{};
             textureSpec.UseMips = true;
-            textureSpec.ShaderUsage = { ShaderType::PixelShader };
+            textureSpec.ShaderUsage = { ShaderType::Pixel };
             sData->TestTexture = Texture2D::Create("Engine/Assets/Textures/kekw.jpg", textureSpec);
 
             VkDescriptorPoolSize pool_sizes[] =

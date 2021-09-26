@@ -6,12 +6,10 @@
 namespace Surge
 {
 #ifdef SURGE_DEBUG
-    static bool sValidation = true;
+    #define ENABLE_IF_VK_VALIDATION(x) { x; }
 #else
-    static bool sValidation = false;
+    #define ENABLE_IF_VK_VALIDATION(x)
 #endif // SURGE_DEBUG
-
-#define ENABLE_IF_VK_VALIDATION(x) if (sValidation) { x; }
 
     void VulkanRenderContext::Initialize(Window* window)
     {
@@ -24,7 +22,6 @@ namespace Surge
         appInfo.pEngineName = "Surge Engine";
         appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.apiVersion = VK_API_VERSION_1_2; // TODO(Rid): Check which version is available, use 1.1 if necessary
-        appInfo.pNext = 0;
 
         /// VkInstanceCreateInfo ///
         Vector<const char*> instanceExtensions = GetRequiredInstanceExtensions();

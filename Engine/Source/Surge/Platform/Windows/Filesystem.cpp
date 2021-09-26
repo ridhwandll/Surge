@@ -1,6 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Surge/Utility/Filesystem.hpp"
 #include <fstream>
+#include <filesystem>
 
 namespace Surge::Filesystem
 {
@@ -33,5 +34,30 @@ namespace Surge::Filesystem
         size_t lastindex = path.find_last_of(".");
         String rawName = path.substr(0, lastindex);
         return rawName;
+    }
+
+    String GetNameWithExtension(const Path& assetFilepath)
+    {
+        return std::filesystem::path(assetFilepath).filename().string();
+    }
+
+    String GetNameWithoutExtension(const Path& assetFilepath)
+    {
+        String name;
+        auto lastSlash = assetFilepath.find_last_of("/\\");
+        lastSlash = lastSlash == String::npos ? 0 : lastSlash + 1;
+        auto lastDot = assetFilepath.rfind('.');
+        auto count = lastDot == String::npos ? assetFilepath.size() - lastSlash : lastDot - lastSlash;
+        name = assetFilepath.substr(lastSlash, count);
+        return name;
+    }
+
+    bool Exists(const Path& path)
+    {
+        std::ifstream exists(path);
+        if (exists.is_open())
+            return true;
+
+        return false;
     }
 }

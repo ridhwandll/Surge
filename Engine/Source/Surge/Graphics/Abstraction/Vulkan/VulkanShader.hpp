@@ -29,6 +29,8 @@ namespace Surge
         void Clear();
         void CreateVulkanDescriptorSetLayouts();
         void CreateVulkanPushConstantRanges();
+        void WriteSPIRVToFile(const SPIRVHandle& spirvHandle);
+        String GetCachePath(const ShaderType& type);
     private:
         Path mPath;
         HashMap<ShaderType, String> mShaderSources;

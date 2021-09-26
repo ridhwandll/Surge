@@ -1,0 +1,32 @@
+Surge Engine License - Version 1, 23 September 2021
+
+Copyright (c) - 2021, SurgeTeam
+All Rights Reserved.
+
+0. Definitions:
+
+"This License"     - Refers to version 1 of the Surge Engine License.
+"The SourceCode"   - Refers to actual source code of the engine, this excludes the Copyright notice and License.
+"The Contributor"  - Refers to the person who have commited code to "The SourceCode" and has access to "The SourceCode"
+
+All parts, code, "resources" of SurgeEngine EXCLUDING the 3rd party libraries/Vendors falls under THIS license. You
+are hereby granted to use this software if the following conditions are met
+
+1. This software is provided 'AS-IS', without any express or implied warranty. In no event will "The Contributor"
+   be held liable for any damages arising from the use of this software.
+
+2. "The Contributor" MUST NOT COPY any part of The SourceCode to other software.
+
+3. The origin of this software must not be misrepresented; user must not claim that they wrote the original software.
+   If the user usees this software in a product, an acknowledgment in the product and in product documentation is MANDATORY.
+
+4. "The Contributor" CANNOT use this software commercially without permission.
+
+5. Neither the name of the copyright holder(s) nor the names of its contributors may be used to endorse or promote products
+   derived from this software without specific prior written permission.
+
+6. "The Contributor" CANNOT disclose the source code without permission.
+
+7. You can have "The SourceCode" as long as you're "The Contributor"
+
+8. This notice MUST NOT be removed or altered from any source and binary distribution.

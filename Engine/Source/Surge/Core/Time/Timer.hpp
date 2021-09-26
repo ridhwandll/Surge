@@ -7,7 +7,7 @@ namespace Surge
     class Timer
     {
     public:
-        Timer(const String& name = "", bool logOnDestructor = false)
+        Timer(const String& name = "Timer", bool logOnDestructor = false)
             : mName(name), mLogOnDestructor(logOnDestructor)
         {
             Reset();
@@ -16,7 +16,7 @@ namespace Surge
         ~Timer()
         {
             if (mLogOnDestructor)
-                Log<Severity::Info>("{0} took {1} seconds({2} ms)!", mName, Elapsed(), ElapsedMillis());
+                Log<Severity::Trace>("{0} took {1} seconds({2} ms)!", mName, Elapsed(), ElapsedMillis());
         }
 
         void Reset()
