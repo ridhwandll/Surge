@@ -148,18 +148,17 @@ namespace Surge
 
     void VulkanUtils::CreateImage(Uint width, Uint height, Uint texureDepth, Uint mipLevels,
         VkFormat format, VkImageType type, VkImageTiling tiling, VkImageUsageFlags usage,
-        VmaMemoryUsage memoryUsage, VkImage& image, VmaAllocation& imageMemory)
+        VmaMemoryUsage memoryUsage, VkImage& outImage, VmaAllocation& outImageMemory)
     {
         VulkanRenderContext* renderContext = nullptr; SURGE_GET_VULKAN_CONTEXT(renderContext);
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
         VulkanMemoryAllocator* allocator = static_cast<VulkanMemoryAllocator*>(renderContext->GetMemoryAllocator());
 
-        VkImageCreateInfo imageInfo{};
-        imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
         imageInfo.imageType = type;
         imageInfo.extent.width = width;
         imageInfo.extent.height = height;
-        imageInfo.extent.depth = 1;
+        imageInfo.extent.depth = 1; //TODO: Take in another parameter (for 3D textures?)
         imageInfo.mipLevels = mipLevels;
         imageInfo.arrayLayers = texureDepth;
         imageInfo.format = format;
@@ -169,11 +168,10 @@ namespace Surge
         imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
         imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         imageInfo.flags = texureDepth == 6 ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : 0; // If the image has 6 faces, then it is a cubemap
-
-        imageMemory = allocator->AllocateImage(imageInfo, memoryUsage, image, nullptr);
+        outImageMemory = allocator->AllocateImage(imageInfo, memoryUsage, outImage, nullptr);
     }
 
-    void VulkanUtils::CreateImageView(VkImageView& imageView, VkImage& image, VkImageUsageFlags imageUsage, VkFormat format, Uint mipLevels, Uint textureDepth)
+    void VulkanUtils::CreateImageView(const VkImage& image, VkImageUsageFlags imageUsage, VkFormat format, Uint mipLevels, Uint textureDepth, VkImageView& outImageView)
     {
         VulkanRenderContext* renderContext = nullptr; SURGE_GET_VULKAN_CONTEXT(renderContext);
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
@@ -196,40 +194,39 @@ namespace Surge
             createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         }
 
-        VK_CALL(vkCreateImageView(device, &createInfo, nullptr, &imageView));
+        VK_CALL(vkCreateImageView(device, &createInfo, nullptr, &outImageView));
     }
 
-    void VulkanUtils::CreateImageSampler(VkFilter filtering, Uint	 mipLevels, VkSampler& sampler)
+    void VulkanUtils::CreateImageSampler(VkFilter filtering, Uint mipLevels, VkSampler& outSampler)
     {
         VulkanRenderContext* renderContext = nullptr; SURGE_GET_VULKAN_CONTEXT(renderContext);
-        VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
-        VkPhysicalDevice physicalDevice = renderContext->GetDevice()->GetPhysicalDevice();
+        VulkanDevice* vulkanDevice = renderContext->GetDevice();
+        VkDevice device = vulkanDevice->GetLogicalDevice();
+        VkPhysicalDeviceProperties properties = vulkanDevice->GetPhysicalDeviceProperties();
 
-        VkSamplerCreateInfo samplerInfo{};
-        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        VkSamplerCreateInfo samplerInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
         samplerInfo.magFilter = filtering;
         samplerInfo.minFilter = filtering;
+
+        // We currently support Repeat for now
         samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
         samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
         samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+
         samplerInfo.anisotropyEnable = VK_FALSE;
-        samplerInfo.maxAnisotropy = 1.0f;
-
-        VkPhysicalDeviceProperties properties{};
-        vkGetPhysicalDeviceProperties(physicalDevice, &properties);
-
         samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+
         samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
         samplerInfo.unnormalizedCoordinates = VK_FALSE;
         samplerInfo.compareEnable = VK_FALSE;
-        samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+        samplerInfo.compareOp = VK_COMPARE_OP_NEVER;
 
         samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
         samplerInfo.mipLodBias = 0.0f;
         samplerInfo.minLod = 0.0f;
         samplerInfo.maxLod = static_cast<float>(mipLevels);
 
-        VK_CALL(vkCreateSampler(device, &samplerInfo, nullptr, &sampler));
+        VK_CALL(vkCreateSampler(device, &samplerInfo, nullptr, &outSampler));
     }
 
     void VulkanUtils::ChangeImageLayout(VkImage& image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, Uint mipLevels, Uint depthMap)
@@ -243,33 +240,31 @@ namespace Surge
         else
             aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 
+        device->InstantSubmit(VulkanQueueType::Transfer, [&](VkCommandBuffer& cmd)
+            {
+                VkImageSubresourceRange subresourceRange{};
+                subresourceRange.aspectMask = aspectMask;
+                subresourceRange.baseMipLevel = 0;
+                subresourceRange.baseArrayLayer = 0;
+                subresourceRange.levelCount = mipLevels;
+                subresourceRange.layerCount = depthMap;
 
-        VkCommandBuffer cmdBuffer;
-        device->BeginOneTimeCmdBuffer(cmdBuffer, VulkanQueueType::Transfer);
+                VkImageMemoryBarrier imageMemoryBarrier = {};
+                imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                imageMemoryBarrier.oldLayout = oldLayout;
+                imageMemoryBarrier.newLayout = newLayout;
+                imageMemoryBarrier.image = image;
+                imageMemoryBarrier.subresourceRange = subresourceRange;
+                imageMemoryBarrier.srcAccessMask = VulkanUtils::GetAccessFlagsFromLayout(oldLayout);
+                imageMemoryBarrier.dstAccessMask = VulkanUtils::GetAccessFlagsFromLayout(newLayout);
 
-        VkImageSubresourceRange subresourceRange{};
-        subresourceRange.aspectMask = aspectMask;
-        subresourceRange.baseMipLevel = 0;
-        subresourceRange.baseArrayLayer = 0;
-        subresourceRange.levelCount = mipLevels;
-        subresourceRange.layerCount = depthMap;
+                VkPipelineStageFlags srcStageMask = GetPipelineStagesFromLayout(oldLayout);
+                VkPipelineStageFlags dstStageMask = GetPipelineStagesFromLayout(newLayout);
 
-        VkImageMemoryBarrier imageMemoryBarrier = {};
-        imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        imageMemoryBarrier.oldLayout = oldLayout;
-        imageMemoryBarrier.newLayout = newLayout;
-        imageMemoryBarrier.image = image;
-        imageMemoryBarrier.subresourceRange = subresourceRange;
-        imageMemoryBarrier.srcAccessMask = VulkanUtils::GetAccessFlagsFromLayout(oldLayout);
-        imageMemoryBarrier.dstAccessMask = VulkanUtils::GetAccessFlagsFromLayout(newLayout);
-
-        VkPipelineStageFlags srcStageMask = GetPipelineStagesFromLayout(oldLayout);
-        VkPipelineStageFlags dstStageMask = GetPipelineStagesFromLayout(newLayout);
-
-        vkCmdPipelineBarrier(cmdBuffer, srcStageMask, dstStageMask, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
-        device->EndOneTimeCmdBuffer(cmdBuffer, VulkanQueueType::Transfer);
+                vkCmdPipelineBarrier(cmd, srcStageMask, dstStageMask, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
+            });
     }
 
     void VulkanUtils::CopyBufferToImage(VkCommandBuffer cmdBuffer, VkBuffer& buffer, VkImage& image, Uint width, Uint height)
@@ -311,73 +306,71 @@ namespace Surge
         if (!(formatProperties.linearTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT))
             SG_ASSERT_INTERNAL("Linear blitting not supported!");
 
-        VkCommandBuffer cmdBuffer;
-        device->BeginOneTimeCmdBuffer(cmdBuffer, VulkanQueueType::Transfer);
+        device->InstantSubmit(VulkanQueueType::Transfer, [&](VkCommandBuffer& cmd)
+            {
+                int32_t mipWidth = texWidth;
+                int32_t mipHeight = texHeight;
+
+                VkImageSubresourceRange subresourceRange{};
+                subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                subresourceRange.baseArrayLayer = 0;
+                subresourceRange.layerCount = 1;
+                subresourceRange.levelCount = 1;
 
 
-        int32_t mipWidth = texWidth;
-        int32_t mipHeight = texHeight;
+                for (Uint i = 1; i < mipLevels; i++)
+                {
+                    subresourceRange.baseMipLevel = i - 1;
 
-        VkImageSubresourceRange subresourceRange{};
-        subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        subresourceRange.baseArrayLayer = 0;
-        subresourceRange.layerCount = 1;
-        subresourceRange.levelCount = 1;
+                    VulkanUtils::InsertImageMemoryBarrier(cmd, image,
+                        VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT,
+                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                        VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                        subresourceRange
+                    );
 
+                    VkImageBlit blit{};
+                    blit.srcOffsets[0] = { 0, 0, 0 };
+                    blit.srcOffsets[1] = { mipWidth, mipHeight, 1 };
+                    blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                    blit.srcSubresource.mipLevel = i - 1;
+                    blit.srcSubresource.baseArrayLayer = 0;
+                    blit.srcSubresource.layerCount = 1;
+                    blit.dstOffsets[0] = { 0, 0, 0 };
+                    blit.dstOffsets[1] = { mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1 };
+                    blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                    blit.dstSubresource.mipLevel = i;
+                    blit.dstSubresource.baseArrayLayer = 0;
+                    blit.dstSubresource.layerCount = 1;
 
-        for (Uint i = 1; i < mipLevels; i++)
-        {
-            subresourceRange.baseMipLevel = i - 1;
+                    vkCmdBlitImage(cmd,
+                        image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                        image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                        1, &blit,
+                        VK_FILTER_LINEAR
+                    );
 
-            VulkanUtils::InsertImageMemoryBarrier(cmdBuffer, image,
-                VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT,
-                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                subresourceRange
-            );
+                    VulkanUtils::InsertImageMemoryBarrier(cmd, image,
+                        VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_READ_BIT,
+                        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, newLayout,
+                        VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                        subresourceRange
+                    );
 
-            VkImageBlit blit{};
-            blit.srcOffsets[0] = { 0, 0, 0 };
-            blit.srcOffsets[1] = { mipWidth, mipHeight, 1 };
-            blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            blit.srcSubresource.mipLevel = i - 1;
-            blit.srcSubresource.baseArrayLayer = 0;
-            blit.srcSubresource.layerCount = 1;
-            blit.dstOffsets[0] = { 0, 0, 0 };
-            blit.dstOffsets[1] = { mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1 };
-            blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            blit.dstSubresource.mipLevel = i;
-            blit.dstSubresource.baseArrayLayer = 0;
-            blit.dstSubresource.layerCount = 1;
+                    if (mipWidth > 1) mipWidth /= 2;
+                    if (mipHeight > 1) mipHeight /= 2;
+                }
 
-            vkCmdBlitImage(cmdBuffer,
-                image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                1, &blit,
-                VK_FILTER_LINEAR
-            );
+                subresourceRange.baseMipLevel = mipLevels - 1;
 
-            VulkanUtils::InsertImageMemoryBarrier(cmdBuffer, image,
-                VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_READ_BIT,
-                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, newLayout,
-                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                subresourceRange
-            );
+                VulkanUtils::InsertImageMemoryBarrier(cmd, image,
+                    VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_READ_BIT,
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, newLayout,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                    subresourceRange
+                );
 
-            if (mipWidth > 1) mipWidth /= 2;
-            if (mipHeight > 1) mipHeight /= 2;
-        }
-
-        subresourceRange.baseMipLevel = mipLevels - 1;
-
-        VulkanUtils::InsertImageMemoryBarrier(cmdBuffer, image,
-            VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_READ_BIT,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, newLayout,
-            VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-            subresourceRange
-        );
-
-        device->EndOneTimeCmdBuffer(cmdBuffer, VulkanQueueType::Transfer);
+            });
     }
 
     VkDeviceSize VulkanUtils::CalculateImageBufferSize(Uint width, Uint height, ImageFormat imageFormat)

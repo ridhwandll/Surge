@@ -2,7 +2,7 @@
 #pragma once
 #include <volk.h>
 #include <unordered_set>
-#include <optional>
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanDiagnostics.hpp"
 
 namespace Surge
 {
@@ -33,9 +33,6 @@ namespace Surge
         VkDevice GetLogicalDevice() { return mLogicalDevice; }
         VulkanQueueFamilyIndices GetQueueFamilyIndices() { return mQueueFamilyIndices; }
 
-        void BeginOneTimeCmdBuffer(VkCommandBuffer& commandBuffer, VulkanQueueType type);
-        void EndOneTimeCmdBuffer(VkCommandBuffer commandBuffer, VulkanQueueType type);
-
         VkQueue GetGraphicsQueue() { return mGraphicsQueue; }
         VkQueue GetComputeQueue() { return mComputeQueue; }
         VkQueue GetTransferQueue() { return mTransferQueue; }
@@ -43,7 +40,14 @@ namespace Surge
         VkCommandPool GetGraphicsCommandPool() { return mGraphicsCommandPool; }
         VkCommandPool GetComputeCommandPool() { return mComputeCommandPool; }
         VkCommandPool GetTransferCommandPool() { return mTransferCommandPool; }
+        VkPhysicalDeviceProperties GetPhysicalDeviceProperties()
+        {
+            VkPhysicalDeviceProperties properties{};
+            vkGetPhysicalDeviceProperties(mPhysicalDevice, &properties);
+            return properties;
+        }
 
+        void InstantSubmit(VulkanQueueType type, std::function<void(VkCommandBuffer&)> function);
         bool IsExtensionSupported(const String& extensionName) { return mSupportedExtensions.find(extensionName) != mSupportedExtensions.end(); };
     private:
         void QueryDeviceExtensions();

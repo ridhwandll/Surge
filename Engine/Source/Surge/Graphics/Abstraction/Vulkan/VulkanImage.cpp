@@ -27,25 +27,23 @@ namespace Surge
 
         // Recording a temporary commandbuffer for transitioning
         VkCommandBuffer cmdBuffer = VK_NULL_HANDLE;
-        device->BeginOneTimeCmdBuffer(cmdBuffer, VulkanQueueType::Graphics);
+        device->InstantSubmit(VulkanQueueType::Graphics, [&](VkCommandBuffer& cmd)
+            {
+                // Generating mip maps if the mip count is higher than 1, else just transition to user's input `VkImageLayout`
+                if (specification.Mips > 1)
+                {
+                    TransitionLayout(cmdBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VulkanUtils::GetPipelineStagesFromLayout(mImageLayout), VulkanUtils::GetPipelineStagesFromLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL));
+                    GenerateMipMaps(cmdBuffer, newImageLayout);
+                }
+                else
+                {
+                    TransitionLayout(cmdBuffer, newImageLayout, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VulkanUtils::GetPipelineStagesFromLayout(newImageLayout));
+                }
 
-        // Generating mip maps if the mip count is higher than 1, else just transition to user's input `VkImageLayout`
-        if (specification.Mips > 1)
-        {
-            TransitionLayout(cmdBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VulkanUtils::GetPipelineStagesFromLayout(mImageLayout), VulkanUtils::GetPipelineStagesFromLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL));
-            GenerateMipMaps(cmdBuffer, newImageLayout);
-        }
-        else
-        {
-            TransitionLayout(cmdBuffer, newImageLayout, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VulkanUtils::GetPipelineStagesFromLayout(newImageLayout));
-        }
-
-        // Ending the temporary commandbuffer 
-        device->EndOneTimeCmdBuffer(cmdBuffer, VulkanQueueType::Graphics);
-
+            });
 
         // Creating the image view
-        VulkanUtils::CreateImageView(mImageView, mImage, usageFlags, textureFormat, specification.Mips, 1);
+        VulkanUtils::CreateImageView(mImage, usageFlags, textureFormat, specification.Mips, 1, mImageView);
 
         // Creating the sampler
         VkFilter filtering = VulkanUtils::GetImageFiltering(specification.Sampler.SamplerFilter);
@@ -68,7 +66,6 @@ namespace Surge
         VkImageUsageFlags usageFlags = VulkanUtils::GetImageUsageFlags(specification.Usage);
         VkImageLayout newImageLayout = VulkanUtils::GetImageLayoutUsage(specification.Usage);
 
-
         // Allocating a temporary buffer for copying the data into the image buffer
         VkBufferCreateInfo bufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
         bufferInfo.size = imageSize;
@@ -83,7 +80,6 @@ namespace Surge
         memcpy(dstData, data, static_cast<size_t>(imageSize));
         allocator->UnmapMemory(stagingBufferMemory);
 
-
         // Creating the image
         VulkanUtils::CreateImage(specification.Width, specification.Height, 1, specification.Mips, textureFormat, VK_IMAGE_TYPE_2D,
                            VK_IMAGE_TILING_OPTIMAL,
@@ -92,25 +88,22 @@ namespace Surge
                            mImage, mImageMemory);
 
         // Recording a temporary into a temporary commandbuffer for transitioning/copying/generating mips
-        VkCommandBuffer cmdBuffer = VK_NULL_HANDLE;
-        device->BeginOneTimeCmdBuffer(cmdBuffer, VulkanQueueType::Graphics);
+        device->InstantSubmit(VulkanQueueType::Graphics, [&](VkCommandBuffer& cmd)
+            {
+                // Changing the layout for copying the staging buffer to the iamge
+                TransitionLayout(cmd, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                    VulkanUtils::GetPipelineStagesFromLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL));
+                VulkanUtils::CopyBufferToImage(cmd, stagingBuffer, mImage, specification.Width, specification.Height);
 
-        // Changing the layout for copying the staging buffer to the iamge
-        TransitionLayout(cmdBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-            VulkanUtils::GetPipelineStagesFromLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL));
-        VulkanUtils::CopyBufferToImage(cmdBuffer, stagingBuffer, mImage, specification.Width, specification.Height);
-
-        // Generating mip maps if the mip count is higher than 1, else just transition to user's input `VkImageLayout`
-        if (specification.Mips > 1)
-            GenerateMipMaps(cmdBuffer, newImageLayout);
-        else
-            TransitionLayout(cmdBuffer, newImageLayout, VK_PIPELINE_STAGE_TRANSFER_BIT, VulkanUtils::GetPipelineStagesFromLayout(newImageLayout));
-
-        // Ending the temporary commandbuffer
-        device->EndOneTimeCmdBuffer(cmdBuffer, VulkanQueueType::Graphics);
+                // Generating mip maps if the mip count is higher than 1, else just transition to user's input `VkImageLayout`
+                if (specification.Mips > 1)
+                    GenerateMipMaps(cmd, newImageLayout);
+                else
+                    TransitionLayout(cmd, newImageLayout, VK_PIPELINE_STAGE_TRANSFER_BIT, VulkanUtils::GetPipelineStagesFromLayout(newImageLayout));
+            });
 
         // Creating the ImageView
-        VulkanUtils::CreateImageView(mImageView, mImage, usageFlags, textureFormat, specification.Mips, 1);
+        VulkanUtils::CreateImageView(mImage, usageFlags, textureFormat, specification.Mips, 1, mImageView);
 
         // Creating the sampler
         VkFilter filtering = VulkanUtils::GetImageFiltering(specification.Sampler.SamplerFilter);

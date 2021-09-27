@@ -1,6 +1,4 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
-#include "Pch.hpp"
-
 #define VMA_IMPLEMENTATION
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanMemoryAllocator.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderContext.hpp"
@@ -9,11 +7,6 @@
 
 namespace Surge
 {
-    namespace Utils
-    {
-        uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
-    }
-
     void VulkanMemoryAllocator::Initialize(VkInstance instance, VulkanDevice& device)
     {
         VmaAllocatorCreateInfo allocatorInfo = {};
@@ -93,26 +86,5 @@ namespace Surge
         uint64_t freeMemory = stats.total.unusedBytes;
 
         return GPUMemoryStats(usedMemory, freeMemory);
-    }
-
-    namespace Utils
-    {
-		uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
-		{
-			VulkanRenderContext* renderContext = static_cast<VulkanRenderContext*>(CoreGetRenderContext().get());
-            VkPhysicalDevice physicalDevice = renderContext->GetDevice()->GetPhysicalDevice();
-
-			VkPhysicalDeviceMemoryProperties memProperties;
-			vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
-
-			for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-				if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-					return i;
-				}
-			}
-
-			SG_ASSERT(false, "Failed to find suitable memory type!");
-			return 0;
-		}
     }
 }

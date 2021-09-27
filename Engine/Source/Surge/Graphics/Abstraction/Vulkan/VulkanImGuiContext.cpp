@@ -73,9 +73,11 @@ namespace Surge
         ImGui_ImplVulkan_Init(&initInfo, renderContext->mSwapChain.GetVulkanRenderPass()); 
 
         VkCommandBuffer cmd = nullptr;
-        vulkanDevice->BeginOneTimeCmdBuffer(cmd, VulkanQueueType::Graphics);
-        ImGui_ImplVulkan_CreateFontsTexture(cmd);
-        vulkanDevice->EndOneTimeCmdBuffer(cmd, VulkanQueueType::Graphics);
+        vulkanDevice->InstantSubmit(VulkanQueueType::Graphics, [&](VkCommandBuffer& cmd)
+            {
+                ImGui_ImplVulkan_CreateFontsTexture(cmd);
+            });
+
         ImGui_ImplVulkan_DestroyFontUploadObjects();
     }
 

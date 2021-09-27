@@ -1,7 +1,5 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
-#include "Pch.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDevice.hpp"
-#include "Surge/Graphics/Abstraction/Vulkan/VulkanDiagnostics.hpp"
 #include <map>
 
 namespace Surge
@@ -81,8 +79,9 @@ namespace Surge
         vkDestroyDevice(mLogicalDevice, nullptr);
     }
 
-    void VulkanDevice::BeginOneTimeCmdBuffer(VkCommandBuffer& commandBuffer, VulkanQueueType type)
+    void VulkanDevice::InstantSubmit(VulkanQueueType type, std::function<void(VkCommandBuffer&)> function)
     {
+        VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
         VkCommandBufferAllocateInfo cmdBufAllocateInfo = {};
         cmdBufAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 
@@ -106,10 +105,9 @@ namespace Surge
 
         VkCommandBufferBeginInfo cmdBufferBeginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
         VK_CALL(vkBeginCommandBuffer(commandBuffer, &cmdBufferBeginInfo));
-    }
 
-    void VulkanDevice::EndOneTimeCmdBuffer(VkCommandBuffer commandBuffer, VulkanQueueType type)
-    {
+        function(commandBuffer); // Execute
+
         const uint64_t fenceTimeout = 100000000000;
 
         SG_ASSERT_NOMSG(commandBuffer != VK_NULL_HANDLE);
@@ -131,7 +129,7 @@ namespace Surge
         switch (type)
         {
         case VulkanQueueType::Graphics: { VK_CALL(vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, fence)); break; }
-        case VulkanQueueType::Compute:  { VK_CALL(vkQueueSubmit(mComputeQueue, 1, &submitInfo, fence));  break; }
+        case VulkanQueueType::Compute: { VK_CALL(vkQueueSubmit(mComputeQueue, 1, &submitInfo, fence));  break; }
         case VulkanQueueType::Transfer: { VK_CALL(vkQueueSubmit(mTransferQueue, 1, &submitInfo, fence)); break; }
         }
 
@@ -141,7 +139,7 @@ namespace Surge
         switch (type)
         {
         case VulkanQueueType::Graphics: { vkFreeCommandBuffers(mLogicalDevice, mGraphicsCommandPool, 1, &commandBuffer); break; }
-        case VulkanQueueType::Compute:  { vkFreeCommandBuffers(mLogicalDevice, mComputeCommandPool, 1, &commandBuffer);  break; }
+        case VulkanQueueType::Compute: { vkFreeCommandBuffers(mLogicalDevice, mComputeCommandPool, 1, &commandBuffer);  break; }
         case VulkanQueueType::Transfer: { vkFreeCommandBuffers(mLogicalDevice, mTransferCommandPool, 1, &commandBuffer); break; }
         }
 

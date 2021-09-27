@@ -33,10 +33,10 @@ namespace Surge::VulkanUtils
     void CreateImage(Uint width, Uint height, Uint texureDepth, Uint mipLevels,
         VkFormat format, VkImageType type, VkImageTiling tiling,
         VkImageUsageFlags usage, VmaMemoryUsage memoryUsage,
-        VkImage& image, VmaAllocation& imageMemory);
+        VkImage& outImage, VmaAllocation& outImageMemory);
 
-    void CreateImageView(VkImageView& imageView, VkImage& image, VkImageUsageFlags imageUsage, VkFormat format, Uint mipLevels, Uint textureDepth);
-    void CreateImageSampler(VkFilter filtering, Uint mipLevels, VkSampler& sampler);
+    void CreateImageView(const VkImage& image, VkImageUsageFlags imageUsage, VkFormat format, Uint mipLevels, Uint textureDepth, VkImageView& outImageView);
+    void CreateImageSampler(VkFilter filtering, Uint mipLevels, VkSampler& outSampler);
 
     void ChangeImageLayout(VkImage& image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, Uint mipLevels, Uint depthMap);
     void CopyBufferToImage(VkCommandBuffer cmdBuffer, VkBuffer& buffer, VkImage& image, Uint width, Uint height);

@@ -57,13 +57,12 @@ namespace Surge
         indexBufferCreateInfo.flags = VK_SHARING_MODE_EXCLUSIVE;
         mAllocation = allocator->AllocateBuffer(indexBufferCreateInfo, VMA_MEMORY_USAGE_GPU_ONLY, mVulkanBuffer, &mAllocationInfo);
 
-        VkCommandBuffer cmdBuffer = VK_NULL_HANDLE;
-
-        renderContext->GetDevice()->BeginOneTimeCmdBuffer(cmdBuffer, VulkanQueueType::Transfer);
-        VkBufferCopy copyRegion = {};
-        copyRegion.size = mSize;
-        vkCmdCopyBuffer(cmdBuffer, stagingBuffer, mVulkanBuffer, 1, &copyRegion);
-        vulkanDevice->EndOneTimeCmdBuffer(cmdBuffer, VulkanQueueType::Transfer);
+        vulkanDevice->InstantSubmit(VulkanQueueType::Transfer, [&](VkCommandBuffer& cmd)
+            {
+                VkBufferCopy copyRegion = {};
+                copyRegion.size = mSize;
+                vkCmdCopyBuffer(cmd, stagingBuffer, mVulkanBuffer, 1, &copyRegion);
+            });
 
         allocator->DestroyBuffer(stagingBuffer, stagingBufferAllocation);
     }

@@ -1,6 +1,6 @@
 {
     "Cake.glsl.Pixel.spv": -352725352,
     "Cake.glsl.Vertex.spv": -969704747,
-    "Simple.glsl.Pixel.spv": -352725352,
+    "Simple.glsl.Pixel.spv": -521345928,
     "Simple.glsl.Vertex.spv": -969704747
 }
