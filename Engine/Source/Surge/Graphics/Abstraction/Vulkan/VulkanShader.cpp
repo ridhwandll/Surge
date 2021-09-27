@@ -315,16 +315,4 @@ namespace Surge
             mHashCodes[shaderType] = Hash().Generate<String>(mShaderSources.at(shaderType));
         }
     }
-
-    VkShaderStageFlagBits VulkanShader::GetVulkanShaderStage(ShaderType type)
-    {
-        switch (type)
-        {
-        case ShaderType::Vertex:  return VK_SHADER_STAGE_VERTEX_BIT;
-        case ShaderType::Pixel:   return VK_SHADER_STAGE_FRAGMENT_BIT;
-        case ShaderType::Compute: return VK_SHADER_STAGE_COMPUTE_BIT;
-        case ShaderType::None: SG_ASSERT_INTERNAL("ShaderType::None is invalid in this case!");
-        }
-        return VkShaderStageFlagBits();
-    }
 }

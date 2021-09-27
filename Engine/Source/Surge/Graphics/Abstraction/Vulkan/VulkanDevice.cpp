@@ -23,8 +23,7 @@ namespace Surge
             mPhysicalDevice = candidates.rbegin()->second;
             QueryPhysicalDeviceProperties();
             QueryPhysicalDeviceFeatures();
-            DumpPhysicalDeviceProperties();
-            Log<Severity::Info>("Surge Device Score: {0}", candidates.rbegin()->first);
+            mDeviceScore = candidates.rbegin()->first;
         }
         else
             SG_ASSERT_INTERNAL("No discrete Graphics Processing Unit(GPU) found!");
@@ -253,14 +252,6 @@ namespace Surge
         }
     }
 
-    void VulkanDevice::DumpPhysicalDeviceProperties()
-    {
-        Log<Severity::Info>("Picked PhysicalDevice Properties:");
-        Log<Severity::Info>("  Device Name   : {0}", mProperties.vk12Properties.driverName);
-        Log<Severity::Info>("  Device ID     : {0}", mProperties.vk12Properties.driverID);
-        Log<Severity::Info>("  Driver Version: {0}", mProperties.vk12Properties.driverInfo);
-    }
-
     void VulkanDevice::FillQueueFamilyIndicesAndStructures(int flags, VulkanQueueFamilyIndices& outQueueFamilyIndices, Vector<VkDeviceQueueCreateInfo>& outQueueInfo)
     {
         // Find a dedicated queue for compute queue, which doesn't have graphics in it
@@ -400,7 +391,7 @@ namespace Surge
         score += properties.limits.framebufferDepthSampleCounts;
         score += properties.limits.maxClipDistances;
         score += properties.limits.maxBoundDescriptorSets;
-        score += properties.limits.maxPushConstantsSize / 2;
+        score += properties.limits.maxPushConstantsSize;
         score += extCount;
         score += layerCount;
 

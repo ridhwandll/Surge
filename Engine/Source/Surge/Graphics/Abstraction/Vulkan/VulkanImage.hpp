@@ -1,6 +1,6 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
-#include "Surge/Graphics/Texture.hpp"
+#include "Surge/Graphics/Image.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanUtils.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanMemoryAllocator.hpp"
 #include <volk/volk.h>
@@ -33,13 +33,13 @@ namespace Surge
     private:
         void UpdateDescriptor();
     private:
-        VkImage mImage;
-        VkImageView mImageView;
-        VkImageLayout mImageLayout;
-        VmaAllocation mImageMemory;
-
-        VkSampler mImageSampler;
         ImageSpecification mImageSpecification;
+        VkImageLayout mImageLayout;
+
+        VkImage mImage = VK_NULL_HANDLE;
+        VkImageView mImageView = VK_NULL_HANDLE;
+        VkSampler mImageSampler;
+        VmaAllocation mImageMemory;
 
         VkDescriptorImageInfo mDescriptorInfo;
     };

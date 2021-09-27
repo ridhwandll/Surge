@@ -11,7 +11,7 @@ public:
 
     virtual void OnUpdate() override
     {
-        CoreGetRenderer()->RenderRectangle(mPosition);
+        CoreGetRenderer()->RenderRectangle(mPosition, mScale);
     }
 
     virtual void OnImGuiRender() override
@@ -21,8 +21,12 @@ public:
         if (ImGui::Begin("Settings"))
         {
             ImGui::DragFloat3("Translation", glm::value_ptr(mPosition), 0.1);
-            ImGui::TextUnformatted("GPU memory status:");
-            ImGui::Text("Used: %f Mb | Free: %f Mb", (float)memoryStatus.Used / 1000000.0f, (float)memoryStatus.Free / 1000000.0f);
+            ImGui::DragFloat3("Scale", glm::value_ptr(mScale), 0.1);
+            ImGui::TextUnformatted("Status:");
+            float used = memoryStatus.Used / 1000000.0f;
+            float free = memoryStatus.Free / 1000000.0f;
+            ImGui::Text("Device: %s", CoreGetRenderContext()->GetGPUInfo().Name.c_str());
+            ImGui::Text("Used: %f Mb | Local-Free: %f Mb | Total: %f Mb", used, free, used + free);
         }
         ImGui::End();
     }
@@ -41,6 +45,7 @@ public:
     }
 private:
     glm::vec3 mPosition = glm::vec3(0.0f, 0.0f, 1.0f);
+    glm::vec3 mScale = glm::vec3(1.0f, 1.0f, 1.0f);
 };
 
 int main()

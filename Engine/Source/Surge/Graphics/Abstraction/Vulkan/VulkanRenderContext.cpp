@@ -44,6 +44,10 @@ namespace Surge
         mSwapChain.Initialize(window);
         mMemoryAllocator.Initialize(mVulkanInstance, mDevice);
         mImGuiContext.Initialize(this);
+
+        //Fill In GPUInfo
+        mGPUInfo.Name = mDevice.GetProperties().vk10Properties.properties.deviceName;
+        mGPUInfo.DeviceScore = mDevice.GetDeviceScore();
     }
 
     void VulkanRenderContext::BeginFrame()

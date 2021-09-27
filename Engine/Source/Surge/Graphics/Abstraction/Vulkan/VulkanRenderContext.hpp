@@ -24,6 +24,7 @@ namespace Surge
 
         Uint GetFrameIndex() const override { return mSwapChain.GetCurrentFrameIndex(); }
         virtual GPUMemoryStats GetMemoryStatus() const override { return mMemoryAllocator.GetStats(); };
+        virtual GPUInfo GetGPUInfo() const override { return mGPUInfo; }
         virtual void* GetMemoryAllocator() const override { return (void*)&mMemoryAllocator; }
 
         VkInstance GetInstance() const { return mVulkanInstance; }
@@ -40,6 +41,7 @@ namespace Surge
         VulkanMemoryAllocator mMemoryAllocator{};
         VulkanImGuiContext mImGuiContext;
 
+        GPUInfo mGPUInfo;
         friend class VulkanImGuiContext;
         friend class VulkanDevice;
     };

@@ -29,18 +29,19 @@ namespace Surge
         void Initialize(VkInstance instance);
         void Destroy();
 
-        VkPhysicalDevice GetPhysicalDevice() { return mPhysicalDevice; }
-        VkDevice GetLogicalDevice() { return mLogicalDevice; }
-        VulkanQueueFamilyIndices GetQueueFamilyIndices() { return mQueueFamilyIndices; }
+        VkPhysicalDevice GetPhysicalDevice() const { return mPhysicalDevice; }
+        int32_t GetDeviceScore() const { return mDeviceScore; }
+        VkDevice GetLogicalDevice() const { return mLogicalDevice; }
+        VulkanQueueFamilyIndices GetQueueFamilyIndices() const { return mQueueFamilyIndices; }
+        auto GetProperties() const { return mProperties; }
+        VkQueue GetGraphicsQueue() const { return mGraphicsQueue; }
+        VkQueue GetComputeQueue() const { return mComputeQueue; }
+        VkQueue GetTransferQueue() const { return mTransferQueue; }
 
-        VkQueue GetGraphicsQueue() { return mGraphicsQueue; }
-        VkQueue GetComputeQueue() { return mComputeQueue; }
-        VkQueue GetTransferQueue() { return mTransferQueue; }
-
-        VkCommandPool GetGraphicsCommandPool() { return mGraphicsCommandPool; }
-        VkCommandPool GetComputeCommandPool() { return mComputeCommandPool; }
-        VkCommandPool GetTransferCommandPool() { return mTransferCommandPool; }
-        VkPhysicalDeviceProperties GetPhysicalDeviceProperties()
+        VkCommandPool GetGraphicsCommandPool() const { return mGraphicsCommandPool; }
+        VkCommandPool GetComputeCommandPool() const { return mComputeCommandPool; }
+        VkCommandPool GetTransferCommandPool() const { return mTransferCommandPool; }
+        VkPhysicalDeviceProperties GetPhysicalDeviceProperties() const
         {
             VkPhysicalDeviceProperties properties{};
             vkGetPhysicalDeviceProperties(mPhysicalDevice, &properties);
@@ -53,7 +54,6 @@ namespace Surge
         void QueryDeviceExtensions();
         void QueryPhysicalDeviceFeatures();
         void QueryPhysicalDeviceProperties();
-        void DumpPhysicalDeviceProperties();
         void FillQueueFamilyIndicesAndStructures(int flags, VulkanQueueFamilyIndices& outQueueFamilyIndices, Vector<VkDeviceQueueCreateInfo>& outQueueInfo);
         void CreateCommandPools();
         int32_t RatePhysicalDevice(VkPhysicalDevice physicalDevice);
@@ -63,11 +63,20 @@ namespace Surge
 
         // PhysicalDevice
         VkPhysicalDevice mPhysicalDevice = VK_NULL_HANDLE;
+        int32_t mDeviceScore;
 
         // LogicalDevice
         VkDevice mLogicalDevice;
         std::unordered_set<String> mSupportedExtensions;
 
+        VkQueue mGraphicsQueue;
+        VkQueue mComputeQueue;
+        VkQueue mTransferQueue;
+
+        VkCommandPool mGraphicsCommandPool;
+        VkCommandPool mComputeCommandPool;
+        VkCommandPool mTransferCommandPool;
+    public:
         struct VkFeatures
         {
             VkPhysicalDeviceFeatures2 vk10Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
@@ -82,13 +91,5 @@ namespace Surge
             VkPhysicalDeviceVulkan11Properties vk11Properties{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_PROPERTIES };
             VkPhysicalDeviceVulkan12Properties vk12Properties{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES };
         } mProperties{};
-
-        VkQueue mGraphicsQueue;
-        VkQueue mComputeQueue;
-        VkQueue mTransferQueue;
-
-        VkCommandPool mGraphicsCommandPool;
-        VkCommandPool mComputeCommandPool;
-        VkCommandPool mTransferCommandPool;
     };
 }

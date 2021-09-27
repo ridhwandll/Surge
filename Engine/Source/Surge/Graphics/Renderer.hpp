@@ -15,7 +15,7 @@ namespace Surge
 
         void Initialize();
 
-        void RenderRectangle(const glm::vec3& color); // TODO: Remove
+        void RenderRectangle(const glm::vec3& position, const glm::vec3& scale); // TODO: Remove
 
         void Shutdown();
     private:

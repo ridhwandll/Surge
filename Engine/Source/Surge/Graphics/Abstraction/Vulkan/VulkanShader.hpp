@@ -22,8 +22,6 @@ namespace Surge
         HashMap<ShaderType, VkShaderModule>& GetVulkanShaderModules() { return mVkShaderModules; }
         HashMap<Uint, VkDescriptorSetLayout>& GetDescriptorSetLayouts() { return mDescriptorSetLayouts; }
         HashMap<String, VkPushConstantRange>& GetPushConstantRanges() { return mPushConstants; }
-
-        static VkShaderStageFlagBits GetVulkanShaderStage(ShaderType type);
     private:
         void ParseShader();
         void Compile();

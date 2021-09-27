@@ -3,6 +3,7 @@
 #include "Surge/Graphics/VertexBuffer.hpp"
 #include "Surge/Graphics/IndexBuffer.hpp"
 #include "Surge/Graphics/GraphicsPipeline.hpp"
+#include "Surge/Graphics/Texture.hpp"
 #include "Abstraction/Vulkan/VulkanGraphicsPipeline.hpp"
 #include "Abstraction/Vulkan/VulkanShader.hpp"
 #include "Abstraction/Vulkan/VulkanRenderCommandBuffer.hpp"
@@ -35,11 +36,11 @@ namespace Surge
 
     const std::vector<Vertex> vertices =
     {
-		// positions         // texture coords
-		{{  0.5f,  0.5f, 0.0f, }, { 1.0f, 0.0f }}, // top right
-		{{  0.5f, -0.5f, 0.0f, }, { 1.0f, 1.0f }}, // bottom right
-		{{ -0.5f, -0.5f, 0.0f, }, { 0.0f, 1.0f }}, // bottom left
-		{{ -0.5f,  0.5f, 0.0f, }, { 0.0f, 0.0f }}  // top left 
+        // positions         // texture coords
+        {{  0.5f,  0.5f, 0.0f, }, { 1.0f, 0.0f }}, // top right
+        {{  0.5f, -0.5f, 0.0f, }, { 1.0f, 1.0f }}, // bottom right
+        {{ -0.5f, -0.5f, 0.0f, }, { 0.0f, 1.0f }}, // bottom left
+        {{ -0.5f,  0.5f, 0.0f, }, { 0.0f, 0.0f }}  // top left 
     };
     const std::vector<Uint> indices = { 0, 1, 2, 2, 3, 0 };
 
@@ -67,9 +68,11 @@ namespace Surge
             TextureSpecification textureSpec{};
             textureSpec.UseMips = true;
             textureSpec.ShaderUsage = { ShaderType::Pixel };
-            sData->TestTexture = Texture2D::Create("Engine/Assets/Textures/kekw.jpg", textureSpec);
+            textureSpec.Sampler.SamplerFilter = TextureFilter::Linear;
+            textureSpec.Sampler.SamplerAddressMode = TextureAddressMode::Repeat;
+            sData->TestTexture = Texture2D::Create("Engine/Assets/Textures/kekwCool.png", textureSpec);
 
-            VkDescriptorPoolSize pool_sizes[] =
+            VkDescriptorPoolSize poolSizes[] =
             {
                 { VK_DESCRIPTOR_TYPE_SAMPLER, 100 },
                 { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100 },
@@ -86,9 +89,9 @@ namespace Surge
             VkDescriptorPoolCreateInfo pool_info = {};
             pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
             pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-            pool_info.maxSets = 100 * (sizeof(pool_sizes) / sizeof(VkDescriptorPoolSize));
-            pool_info.poolSizeCount = (uint32_t)(sizeof(pool_sizes) / sizeof(VkDescriptorPoolSize));
-            pool_info.pPoolSizes = pool_sizes;
+            pool_info.maxSets = 100 * (sizeof(poolSizes) / sizeof(VkDescriptorPoolSize));
+            pool_info.poolSizeCount = (uint32_t)(sizeof(poolSizes) / sizeof(VkDescriptorPoolSize));
+            pool_info.pPoolSizes = poolSizes;
             VK_CALL(vkCreateDescriptorPool(device, &pool_info, nullptr, &sData->DescriptorPool));
 
             auto descriptorSetLayout = mBase.GetShader("Simple").As<VulkanShader>()->GetDescriptorSetLayouts();
@@ -113,7 +116,7 @@ namespace Surge
         }
     }
 
-    void Renderer::RenderRectangle(const glm::vec3& position)
+    void Renderer::RenderRectangle(const glm::vec3& position, const glm::vec3& scale)
     {
         VulkanRenderContext* vkContext = static_cast<VulkanRenderContext*>(CoreGetRenderContext().get());
         VulkanSwapChain* swapchain = static_cast<VulkanSwapChain*>(vkContext->GetSwapChain());
@@ -129,7 +132,7 @@ namespace Surge
             glm::mat4 Transform;
         } uFrameData;
         uFrameData.ViewProjection = projection * view;
-        uFrameData.Transform = glm::translate(glm::mat4(1.0f), position);
+        uFrameData.Transform = glm::translate(glm::mat4(1.0f), position) * glm::scale(glm::mat4(1.0f), scale);
 
         // Begin command buffer recording
         const Ref<RenderCommandBuffer>& cmd = sData->RenderCmdBuffer;

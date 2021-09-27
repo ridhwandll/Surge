@@ -29,14 +29,14 @@ namespace Surge
         Linear, Nearest
     };
 
-    enum class TextureWrap
+    enum class TextureAddressMode
     {
-        Repeat
+        Repeat, MirroredRepeat, ClampToEdge, ClampToBorder
     };
 
     struct SamplerProperties
     {
-        TextureWrap SamplerWrap = TextureWrap::Repeat;
+        TextureAddressMode SamplerAddressMode = TextureAddressMode::Repeat;
         TextureFilter SamplerFilter = TextureFilter::Linear;
     };
 

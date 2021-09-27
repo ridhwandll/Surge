@@ -14,7 +14,7 @@ namespace Surge
 
         VkFormat textureFormat = VulkanUtils::GetImageFormat(specification.Format);
         VkImageUsageFlags usageFlags = VulkanUtils::GetImageUsageFlags(specification.Usage);
-        VkImageLayout newImageLayout = VulkanUtils::GetImageLayoutUsage(specification.Usage);
+        VkImageLayout newImageLayout = VulkanUtils::GetImageLayoutFromUsage(specification.Usage);
 
         // Creating the image and allocating the needed buffer
         // (for creation we use `VK_IMAGE_LAYOUT_UNDEFINED` layout, which will be later changed to the user's input")
@@ -39,7 +39,6 @@ namespace Surge
                 {
                     TransitionLayout(cmdBuffer, newImageLayout, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VulkanUtils::GetPipelineStagesFromLayout(newImageLayout));
                 }
-
             });
 
         // Creating the image view
@@ -47,7 +46,8 @@ namespace Surge
 
         // Creating the sampler
         VkFilter filtering = VulkanUtils::GetImageFiltering(specification.Sampler.SamplerFilter);
-        VulkanUtils::CreateImageSampler(filtering, specification.Mips, mImageSampler);
+        VkSamplerAddressMode addressMode = VulkanUtils::GetImageAddressMode(specification.Sampler.SamplerAddressMode);
+        VulkanUtils::CreateImageSampler(addressMode, filtering, specification.Mips, mImageSampler);
 
         // Updating the descriptor
         UpdateDescriptor();
@@ -64,7 +64,7 @@ namespace Surge
 
         VkFormat textureFormat = VulkanUtils::GetImageFormat(specification.Format);
         VkImageUsageFlags usageFlags = VulkanUtils::GetImageUsageFlags(specification.Usage);
-        VkImageLayout newImageLayout = VulkanUtils::GetImageLayoutUsage(specification.Usage);
+        VkImageLayout newImageLayout = VulkanUtils::GetImageLayoutFromUsage(specification.Usage);
 
         // Allocating a temporary buffer for copying the data into the image buffer
         VkBufferCreateInfo bufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
@@ -81,18 +81,20 @@ namespace Surge
         allocator->UnmapMemory(stagingBufferMemory);
 
         // Creating the image
-        VulkanUtils::CreateImage(specification.Width, specification.Height, 1, specification.Mips, textureFormat, VK_IMAGE_TYPE_2D,
-                           VK_IMAGE_TILING_OPTIMAL,
-                           usageFlags | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-                           VMA_MEMORY_USAGE_GPU_ONLY,
-                           mImage, mImageMemory);
+        VulkanUtils::CreateImage(specification.Width, specification.Height, 1, specification.Mips, textureFormat,
+            VK_IMAGE_TYPE_2D,
+            VK_IMAGE_TILING_OPTIMAL,
+            usageFlags | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+            VMA_MEMORY_USAGE_GPU_ONLY,
+            mImage, mImageMemory);
 
-        // Recording a temporary into a temporary commandbuffer for transitioning/copying/generating mips
+        // Transitioning/copying/generating mips
         device->InstantSubmit(VulkanQueueType::Graphics, [&](VkCommandBuffer& cmd)
             {
                 // Changing the layout for copying the staging buffer to the iamge
                 TransitionLayout(cmd, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
                     VulkanUtils::GetPipelineStagesFromLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL));
+
                 VulkanUtils::CopyBufferToImage(cmd, stagingBuffer, mImage, specification.Width, specification.Height);
 
                 // Generating mip maps if the mip count is higher than 1, else just transition to user's input `VkImageLayout`
@@ -107,7 +109,8 @@ namespace Surge
 
         // Creating the sampler
         VkFilter filtering = VulkanUtils::GetImageFiltering(specification.Sampler.SamplerFilter);
-        VulkanUtils::CreateImageSampler(filtering, specification.Mips, mImageSampler);
+        VkSamplerAddressMode addressMode = VulkanUtils::GetImageAddressMode(specification.Sampler.SamplerAddressMode);
+        VulkanUtils::CreateImageSampler(addressMode, filtering, specification.Mips, mImageSampler);
 
         // Updating the descriptor
         UpdateDescriptor();
@@ -127,8 +130,7 @@ namespace Surge
         allocator->DestroyImage(mImage, mImageMemory);
     }
 
-    void VulkanImage2D::TransitionLayout(VkCommandBuffer cmdBuffer, VkImageLayout newImageLayout,
-                                         VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask)
+    void VulkanImage2D::TransitionLayout(VkCommandBuffer cmdBuffer, VkImageLayout newImageLayout, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask)
     {
         VkImageSubresourceRange subresourceRange{};
         subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -149,18 +151,8 @@ namespace Surge
         imageMemoryBarrier.srcAccessMask = VulkanUtils::GetAccessFlagsFromLayout(mImageLayout);
         imageMemoryBarrier.dstAccessMask = VulkanUtils::GetAccessFlagsFromLayout(newImageLayout);
 
-
         // Put barrier inside setup command buffer
-        vkCmdPipelineBarrier(
-            cmdBuffer,
-            srcStageMask,
-            dstStageMask,
-            0,
-            0, nullptr,
-            0, nullptr,
-            1, &imageMemoryBarrier
-        );
-
+        vkCmdPipelineBarrier(cmdBuffer, srcStageMask, dstStageMask, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
         mImageLayout = newImageLayout;
     }
 

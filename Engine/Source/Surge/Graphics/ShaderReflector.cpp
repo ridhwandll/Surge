@@ -124,7 +124,7 @@ namespace Surge
                 stageInput.Name = resource.name;
                 stageInput.DataType = Utils::SPVTypeToShaderDataType(spvType);
                 stageInput.Size = ShaderDataTypeSize(stageInput.DataType);
-                stageInput.Offset = 0; // temporary
+                stageInput.Offset = 0; // temporary, calculated later
 
                 result.PushStageInput(stageInput, handle.Type, location);
             }
@@ -154,5 +154,4 @@ namespace Surge
         result.CalculateDescriptorSetCount();
         return result;
     }
-
 }

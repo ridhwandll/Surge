@@ -20,12 +20,14 @@ namespace Surge::VulkanUtils
     VkDescriptorType ShaderImageTypeToVulkan(ShaderResource::Usage type);
     VkShaderStageFlags GetShaderStagesFlagsFromShaderTypes(const Vector<ShaderType>& shaderStages);
     void CreateWindowSurface(VkInstance instance, Window* windowHandle, VkSurfaceKHR* surface);
+    VkShaderStageFlagBits GetVulkanShaderStage(ShaderType type);
 
     // Image Related
     VkDeviceSize CalculateImageBufferSize(Uint width, Uint height, ImageFormat imageFormat);
     VkFormat GetImageFormat(ImageFormat format);
-    VkImageLayout GetImageLayoutUsage(ImageUsage usage);
+    VkImageLayout GetImageLayoutFromUsage(ImageUsage usage);
     VkFilter GetImageFiltering(TextureFilter filtering);
+    VkSamplerAddressMode GetImageAddressMode(TextureAddressMode wrap);
     VkImageUsageFlags GetImageUsageFlags(ImageUsage usage);
     VkAccessFlags GetAccessFlagsFromLayout(VkImageLayout layout);
     VkPipelineStageFlags GetPipelineStagesFromLayout(VkImageLayout layout);
@@ -36,7 +38,7 @@ namespace Surge::VulkanUtils
         VkImage& outImage, VmaAllocation& outImageMemory);
 
     void CreateImageView(const VkImage& image, VkImageUsageFlags imageUsage, VkFormat format, Uint mipLevels, Uint textureDepth, VkImageView& outImageView);
-    void CreateImageSampler(VkFilter filtering, Uint mipLevels, VkSampler& outSampler);
+    void CreateImageSampler(VkSamplerAddressMode adressMode, VkFilter filtering, Uint mipLevels, VkSampler& outSampler);
 
     void ChangeImageLayout(VkImage& image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, Uint mipLevels, Uint depthMap);
     void CopyBufferToImage(VkCommandBuffer cmdBuffer, VkBuffer& buffer, VkImage& image, Uint width, Uint height);

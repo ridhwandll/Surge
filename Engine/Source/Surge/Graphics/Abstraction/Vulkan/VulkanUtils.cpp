@@ -118,7 +118,7 @@ namespace Surge
             case ShaderType::Vertex:  stageFlags |= VK_SHADER_STAGE_VERTEX_BIT;   break;
             case ShaderType::Pixel:   stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT; break;
             case ShaderType::Compute: stageFlags |= VK_SHADER_STAGE_COMPUTE_BIT;  break;
-            case ShaderType::None: SG_ASSERT(false, "Shader::None is invalid!");
+            case ShaderType::None: SG_ASSERT_INTERNAL("ShaderType::None is invalid!");
             }
         }
         return stageFlags;
@@ -197,7 +197,7 @@ namespace Surge
         VK_CALL(vkCreateImageView(device, &createInfo, nullptr, &outImageView));
     }
 
-    void VulkanUtils::CreateImageSampler(VkFilter filtering, Uint mipLevels, VkSampler& outSampler)
+    void VulkanUtils::CreateImageSampler(VkSamplerAddressMode adressMode, VkFilter filtering, Uint mipLevels, VkSampler& outSampler)
     {
         VulkanRenderContext* renderContext = nullptr; SURGE_GET_VULKAN_CONTEXT(renderContext);
         VulkanDevice* vulkanDevice = renderContext->GetDevice();
@@ -208,10 +208,9 @@ namespace Surge
         samplerInfo.magFilter = filtering;
         samplerInfo.minFilter = filtering;
 
-        // We currently support Repeat for now
-        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.addressModeU = adressMode;
+        samplerInfo.addressModeV = adressMode;
+        samplerInfo.addressModeW = adressMode;
 
         samplerInfo.anisotropyEnable = VK_FALSE;
         samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
@@ -382,6 +381,7 @@ namespace Surge
         case ImageFormat::RGBA32F:   return width * height * sizeof(float) * 4;
         case ImageFormat::None:      SG_ASSERT_INTERNAL("ImageFormat::None is invalid!");
         }
+        SG_ASSERT_INTERNAL("No matching ImageFormat found!")
         return 0;
     }
 
@@ -396,18 +396,20 @@ namespace Surge
         case ImageFormat::Depth24Stencil8:  return VK_FORMAT_D24_UNORM_S8_UINT;
         case ImageFormat::None:             SG_ASSERT_INTERNAL("ImageFormat::None is invalid!");
         }
+        SG_ASSERT_INTERNAL("Invalid ImageFormat!");
         return VK_FORMAT_UNDEFINED;
     }
 
-    VkImageLayout VulkanUtils::GetImageLayoutUsage(ImageUsage usage)
+    VkImageLayout VulkanUtils::GetImageLayoutFromUsage(ImageUsage usage)
     {
         switch (usage)
         {
-        case ImageUsage::Storage:       return VK_IMAGE_LAYOUT_GENERAL;
         case ImageUsage::Attachment:    return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         case ImageUsage::DepthStencil:  return VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+        case ImageUsage::Storage:       return VK_IMAGE_LAYOUT_GENERAL;
         case ImageUsage::None:          SG_ASSERT_INTERNAL("ImageUsage::None is invalid!");
         }
+        SG_ASSERT_INTERNAL("Invalid ImageUsage!");
         return VK_IMAGE_LAYOUT_UNDEFINED;
     }
 
@@ -418,18 +420,33 @@ namespace Surge
         case TextureFilter::Linear:   return VK_FILTER_LINEAR;
         case TextureFilter::Nearest:  return VK_FILTER_NEAREST;
         }
+        SG_ASSERT_INTERNAL("Invalid TextureFilter!");
         return VK_FILTER_MAX_ENUM;
+    }
+
+    VkSamplerAddressMode VulkanUtils::GetImageAddressMode(TextureAddressMode wrap)
+    {
+        switch (wrap)
+        {
+        case TextureAddressMode::Repeat:          return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        case TextureAddressMode::ClampToBorder:   return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+        case TextureAddressMode::ClampToEdge:     return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        case TextureAddressMode::MirroredRepeat:  return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+        }
+        SG_ASSERT_INTERNAL("Invalid TextureAddressMode!");
+        return VK_SAMPLER_ADDRESS_MODE_MAX_ENUM;
     }
 
     VkImageUsageFlags VulkanUtils::GetImageUsageFlags(ImageUsage usage)
     {
         switch (usage)
         {
-        case ImageUsage::Storage:       return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
         case ImageUsage::Attachment:    return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
         case ImageUsage::DepthStencil:  return VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        case ImageUsage::Storage:       return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
         case ImageUsage::None:          SG_ASSERT_INTERNAL("ImageUsage::None is invalid!");
         }
+        SG_ASSERT_INTERNAL("Invalid image ImageUsage")
         return VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM;
     }
 
@@ -481,5 +498,17 @@ namespace Surge
         imageMemoryBarrier.subresourceRange = subresourceRange;
 
         vkCmdPipelineBarrier(cmdbuffer, srcStageMask, dstStageMask, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
+    }
+
+    VkShaderStageFlagBits VulkanUtils::GetVulkanShaderStage(ShaderType type)
+    {
+        switch (type)
+        {
+        case ShaderType::Vertex:  return VK_SHADER_STAGE_VERTEX_BIT;
+        case ShaderType::Pixel:   return VK_SHADER_STAGE_FRAGMENT_BIT;
+        case ShaderType::Compute: return VK_SHADER_STAGE_COMPUTE_BIT;
+        case ShaderType::None: SG_ASSERT_INTERNAL("ShaderType::None is invalid in this case!");
+        }
+        return VkShaderStageFlagBits();
     }
 }

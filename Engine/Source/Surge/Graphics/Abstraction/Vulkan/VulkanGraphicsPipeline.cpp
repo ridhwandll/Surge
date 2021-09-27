@@ -25,7 +25,7 @@ namespace Surge
         {
             VkPipelineShaderStageCreateInfo& shaderStageInfo = shaderStages.emplace_back();
             shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-            shaderStageInfo.stage = VulkanShader::GetVulkanShaderStage(shader.first);
+            shaderStageInfo.stage = VulkanUtils::GetVulkanShaderStage(shader.first);
             shaderStageInfo.module = shader.second;
             shaderStageInfo.pName = "main";
             shaderStageInfo.pSpecializationInfo = nullptr;

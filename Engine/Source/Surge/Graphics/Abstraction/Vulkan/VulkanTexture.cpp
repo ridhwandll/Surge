@@ -1,6 +1,5 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "VulkanTexture.hpp"
-
 #include <stb_image.h>
 
 namespace Surge
@@ -12,15 +11,27 @@ namespace Surge
         int width, height, channels;
         ImageFormat imageFormat;
         void* pixels = nullptr;
+        bool defaultFormat = false;
+
+        if (specification.Format == ImageFormat::None)
+            defaultFormat = true;
+        else
+        {
+            imageFormat = specification.Format;
+            defaultFormat = false;
+        }
+
         if (stbi_is_hdr(filepath.c_str()))
         {
             pixels = (void*)stbi_loadf(filepath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
-            imageFormat = ImageFormat::RGBA32F;
+            if (defaultFormat)
+                imageFormat = ImageFormat::RGBA32F;
         }
         else
         {
             pixels = (void*)stbi_load(filepath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
-            imageFormat = ImageFormat::RGBA8;
+            if (defaultFormat)
+                imageFormat = ImageFormat::RGBA8;
         }
         SG_ASSERT(pixels, "Failed to load image!");
 
@@ -35,8 +46,8 @@ namespace Surge
         imageSpec.Mips = specification.UseMips ? mipChainLevels : 1;
         imageSpec.ShaderUsage = specification.ShaderUsage;
         imageSpec.Usage = specification.Usage;
-        imageSpec.Sampler.SamplerFilter = TextureFilter::Nearest;
-        imageSpec.Sampler.SamplerWrap = TextureWrap::Repeat;
+        imageSpec.Sampler = specification.Sampler;
         mImage = Image2D::Create(imageSpec, pixels);
+        stbi_image_free(pixels);
     }
 }

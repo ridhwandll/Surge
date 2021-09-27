@@ -6,7 +6,7 @@ namespace Surge
 {
     struct TextureSpecification
     {
-        ImageFormat Format = ImageFormat::RGBA8;
+        ImageFormat Format = ImageFormat::None;
         ImageUsage Usage = ImageUsage::Storage;
         SamplerProperties Sampler{};
         Vector<ShaderType> ShaderUsage;
