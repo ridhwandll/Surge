@@ -21,6 +21,9 @@ namespace Surge::VulkanUtils
     VkShaderStageFlags GetShaderStagesFlagsFromShaderTypes(const Vector<ShaderType>& shaderStages);
     void CreateWindowSurface(VkInstance instance, Window* windowHandle, VkSurfaceKHR* surface);
     VkShaderStageFlagBits GetVulkanShaderStage(ShaderType type);
+    VkCompareOp GetVulkanCompareOp(CompareOperation op);
+    VkPolygonMode GetVulkanPolygonMode(PolygonMode mode);
+    VkCullModeFlags GetVulkanCullModeFlags(CullMode mode);
 
     // Image Related
     VkDeviceSize CalculateImageBufferSize(Uint width, Uint height, ImageFormat imageFormat);

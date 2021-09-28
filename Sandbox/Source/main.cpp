@@ -11,7 +11,7 @@ public:
 
     virtual void OnUpdate() override
     {
-        CoreGetRenderer()->RenderRectangle(mPosition, mScale);
+        CoreGetRenderer()->RenderRectangle(mPosition, glm::radians(mRotation), mScale);
     }
 
     virtual void OnImGuiRender() override
@@ -21,6 +21,7 @@ public:
         if (ImGui::Begin("Settings"))
         {
             ImGui::DragFloat3("Translation", glm::value_ptr(mPosition), 0.1);
+            ImGui::DragFloat3("Rotation", glm::value_ptr(mRotation), 0.1);
             ImGui::DragFloat3("Scale", glm::value_ptr(mScale), 0.1);
             ImGui::TextUnformatted("Status:");
             float used = memoryStatus.Used / 1000000.0f;
@@ -46,6 +47,7 @@ public:
 private:
     glm::vec3 mPosition = glm::vec3(0.0f, 0.0f, 1.0f);
     glm::vec3 mScale = glm::vec3(1.0f, 1.0f, 1.0f);
+    glm::vec3 mRotation = glm::vec3(0.0f, 0.0f, 0.0f);
 };
 
 int main()

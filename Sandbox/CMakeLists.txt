@@ -12,8 +12,15 @@ add_custom_command(
     TARGET SurgeSandbox
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
-        ${CMAKE_SOURCE_DIR}/Engine/Vendor/shaderc/Bin/shaderc_shared.dll
+        ${CMAKE_SOURCE_DIR}/Engine/Vendor/shaderc/Binaries/shaderc_shared.dll
         ${CMAKE_BINARY_DIR}/Sandbox/$<CONFIGURATION>
+    )
+add_custom_command(
+    TARGET SurgeSandbox
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_SOURCE_DIR}/Engine/Vendor/assimp/Binaries/assimp-vc142-mt.dll
+        ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIGURATION>
     )
 
 GroupSourcesByFolder(SurgeSandbox)

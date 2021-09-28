@@ -189,6 +189,8 @@ namespace Surge
         {
         case VK_FORMAT_D32_SFLOAT:
         case VK_FORMAT_D24_UNORM_S8_UINT:
+        case VK_FORMAT_D32_SFLOAT_S8_UINT:
+        case VK_FORMAT_D16_UNORM_S8_UINT:
             createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT; break;
         default:
             createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -509,6 +511,50 @@ namespace Surge
         case ShaderType::Compute: return VK_SHADER_STAGE_COMPUTE_BIT;
         case ShaderType::None: SG_ASSERT_INTERNAL("ShaderType::None is invalid in this case!");
         }
+        SG_ASSERT_INTERNAL("Invalid shader type specified!");
         return VkShaderStageFlagBits();
+    }
+
+    VkPolygonMode VulkanUtils::GetVulkanPolygonMode(PolygonMode mode)
+    {
+        switch (mode)
+        {
+        case PolygonMode::Fill:  return VK_POLYGON_MODE_FILL;
+        case PolygonMode::Line:  return VK_POLYGON_MODE_LINE;
+        case PolygonMode::Point: return VK_POLYGON_MODE_POINT;
+        case PolygonMode::None: SG_ASSERT_INTERNAL("PolygonMode::None is invalid in this case!");
+        }
+        SG_ASSERT_INTERNAL("Invalid polygon mode specified!");
+        return VK_POLYGON_MODE_MAX_ENUM;
+    }
+
+    VkCullModeFlags VulkanUtils::GetVulkanCullModeFlags(CullMode mode)
+    {
+        switch (mode)
+        {
+        case CullMode::Back:         return VK_CULL_MODE_BACK_BIT;
+        case CullMode::Front:        return VK_CULL_MODE_FRONT_BIT;
+        case CullMode::FrontAndBack: return VK_CULL_MODE_FRONT_AND_BACK;
+        case CullMode::None:         return VK_CULL_MODE_NONE;
+        }
+        SG_ASSERT_INTERNAL("Invalid cull mode specified!");
+        return VK_CULL_MODE_FLAG_BITS_MAX_ENUM;
+    }
+
+    VkCompareOp VulkanUtils::GetVulkanCompareOp(CompareOperation op)
+    {
+        switch (op)
+        {
+        case CompareOperation::Never:          return VK_COMPARE_OP_NEVER;
+        case CompareOperation::Less:           return VK_COMPARE_OP_LESS;
+        case CompareOperation::Equal:          return VK_COMPARE_OP_EQUAL;
+        case CompareOperation::LessOrEqual:    return VK_COMPARE_OP_LESS_OR_EQUAL;
+        case CompareOperation::Greater:        return VK_COMPARE_OP_GREATER;
+        case CompareOperation::NotEqual:       return VK_COMPARE_OP_NOT_EQUAL;
+        case CompareOperation::GreaterOrEqual: return VK_COMPARE_OP_GREATER_OR_EQUAL;
+        case CompareOperation::Always:         return VK_COMPARE_OP_ALWAYS;
+        }
+        SG_ASSERT_INTERNAL("Invalid DepthCompareOperation specified!");
+        return VK_COMPARE_OP_MAX_ENUM;
     }
 }

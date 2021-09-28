@@ -67,7 +67,6 @@ namespace Surge
         inputAssembly.topology = VulkanUtils::GetVulkanPrimitiveTopology(pipelineSpec.Topology);
         inputAssembly.primitiveRestartEnable = VK_FALSE;
         inputAssembly.flags = 0;
-        inputAssembly.pNext = nullptr;
 
         // Setting the viewport and scissors to nullptr because later we will use dynamic pipeline states that avoids pipeline recreation on window resize
         VkPipelineViewportStateCreateInfo viewportState{ VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
@@ -80,16 +79,16 @@ namespace Surge
         VkPipelineRasterizationStateCreateInfo rasterizer{ VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
         rasterizer.depthClampEnable = VK_FALSE;
         rasterizer.rasterizerDiscardEnable = VK_FALSE;
-        rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+        rasterizer.polygonMode = VulkanUtils::GetVulkanPolygonMode(pipelineSpec.PolygonMode);
         rasterizer.lineWidth = pipelineSpec.LineWidth;
-        rasterizer.cullMode = VK_CULL_MODE_NONE;
-        rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+        rasterizer.cullMode = VulkanUtils::GetVulkanCullModeFlags(pipelineSpec.CullingMode);
+        rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE; // TODO: Maybe add as an specification option?
         rasterizer.depthBiasEnable = VK_FALSE;
         rasterizer.depthBiasConstantFactor = 0.0f;
         rasterizer.depthBiasClamp = 0.0f;
         rasterizer.depthBiasSlopeFactor = 0.0f;
 
-        // TODO: We wont probably use MSAA, but it will be added later
+        // We wont use MSAA, never again
         VkPipelineMultisampleStateCreateInfo multisampling{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
         multisampling.sampleShadingEnable = VK_FALSE;
         multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
@@ -98,7 +97,7 @@ namespace Surge
         VkPipelineDepthStencilStateCreateInfo depthStencil{ VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
         depthStencil.depthTestEnable = pipelineSpec.UseDepth;
         depthStencil.depthWriteEnable = pipelineSpec.UseDepth;
-        depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+        depthStencil.depthCompareOp = VulkanUtils::GetVulkanCompareOp(pipelineSpec.DepthCompOperation);
         depthStencil.depthBoundsTestEnable = VK_FALSE;
         depthStencil.stencilTestEnable = pipelineSpec.UseStencil;
 
@@ -106,7 +105,6 @@ namespace Surge
         VkPipelineColorBlendAttachmentState colorBlendAttachment{};
         colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
         colorBlendAttachment.blendEnable = VK_FALSE; //TODO: Enable blending
-
         VkPipelineColorBlendStateCreateInfo colorBlending{ VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
         colorBlending.logicOpEnable = VK_FALSE;
         colorBlending.logicOp = VK_LOGIC_OP_COPY;
@@ -167,7 +165,7 @@ namespace Surge
         vkDestroyPipelineLayout(device, mPipelineLayout, nullptr);
     }
 
-    void VulkanGraphicsPipeline::Bind(const Ref<RenderCommandBuffer>& cmdBuffer)
+    void VulkanGraphicsPipeline::Bind(const Ref<RenderCommandBuffer>& cmdBuffer) const
     {
         VulkanRenderContext* renderContext = nullptr; SURGE_GET_VULKAN_CONTEXT(renderContext);
         Uint frameIndex = renderContext->GetFrameIndex();
@@ -194,7 +192,7 @@ namespace Surge
         vkCmdBindPipeline(vulkanCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline);
     }
 
-    void VulkanGraphicsPipeline::SetPushConstantData(const Ref<RenderCommandBuffer>& cmdBuffer, const String& bufferName, void* data)
+    void VulkanGraphicsPipeline::SetPushConstantData(const Ref<RenderCommandBuffer>& cmdBuffer, const String& bufferName, void* data) const
     {
         VulkanRenderContext* renderContext = nullptr; SURGE_GET_VULKAN_CONTEXT(renderContext);
         Uint frameIndex = renderContext->GetFrameIndex();
@@ -205,12 +203,12 @@ namespace Surge
         vkCmdPushConstants(vulkanCmdBuffer, mPipelineLayout, pushConstant.stageFlags, pushConstant.offset, pushConstant.size, data);
     }
 
-    void VulkanGraphicsPipeline::DrawIndexed(const Ref<RenderCommandBuffer>& cmdBuffer, Uint indicesCount)
+    void VulkanGraphicsPipeline::DrawIndexed(const Ref<RenderCommandBuffer>& cmdBuffer, Uint indicesCount, Uint baseIndex, Uint baseVertex) const
     {
         VulkanRenderContext* renderContext = nullptr; SURGE_GET_VULKAN_CONTEXT(renderContext);
         Uint frameIndex = renderContext->GetFrameIndex();
         VkCommandBuffer vulkanCmdBuffer = cmdBuffer.As<VulkanRenderCommandBuffer>()->GetVulkanCommandBuffer(frameIndex);
 
-        vkCmdDrawIndexed(vulkanCmdBuffer, indicesCount, 1, 0, 0, 0);
+        vkCmdDrawIndexed(vulkanCmdBuffer, indicesCount, 1, baseIndex, baseVertex, 0);
     }
 }

@@ -20,6 +20,7 @@ set(INCLUDE_DIRS
     Vendor/ImGui
     Vendor/entt/Include
     Vendor/json/Include
+    Vendor/assimp/Include
 )
 
 set(LIB_LINKS
@@ -28,6 +29,7 @@ set(LIB_LINKS
     SPIRV-Cross
     ImGui
     ${CMAKE_SOURCE_DIR}/Engine/Vendor/shaderc/Lib/shaderc_shared.lib
+    ${CMAKE_SOURCE_DIR}/Engine/Vendor/assimp/Lib/assimp-vc142-mt.lib
 )
 
 add_library(Surge STATIC ${SOURCE_FILES})

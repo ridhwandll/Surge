@@ -22,7 +22,7 @@ namespace Surge
         allocator->DestroyBuffer(mVulkanBuffer, mAllocation);
     }
 
-    void VulkanIndexBuffer::Bind(const Ref<RenderCommandBuffer>& cmdBuffer)
+    void VulkanIndexBuffer::Bind(const Ref<RenderCommandBuffer>& cmdBuffer) const
     {
         VkDeviceSize offset = 0;
         Uint frameIndex = CoreGetRenderContext()->GetFrameIndex();

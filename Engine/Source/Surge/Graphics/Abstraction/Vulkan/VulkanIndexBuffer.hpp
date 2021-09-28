@@ -13,8 +13,8 @@ namespace Surge
         VulkanIndexBuffer(const void* data, const Uint& size);
         virtual ~VulkanIndexBuffer() override;
 
-        virtual Uint GetSize() override { return mSize; }
-        virtual void Bind(const Ref<RenderCommandBuffer>& cmdBuffer) override;
+        virtual Uint GetSize() const override { return mSize; }
+        virtual void Bind(const Ref<RenderCommandBuffer>& cmdBuffer) const override;
     public:
         const VkBuffer GetVulkanBuffer() const { return mVulkanBuffer; }
         VmaAllocation GetAllocation() { return mAllocation; }
