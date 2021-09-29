@@ -23,12 +23,12 @@ namespace Surge
         return { (float)p.x, (float)p.y };
     }
 
-    float Input::GetMousePositionX()
+    float Input::GetMouseX()
     {
         return GetMousePosition().Data1;
     }
 
-    float Input::GetMousePositionY()
+    float Input::GetMouseY()
     {
         return GetMousePosition().Data2;
     }

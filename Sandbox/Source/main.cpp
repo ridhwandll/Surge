@@ -7,11 +7,17 @@ class MyApp : public Application
 public:
     virtual void OnInitialize() override
     {
+        mCamera = EditorCamera(45.0f, 1.778f, 0.1f, 1000.0f);
+        mCamera.SetActive(true);
     }
 
     virtual void OnUpdate() override
     {
+        mCamera.OnUpdate();
+        mCamera.SetViewportSize(CoreGetWindow()->GetSize());
+        CoreGetRenderer()->BeginFrame(mCamera);
         CoreGetRenderer()->RenderRectangle(mPosition, glm::radians(mRotation), mScale);
+        CoreGetRenderer()->EndFrame();
     }
 
     virtual void OnImGuiRender() override
@@ -34,6 +40,7 @@ public:
 
     virtual void OnEvent(Event& e) override
     {
+        mCamera.OnEvent(e);
         EventDispatcher dispatcher(e);
         dispatcher.Dispatch<Surge::KeyPressedEvent>([this](KeyPressedEvent& e)
             {
@@ -48,6 +55,7 @@ private:
     glm::vec3 mPosition = glm::vec3(0.0f, 0.0f, 1.0f);
     glm::vec3 mScale = glm::vec3(1.0f, 1.0f, 1.0f);
     glm::vec3 mRotation = glm::vec3(0.0f, 0.0f, 0.0f);
+    EditorCamera mCamera;
 };
 
 int main()

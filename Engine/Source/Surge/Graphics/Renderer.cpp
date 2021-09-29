@@ -30,18 +30,13 @@ namespace Surge
     {
         VulkanRenderContext* vkContext = static_cast<VulkanRenderContext*>(CoreGetRenderContext().get());
         VulkanSwapChain* swapchain = static_cast<VulkanSwapChain*>(vkContext->GetSwapChain());
-        VkExtent2D extent = swapchain->GetVulkanExtent2D();
-
-        glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-        glm::mat4 projection = glm::perspective(glm::radians(45.0f), extent.width / (float)extent.height, 0.1f, 1000.0f);
-        projection[1][1] *= -1;
 
         struct FrameData
         {
             glm::mat4 ViewProjection;
             glm::mat4 Transform;
         } uFrameData;
-        uFrameData.ViewProjection = projection * view;
+        uFrameData.ViewProjection = mData->ProjectionMatrix * mData->ViewMatrix;
 
         // Begin command buffer recording
         const Ref<RenderCommandBuffer>& cmd = mData->RenderCmdBuffer;
@@ -58,7 +53,7 @@ namespace Surge
             const Submesh& submesh = submeshes[i];
 
             const glm::mat4 rot = glm::toMat4(glm::quat(rotation));
-            uFrameData.Transform = (glm::translate(glm::mat4(1.0f), position) * rot * glm::scale(glm::mat4(1.0f), scale));// * submesh.Transform;
+            uFrameData.Transform = (glm::translate(glm::mat4(1.0f), position) * rot * glm::scale(glm::mat4(1.0f), scale)) * submesh.Transform;
             mData->CubeMesh->GetPipeline()->SetPushConstantData(cmd, "uFrameData", (void*)&uFrameData);
             mData->CubeMesh->GetPipeline()->DrawIndexed(cmd, submesh.IndexCount, submesh.BaseIndex, submesh.BaseVertex);
         }
@@ -74,10 +69,20 @@ namespace Surge
         VulkanRenderContext* vkContext = static_cast<VulkanRenderContext*>(CoreGetRenderContext().get());
         VkDevice device = vkContext->GetDevice()->GetLogicalDevice();
         vkDeviceWaitIdle(device);
-        vkDestroyDescriptorPool(device, mData->DescriptorPool, nullptr);
 
         mData->mAllShaders.clear();
         mData.reset();
+    }
+
+    void Renderer::BeginFrame(const EditorCamera& camera)
+    {
+        mData->ViewMatrix = camera.GetViewMatrix();
+        mData->ProjectionMatrix = camera.GetProjectionMatrix();
+    }
+
+    void Renderer::EndFrame()
+    {
+        //TODO
     }
 
     Ref<Shader>& Renderer::GetShader(const String& name)

@@ -18,8 +18,8 @@ namespace Surge
         static bool IsMouseButtonPressed(const MouseCode button);
 
         static Pair<float, float> GetMousePosition();
-        static float GetMousePositionX();
-        static float GetMousePositionY();
+        static float GetMouseX();
+        static float GetMouseY();
         static void SetCursorMode(CursorMode cursorMode);
     };
 }

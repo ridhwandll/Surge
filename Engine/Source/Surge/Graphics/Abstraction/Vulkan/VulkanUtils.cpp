@@ -284,11 +284,7 @@ namespace Surge
         region.imageSubresource.baseArrayLayer = 0;
 
         region.imageOffset = { 0, 0, 0 };
-        region.imageExtent = {
-            width,
-            height,
-            1
-        };
+        region.imageExtent = { width, height, 1 };
 
         vkCmdCopyBufferToImage(cmdBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
     }
@@ -481,8 +477,7 @@ namespace Surge
         return VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
     }
 
-    void VulkanUtils::InsertImageMemoryBarrier(VkCommandBuffer cmdbuffer, VkImage image,
-        VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask,
+    void VulkanUtils::InsertImageMemoryBarrier(VkCommandBuffer cmdbuffer, VkImage image, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask,
         VkImageLayout oldImageLayout, VkImageLayout newImageLayout,
         VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask,
         VkImageSubresourceRange subresourceRange)

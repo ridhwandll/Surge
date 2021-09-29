@@ -48,8 +48,7 @@ namespace Surge::VulkanUtils
 
     void GenerateMipMaps(VkImage image, VkFormat imageFormat, VkImageLayout newLayout, int32_t texWidth, int32_t texHeight, Uint mipLevels);
 
-    void InsertImageMemoryBarrier(VkCommandBuffer cmdbuffer, VkImage image,
-        VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask,
+    void InsertImageMemoryBarrier(VkCommandBuffer cmdbuffer, VkImage image, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask,
         VkImageLayout oldImageLayout, VkImageLayout newImageLayout,
         VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask,
         VkImageSubresourceRange subresourceRange);

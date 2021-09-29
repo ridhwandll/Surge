@@ -1,3 +1,4 @@
+// Copyright (c) - SurgeTechnologies - All rights reserved
 [SurgeShader: Vertex]
 #version 460
 

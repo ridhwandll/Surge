@@ -17,12 +17,6 @@ namespace Surge
         virtual Uint GetWidth() const override { return mImageSpecification.Width; }
         virtual Uint GetHeight() const override { return mImageSpecification.Height; }
 
-        void TransitionLayout(VkCommandBuffer cmdBuffer, VkImageLayout newImageLayout,
-                              VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                              VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-
-        void GenerateMipMaps(VkCommandBuffer cmdBuffer, VkImageLayout newImageLayout);
-
         VkImage GetVulkanImage() const { return mImage; }
         VkImageView GetVulkanImageView() const { return mImageView; }
         VkImageLayout GetVulkanImageLayout() const { return mImageLayout; }
@@ -32,6 +26,10 @@ namespace Surge
         virtual const ImageSpecification& GetSpecification() const override { return mImageSpecification; }
     private:
         void UpdateDescriptor();
+        void GenerateMipMaps(VkCommandBuffer cmdBuffer, VkImageLayout newImageLayout);
+        void TransitionLayout(VkCommandBuffer cmdBuffer, VkImageLayout newImageLayout,
+            VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+            VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
     private:
         ImageSpecification mImageSpecification;
         VkImageLayout mImageLayout;
