@@ -17,25 +17,24 @@ namespace Surge
         virtual Uint GetWidth() const override { return mImageSpecification.Width; }
         virtual Uint GetHeight() const override { return mImageSpecification.Height; }
 
+        virtual ImageSpecification& GetSpecification() override { return mImageSpecification; }
+        virtual const ImageSpecification& GetSpecification() const override { return mImageSpecification; }
+
+        // Vulkan Specific
         VkImage GetVulkanImage() const { return mImage; }
         VkImageView GetVulkanImageView() const { return mImageView; }
         VkImageLayout GetVulkanImageLayout() const { return mImageLayout; }
         VkDescriptorImageInfo GetVulkanDescriptorInfo() const { return mDescriptorInfo; }
-
-        virtual ImageSpecification& GetSpecification() override { return mImageSpecification; }
-        virtual const ImageSpecification& GetSpecification() const override { return mImageSpecification; }
     private:
         void UpdateDescriptor();
         void GenerateMipMaps(VkCommandBuffer cmdBuffer, VkImageLayout newImageLayout);
-        void TransitionLayout(VkCommandBuffer cmdBuffer, VkImageLayout newImageLayout,
-            VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-            VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+        void TransitionLayout(VkCommandBuffer cmdBuffer, VkImageLayout newImageLayout, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask);
     private:
         ImageSpecification mImageSpecification;
         VkImageLayout mImageLayout;
 
-        VkImage mImage = VK_NULL_HANDLE;
-        VkImageView mImageView = VK_NULL_HANDLE;
+        VkImage mImage;
+        VkImageView mImageView;
         VkSampler mImageSampler;
         VmaAllocation mImageMemory;
 

@@ -80,11 +80,13 @@ namespace Surge
         Shader() = default;
         virtual ~Shader() = default;
 
-        virtual void Reload() = 0;
+        virtual void Load(const HashMap<ShaderType, bool>& forceCompileStages) = 0;
         virtual const ShaderReflectionData& GetReflectionData() const = 0;
         virtual const Vector<SPIRVHandle>& GetSPIRVs() const = 0;
         virtual const Path& GetPath() const = 0;
+        virtual const HashMap<ShaderType, String>& GetSources() const = 0;
         virtual const HashCode& GetHash(const ShaderType& type) const = 0;
+        virtual const HashMap<ShaderType, HashCode>& GetHashCodes() const = 0;
 
         static Ref<Shader> Create(const Path& path);
     };

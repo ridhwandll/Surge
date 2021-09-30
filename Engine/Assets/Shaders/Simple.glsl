@@ -36,5 +36,6 @@ layout(binding = 0, set = 0) uniform sampler2D u_Texture;
 void main()
 {
     //vec3 texColor = texture(u_Texture, vTexCoord * 4.0).xyz;
-    outColor = vec4((vNormal * 0.5 + 0.5), 1.0);////vec4(texColor, 1.0) * vec4(1.0, 1.0, 0.1, 1.0);
+    //outColor = vec4((vNormal * 0.5 + 0.5), 1.0);////vec4(texColor, 1.0) * vec4(1.0, 1.0, 0.1, 1.0);
+    outColor = vec4(1.0, 0.2, 0.5, 1.0);
 }

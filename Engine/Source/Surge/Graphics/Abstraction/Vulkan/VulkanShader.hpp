@@ -1,7 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
-#include "Surge/Graphics/Shader.hpp"
-#include "Surge/Graphics/ShaderReflector.hpp"
+#include "Surge/Graphics/Shader/Shader.hpp"
+#include "Surge/Graphics/Shader/ShaderReflector.hpp"
 #include <volk.h>
 
 namespace Surge
@@ -12,11 +12,13 @@ namespace Surge
         VulkanShader(const Path& path);
         virtual ~VulkanShader() override;
 
-        virtual void Reload() override;
+        virtual void Load(const HashMap<ShaderType, bool>& forceCompileStages) override;
         virtual const ShaderReflectionData& GetReflectionData() const override { return mReflectionData; }
         virtual const Vector<SPIRVHandle>& GetSPIRVs() const override { return mShaderSPIRVs; }
         virtual const Path& GetPath() const override { return mPath; }
+        virtual const HashMap<ShaderType, String>& GetSources() const override { return mShaderSources; }
         virtual const HashCode& GetHash(const ShaderType& type) const override { return mHashCodes.at(type); }
+        virtual const HashMap<ShaderType, HashCode>& GetHashCodes() const override { return mHashCodes; }
 
         // Vulkan Specific (Used by different Pipelines)
         HashMap<ShaderType, VkShaderModule>& GetVulkanShaderModules() { return mVkShaderModules; }
@@ -24,15 +26,10 @@ namespace Surge
         HashMap<String, VkPushConstantRange>& GetPushConstantRanges() { return mPushConstants; }
     private:
         void ParseShader();
-        void Compile();
+        void Compile(const HashMap<ShaderType, bool>& forceCompileStages);
         void Clear();
         void CreateVulkanDescriptorSetLayouts();
         void CreateVulkanPushConstantRanges();
-        void WriteSPIRVToFile(const SPIRVHandle& spirvHandle);
-        void WriteShaderHashToFile() const;
-        String GetCachePath(const ShaderType& type) const;
-        String GetCacheName(const ShaderType& type) const;
-        HashCode GetCacheHashCode(const ShaderType& type) const;
     private:
         Path mPath;
         HashMap<ShaderType, HashCode> mHashCodes;

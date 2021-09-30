@@ -1,0 +1,34 @@
+// Copyright (c) - SurgeTechnologies - All rights reserved
+#pragma once
+#include "Surge/Graphics/Shader/Shader.hpp"
+
+// TODO: Temporary, we don't have an asset manager yet
+#define TEMP_ASSET_PATH "Engine/Assets/Temp"
+#define SHADER_CACHE_PATH "Engine/Assets/Temp/ShaderCache"
+#define SHADER_HASH_CACHE_PATH "Engine/Assets/Temp/ShaderCache/ShaderHash.txt"
+
+namespace Surge
+{
+    class ShaderSet
+    {
+    public:
+        ShaderSet() = default;
+        ~ShaderSet() = default;
+
+        void Initialize(const String& baseShaderPath);
+        void AddShader(const String& shaderName);
+        Ref<Shader>& GetShader(const String& shaderName); // Name without extension
+        void LoadAll();
+        void Shutdown();
+    private:
+        HashCode GetHashCodeFromCache(const Ref<Shader>& shader, ShaderType type);
+        void CacheRequiredSPIRVs(const Ref<Shader>& shader, const HashMap<ShaderType, bool>& stagesToCache);
+        void WriteHashToFile(const Ref<Shader>& shader);
+        String GetCachePath(const Path& shaderPath, const ShaderType& type) const;
+        String GetCacheName(const Path& shaderPath, const ShaderType& type) const;
+    private:
+        String mBaseShaderPath;
+        Vector<Ref<Shader>> mShaders;
+        Ref<Shader> mDummyShader = nullptr;
+    };
+}

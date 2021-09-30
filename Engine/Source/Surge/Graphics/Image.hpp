@@ -1,6 +1,6 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
-#include "Surge/Graphics/Shader.hpp"
+#include "Surge/Graphics/Shader/Shader.hpp"
 
 namespace Surge
 {

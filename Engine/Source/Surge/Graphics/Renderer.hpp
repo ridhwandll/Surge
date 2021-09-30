@@ -1,17 +1,18 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "Surge/Core/Memory.hpp"
-#include "Surge/Graphics/Shader.hpp"
+#include "Surge/Graphics/Shader/Shader.hpp"
 #include "Surge/Graphics/Camera/EditorCamera.hpp"
 #include "Surge/Graphics/Texture.hpp"
 #include "Surge/Graphics/Mesh.hpp"
+#include "Surge/Graphics/Shader/ShaderSet.hpp"
 
 //TODO: Remove
 #include <volk.h> 
 #include "RenderCommandBuffer.hpp"
 
 #define FRAMES_IN_FLIGHT 3
-#define BASE_SHADER_PATH "Engine/Assets/Shaders/"
+#define BASE_SHADER_PATH "Engine/Assets/Shaders"
 
 namespace Surge
 {
@@ -20,8 +21,7 @@ namespace Surge
         Ref<RenderCommandBuffer> RenderCmdBuffer;
         Ref<Mesh> CubeMesh; //TODO: Remove, have a Mesh DrawList
 
-        Ref<Shader> mDummyShader = nullptr;
-        Vector<Ref<Shader>> mAllShaders;
+        ShaderSet ShaderSet;
 
         glm::mat4 ViewMatrix;
         glm::mat4 ProjectionMatrix;

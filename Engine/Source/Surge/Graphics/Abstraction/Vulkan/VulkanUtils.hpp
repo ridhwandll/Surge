@@ -1,8 +1,8 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
-#include "Surge/Graphics/Shader.hpp"
+#include "Surge/Graphics/Shader/Shader.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanGraphicsPipeline.hpp"
-#include "Surge/Graphics/ReflectionData.hpp"
+#include "Surge/Graphics/Shader/ReflectionData.hpp"
 #include "Surge/Graphics/Image.hpp"
 #include <shaderc/shaderc.h>
 

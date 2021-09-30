@@ -21,8 +21,12 @@ namespace Surge
     void Renderer::Initialize()
     {
         mData = CreateScope<RendererData>();
-        mData->mAllShaders.emplace_back(Shader::Create(BASE_SHADER_PATH"Simple.glsl"));
         mData->RenderCmdBuffer = RenderCommandBuffer::Create(true);
+        mData->ShaderSet.Initialize(BASE_SHADER_PATH);
+
+        mData->ShaderSet.AddShader("Simple.glsl");
+        mData->ShaderSet.LoadAll();
+
         mData->CubeMesh = Ref<Mesh>::Create("Engine/Assets/Mesh/Cube.fbx");
     }
 
@@ -70,7 +74,7 @@ namespace Surge
         VkDevice device = vkContext->GetDevice()->GetLogicalDevice();
         vkDeviceWaitIdle(device);
 
-        mData->mAllShaders.clear();
+        mData->ShaderSet.Shutdown();
         mData.reset();
     }
 
@@ -87,13 +91,7 @@ namespace Surge
 
     Ref<Shader>& Renderer::GetShader(const String& name)
     {
-        for (Ref<Shader>& shader : mData->mAllShaders)
-        {
-            if (Filesystem::RemoveExtension(shader->GetPath()) == String(BASE_SHADER_PATH + name))
-                return shader;
-        }
-
-        SG_ASSERT_INTERNAL("No shaders found with name: {0}", name);
-        return mData->mDummyShader;
+        Ref<Shader>& result = mData->ShaderSet.GetShader(name);
+        return result;
     }
 }
