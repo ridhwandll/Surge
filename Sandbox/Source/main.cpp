@@ -8,15 +8,23 @@ public:
     virtual void OnInitialize() override
     {
         mCamera = EditorCamera(45.0f, 1.778f, 0.1f, 1000.0f);
+        mMesh = Ref<Mesh>::Create("Engine/Assets/Mesh/Cube.fbx");
+        mOtherMesh = Ref<Mesh>::Create("Engine/Assets/Mesh/Cube.fbx");
         mCamera.SetActive(true);
     }
 
     virtual void OnUpdate() override
     {
+        const glm::mat4 rot = glm::toMat4(glm::quat(mRotation));
+        mTransform = glm::translate(glm::mat4(1.0f), mPosition) * rot * glm::scale(glm::mat4(1.0f), mScale);
+        mOtherTransform = glm::translate(glm::mat4(1.0f), glm::vec3(10.0f, 10.0f, 10.0f)) * rot * glm::scale(glm::mat4(1.0f), mScale);
+
         mCamera.OnUpdate();
         mCamera.SetViewportSize(CoreGetWindow()->GetSize());
+
         CoreGetRenderer()->BeginFrame(mCamera);
-        CoreGetRenderer()->RenderRectangle(mPosition, glm::radians(mRotation), mScale);
+        CoreGetRenderer()->SubmitMesh(mMesh, mTransform);
+        CoreGetRenderer()->SubmitMesh(mMesh, mOtherTransform);
         CoreGetRenderer()->EndFrame();
     }
 
@@ -44,7 +52,7 @@ public:
         EventDispatcher dispatcher(e);
         dispatcher.Dispatch<Surge::KeyPressedEvent>([this](KeyPressedEvent& e)
             {
-                Log("{0}", e.ToString());
+                //Log("{0}", e.ToString());
             });
     }
 
@@ -55,6 +63,11 @@ private:
     glm::vec3 mPosition = glm::vec3(0.0f, 0.0f, 1.0f);
     glm::vec3 mScale = glm::vec3(1.0f, 1.0f, 1.0f);
     glm::vec3 mRotation = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::mat4 mTransform;
+    glm::mat4 mOtherTransform;
+
+    Ref<Mesh> mMesh;
+    Ref<Mesh> mOtherMesh;
     EditorCamera mCamera;
 };
 

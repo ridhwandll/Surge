@@ -4,7 +4,7 @@
 #include "Surge/Core/Application.hpp"
 #include "Surge/Core/Window/Window.hpp"
 #include "Surge/Graphics/RenderContext.hpp"
-#include "Surge/Graphics/Renderer.hpp"
+#include "Surge/Graphics/Renderer/Renderer.hpp"
 
 namespace Surge
 {

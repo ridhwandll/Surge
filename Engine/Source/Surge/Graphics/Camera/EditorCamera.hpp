@@ -63,7 +63,7 @@ namespace Surge
         glm::vec3 mRightDirection{};
 
         float mDistance;
-        float mSpeed = 0.007f;
+        float mSpeed = 0.003f;
         float mLastSpeed = 0.0f;
         float mPitch, mYaw;
         float mPitchDelta = 0, mYawDelta = 0;

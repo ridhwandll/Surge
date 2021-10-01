@@ -4,6 +4,7 @@
 #include "Surge/Core/Time/Clock.hpp"
 #include "Surge/Core/Window/Window.hpp"
 #include "Surge/Core/Input/Input.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderer.hpp"
 
 namespace Surge
 {
@@ -44,7 +45,8 @@ namespace Surge
         sCoreData.SurgeRenderContext->Initialize(sCoreData.SurgeWindow.get());
 
         // Renderer
-        sCoreData.SurgeRenderer = CreateScope<Renderer>();
+        //TODO: Check which Renderer(DirextX12/Vulkan/Metal) to create (currently only "VulkanRenderer")
+        sCoreData.SurgeRenderer = CreateScope<VulkanRenderer>();
         sCoreData.SurgeRenderer->Initialize();
 
         sCoreData.SurgeApplication->OnInitialize();
