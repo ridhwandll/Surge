@@ -11,33 +11,30 @@ namespace Surge
     {
     public:
         VulkanImage2D(const ImageSpecification& specification);
-        VulkanImage2D(const ImageSpecification& specification, const void* data);
         virtual ~VulkanImage2D();
 
-        virtual Uint GetWidth() const override { return mImageSpecification.Width; }
-        virtual Uint GetHeight() const override { return mImageSpecification.Height; }
-
-        virtual ImageSpecification& GetSpecification() override { return mImageSpecification; }
-        virtual const ImageSpecification& GetSpecification() const override { return mImageSpecification; }
+        virtual Uint GetWidth() const override { return mSpecification.Width; }
+        virtual Uint GetHeight() const override { return mSpecification.Height; }
+        virtual void Release() override;
+        virtual ImageSpecification& GetSpecification() override { return mSpecification; }
+        virtual const ImageSpecification& GetSpecification() const override { return mSpecification; }
 
         // Vulkan Specific
-        VkImage GetVulkanImage() const { return mImage; }
-        VkImageView GetVulkanImageView() const { return mImageView; }
-        VkImageLayout GetVulkanImageLayout() const { return mImageLayout; }
+        VkImage& GetVulkanImage() { return mImage; }
+        VkImageView& GetVulkanImageView() { return mImageView; }
         VkDescriptorImageInfo GetVulkanDescriptorInfo() const { return mDescriptorInfo; }
     private:
+        void Invalidate();
         void UpdateDescriptor();
-        void GenerateMipMaps(VkCommandBuffer cmdBuffer, VkImageLayout newImageLayout);
-        void TransitionLayout(VkCommandBuffer cmdBuffer, VkImageLayout newImageLayout, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask);
     private:
-        ImageSpecification mImageSpecification;
-        VkImageLayout mImageLayout;
+        ImageSpecification mSpecification;
 
-        VkImage mImage;
-        VkImageView mImageView;
-        VkSampler mImageSampler;
+        VkImage mImage = VK_NULL_HANDLE;
+        VkImageView mImageView = VK_NULL_HANDLE;
+        VkSampler mImageSampler = VK_NULL_HANDLE;
         VmaAllocation mImageMemory;
 
         VkDescriptorImageInfo mDescriptorInfo;
+        friend class VulkanTexture2D;
     };
 }

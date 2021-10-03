@@ -24,31 +24,18 @@ namespace Surge::VulkanUtils
     VkCompareOp GetVulkanCompareOp(CompareOperation op);
     VkPolygonMode GetVulkanPolygonMode(PolygonMode mode);
     VkCullModeFlags GetVulkanCullModeFlags(CullMode mode);
+    bool IsDepthFormat(ImageFormat imageFormat);
+    Uint GetMemorySize(ImageFormat format, Uint width, Uint height);
 
     // Image Related
-    VkDeviceSize CalculateImageBufferSize(Uint width, Uint height, ImageFormat imageFormat);
     VkFormat GetImageFormat(ImageFormat format);
-    VkImageLayout GetImageLayoutFromUsage(ImageUsage usage);
     VkFilter GetImageFiltering(TextureFilter filtering);
     VkSamplerAddressMode GetImageAddressMode(TextureAddressMode wrap);
-    VkImageUsageFlags GetImageUsageFlags(ImageUsage usage);
-    VkAccessFlags GetAccessFlagsFromLayout(VkImageLayout layout);
-    VkPipelineStageFlags GetPipelineStagesFromLayout(VkImageLayout layout);
+    VkImageUsageFlags GetImageUsageFlags(ImageUsage usage, ImageFormat format);
 
-    void CreateImage(Uint width, Uint height, Uint texureDepth, Uint mipLevels,
-        VkFormat format, VkImageType type, VkImageTiling tiling,
-        VkImageUsageFlags usage, VmaMemoryUsage memoryUsage,
-        VkImage& outImage, VmaAllocation& outImageMemory);
-
-    void CreateImageView(const VkImage& image, VkImageUsageFlags imageUsage, VkFormat format, Uint mipLevels, Uint textureDepth, VkImageView& outImageView);
-    void CreateImageSampler(VkSamplerAddressMode adressMode, VkFilter filtering, Uint mipLevels, VkSampler& outSampler);
-
-    void ChangeImageLayout(VkImage& image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, Uint mipLevels, Uint depthMap);
-    void CopyBufferToImage(VkCommandBuffer cmdBuffer, VkBuffer& buffer, VkImage& image, Uint width, Uint height);
-
-    void GenerateMipMaps(VkImage image, VkFormat imageFormat, VkImageLayout newLayout, int32_t texWidth, int32_t texHeight, Uint mipLevels);
-
-    void InsertImageMemoryBarrier(VkCommandBuffer cmdbuffer, VkImage image, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask,
+    void InsertImageMemoryBarrier(
+        VkCommandBuffer cmdbuffer, VkImage& image,
+        VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask,
         VkImageLayout oldImageLayout, VkImageLayout newImageLayout,
         VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask,
         VkImageSubresourceRange subresourceRange);

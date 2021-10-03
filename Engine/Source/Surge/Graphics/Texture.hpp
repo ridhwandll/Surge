@@ -7,7 +7,7 @@ namespace Surge
     struct TextureSpecification
     {
         ImageFormat Format = ImageFormat::None;
-        ImageUsage Usage = ImageUsage::Storage;
+        ImageUsage Usage = ImageUsage::Texture;
         SamplerProperties Sampler{};
         Vector<ShaderType> ShaderUsage;
         bool UseMips = false;

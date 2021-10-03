@@ -9,9 +9,4 @@ namespace Surge
     {
         return Ref<VulkanImage2D>::Create(specification);
     }
-
-    Ref<Image2D> Image2D::Create(const ImageSpecification& specification, const void* data)
-    {
-        return Ref<VulkanImage2D>::Create(specification, data);
-    }
 }

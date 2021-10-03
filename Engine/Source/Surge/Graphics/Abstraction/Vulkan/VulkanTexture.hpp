@@ -8,7 +8,7 @@ namespace Surge
     {
     public:
         VulkanTexture2D(const String& filepath, TextureSpecification specification);
-        virtual ~VulkanTexture2D() = default;
+        virtual ~VulkanTexture2D() override;
 
         virtual Uint GetWidth() const override { return mWidth; }
         virtual Uint GetHeight() const override { return mHeight; }
@@ -18,11 +18,15 @@ namespace Surge
 
         virtual const Ref<Image2D> GetImage2D() const override { return mImage; }
     private:
+        void Invalidate();
+        void GenerateMips();
+    private:
         Ref<Image2D> mImage;
         TextureSpecification mSpecification;
         String mFilePath;
-
         Uint mWidth, mHeight;
-        Uint mMipMaps;
+
+        void* mPixelData;
+        Uint mPixelDataSize;
     };
 }

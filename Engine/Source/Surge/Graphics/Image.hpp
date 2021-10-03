@@ -19,9 +19,9 @@ namespace Surge
     enum class ImageUsage
     {
         None = 0,
-        Storage,     // VK_GENERAL
-        Attachment,  // VK_COLOR_ATTACHEMNT_OPTIMAL
-        DepthStencil // VK_DEPTH_STENCIL_OPTIMAL
+        Attachment,
+        Texture,
+        Storage
     };
 
     enum class TextureFilter
@@ -58,7 +58,7 @@ namespace Surge
 
         virtual Uint GetWidth() const = 0;
         virtual Uint GetHeight() const = 0;
-
+        virtual void Release() = 0;
         virtual ImageSpecification& GetSpecification() = 0;
         virtual const ImageSpecification& GetSpecification() const = 0;
     };
@@ -67,6 +67,5 @@ namespace Surge
     {
     public:
         static Ref<Image2D> Create(const ImageSpecification& specification);
-        static Ref<Image2D> Create(const ImageSpecification& specification, const void* data);
     };
 }
