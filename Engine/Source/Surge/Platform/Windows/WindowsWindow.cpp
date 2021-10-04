@@ -125,7 +125,8 @@ namespace Surge
 
         switch (msg)
         {
-            case WM_CREATE: {
+            case WM_CREATE:
+            {
                 LPCREATESTRUCT const params = reinterpret_cast<LPCREATESTRUCT>(lParam);
                 WindowsWindow* const wnd = reinterpret_cast<WindowsWindow* const>(params->lpCreateParams);
                 wnd->mIsOpen = true;
@@ -133,7 +134,8 @@ namespace Surge
                 SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(wnd));
                 break;
             }
-            case WM_CLOSE: {
+            case WM_CLOSE:
+            {
                 WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
                 WindowClosedEvent event;
                 data->mEventCallback(event);
@@ -142,7 +144,8 @@ namespace Surge
                 PostQuitMessage(0);
                 break;
             }
-            case WM_SIZE: {
+            case WM_SIZE:
+            {
                 WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
                 data->mWindowData.Width = (UINT)LOWORD(lParam);
                 data->mWindowData.Height = (UINT)HIWORD(lParam);
@@ -152,82 +155,96 @@ namespace Surge
                     data->mEventCallback(event);
                 break;
             }
-            case WM_KEYUP: {
+            case WM_KEYUP:
+            {
                 WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
                 KeyReleasedEvent event(static_cast<KeyCode>(wParam));
                 data->mEventCallback(event);
                 break;
             }
-            case WM_CHAR: {
+            case WM_CHAR:
+            {
                 WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
                 KeyTypedEvent event(static_cast<KeyCode>(wParam));
                 data->mEventCallback(event);
                 break;
             }
-            case WM_KEYDOWN: {
+            case WM_KEYDOWN:
+            {
                 WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
                 int repeatCount = (lParam & 0xffff);
                 KeyPressedEvent event(static_cast<KeyCode>(wParam), repeatCount);
                 data->mEventCallback(event);
                 break;
             }
-            case WM_MOUSEMOVE: {
+            case WM_MOUSEMOVE:
+            {
                 WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
                 MouseMovedEvent event((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam));
                 data->mEventCallback(event);
                 break;
             }
-            case WM_MOUSEWHEEL: {
+            case WM_MOUSEWHEEL:
+            {
                 WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
                 MouseScrolledEvent event((float)GET_WHEEL_DELTA_WPARAM(wParam) / (float)WHEEL_DELTA);
                 data->mEventCallback(event);
                 break;
             }
-            case WM_LBUTTONDOWN: {
+            case WM_LBUTTONDOWN:
+            {
                 WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
                 MouseButtonPressedEvent event(static_cast<MouseCode>(VK_LBUTTON));
                 data->mEventCallback(event);
                 break;
             }
-            case WM_LBUTTONUP: {
+            case WM_LBUTTONUP:
+            {
                 WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
                 MouseButtonReleasedEvent event(static_cast<MouseCode>(VK_LBUTTON));
                 data->mEventCallback(event);
                 break;
             }
-            case WM_MBUTTONDOWN: {
+            case WM_MBUTTONDOWN:
+            {
                 WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
                 MouseButtonPressedEvent event(static_cast<MouseCode>(VK_MBUTTON));
                 data->mEventCallback(event);
                 break;
             }
-            case WM_MBUTTONUP: {
+            case WM_MBUTTONUP:
+            {
                 WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
                 MouseButtonReleasedEvent event(static_cast<MouseCode>(VK_MBUTTON));
                 data->mEventCallback(event);
                 break;
             }
-            case WM_RBUTTONDOWN: {
+            case WM_RBUTTONDOWN:
+            {
                 WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
                 MouseButtonPressedEvent event(static_cast<MouseCode>(VK_RBUTTON));
                 data->mEventCallback(event);
                 break;
             }
-            case WM_RBUTTONUP: {
+            case WM_RBUTTONUP:
+            {
                 WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
                 MouseButtonReleasedEvent event(static_cast<MouseCode>(VK_RBUTTON));
                 data->mEventCallback(event);
                 break;
             }
-            case WM_SYSCOMMAND: {
+            case WM_SYSCOMMAND:
+            {
                 switch (wParam)
                 {
-                    case SC_MINIMIZE: {
+                    case SC_MINIMIZE:
+                    {
                         WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
                         data->mWindowState = WindowState::Minimized;
                         break;
                     }
-                    case SC_RESTORE: {
+                    case SC_RESTORE:
+                    {
                         WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
                         data->mWindowState = WindowState::Normal;
                         break;

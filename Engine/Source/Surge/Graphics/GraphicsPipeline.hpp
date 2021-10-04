@@ -3,6 +3,7 @@
 #include "Surge/Core/Memory.hpp"
 #include "Surge/Graphics/RenderCommandBuffer.hpp"
 #include "Surge/Graphics/Shader/Shader.hpp"
+#include "Surge/Graphics/Framebuffer.hpp"
 
 namespace Surge
 {
@@ -51,6 +52,7 @@ namespace Surge
         PolygonMode PolygonMode = PolygonMode::Fill;
         CullMode CullingMode = CullMode::Back;
         CompareOperation DepthCompOperation = CompareOperation::Less;
+        Ref<Framebuffer> TargetFramebuffer = nullptr;
         float LineWidth = 1.0f;
         bool UseDepth = true;
         bool UseStencil = false;

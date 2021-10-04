@@ -7,6 +7,7 @@
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanShader.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanSwapChain.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanUtils.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanFramebuffer.hpp"
 #include "Surge/Graphics/Shader/ReflectionData.hpp"
 
 namespace Surge
@@ -21,7 +22,7 @@ namespace Surge
         // Setting up all the shaders into a create info class
         HashMap<ShaderType, VkShaderModule> shaderModules = pipelineSpec.Shader.As<VulkanShader>()->GetVulkanShaderModules();
         Vector<VkPipelineShaderStageCreateInfo> shaderStages;
-        for (const auto& shader: shaderModules)
+        for (const auto& shader : shaderModules)
         {
             VkPipelineShaderStageCreateInfo& shaderStageInfo = shaderStages.emplace_back();
             shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -38,7 +39,7 @@ namespace Surge
 
         // Calculate the stride
         Uint stride = 0;
-        for (const auto& [location, stageInput]: stageInputs)
+        for (const auto& [location, stageInput] : stageInputs)
             stride += stageInput.Size;
 
         VkVertexInputBindingDescription vertexBindingDescriptions;
@@ -150,8 +151,13 @@ namespace Surge
         pipelineInfo.pDynamicState = &dynamicStatesCreateInfo;
         pipelineInfo.layout = mPipelineLayout;
 
-        // TODO(AC3R): This is temporary becase we dont have renderpass absctraction yet
-        pipelineInfo.renderPass = renderContext->GetSwapChain()->GetVulkanRenderPass();
+        if (mSpecification.TargetFramebuffer)
+        {
+            pipelineInfo.renderPass = mSpecification.TargetFramebuffer.As<VulkanFramebuffer>()->GetVulkanRenderPass();
+        }
+        else
+            pipelineInfo.renderPass = renderContext->GetSwapChain()->GetVulkanRenderPass();
+
         pipelineInfo.subpass = 0;
 
         VK_CALL(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mPipeline));
@@ -174,24 +180,17 @@ namespace Surge
         Uint frameIndex = renderContext->GetFrameIndex();
         VkCommandBuffer vulkanCmdBuffer = cmdBuffer.As<VulkanRenderCommandBuffer>()->GetVulkanCommandBuffer(frameIndex);
 
-        // TODO(Rid): This is temporary becase we dont have framebuffer absctraction yet
-        // We should get viewport width and height from the framebuffer
-        VkExtent2D extent = renderContext->GetSwapChain()->GetVulkanExtent2D();
+        VkExtent2D extent;
+        if (mSpecification.TargetFramebuffer)
+        {
+            const FramebufferSpecification& framebufferSpec = mSpecification.TargetFramebuffer->GetSpecification();
+            extent.width = framebufferSpec.Width;
+            extent.height = framebufferSpec.Height;
+        }
+        else
+            extent = renderContext->GetSwapChain()->GetVulkanExtent2D();
 
-        VkViewport viewport {};
-        viewport.width = static_cast<float>(extent.width);
-        viewport.height = static_cast<float>(extent.height);
-        viewport.minDepth = 0.0f;
-        viewport.maxDepth = 1.0f;
-
-        VkRect2D scissor {};
-        scissor.extent = extent;
-        scissor.offset = {0, 0};
-
-        vkCmdSetViewport(vulkanCmdBuffer, 0, 1, &viewport);
-        vkCmdSetScissor(vulkanCmdBuffer, 0, 1, &scissor);
         vkCmdSetLineWidth(vulkanCmdBuffer, mSpecification.LineWidth);
-
         vkCmdBindPipeline(vulkanCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline);
     }
 

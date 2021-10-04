@@ -52,7 +52,7 @@ namespace Surge
 
         // Selecting the best swapchain format
         VkSurfaceFormatKHR pickedFormat = availableFormats[0]; // Default one is `availableFormats[0]`
-        for (const VkSurfaceFormatKHR& availableFormat: availableFormats)
+        for (const VkSurfaceFormatKHR& availableFormat : availableFormats)
         {
             if (availableFormat.format == VK_FORMAT_R8G8B8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
                 pickedFormat = availableFormat;
@@ -67,7 +67,7 @@ namespace Surge
 
         // Selecting the best swapchain present mode
         VkPresentModeKHR pickedPresentMode = VK_PRESENT_MODE_FIFO_KHR; // Default one
-        for (const auto& availablePresentMode: avaialbePresentModes)
+        for (const auto& availablePresentMode : avaialbePresentModes)
         {
             if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR && !mVsync)
                 pickedPresentMode = availablePresentMode;
@@ -250,7 +250,7 @@ namespace Surge
         fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
         mWaitFences.resize(framesInFlight);
-        for (VkFence& fence: mWaitFences)
+        for (VkFence& fence : mWaitFences)
             VK_CALL(vkCreateFence(device, &fenceCreateInfo, nullptr, &fence));
     }
 
@@ -265,7 +265,7 @@ namespace Surge
         vkDeviceWaitIdle(device);
 
         vkDestroyFramebuffer(device, mFramebuffer, nullptr);
-        for (auto& imageView: mSwapChainImageViews)
+        for (auto& imageView : mSwapChainImageViews)
             vkDestroyImageView(device, imageView, nullptr);
 
         CreateSwapChain();
@@ -284,7 +284,7 @@ namespace Surge
         vkDestroyRenderPass(device, mRenderPass, nullptr);
         vkDestroyFramebuffer(device, mFramebuffer, nullptr);
 
-        for (auto& imageView: mSwapChainImageViews)
+        for (auto& imageView : mSwapChainImageViews)
             vkDestroyImageView(device, imageView, nullptr);
 
         vkDestroySwapchainKHR(device, mSwapChain, nullptr);
@@ -293,7 +293,7 @@ namespace Surge
         vkDestroyCommandPool(device, mCommandPool, nullptr);
         vkDestroySemaphore(device, mImageAvailable, nullptr);
         vkDestroySemaphore(device, mRenderAvailable, nullptr);
-        for (VkFence& fence: mWaitFences)
+        for (VkFence& fence : mWaitFences)
             vkDestroyFence(device, fence, nullptr);
     }
 
@@ -346,7 +346,23 @@ namespace Surge
         mCurrentFrameIndex = (mCurrentFrameIndex + 1) % FRAMES_IN_FLIGHT;
     }
 
-    void VulkanSwapChain::EndFrame() { Present(); }
+    void VulkanSwapChain::EndFrame()
+    {
+        VulkanRenderContext* vkContext = static_cast<VulkanRenderContext*>(CoreGetRenderContext().get());
+        Uint frameIndex = vkContext->GetFrameIndex();
+
+        vkResetCommandBuffer(mCommandBuffers[frameIndex], 0);
+        VkCommandBufferBeginInfo cmdBufInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+        cmdBufInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        VkCommandBuffer commandBuffer = mCommandBuffers[frameIndex];
+        vkBeginCommandBuffer(commandBuffer, &cmdBufInfo);
+        BeginRenderPass();
+        vkContext->RenderImGui();
+        EndRenderPass();
+        VK_CALL(vkEndCommandBuffer(mCommandBuffers[frameIndex]));
+
+        Present();
+    }
 
     void VulkanSwapChain::BeginRenderPass()
     {
@@ -370,7 +386,10 @@ namespace Surge
         vkCmdBeginRenderPass(mCommandBuffers[mCurrentFrameIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
     }
 
-    void VulkanSwapChain::EndRenderPass() { vkCmdEndRenderPass(mCommandBuffers[mCurrentFrameIndex]); }
+    void VulkanSwapChain::EndRenderPass()
+    {
+        vkCmdEndRenderPass(mCommandBuffers[mCurrentFrameIndex]);
+    }
 
     void VulkanSwapChain::PickPresentQueue()
     {

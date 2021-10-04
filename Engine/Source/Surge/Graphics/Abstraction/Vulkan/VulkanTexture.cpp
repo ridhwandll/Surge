@@ -45,7 +45,6 @@ namespace Surge
         imageSpec.Width = mWidth;
         imageSpec.Height = mHeight;
         imageSpec.Mips = specification.UseMips ? mipChainLevels : 1;
-        imageSpec.ShaderUsage = specification.ShaderUsage;
         imageSpec.Usage = specification.Usage;
         imageSpec.Sampler = specification.Sampler;
         mImage = Image2D::Create(imageSpec);
@@ -188,15 +187,19 @@ namespace Surge
                 mipSubRange.layerCount = 1;
 
                 // Prepare current mip level as image blit destination
-                VulkanUtils::InsertImageMemoryBarrier(cmd, vulkanImage, 0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                VulkanUtils::InsertImageMemoryBarrier(cmd, vulkanImage,
+                                                      0, VK_ACCESS_TRANSFER_WRITE_BIT,
+                                                      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                                       VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, mipSubRange);
 
                 // Blit from previous level
                 vkCmdBlitImage(cmd, vulkanImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, vulkanImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlit, VK_FILTER_LINEAR);
 
                 // Prepare current mip level as image blit source for next level
-                VulkanUtils::InsertImageMemoryBarrier(cmd, vulkanImage, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                                      VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, mipSubRange);
+                VulkanUtils::InsertImageMemoryBarrier(cmd, vulkanImage,
+                                                      VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT,
+                                                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                                                      VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, mipSubRange);
             }
 
             // After the loop, all mip layers are in TRANSFER_SRC layout, so transition all to SHADER_READ
@@ -205,9 +208,10 @@ namespace Surge
             subresourceRange.layerCount = 1;
             subresourceRange.levelCount = imageSpec.Mips;
 
-            VulkanUtils::InsertImageMemoryBarrier(cmd, vulkanImage, VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                                                  subresourceRange);
+            VulkanUtils::InsertImageMemoryBarrier(cmd, vulkanImage,
+                                                  VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_READ_BIT,
+                                                  VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                                  VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, subresourceRange);
         });
     }
 } // namespace Surge

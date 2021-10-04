@@ -122,15 +122,18 @@ namespace Surge
         // Submit to the queue
         switch (type)
         {
-            case VulkanQueueType::Graphics: {
+            case VulkanQueueType::Graphics:
+            {
                 VK_CALL(vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, fence));
                 break;
             }
-            case VulkanQueueType::Compute: {
+            case VulkanQueueType::Compute:
+            {
                 VK_CALL(vkQueueSubmit(mComputeQueue, 1, &submitInfo, fence));
                 break;
             }
-            case VulkanQueueType::Transfer: {
+            case VulkanQueueType::Transfer:
+            {
                 VK_CALL(vkQueueSubmit(mTransferQueue, 1, &submitInfo, fence));
                 break;
             }
@@ -141,15 +144,18 @@ namespace Surge
 
         switch (type)
         {
-            case VulkanQueueType::Graphics: {
+            case VulkanQueueType::Graphics:
+            {
                 vkFreeCommandBuffers(mLogicalDevice, mGraphicsCommandPool, 1, &commandBuffer);
                 break;
             }
-            case VulkanQueueType::Compute: {
+            case VulkanQueueType::Compute:
+            {
                 vkFreeCommandBuffers(mLogicalDevice, mComputeCommandPool, 1, &commandBuffer);
                 break;
             }
-            case VulkanQueueType::Transfer: {
+            case VulkanQueueType::Transfer:
+            {
                 vkFreeCommandBuffers(mLogicalDevice, mTransferCommandPool, 1, &commandBuffer);
                 break;
             }

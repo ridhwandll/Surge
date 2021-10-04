@@ -23,6 +23,7 @@ namespace Surge
 
     struct RendererData
     {
+        Ref<Framebuffer> OutputFrambuffer;
         Ref<RenderCommandBuffer> RenderCmdBuffer;
         Vector<DrawCommand> DrawList;
 
@@ -47,7 +48,9 @@ namespace Surge
         virtual void EndFrame() = 0;
         virtual void SubmitMesh(const Ref<Mesh>& mesh, const glm::mat4& transform) = 0;
 
+        RendererData* GetData() { return mData.get(); }
         Ref<Shader>& GetShader(const String& name);
+        Ref<Framebuffer>& GetFramebuffer(); //TODO REMOVE: Have something like FramebufferSet(similar to ShaderSet)
 
     protected:
         Scope<RendererData> mData;

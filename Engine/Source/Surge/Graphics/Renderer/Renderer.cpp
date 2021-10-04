@@ -10,4 +10,10 @@ namespace Surge
         Ref<Shader>& result = mData->ShaderSet.GetShader(name);
         return result;
     }
+
+    Ref<Framebuffer>& Renderer::GetFramebuffer()
+    {
+        return mData->OutputFrambuffer;
+    }
+
 } // namespace Surge

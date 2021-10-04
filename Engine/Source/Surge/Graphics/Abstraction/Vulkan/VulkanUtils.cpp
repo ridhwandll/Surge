@@ -75,7 +75,7 @@ namespace Surge
     Vector<VkDescriptorSetLayout> VulkanUtils::GetDescriptorSetLayoutVectorFromHashMap(const HashMap<Uint, VkDescriptorSetLayout>& descriptorSetLayouts)
     {
         Vector<VkDescriptorSetLayout> descriptorSetLayout;
-        for (auto& layout: descriptorSetLayouts)
+        for (auto& layout : descriptorSetLayouts)
             descriptorSetLayout.push_back(layout.second);
         return descriptorSetLayout;
     }
@@ -83,7 +83,7 @@ namespace Surge
     Vector<VkPushConstantRange> VulkanUtils::GetPushConstantRangesVectorFromHashMap(const HashMap<String, VkPushConstantRange>& pushConstants)
     {
         Vector<VkPushConstantRange> pushConstantsVector;
-        for (auto& pushConstant: pushConstants)
+        for (auto& pushConstant : pushConstants)
             pushConstantsVector.push_back(pushConstant.second);
         return pushConstantsVector;
     }
@@ -113,7 +113,7 @@ namespace Surge
     VkShaderStageFlags VulkanUtils::GetShaderStagesFlagsFromShaderTypes(const Vector<ShaderType>& shaderStages)
     {
         VkShaderStageFlags stageFlags {};
-        for (const ShaderType& stage: shaderStages)
+        for (const ShaderType& stage : shaderStages)
         {
             // None = 0, VertexShader, PixelShader, ComputeShader
             switch (stage)
@@ -193,7 +193,8 @@ namespace Surge
         VkImageUsageFlags vkImageUsage = VK_IMAGE_USAGE_SAMPLED_BIT; // TODO: Maybe not force this?
         switch (usage)
         {
-            case ImageUsage::Attachment: {
+            case ImageUsage::Attachment:
+            {
                 if (VulkanUtils::IsDepthFormat(format))
                     vkImageUsage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
                 else
@@ -208,8 +209,10 @@ namespace Surge
         return vkImageUsage;
     }
 
-    void VulkanUtils::InsertImageMemoryBarrier(VkCommandBuffer cmdbuffer, VkImage& image, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkImageLayout oldImageLayout,
-                                               VkImageLayout newImageLayout, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask,
+    void VulkanUtils::InsertImageMemoryBarrier(VkCommandBuffer cmdbuffer, VkImage& image,
+                                               VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask,
+                                               VkImageLayout oldImageLayout, VkImageLayout newImageLayout,
+                                               VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask,
                                                VkImageSubresourceRange subresourceRange)
     {
         VkImageMemoryBarrier imageMemoryBarrier {};

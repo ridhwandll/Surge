@@ -78,6 +78,7 @@ namespace Surge
         pipelineSpec.UseStencil = false;
         pipelineSpec.DebugName = "MeshPipeline";
         pipelineSpec.LineWidth = 3.0f;
+        pipelineSpec.TargetFramebuffer = CoreGetRenderer()->GetFramebuffer();
         mPipeline = GraphicsPipeline::Create(pipelineSpec);
     }
 

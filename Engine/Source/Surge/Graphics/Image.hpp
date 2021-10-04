@@ -51,7 +51,6 @@ namespace Surge
         ImageFormat Format = ImageFormat::RGBA8;
         ImageUsage Usage = ImageUsage::Storage;
         SamplerProperties Sampler {};
-        Vector<ShaderType> ShaderUsage;
         Uint Width = 0;
         Uint Height = 0;
         Uint Mips = 1;

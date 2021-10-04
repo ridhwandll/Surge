@@ -33,6 +33,9 @@ namespace Surge::VulkanUtils
     VkSamplerAddressMode GetImageAddressMode(TextureAddressMode wrap);
     VkImageUsageFlags GetImageUsageFlags(ImageUsage usage, ImageFormat format);
 
-    void InsertImageMemoryBarrier(VkCommandBuffer cmdbuffer, VkImage& image, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkImageLayout oldImageLayout,
-                                  VkImageLayout newImageLayout, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, VkImageSubresourceRange subresourceRange);
+    void InsertImageMemoryBarrier(VkCommandBuffer cmdbuffer, VkImage& image,
+                                  VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask,
+                                  VkImageLayout oldImageLayout, VkImageLayout newImageLayout,
+                                  VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask,
+                                  VkImageSubresourceRange subresourceRange);
 } // namespace Surge::VulkanUtils

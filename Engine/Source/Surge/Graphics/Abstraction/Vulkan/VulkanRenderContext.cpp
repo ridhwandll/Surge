@@ -55,14 +55,14 @@ namespace Surge
 
     void VulkanRenderContext::BeginFrame()
     {
-        mSwapChain.BeginFrame();
-        mImGuiContext.BeginFrame();
+        mSwapChain.BeginFrame();    // Acquires the next image
+        mImGuiContext.BeginFrame(); // Starts the ImGui API
     }
 
     void VulkanRenderContext::EndFrame()
     {
+        mSwapChain.EndFrame(); // Present
         mImGuiContext.EndFrame();
-        mSwapChain.EndFrame();
     }
 
     void VulkanRenderContext::Shutdown()

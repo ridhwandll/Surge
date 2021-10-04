@@ -29,11 +29,10 @@ namespace Surge
         tm* ltm = localtime(&now);
         switch (severity)
         {
-            case Surge::Severity::Trace: {
+            case Surge::Severity::Trace:
                 fmt::print("[{0}:{1}:{2}] ", ltm->tm_hour, ltm->tm_min, ltm->tm_sec);
                 fmt::print(format, args...);
                 break;
-            }
             case Surge::Severity::Info:
                 fmt::print(fg(fmt::color::lawn_green), "[{0}:{1}:{2}] ", ltm->tm_hour, ltm->tm_min, ltm->tm_sec);
                 fmt::print(fg(fmt::color::lawn_green) | fmt::emphasis::bold, format, args...);

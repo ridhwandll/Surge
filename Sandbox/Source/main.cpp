@@ -1,4 +1,7 @@
 #include <Surge/Surge.hpp>
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanTexture.hpp"
+#include "Backends/imgui_impl_vulkan.h"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanImage.hpp"
 
 using namespace Surge; //Ooof
 
@@ -9,7 +12,6 @@ public:
     {
         mCamera = EditorCamera(45.0f, 1.778f, 0.1f, 1000.0f);
         mMesh = Ref<Mesh>::Create("Engine/Assets/Mesh/Cube.fbx");
-        mOtherMesh = Ref<Mesh>::Create("Engine/Assets/Mesh/Cube.fbx");
         mCamera.SetActive(true);
     }
 
@@ -50,15 +52,15 @@ public:
     {
         mCamera.OnEvent(e);
         EventDispatcher dispatcher(e);
-        dispatcher.Dispatch<Surge::KeyPressedEvent>([this](KeyPressedEvent& e)
-            {
-                //Log("{0}", e.ToString());
-            });
+        dispatcher.Dispatch<Surge::KeyPressedEvent>([this](KeyPressedEvent& e) {
+            //Log("{0}", e.ToString());
+        });
     }
 
     virtual void OnShutdown() override
     {
     }
+
 private:
     glm::vec3 mPosition = glm::vec3(0.0f, 0.0f, 1.0f);
     glm::vec3 mScale = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -67,7 +69,6 @@ private:
     glm::mat4 mOtherTransform;
 
     Ref<Mesh> mMesh;
-    Ref<Mesh> mOtherMesh;
     EditorCamera mCamera;
 };
 

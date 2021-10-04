@@ -5,7 +5,11 @@
 
 namespace Surge
 {
-    VulkanImage2D::VulkanImage2D(const ImageSpecification& specification) : mSpecification(specification) { Invalidate(); }
+    VulkanImage2D::VulkanImage2D(const ImageSpecification& specification)
+        : mSpecification(specification)
+    {
+        Invalidate();
+    }
 
     void VulkanImage2D::Release()
     {

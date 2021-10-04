@@ -13,8 +13,7 @@ AlwaysBreakAfterReturnType: None
 AlwaysBreakBeforeMultilineStrings: 'false'
 AlwaysBreakTemplateDeclarations: 'Yes'
 BreakStringLiterals: 'false'
-ColumnLimit: 180
-ConstructorInitializerAllOnOneLineOrOnePerLine: 'true'
+ColumnLimit: 0
 FixNamespaceComments: 'true'
 IndentCaseLabels: 'true'
 IndentWidth: '4'
@@ -30,7 +29,7 @@ SpaceBeforeCpp11BracedList: 'true'
 SpaceBeforeCtorInitializerColon: 'true'
 SpaceBeforeInheritanceColon: 'true'
 SpaceBeforeParens: ControlStatements
-SpaceBeforeRangeBasedForLoopColon: 'false'
+SpaceBeforeRangeBasedForLoopColon: 'true'
 SpaceInEmptyParentheses: 'false'
 SpacesInAngles: 'false'
 SpacesInCStyleCastParentheses: 'false'
@@ -41,5 +40,8 @@ Standard: Auto
 TabWidth: '4'
 UseTab: Never
 AccessModifierOffset: -4
-
+BraceWrapping:
+  AfterCaseLabel: 'true'
+  BeforeCatch: 'true'
+  BeforeLambdaBody: 'false'
 ...
