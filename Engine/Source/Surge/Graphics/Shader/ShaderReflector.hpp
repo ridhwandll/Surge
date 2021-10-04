@@ -10,4 +10,4 @@ namespace Surge
         ShaderReflector() = default;
         ShaderReflectionData Reflect(const Vector<SPIRVHandle>& spirvHandles);
     };
-}
+} // namespace Surge

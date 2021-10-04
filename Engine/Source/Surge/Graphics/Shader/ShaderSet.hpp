@@ -20,15 +20,17 @@ namespace Surge
         Ref<Shader>& GetShader(const String& shaderName); // Name without extension
         void LoadAll();
         void Shutdown();
+
     private:
         HashCode GetHashCodeFromCache(const Ref<Shader>& shader, ShaderType type);
         void CacheRequiredSPIRVs(const Ref<Shader>& shader, const HashMap<ShaderType, bool>& stagesToCache);
         void WriteHashToFile(const Ref<Shader>& shader);
         String GetCachePath(const Path& shaderPath, const ShaderType& type) const;
         String GetCacheName(const Path& shaderPath, const ShaderType& type) const;
+
     private:
         String mBaseShaderPath;
         Vector<Ref<Shader>> mShaders;
         Ref<Shader> mDummyShader = nullptr;
     };
-}
+} // namespace Surge

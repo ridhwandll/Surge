@@ -20,27 +20,19 @@ namespace Surge
     {
         POINT p;
         GetCursorPos(&p);
-        return { (float)p.x, (float)p.y };
+        return {(float)p.x, (float)p.y};
     }
 
-    float Input::GetMouseX()
-    {
-        return GetMousePosition().Data1;
-    }
+    float Input::GetMouseX() { return GetMousePosition().Data1; }
 
-    float Input::GetMouseY()
-    {
-        return GetMousePosition().Data2;
-    }
+    float Input::GetMouseY() { return GetMousePosition().Data2; }
 
     void Input::SetCursorMode(CursorMode cursorMode)
     {
         switch (cursorMode)
         {
-        case CursorMode::Normal:
-            SetCursor(LoadCursor(nullptr, IDC_ARROW)); break;
-        case CursorMode::Locked:
-            SetCursor(nullptr); break;
+            case CursorMode::Normal: SetCursor(LoadCursor(nullptr, IDC_ARROW)); break;
+            case CursorMode::Locked: SetCursor(nullptr); break;
         }
     }
-}
+} // namespace Surge

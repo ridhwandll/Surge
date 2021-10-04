@@ -28,8 +28,10 @@ namespace Surge
         virtual WindowState GetWindowState() const override { return mWindowState; }
         virtual void ShowConsole(bool show) const override;
         virtual void* GetNativeWindowHandle() override { return mWin32Window; }
+
     private:
         void ApplyFlags();
+
     private:
         std::function<void(Event&)> mEventCallback;
         WindowState mWindowState;
@@ -38,4 +40,4 @@ namespace Surge
         RenderContext* mRenderingContext;
         static LRESULT CALLBACK WindowProc(HWND hWnd, UINT msg, WPARAM lparam, LPARAM wparam);
     };
-}
+} // namespace Surge

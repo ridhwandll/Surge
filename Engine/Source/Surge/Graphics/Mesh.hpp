@@ -1,9 +1,9 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
-#include "Surge/Graphics/VertexBuffer.hpp"
-#include "Surge/Graphics/IndexBuffer.hpp"
-#include "Surge/Graphics/GraphicsPipeline.hpp"
 #include "Surge/Graphics/AABB.hpp"
+#include "Surge/Graphics/GraphicsPipeline.hpp"
+#include "Surge/Graphics/IndexBuffer.hpp"
+#include "Surge/Graphics/VertexBuffer.hpp"
 #include <glm/glm.hpp>
 
 struct aiMesh;
@@ -35,7 +35,10 @@ namespace Surge
         String NodeName, MeshName;
     };
 
-    struct Index { Uint V1, V2, V3; };
+    struct Index
+    {
+        Uint V1, V2, V3;
+    };
 
     class Mesh : public RefCounted
     {
@@ -48,7 +51,7 @@ namespace Surge
         // Returns the pipeline object
         const Ref<GraphicsPipeline>& GetPipeline() const { return mPipeline; }
 
-        //Returns the vertex buffer of the mesh
+        // Returns the vertex buffer of the mesh
         const Ref<VertexBuffer>& GetVertexBuffer() const { return mVertexBuffer; }
 
         // Returns the index buffer of the mesh
@@ -56,19 +59,21 @@ namespace Surge
 
         // Returns the submeshes of the mesh/model
         const Vector<Submesh>& GetSubmeshes() const { return mSubmeshes; }
+
     private:
         void GetVertexData(const aiMesh* mesh, AABB& outAABB);
         void GetIndexData(const aiMesh* mesh);
         void TraverseNodes(aiNode* node, const glm::mat4& parentTransform = glm::mat4(1.0f), Uint level = 0);
+
     private:
         String mPath;
         Vector<Submesh> mSubmeshes;
 
-        Ref<GraphicsPipeline> mPipeline; //Only graphics pipelines for now
+        Ref<GraphicsPipeline> mPipeline; // Only graphics pipelines for now
         Ref<VertexBuffer> mVertexBuffer;
         Ref<IndexBuffer> mIndexBuffer;
 
         Vector<Vertex> mVertices;
         Vector<Index> mIndices;
     };
-}
+} // namespace Surge

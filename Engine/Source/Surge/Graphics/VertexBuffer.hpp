@@ -17,4 +17,4 @@ namespace Surge
 
         static Ref<VertexBuffer> Create(const void* data, const Uint& size);
     };
-}
+} // namespace Surge

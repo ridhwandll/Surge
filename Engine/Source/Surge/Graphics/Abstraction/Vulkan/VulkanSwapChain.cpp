@@ -1,11 +1,11 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanSwapChain.hpp"
 #include "Pch.hpp"
 #include "Surge/Core/Core.hpp"
 #include "Surge/Core/Defines.hpp"
-#include "Surge/Graphics/Abstraction/Vulkan/VulkanSwapChain.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanDevice.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDiagnostics.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderContext.hpp"
-#include "Surge/Graphics/Abstraction/Vulkan/VulkanDevice.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanUtils.hpp"
 
 #include <array>
@@ -14,7 +14,8 @@ namespace Surge
 {
     void VulkanSwapChain::Initialize(Window* window)
     {
-        VulkanRenderContext* renderContext = nullptr; SURGE_GET_VULKAN_CONTEXT(renderContext);
+        VulkanRenderContext* renderContext = nullptr;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
         VkInstance instance = renderContext->GetInstance();
         VulkanUtils::CreateWindowSurface(instance, window, &mSurface);
         PickPresentQueue();
@@ -27,7 +28,8 @@ namespace Surge
 
     void VulkanSwapChain::CreateSwapChain()
     {
-        VulkanRenderContext* renderContext = nullptr; SURGE_GET_VULKAN_CONTEXT(renderContext);
+        VulkanRenderContext* renderContext = nullptr;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
         VulkanDevice* vulkanDevice = renderContext->GetDevice();
         VkPhysicalDevice physicalDevice = vulkanDevice->GetPhysicalDevice();
         VkDevice device = vulkanDevice->GetLogicalDevice();
@@ -50,7 +52,7 @@ namespace Surge
 
         // Selecting the best swapchain format
         VkSurfaceFormatKHR pickedFormat = availableFormats[0]; // Default one is `availableFormats[0]`
-        for (const VkSurfaceFormatKHR& availableFormat : availableFormats)
+        for (const VkSurfaceFormatKHR& availableFormat: availableFormats)
         {
             if (availableFormat.format == VK_FORMAT_R8G8B8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
                 pickedFormat = availableFormat;
@@ -65,13 +67,13 @@ namespace Surge
 
         // Selecting the best swapchain present mode
         VkPresentModeKHR pickedPresentMode = VK_PRESENT_MODE_FIFO_KHR; // Default one
-        for (const auto& availablePresentMode : avaialbePresentModes)
+        for (const auto& availablePresentMode: avaialbePresentModes)
         {
             if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR && !mVsync)
                 pickedPresentMode = availablePresentMode;
         }
 
-        VkSwapchainCreateInfoKHR createInfo{ VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
+        VkSwapchainCreateInfoKHR createInfo {VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
         createInfo.surface = mSurface;
         createInfo.minImageCount = imageCount;
         createInfo.imageFormat = pickedFormat.format;
@@ -103,11 +105,13 @@ namespace Surge
     void VulkanSwapChain::CreateRenderPass()
     {
         // Creating here the renderPass because we need it for the framebuffer, for imgui and other stuff.
-        // The rendered image will be passed to this renderpass by rendering a quad with the final texture or viewport and then it will pe presented
-        VulkanRenderContext* renderContext = nullptr; SURGE_GET_VULKAN_CONTEXT(renderContext);
+        // The rendered image will be passed to this renderpass by rendering a quad with the final texture or viewport
+        // and then it will pe presented
+        VulkanRenderContext* renderContext = nullptr;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
 
-        VkAttachmentDescription colorAttachment{};
+        VkAttachmentDescription colorAttachment {};
         colorAttachment.format = mColorFormat.format;
         colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
         colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -117,11 +121,11 @@ namespace Surge
         colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-        VkAttachmentReference colorAttachmentRef{};
+        VkAttachmentReference colorAttachmentRef {};
         colorAttachmentRef.attachment = 0;
         colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-        VkSubpassDescription subpass{};
+        VkSubpassDescription subpass {};
         subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
         subpass.colorAttachmentCount = 1;
         subpass.pColorAttachments = &colorAttachmentRef;
@@ -134,7 +138,7 @@ namespace Surge
         dependency.srcAccessMask = 0;
         dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-        VkRenderPassCreateInfo renderPassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
+        VkRenderPassCreateInfo renderPassInfo {VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
         renderPassInfo.attachmentCount = 1;
         renderPassInfo.pAttachments = &colorAttachment;
         renderPassInfo.subpassCount = 1;
@@ -147,7 +151,8 @@ namespace Surge
 
     void VulkanSwapChain::CreateFramebuffer()
     {
-        VulkanRenderContext* renderContext = nullptr; SURGE_GET_VULKAN_CONTEXT(renderContext);
+        VulkanRenderContext* renderContext = nullptr;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
 
         // Creating the VkImageViews
@@ -157,11 +162,12 @@ namespace Surge
             VkImage swapChainImage = mSwapChainImages[i];
 
             // Specifying that we are gonna use the imageviews as color attachments
-            VkImageViewUsageCreateInfo usageInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_USAGE_CREATE_INFO };
+            VkImageViewUsageCreateInfo usageInfo {VK_STRUCTURE_TYPE_IMAGE_VIEW_USAGE_CREATE_INFO};
             usageInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-            VkImageViewCreateInfo createInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
-            createInfo.pNext = &usageInfo; // using pNext chain for letting vulkan know that this imageView is gonna be used for the imageless framebuffer
+            VkImageViewCreateInfo createInfo {VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
+            createInfo.pNext = &usageInfo; // using pNext chain for letting vulkan know that this imageView is gonna be
+                                           // used for the imageless framebuffer
             createInfo.image = swapChainImage;
             createInfo.format = mColorFormat.format;
             createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
@@ -176,7 +182,7 @@ namespace Surge
 
         // Imageless framebuffer (Vulkan Core feature 1.2)
         // Firstly we tell vulkan how we are gonna use the image views
-        VkFramebufferAttachmentImageInfo attachmentImageInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO };
+        VkFramebufferAttachmentImageInfo attachmentImageInfo {VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO};
         attachmentImageInfo.pNext = nullptr;
         attachmentImageInfo.width = mSwapChainExtent.width;
         attachmentImageInfo.height = mSwapChainExtent.height;
@@ -187,12 +193,13 @@ namespace Surge
         attachmentImageInfo.pViewFormats = &mColorFormat.format;
 
         // Reference the struct above here and specify how many attachments we have
-        VkFramebufferAttachmentsCreateInfo attachmentCreateInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO };
+        VkFramebufferAttachmentsCreateInfo attachmentCreateInfo {VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO};
         attachmentCreateInfo.attachmentImageInfoCount = 1;
         attachmentCreateInfo.pAttachmentImageInfos = &attachmentImageInfo;
 
-        // Creation of the framebuffer is done using the pNext chain and with the flag `VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT`
-        VkFramebufferCreateInfo framebufferInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
+        // Creation of the framebuffer is done using the pNext chain and with the flag
+        // `VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT`
+        VkFramebufferCreateInfo framebufferInfo {VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
         framebufferInfo.pNext = &attachmentCreateInfo;
         framebufferInfo.flags = VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT;
         framebufferInfo.renderPass = mRenderPass;
@@ -207,17 +214,18 @@ namespace Surge
 
     void VulkanSwapChain::CreateCmdBuffers()
     {
-        VulkanRenderContext* vkContext = nullptr; SURGE_GET_VULKAN_CONTEXT(vkContext);
+        VulkanRenderContext* vkContext = nullptr;
+        SURGE_GET_VULKAN_CONTEXT(vkContext);
         VulkanDevice* device = vkContext->GetDevice();
 
         // Command Pool Creation
-        VkCommandPoolCreateInfo cmdPoolInfo{ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
+        VkCommandPoolCreateInfo cmdPoolInfo {VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
         cmdPoolInfo.queueFamilyIndex = device->GetQueueFamilyIndices().GraphicsQueue;
         cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         VK_CALL(vkCreateCommandPool(device->GetLogicalDevice(), &cmdPoolInfo, nullptr, &mCommandPool));
 
         // Command Buffers
-        VkCommandBufferAllocateInfo commandBufferAllocateInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
+        VkCommandBufferAllocateInfo commandBufferAllocateInfo {VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
         commandBufferAllocateInfo.commandPool = mCommandPool;
         commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         commandBufferAllocateInfo.commandBufferCount = mImageCount;
@@ -227,27 +235,29 @@ namespace Surge
 
     void VulkanSwapChain::CreateSyncObjects()
     {
-        Uint framesInFlight = FRAMES_IN_FLIGHT; //TODO: More than two Frames in Flight
-        VulkanRenderContext* vkContext = nullptr; SURGE_GET_VULKAN_CONTEXT(vkContext);
+        Uint framesInFlight = FRAMES_IN_FLIGHT; // TODO: More than two Frames in Flight
+        VulkanRenderContext* vkContext = nullptr;
+        SURGE_GET_VULKAN_CONTEXT(vkContext);
         VkDevice device = vkContext->GetDevice()->GetLogicalDevice();
 
         // Semaphores
-        VkSemaphoreCreateInfo semaphoreCreateInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+        VkSemaphoreCreateInfo semaphoreCreateInfo {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
         VK_CALL(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &mImageAvailable));
         VK_CALL(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &mRenderAvailable));
 
         // Fences
-        VkFenceCreateInfo fenceCreateInfo{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
+        VkFenceCreateInfo fenceCreateInfo {VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
         fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
         mWaitFences.resize(framesInFlight);
-        for (VkFence& fence : mWaitFences)
+        for (VkFence& fence: mWaitFences)
             VK_CALL(vkCreateFence(device, &fenceCreateInfo, nullptr, &fence));
     }
 
     void VulkanSwapChain::Resize()
     {
-        VulkanRenderContext* renderContext = nullptr; SURGE_GET_VULKAN_CONTEXT(renderContext);
+        VulkanRenderContext* renderContext = nullptr;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
         mCurrentFrameIndex = 0;
 
@@ -255,7 +265,7 @@ namespace Surge
         vkDeviceWaitIdle(device);
 
         vkDestroyFramebuffer(device, mFramebuffer, nullptr);
-        for (auto& imageView : mSwapChainImageViews)
+        for (auto& imageView: mSwapChainImageViews)
             vkDestroyImageView(device, imageView, nullptr);
 
         CreateSwapChain();
@@ -264,7 +274,8 @@ namespace Surge
 
     void VulkanSwapChain::Destroy()
     {
-        VulkanRenderContext* renderContext = nullptr; SURGE_GET_VULKAN_CONTEXT(renderContext);
+        VulkanRenderContext* renderContext = nullptr;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
         VkInstance instance = renderContext->GetInstance();
 
@@ -273,7 +284,7 @@ namespace Surge
         vkDestroyRenderPass(device, mRenderPass, nullptr);
         vkDestroyFramebuffer(device, mFramebuffer, nullptr);
 
-        for (auto& imageView : mSwapChainImageViews)
+        for (auto& imageView: mSwapChainImageViews)
             vkDestroyImageView(device, imageView, nullptr);
 
         vkDestroySwapchainKHR(device, mSwapChain, nullptr);
@@ -282,21 +293,23 @@ namespace Surge
         vkDestroyCommandPool(device, mCommandPool, nullptr);
         vkDestroySemaphore(device, mImageAvailable, nullptr);
         vkDestroySemaphore(device, mRenderAvailable, nullptr);
-        for (VkFence& fence : mWaitFences)
+        for (VkFence& fence: mWaitFences)
             vkDestroyFence(device, fence, nullptr);
     }
 
     VkResult VulkanSwapChain::AcquireNextImage(VkSemaphore imageAvailableSemaphore, Uint* imageIndex)
     {
         // By setting timeout to UINT64_MAX we will always wait until the next image has been acquired
-        VulkanRenderContext* renderContext = nullptr; SURGE_GET_VULKAN_CONTEXT(renderContext);
+        VulkanRenderContext* renderContext = nullptr;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
         return vkAcquireNextImageKHR(device, mSwapChain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, imageIndex);
     }
 
     void VulkanSwapChain::BeginFrame()
     {
-        VulkanRenderContext* renderContext = nullptr; SURGE_GET_VULKAN_CONTEXT(renderContext);
+        VulkanRenderContext* renderContext = nullptr;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
         VK_CALL(vkWaitForFences(device, 1, &mWaitFences[mCurrentFrameIndex], VK_TRUE, UINT64_MAX));
         VK_CALL(AcquireNextImage(mImageAvailable, &mCurrentImageIndex));
@@ -304,11 +317,12 @@ namespace Surge
 
     void VulkanSwapChain::Present()
     {
-        VulkanRenderContext* renderContext = nullptr; SURGE_GET_VULKAN_CONTEXT(renderContext);
+        VulkanRenderContext* renderContext = nullptr;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
         VulkanDevice* device = renderContext->GetDevice();
 
         VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
+        VkSubmitInfo submitInfo = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
         submitInfo.pWaitDstStageMask = &waitStageMask;
         submitInfo.pWaitSemaphores = &mImageAvailable;
         submitInfo.waitSemaphoreCount = 1;
@@ -321,7 +335,7 @@ namespace Surge
         VK_CALL(vkQueueSubmit(device->GetGraphicsQueue(), 1, &submitInfo, mWaitFences[mCurrentFrameIndex]));
 
         // Present
-        VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
+        VkPresentInfoKHR presentInfo {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
         presentInfo.waitSemaphoreCount = 1;
         presentInfo.pWaitSemaphores = &mRenderAvailable;
         presentInfo.swapchainCount = 1;
@@ -332,25 +346,22 @@ namespace Surge
         mCurrentFrameIndex = (mCurrentFrameIndex + 1) % FRAMES_IN_FLIGHT;
     }
 
-    void VulkanSwapChain::EndFrame()
-    {
-        Present();
-    }
+    void VulkanSwapChain::EndFrame() { Present(); }
 
     void VulkanSwapChain::BeginRenderPass()
     {
-        VkRenderPassAttachmentBeginInfo attachmentInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO };
+        VkRenderPassAttachmentBeginInfo attachmentInfo {VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO};
         attachmentInfo.attachmentCount = 1;
         attachmentInfo.pAttachments = &mSwapChainImageViews[mCurrentImageIndex];
 
         std::array<VkClearValue, 2> clearValues;
-        clearValues[0].color = { 0.1f, 0.1f, 0.1f, 1.0f };
-        clearValues[1].depthStencil = { 1.0f, 0 };
+        clearValues[0].color = {0.1f, 0.1f, 0.1f, 1.0f};
+        clearValues[1].depthStencil = {1.0f, 0};
 
-        VkRenderPassBeginInfo renderPassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+        VkRenderPassBeginInfo renderPassInfo {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
         renderPassInfo.renderPass = mRenderPass;
         renderPassInfo.framebuffer = mFramebuffer;
-        renderPassInfo.renderArea.offset = { 0, 0 };
+        renderPassInfo.renderArea.offset = {0, 0};
         renderPassInfo.renderArea.extent = mSwapChainExtent;
         renderPassInfo.pNext = &attachmentInfo; // Imageless framebuffer
         renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
@@ -359,14 +370,12 @@ namespace Surge
         vkCmdBeginRenderPass(mCommandBuffers[mCurrentFrameIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
     }
 
-    void VulkanSwapChain::EndRenderPass()
-    {
-        vkCmdEndRenderPass(mCommandBuffers[mCurrentFrameIndex]);
-    }
+    void VulkanSwapChain::EndRenderPass() { vkCmdEndRenderPass(mCommandBuffers[mCurrentFrameIndex]); }
 
     void VulkanSwapChain::PickPresentQueue()
     {
-        VulkanRenderContext* renderContext = nullptr; SURGE_GET_VULKAN_CONTEXT(renderContext);
+        VulkanRenderContext* renderContext = nullptr;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
         VkPhysicalDevice physicalDevice = renderContext->GetDevice()->GetPhysicalDevice();
 
@@ -393,4 +402,4 @@ namespace Surge
         // Getting the VkQueue using the presentQueueIndex
         vkGetDeviceQueue(device, mPresentQueueIndex, 0, &mPresentQueue);
     }
-}
+} // namespace Surge

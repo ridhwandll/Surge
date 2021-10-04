@@ -8,7 +8,7 @@ namespace Surge
     {
         ImageFormat Format = ImageFormat::None;
         ImageUsage Usage = ImageUsage::Texture;
-        SamplerProperties Sampler{};
+        SamplerProperties Sampler {};
         Vector<ShaderType> ShaderUsage;
         bool UseMips = false;
     };
@@ -33,4 +33,4 @@ namespace Surge
         static Ref<Texture2D> Create(const String& filepath, TextureSpecification specification = {});
     };
 
-}
+} // namespace Surge

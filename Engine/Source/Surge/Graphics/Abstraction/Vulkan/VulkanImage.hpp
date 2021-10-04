@@ -1,9 +1,8 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
-#include "Surge/Graphics/Image.hpp"
-#include "Surge/Graphics/Abstraction/Vulkan/VulkanUtils.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanMemoryAllocator.hpp"
-#include <volk/volk.h>
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanUtils.hpp"
+#include "Surge/Graphics/Image.hpp"
 
 namespace Surge
 {
@@ -23,9 +22,11 @@ namespace Surge
         VkImage& GetVulkanImage() { return mImage; }
         VkImageView& GetVulkanImageView() { return mImageView; }
         VkDescriptorImageInfo GetVulkanDescriptorInfo() const { return mDescriptorInfo; }
+
     private:
         void Invalidate();
         void UpdateDescriptor();
+
     private:
         ImageSpecification mSpecification;
 
@@ -37,4 +38,4 @@ namespace Surge
         VkDescriptorImageInfo mDescriptorInfo;
         friend class VulkanTexture2D;
     };
-}
+} // namespace Surge

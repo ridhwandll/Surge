@@ -6,19 +6,21 @@ namespace Surge
 {
     enum class CameraMode
     {
-        None, Flycam, Arcball
+        None,
+        Flycam,
+        Arcball
     };
 
     class Camera
     {
     public:
         Camera() = default;
-        Camera(const glm::mat4 & projection)
-            : mProjection(projection) {}
+        Camera(const glm::mat4& projection) : mProjection(projection) {}
         virtual ~Camera() = default;
 
         const glm::mat4& GetProjectionMatrix() const { return mProjection; }
+
     protected:
         glm::mat4 mProjection = glm::mat4(1.0f);
     };
-}
+} // namespace Surge

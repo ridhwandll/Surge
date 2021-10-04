@@ -14,4 +14,4 @@ namespace Surge
         virtual void EndFrame() override;
         virtual void SubmitMesh(const Ref<Mesh>& mesh, const glm::mat4& transform) override;
     };
-}
+} // namespace Surge

@@ -1,7 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
-#include "Surge/Core/Defines.hpp"
 #include "Surge/Core/Application.hpp"
+#include "Surge/Core/Defines.hpp"
 #include "Surge/Core/Window/Window.hpp"
 #include "Surge/Graphics/RenderContext.hpp"
 #include "Surge/Graphics/Renderer/Renderer.hpp"
@@ -26,4 +26,4 @@ namespace Surge
     Scope<RenderContext>& CoreGetRenderContext();
 
     Scope<Renderer>& CoreGetRenderer();
-}
+} // namespace Surge

@@ -12,14 +12,13 @@ namespace Surge
     {
         String Name;
         int64_t DeviceScore;
-        //TODO: Add more stuff?
+        // TODO: Add more stuff?
     };
 
     struct GPUMemoryStats
     {
         GPUMemoryStats() = default;
-        GPUMemoryStats(uint64_t used, uint64_t free)
-            : Used(used), Free(free) {}
+        GPUMemoryStats(uint64_t used, uint64_t free) : Used(used), Free(free) {}
 
         uint64_t Used = 0;
         uint64_t Free = 0;
@@ -47,4 +46,4 @@ namespace Surge
 
         static Scope<RenderContext> Create();
     };
-}
+} // namespace Surge

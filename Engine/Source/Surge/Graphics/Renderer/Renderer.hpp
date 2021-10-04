@@ -1,12 +1,12 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "Surge/Core/Memory.hpp"
-#include "Surge/Graphics/Shader/Shader.hpp"
 #include "Surge/Graphics/Camera/EditorCamera.hpp"
-#include "Surge/Graphics/Texture.hpp"
 #include "Surge/Graphics/Mesh.hpp"
-#include "Surge/Graphics/Shader/ShaderSet.hpp"
 #include "Surge/Graphics/RenderCommandBuffer.hpp"
+#include "Surge/Graphics/Shader/Shader.hpp"
+#include "Surge/Graphics/Shader/ShaderSet.hpp"
+#include "Surge/Graphics/Texture.hpp"
 
 #define FRAMES_IN_FLIGHT 3
 #define BASE_SHADER_PATH "Engine/Assets/Shaders"
@@ -15,8 +15,7 @@ namespace Surge
 {
     struct DrawCommand
     {
-        DrawCommand(const Ref<Mesh>& mesh, const glm::mat4& transform)
-            : Mesh(mesh), Transform(transform) {}
+        DrawCommand(const Ref<Mesh>& mesh, const glm::mat4& transform) : Mesh(mesh), Transform(transform) {}
 
         Ref<Surge::Mesh> Mesh;
         glm::mat4 Transform;
@@ -49,7 +48,8 @@ namespace Surge
         virtual void SubmitMesh(const Ref<Mesh>& mesh, const glm::mat4& transform) = 0;
 
         Ref<Shader>& GetShader(const String& name);
+
     protected:
         Scope<RendererData> mData;
     };
-}
+} // namespace Surge

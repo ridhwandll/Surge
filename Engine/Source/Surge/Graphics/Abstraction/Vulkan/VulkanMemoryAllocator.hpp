@@ -31,7 +31,8 @@ namespace Surge
 
         GPUMemoryStats GetStats() const;
         VmaAllocator GetInternalAllocator() { return mAllocator; }
+
     private:
         VmaAllocator mAllocator;
     };
-}
+} // namespace Surge

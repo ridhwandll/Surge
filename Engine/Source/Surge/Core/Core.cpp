@@ -1,9 +1,9 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
-#include "Pch.hpp"
 #include "Surge/Core/Core.hpp"
+#include "Pch.hpp"
+#include "Surge/Core/Input/Input.hpp"
 #include "Surge/Core/Time/Clock.hpp"
 #include "Surge/Core/Window/Window.hpp"
-#include "Surge/Core/Input/Input.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderer.hpp"
 
 namespace Surge
@@ -24,11 +24,10 @@ namespace Surge
     {
         sCoreData.SurgeApplication->OnEvent(e);
         Surge::EventDispatcher dispatcher(e);
-        dispatcher.Dispatch<Surge::WindowResizeEvent>([](Surge::WindowResizeEvent& e)
-            {
-                if (CoreGetWindow()->GetWindowState() != WindowState::Minimized)
-                    sCoreData.SurgeRenderContext->OnResize();
-            });
+        dispatcher.Dispatch<Surge::WindowResizeEvent>([](Surge::WindowResizeEvent& e) {
+            if (CoreGetWindow()->GetWindowState() != WindowState::Minimized)
+                sCoreData.SurgeRenderContext->OnResize();
+        });
     }
 
     void Initialize(Application* application)
@@ -37,7 +36,7 @@ namespace Surge
         Clock::Start();
         sCoreData.SurgeApplication = application;
 
-        sCoreData.SurgeWindow = Window::Create({ 1280, 720, "Surge", WindowFlags::CreateDefault });
+        sCoreData.SurgeWindow = Window::Create({1280, 720, "Surge", WindowFlags::CreateDefault});
         sCoreData.SurgeWindow->RegisterEventCallback(Surge::CoreOnEvent);
 
         // Render Context
@@ -45,7 +44,7 @@ namespace Surge
         sCoreData.SurgeRenderContext->Initialize(sCoreData.SurgeWindow.get());
 
         // Renderer
-        //TODO: Check which Renderer(DirextX12/Vulkan/Metal) to create (currently only "VulkanRenderer")
+        // TODO: Check which Renderer(DirextX12/Vulkan/Metal) to create (currently only "VulkanRenderer")
         sCoreData.SurgeRenderer = CreateScope<VulkanRenderer>();
         sCoreData.SurgeRenderer->Initialize();
 
@@ -82,23 +81,11 @@ namespace Surge
         sCoreData.SurgeRenderContext->Shutdown();
     }
 
-    void Close()
-    {
-        sCoreData.mRunning = false;
-    }
+    void Close() { sCoreData.mRunning = false; }
 
-    Scope<RenderContext>& CoreGetRenderContext()
-    {
-        return sCoreData.SurgeRenderContext;
-    }
+    Scope<RenderContext>& CoreGetRenderContext() { return sCoreData.SurgeRenderContext; }
 
-    Scope<Window>& CoreGetWindow()
-    {
-        return sCoreData.SurgeWindow;
-    }
+    Scope<Window>& CoreGetWindow() { return sCoreData.SurgeWindow; }
 
-    Scope<Renderer>& CoreGetRenderer()
-    {
-        return sCoreData.SurgeRenderer;
-    }
-}
+    Scope<Renderer>& CoreGetRenderer() { return sCoreData.SurgeRenderer; }
+} // namespace Surge

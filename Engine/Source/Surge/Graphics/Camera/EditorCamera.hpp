@@ -22,7 +22,12 @@ namespace Surge
         void SetDistance(float distance) { mDistance = distance; }
 
         const glm::vec3& GetFocalPoint() const { return mFocalPoint; }
-        void SetViewportSize(const glm::vec2& size) { mViewportWidth = size.x; mViewportHeight = size.y; UpdateProjection(); }
+        void SetViewportSize(const glm::vec2& size)
+        {
+            mViewportWidth = size.x;
+            mViewportHeight = size.y;
+            UpdateProjection();
+        }
 
         const glm::mat4& GetViewMatrix() const { return mViewMatrix; }
         const glm::mat4& GetViewProjection() const { return mProjection * mViewMatrix; }
@@ -37,6 +42,7 @@ namespace Surge
         float GetPitch() const { return mPitch; }
         float GetYaw() const { return mYaw; }
         float GetCameraSpeed() const { return mSpeed; }
+
     private:
         void UpdateCameraView();
         void UpdateProjection();
@@ -53,14 +59,15 @@ namespace Surge
         Pair<float, float> PanSpeed() const;
         float RotationSpeed() const;
         float ZoomSpeed() const;
+
     private:
         bool mIsActive = false;
 
         glm::mat4 mViewMatrix;
         glm::vec3 mPosition, mWorldRotation, mFocalPoint;
-        glm::vec2 mInitialMousePosition{};
-        glm::vec3 mPositionDelta{};
-        glm::vec3 mRightDirection{};
+        glm::vec2 mInitialMousePosition {};
+        glm::vec3 mPositionDelta {};
+        glm::vec3 mRightDirection {};
 
         float mDistance;
         float mSpeed = 0.003f;
@@ -70,6 +77,6 @@ namespace Surge
         float mMinFocusDistance = 100.0f;
         float mViewportWidth = 1280.0f, mViewportHeight = 720.0f;
         float mFOV = 45.0f, mAspectRatio = 1.778f, mNearClip = 0.1f, mFarClip = 1000.0f;
-        CameraMode mCameraMode{ CameraMode::Arcball };
+        CameraMode mCameraMode {CameraMode::Arcball};
     };
-}
+} // namespace Surge

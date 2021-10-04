@@ -1,18 +1,18 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
-#include "Surge/Core/Defines.hpp"
 #include "Surge/Core/Application.hpp"
-#include <glm/glm.hpp>
+#include "Surge/Core/Defines.hpp"
 #include <functional>
+#include <glm/glm.hpp>
 
 namespace Surge
 {
     enum class WindowFlags
     {
         NonResizeable = BIT(0),
-        NoDecoration  = BIT(1),
-        Minimized     = BIT(2),
-        Maximized     = BIT(3),
+        NoDecoration = BIT(1),
+        Minimized = BIT(2),
+        Maximized = BIT(3),
         CreateDefault = BIT(4)
     };
     MAKE_BIT_ENUM(WindowFlags);
@@ -25,11 +25,9 @@ namespace Surge
 
     struct WindowData
     {
-        WindowData(Uint width, Uint height, const String& title, WindowFlags flags = WindowFlags::CreateDefault)
-            : Width(width), Height(height), Title(title), Flags(flags) {}
+        WindowData(Uint width, Uint height, const String& title, WindowFlags flags = WindowFlags::CreateDefault) : Width(width), Height(height), Title(title), Flags(flags) {}
 
-        WindowData()
-            : Width(1280), Height(720), Title("Surge Window"), Flags(WindowFlags::CreateDefault) {}
+        WindowData() : Width(1280), Height(720), Title("Surge Window"), Flags(WindowFlags::CreateDefault) {}
 
         ~WindowData() = default;
 
@@ -68,7 +66,8 @@ namespace Surge
 
         const WindowData& GetData() const { return mWindowData; }
         static Scope<Window> Create(const WindowData& windowData);
+
     protected:
         WindowData mWindowData;
     };
-}
+} // namespace Surge

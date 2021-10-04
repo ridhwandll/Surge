@@ -17,4 +17,4 @@ namespace Surge
 
         static Ref<IndexBuffer> Create(const void* data, const Uint& size);
     };
-}
+} // namespace Surge

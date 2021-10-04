@@ -13,7 +13,8 @@ namespace Surge
     {
         enum class Usage
         {
-            Sampled, Storage
+            Sampled,
+            Storage
         };
 
         Uint Set = 0;
@@ -43,7 +44,8 @@ namespace Surge
     {
         enum class Usage
         {
-            Storage, Uniform
+            Storage,
+            Uniform
         };
 
         Uint Set = 0;
@@ -52,14 +54,14 @@ namespace Surge
         Uint Size = 0;
         Vector<ShaderBufferMember> Members = {};
         ShaderBuffer::Usage Type;
-        Vector<ShaderType> ShaderStages;  // Specify what shader stages the buffer is being used for
+        Vector<ShaderType> ShaderStages; // Specify what shader stages the buffer is being used for
     };
 
     struct ShaderPushConstant
     {
         String BufferName = "";
         Uint Size = 0;
-        Vector<ShaderType> ShaderStages;  // Specify what shader stages the buffer is being used for
+        Vector<ShaderType> ShaderStages; // Specify what shader stages the buffer is being used for
     };
 
     class ShaderReflectionData
@@ -84,20 +86,22 @@ namespace Surge
         const Vector<ShaderResource>& GetResources() const { return mShaderResources; }
         const HashMap<ShaderType, std::map<Uint, ShaderStageInput>>& GetStageInputs() const { return mStageInputs; }
         const Vector<Uint> GetDescriptorSetCount() const { return mDescriptorSetsCount; }
+
     private:
         void ClearRepeatedMembers();
         void CalculateDescriptorSetCount();
+
     private:
-        Vector<ShaderResource> mShaderResources{};
-        Vector<ShaderBuffer> mShaderBuffers{};
+        Vector<ShaderResource> mShaderResources {};
+        Vector<ShaderBuffer> mShaderBuffers {};
         Vector<ShaderPushConstant> mPushConstants;
 
         // NOTE(AC3R): Keeping track of how many descriptor set we will need for the descriptor layout
         Vector<Uint> mDescriptorSetsCount;
 
         // Stage inputs, per shader stage
-        HashMap<ShaderType, std::map<Uint/*location*/, ShaderStageInput/*Data*/>> mStageInputs{};
+        HashMap<ShaderType, std::map<Uint /*location*/, ShaderStageInput /*Data*/>> mStageInputs {};
 
         friend class ShaderReflector;
     };
-}
+} // namespace Surge

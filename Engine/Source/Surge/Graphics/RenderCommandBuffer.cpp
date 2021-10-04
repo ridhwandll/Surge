@@ -8,4 +8,4 @@ namespace Surge
     {
         return Ref<VulkanRenderCommandBuffer>::Create(createFromSwapchain, size, debugName);
     }
-}
+} // namespace Surge

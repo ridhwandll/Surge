@@ -15,4 +15,4 @@ namespace Surge::Clock
 
     // Updates the internal timer. Increments Life and refreshes Delta
     void Update();
-}
+} // namespace Surge::Clock

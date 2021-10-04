@@ -10,4 +10,4 @@ namespace Surge
         Ref<Shader>& result = mData->ShaderSet.GetShader(name);
         return result;
     }
-}
+} // namespace Surge

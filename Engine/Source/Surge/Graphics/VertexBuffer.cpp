@@ -4,8 +4,5 @@
 
 namespace Surge
 {
-    Ref<VertexBuffer> VertexBuffer::Create(const void* data, const Uint& size)
-    {
-        return Ref<VulkanVertexBuffer>::Create(data, size);
-    }
-}
+    Ref<VertexBuffer> VertexBuffer::Create(const void* data, const Uint& size) { return Ref<VulkanVertexBuffer>::Create(data, size); }
+} // namespace Surge

@@ -1,27 +1,29 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
-#include "Pch.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDiagnostics.hpp"
+#include "Pch.hpp"
 
 namespace Surge
 {
-    static VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
+    static VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
+                                                              const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
     {
         switch (messageSeverity)
         {
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-            Log("[VulkanDiagnostics]");
-            Log<Severity::Warn>("{0}", pCallbackData->pMessage);
-            break;
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-            Log("[VulkanDiagnostics]");
-            Log<Severity::Error>("{0}", pCallbackData->pMessage);
-            break;
+            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+                Log("[VulkanDiagnostics]");
+                Log<Severity::Warn>("{0}", pCallbackData->pMessage);
+                break;
+            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+                Log("[VulkanDiagnostics]");
+                Log<Severity::Error>("{0}", pCallbackData->pMessage);
+                break;
         }
 
         return VK_FALSE;
     }
 
-    VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
+    VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator,
+                                          VkDebugUtilsMessengerEXT* pDebugMessenger)
     {
         auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
         if (func != nullptr)
@@ -52,7 +54,7 @@ namespace Surge
         VK_CALL(vkEnumerateInstanceLayerProperties(&instanceLayerCount, instanceLayerProperties.data()));
 
         bool validationLayerPresent = false;
-        for (const VkLayerProperties& layer : instanceLayerProperties)
+        for (const VkLayerProperties& layer: instanceLayerProperties)
         {
             if (strcmp(layer.layerName, validationLayerName) == 0)
             {
@@ -66,27 +68,20 @@ namespace Surge
             Log<Severity::Error>("Validation layer requested, but it is not present ({0}), validation is disabled", validationLayerName);
     }
 
-    void VulkanDiagnostics::AddValidationExtensions(Vector<const char*>& outInstanceExtensions)
-    {
-        outInstanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-    }
+    void VulkanDiagnostics::AddValidationExtensions(Vector<const char*>& outInstanceExtensions) { outInstanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME); }
 
-    void VulkanDiagnostics::StartDiagnostics(VkInstance& instance)
-    {
-        VK_CALL(CreateDebugUtilsMessengerEXT(instance, &mDebugCreateInfo, nullptr, &mDebugMessenger));
-    }
+    void VulkanDiagnostics::StartDiagnostics(VkInstance& instance) { VK_CALL(CreateDebugUtilsMessengerEXT(instance, &mDebugCreateInfo, nullptr, &mDebugMessenger)); }
 
-    void VulkanDiagnostics::EndDiagnostics(VkInstance& instance)
-    {
-        DestroyDebugUtilsMessengerEXT(instance, mDebugMessenger, nullptr);
-    }
+    void VulkanDiagnostics::EndDiagnostics(VkInstance& instance) { DestroyDebugUtilsMessengerEXT(instance, mDebugMessenger, nullptr); }
 
     void VulkanDiagnostics::PopulateDebugCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& debugCreateInfo)
     {
         debugCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-        debugCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-        debugCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        debugCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
+                                          VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        debugCreateInfo.messageType =
+            VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
         debugCreateInfo.pfnUserCallback = VulkanDebugCallback;
         debugCreateInfo.pUserData = nullptr;
     }
-}
+} // namespace Surge

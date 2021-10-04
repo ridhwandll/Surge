@@ -4,8 +4,5 @@
 
 namespace Surge
 {
-    Ref<Shader> Shader::Create(const Path& path)
-    {
-        return Ref<VulkanShader>::Create(path);
-    }
-}
+    Ref<Shader> Shader::Create(const Path& path) { return Ref<VulkanShader>::Create(path); }
+} // namespace Surge

@@ -17,10 +17,7 @@ namespace Surge
         VK_CALL(vmaCreateAllocator(&allocatorInfo, &mAllocator));
     }
 
-    void VulkanMemoryAllocator::Destroy()
-    {
-        vmaDestroyAllocator(mAllocator);
-    }
+    void VulkanMemoryAllocator::Destroy() { vmaDestroyAllocator(mAllocator); }
 
     VmaAllocation VulkanMemoryAllocator::AllocateBuffer(VkBufferCreateInfo bufferCreateInfo, VmaMemoryUsage usage, VkBuffer& outBuffer, VmaAllocationInfo* allocationInfo)
     {
@@ -41,7 +38,7 @@ namespace Surge
         vmaDestroyBuffer(mAllocator, buffer, allocation);
     }
 
-	VmaAllocation VulkanMemoryAllocator::AllocateImage(VkImageCreateInfo imageCreateInfo, VmaMemoryUsage usage, VkImage& outImage, VmaAllocationInfo* allocationInfo)
+    VmaAllocation VulkanMemoryAllocator::AllocateImage(VkImageCreateInfo imageCreateInfo, VmaMemoryUsage usage, VkImage& outImage, VmaAllocationInfo* allocationInfo)
     {
         VmaAllocationCreateInfo allocCreateInfo = {};
         allocCreateInfo.usage = usage;
@@ -53,17 +50,14 @@ namespace Surge
         return allocation;
     }
 
-	void VulkanMemoryAllocator::DestroyImage(VkImage image, VmaAllocation allocation)
+    void VulkanMemoryAllocator::DestroyImage(VkImage image, VmaAllocation allocation)
     {
         SG_ASSERT_NOMSG(image);
         SG_ASSERT_NOMSG(allocation);
         vmaDestroyImage(mAllocator, image, allocation);
     }
 
-    void VulkanMemoryAllocator::Free(VmaAllocation allocation)
-    {
-        vmaFreeMemory(mAllocator, allocation);
-    }
+    void VulkanMemoryAllocator::Free(VmaAllocation allocation) { vmaFreeMemory(mAllocator, allocation); }
 
     void* VulkanMemoryAllocator::MapMemory(VmaAllocation allocation)
     {
@@ -72,10 +66,7 @@ namespace Surge
         return mappedMemory;
     }
 
-    void VulkanMemoryAllocator::UnmapMemory(VmaAllocation allocation)
-    {
-        vmaUnmapMemory(mAllocator, allocation);
-    }
+    void VulkanMemoryAllocator::UnmapMemory(VmaAllocation allocation) { vmaUnmapMemory(mAllocator, allocation); }
 
     GPUMemoryStats VulkanMemoryAllocator::GetStats() const
     {
@@ -87,4 +78,4 @@ namespace Surge
 
         return GPUMemoryStats(usedMemory, freeMemory);
     }
-}
+} // namespace Surge

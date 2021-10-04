@@ -24,12 +24,14 @@ namespace Surge
         HashMap<ShaderType, VkShaderModule>& GetVulkanShaderModules() { return mVkShaderModules; }
         HashMap<Uint, VkDescriptorSetLayout>& GetDescriptorSetLayouts() { return mDescriptorSetLayouts; }
         HashMap<String, VkPushConstantRange>& GetPushConstantRanges() { return mPushConstants; }
+
     private:
         void ParseShader();
         void Compile(const HashMap<ShaderType, bool>& forceCompileStages);
         void Clear();
         void CreateVulkanDescriptorSetLayouts();
         void CreateVulkanPushConstantRanges();
+
     private:
         Path mPath;
         HashMap<ShaderType, HashCode> mHashCodes;
@@ -38,7 +40,7 @@ namespace Surge
         HashMap<Uint, VkDescriptorSetLayout> mDescriptorSetLayouts;
         HashMap<String, VkPushConstantRange> mPushConstants;
 
-        Vector<SPIRVHandle> mShaderSPIRVs{};
+        Vector<SPIRVHandle> mShaderSPIRVs {};
         ShaderReflectionData mReflectionData;
     };
-}
+} // namespace Surge

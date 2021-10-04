@@ -8,4 +8,4 @@ namespace Surge::Filesystem
     String GetNameWithExtension(const Path& assetFilepath);
     String GetNameWithoutExtension(const Path& assetFilepath);
     bool Exists(const Path& path);
-}
+} // namespace Surge::Filesystem

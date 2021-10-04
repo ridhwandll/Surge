@@ -14,16 +14,9 @@
 
 namespace Surge
 {
-    VulkanShader::VulkanShader(const Path& path)
-        : mPath(path)
-    {
-        ParseShader();
-    }
+    VulkanShader::VulkanShader(const Path& path) : mPath(path) { ParseShader(); }
 
-    VulkanShader::~VulkanShader()
-    {
-        Clear();
-    }
+    VulkanShader::~VulkanShader() { Clear(); }
 
     void VulkanShader::Load(const HashMap<ShaderType, bool>& forceCompileStages)
     {
@@ -37,7 +30,8 @@ namespace Surge
 
     void VulkanShader::Compile(const HashMap<ShaderType, bool>& forceCompileStages)
     {
-        VulkanRenderContext* renderContext = nullptr; SURGE_GET_VULKAN_CONTEXT(renderContext);
+        VulkanRenderContext* renderContext = nullptr;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
 
         shaderc::Compiler compiler;
@@ -46,8 +40,8 @@ namespace Surge
         bool saveHash = false;
 
         // NOTE(Rid - AC3R) If we enable optimization, it removes the names :kekCry:
-        //options.SetOptimizationLevel(shaderc_optimization_level_performance);
-        for (auto&& [stage, source] : mShaderSources)
+        // options.SetOptimizationLevel(shaderc_optimization_level_performance);
+        for (auto&& [stage, source]: mShaderSources)
         {
             SPIRVHandle spirvHandle;
             spirvHandle.Type = stage;
@@ -89,7 +83,7 @@ namespace Surge
             SG_ASSERT(!spirvHandle.SPIRV.empty(), "Invalid SPIRV!");
 
             // Create the VkShaderModule
-            VkShaderModuleCreateInfo createInfo{};
+            VkShaderModuleCreateInfo createInfo {};
             createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
             createInfo.codeSize = spirvHandle.SPIRV.size() * sizeof(Uint);
             createInfo.pCode = spirvHandle.SPIRV.data();
@@ -102,16 +96,17 @@ namespace Surge
 
     void VulkanShader::Clear()
     {
-        VulkanRenderContext* renderContext = nullptr; SURGE_GET_VULKAN_CONTEXT(renderContext);
+        VulkanRenderContext* renderContext = nullptr;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
 
         mShaderSources.clear();
         mShaderSPIRVs.clear();
 
-        for (auto&& [stage, source] : mVkShaderModules)
+        for (auto&& [stage, source]: mVkShaderModules)
             vkDestroyShaderModule(device, mVkShaderModules[stage], nullptr);
 
-        for (auto& descriptorSetLayout : mDescriptorSetLayouts)
+        for (auto& descriptorSetLayout: mDescriptorSetLayouts)
             vkDestroyDescriptorSetLayout(device, descriptorSetLayout.second, nullptr);
 
         mDescriptorSetLayouts.clear();
@@ -121,16 +116,18 @@ namespace Surge
 
     void VulkanShader::CreateVulkanDescriptorSetLayouts()
     {
-        VulkanRenderContext* renderContext = nullptr; SURGE_GET_VULKAN_CONTEXT(renderContext);
+        VulkanRenderContext* renderContext = nullptr;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
 
         // Iterate through all the sets and creating the layouts
-        // (descriptor layouts use HashMap<Uint, VkDescriptorSetLayout> because the Uint specifies at which set number the layout is going to be used
+        // (descriptor layouts use HashMap<Uint, VkDescriptorSetLayout> because the Uint specifies at which set number
+        // the layout is going to be used
         const Vector<Uint>& descriptorSetCount = mReflectionData.GetDescriptorSetCount();
-        for (const Uint& descriptorSet : descriptorSetCount)
+        for (const Uint& descriptorSet: descriptorSetCount)
         {
             Vector<VkDescriptorSetLayoutBinding> layoutBindings;
-            for (const ShaderBuffer& buffer : mReflectionData.GetBuffers())
+            for (const ShaderBuffer& buffer: mReflectionData.GetBuffers())
             {
                 if (buffer.Set != descriptorSet)
                     continue;
@@ -142,7 +139,7 @@ namespace Surge
                 LayoutBinding.stageFlags = VulkanUtils::GetShaderStagesFlagsFromShaderTypes(buffer.ShaderStages);
             }
 
-            for (const ShaderResource& texture : mReflectionData.GetResources())
+            for (const ShaderResource& texture: mReflectionData.GetResources())
             {
                 if (texture.Set != descriptorSet)
                     continue;
@@ -154,7 +151,7 @@ namespace Surge
                 LayoutBinding.stageFlags = VulkanUtils::GetShaderStagesFlagsFromShaderTypes(texture.ShaderStages);
             }
 
-            VkDescriptorSetLayoutCreateInfo layoutInfo{};
+            VkDescriptorSetLayoutCreateInfo layoutInfo {};
             layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
             layoutInfo.flags = 0;
             layoutInfo.bindingCount = static_cast<Uint>(layoutBindings.size());
@@ -166,7 +163,7 @@ namespace Surge
 
     void VulkanShader::CreateVulkanPushConstantRanges()
     {
-        for (const ShaderPushConstant& pushConstant : mReflectionData.GetPushConstantBuffers())
+        for (const ShaderPushConstant& pushConstant: mReflectionData.GetPushConstantBuffers())
         {
             VkPushConstantRange& pushConstantRange = mPushConstants[pushConstant.BufferName];
             pushConstantRange.offset = 0;
@@ -196,4 +193,4 @@ namespace Surge
             mHashCodes[shaderType] = Hash().Generate<String>(mShaderSources.at(shaderType));
         }
     }
-}
+} // namespace Surge

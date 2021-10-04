@@ -16,4 +16,4 @@ namespace Surge
         virtual void OnImGuiRender() {};
         virtual void OnShutdown() {};
     };
-}
+} // namespace Surge

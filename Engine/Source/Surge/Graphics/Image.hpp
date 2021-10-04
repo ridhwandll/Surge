@@ -9,7 +9,9 @@ namespace Surge
         None = 0,
 
         // Color
-        RGBA8, RGBA16F, RGBA32F,
+        RGBA8,
+        RGBA16F,
+        RGBA32F,
 
         // Depth/Stencil
         Depth32,
@@ -26,12 +28,16 @@ namespace Surge
 
     enum class TextureFilter
     {
-        Linear, Nearest
+        Linear,
+        Nearest
     };
 
     enum class TextureAddressMode
     {
-        Repeat, MirroredRepeat, ClampToEdge, ClampToBorder
+        Repeat,
+        MirroredRepeat,
+        ClampToEdge,
+        ClampToBorder
     };
 
     struct SamplerProperties
@@ -44,7 +50,7 @@ namespace Surge
     {
         ImageFormat Format = ImageFormat::RGBA8;
         ImageUsage Usage = ImageUsage::Storage;
-        SamplerProperties Sampler{};
+        SamplerProperties Sampler {};
         Vector<ShaderType> ShaderUsage;
         Uint Width = 0;
         Uint Height = 0;
@@ -68,4 +74,4 @@ namespace Surge
     public:
         static Ref<Image2D> Create(const ImageSpecification& specification);
     };
-}
+} // namespace Surge

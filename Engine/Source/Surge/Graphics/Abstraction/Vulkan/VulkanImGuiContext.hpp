@@ -17,8 +17,9 @@ namespace Surge
         void BeginFrame();
         void Render(); // Must be called inside a "Graphics" command buffer
         void EndFrame();
+
     private:
         VkDescriptorPool mImguiPool;
         void* mVulkanRenderContext = nullptr;
     };
-}
+} // namespace Surge

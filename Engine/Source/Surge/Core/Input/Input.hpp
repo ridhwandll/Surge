@@ -22,4 +22,4 @@ namespace Surge
         static float GetMouseY();
         static void SetCursorMode(CursorMode cursorMode);
     };
-}
+} // namespace Surge

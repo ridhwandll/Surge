@@ -3,8 +3,5 @@
 
 namespace Surge
 {
-    Scope<RenderContext> RenderContext::Create()
-    {
-        return CreateScope<VulkanRenderContext>();
-    }
-}
+    Scope<RenderContext> RenderContext::Create() { return CreateScope<VulkanRenderContext>(); }
+} // namespace Surge

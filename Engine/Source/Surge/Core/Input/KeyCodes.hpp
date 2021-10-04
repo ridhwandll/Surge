@@ -129,5 +129,5 @@ namespace Surge
             LeftAlt = 164,
             RightAlt = 165
         };
-    }
-}
+    } // namespace Key
+} // namespace Surge

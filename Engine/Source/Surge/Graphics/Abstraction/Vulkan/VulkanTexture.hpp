@@ -17,9 +17,11 @@ namespace Surge
         virtual const TextureSpecification& GetSpecification() const override { return mSpecification; }
 
         virtual const Ref<Image2D> GetImage2D() const override { return mImage; }
+
     private:
         void Invalidate();
         void GenerateMips();
+
     private:
         Ref<Image2D> mImage;
         TextureSpecification mSpecification;
@@ -29,4 +31,4 @@ namespace Surge
         void* mPixelData;
         Uint mPixelDataSize;
     };
-}
+} // namespace Surge

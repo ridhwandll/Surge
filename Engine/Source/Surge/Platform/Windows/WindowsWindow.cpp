@@ -1,9 +1,9 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
+#include "Surge/Platform/Windows/WindowsWindow.hpp"
 #include "Pch.hpp"
 #include "Surge/Core/Core.hpp"
-#include "Surge/Platform/Windows/WindowsWindow.hpp"
-#include <windowsx.h> // For GET_X/Y_LPARAM macro
 #include <imgui.h>
+#include <windowsx.h> // For GET_X/Y_LPARAM macro
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -30,8 +30,8 @@ namespace Surge
             Log<Severity::Error>("Could not initialize the window class!");
 
         mWin32Window = CreateWindow(wc.lpszClassName, mWindowData.Title.c_str(),
-            mWindowData.Flags & WindowFlags::NonResizeable ? WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX : WS_OVERLAPPEDWINDOW,
-            0, 0, mWindowData.Width, mWindowData.Height, nullptr, NULL, wc.hInstance, this);
+                                    mWindowData.Flags & WindowFlags::NonResizeable ? WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX : WS_OVERLAPPEDWINDOW, 0, 0, mWindowData.Width,
+                                    mWindowData.Height, nullptr, NULL, wc.hInstance, this);
 
         ApplyFlags();
         if (mWin32Window)
@@ -42,10 +42,7 @@ namespace Surge
         mRenderingContext = CoreGetRenderContext().get();
     }
 
-    WindowsWindow::~WindowsWindow()
-    {
-        DestroyWindow(mWin32Window);
-    }
+    WindowsWindow::~WindowsWindow() { DestroyWindow(mWin32Window); }
 
     void WindowsWindow::Update()
     {
@@ -55,19 +52,13 @@ namespace Surge
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
-        //if(CoreGetRenderContext())
+        // if(CoreGetRenderContext())
         //    CoreGetRenderContext()->Present();
     }
 
-    void WindowsWindow::Minimize()
-    {
-        ShowWindow(mWin32Window, SW_MINIMIZE);
-    }
+    void WindowsWindow::Minimize() { ShowWindow(mWin32Window, SW_MINIMIZE); }
 
-    void WindowsWindow::Maximize()
-    {
-        ShowWindow(mWin32Window, SW_MAXIMIZE);
-    }
+    void WindowsWindow::Maximize() { ShowWindow(mWin32Window, SW_MAXIMIZE); }
 
     void WindowsWindow::SetTitle(const String& name)
     {
@@ -77,14 +68,14 @@ namespace Surge
 
     glm::vec2 WindowsWindow::GetPos() const
     {
-        POINT pos = { 0, 0 };
+        POINT pos = {0, 0};
         ClientToScreen(mWin32Window, &pos);
-        return { static_cast<float>(pos.x), static_cast<float>(pos.y) };
+        return {static_cast<float>(pos.x), static_cast<float>(pos.y)};
     }
 
     void WindowsWindow::SetPos(const glm::vec2& pos) const
     {
-        RECT rect = { (LONG)pos.x, (LONG)pos.y, (LONG)pos.x, (LONG)pos.y };
+        RECT rect = {(LONG)pos.x, (LONG)pos.y, (LONG)pos.x, (LONG)pos.y};
         SetWindowPos(mWin32Window, nullptr, rect.left, rect.top, 0, 0, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSIZE);
     }
 
@@ -92,12 +83,12 @@ namespace Surge
     {
         RECT area;
         GetClientRect(mWin32Window, &area);
-        return { static_cast<float>(area.right), static_cast<float>(area.bottom) };
+        return {static_cast<float>(area.right), static_cast<float>(area.bottom)};
     }
 
     void WindowsWindow::SetSize(const glm::vec2& size) const
     {
-        RECT rect = { 0, 0, (LONG)size.x, (LONG)size.y };
+        RECT rect = {0, 0, (LONG)size.x, (LONG)size.y};
         SetWindowPos(mWin32Window, HWND_TOP, 0, 0, rect.right - rect.left, rect.bottom - rect.top, SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_NOZORDER);
     }
 
@@ -134,138 +125,120 @@ namespace Surge
 
         switch (msg)
         {
-        case WM_CREATE:
-        {
-            LPCREATESTRUCT const params = reinterpret_cast<LPCREATESTRUCT>(lParam);
-            WindowsWindow* const wnd = reinterpret_cast<WindowsWindow* const>(params->lpCreateParams);
-            wnd->mIsOpen = true;
+            case WM_CREATE: {
+                LPCREATESTRUCT const params = reinterpret_cast<LPCREATESTRUCT>(lParam);
+                WindowsWindow* const wnd = reinterpret_cast<WindowsWindow* const>(params->lpCreateParams);
+                wnd->mIsOpen = true;
 
-            SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(wnd));
-            break;
-        }
-        case WM_CLOSE:
-        {
-            WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
-            WindowClosedEvent event;
-            data->mEventCallback(event);
-            data->mIsOpen = false;
-            Surge::Close();
-            PostQuitMessage(0);
-            break;
-        }
-        case WM_SIZE:
-        {
-            WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
-            data->mWindowData.Width = (UINT)LOWORD(lParam);
-            data->mWindowData.Height = (UINT)HIWORD(lParam);
-
-            WindowResizeEvent event((UINT)LOWORD(lParam), (UINT)HIWORD(lParam));
-            if (data->mEventCallback != nullptr)
+                SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(wnd));
+                break;
+            }
+            case WM_CLOSE: {
+                WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+                WindowClosedEvent event;
                 data->mEventCallback(event);
-            break;
-        }
-        case WM_KEYUP:
-        {
-            WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
-            KeyReleasedEvent event(static_cast<KeyCode>(wParam));
-            data->mEventCallback(event);
-            break;
-        }
-        case WM_CHAR:
-        {
-            WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
-            KeyTypedEvent event(static_cast<KeyCode>(wParam));
-            data->mEventCallback(event);
-            break;
-        }
-        case WM_KEYDOWN:
-        {
-            WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
-            int repeatCount = (lParam & 0xffff);
-            KeyPressedEvent event(static_cast<KeyCode>(wParam), repeatCount);
-            data->mEventCallback(event);
-            break;
-        }
-        case WM_MOUSEMOVE:
-        {
-            WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
-            MouseMovedEvent event((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam));
-            data->mEventCallback(event);
-            break;
-        }
-        case WM_MOUSEWHEEL:
-        {
-            WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
-            MouseScrolledEvent event((float)GET_WHEEL_DELTA_WPARAM(wParam) / (float)WHEEL_DELTA);
-            data->mEventCallback(event);
-            break;
-        }
-        case WM_LBUTTONDOWN:
-        {
-            WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
-            MouseButtonPressedEvent event(static_cast<MouseCode>(VK_LBUTTON));
-            data->mEventCallback(event);
-            break;
-        }
-        case WM_LBUTTONUP:
-        {
-            WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
-            MouseButtonReleasedEvent event(static_cast<MouseCode>(VK_LBUTTON));
-            data->mEventCallback(event);
-            break;
-        }
-        case WM_MBUTTONDOWN:
-        {
-            WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
-            MouseButtonPressedEvent event(static_cast<MouseCode>(VK_MBUTTON));
-            data->mEventCallback(event);
-            break;
-        }
-        case WM_MBUTTONUP:
-        {
-            WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
-            MouseButtonReleasedEvent event(static_cast<MouseCode>(VK_MBUTTON));
-            data->mEventCallback(event);
-            break;
-        }
-        case WM_RBUTTONDOWN:
-        {
-            WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
-            MouseButtonPressedEvent event(static_cast<MouseCode>(VK_RBUTTON));
-            data->mEventCallback(event);
-            break;
-        }
-        case WM_RBUTTONUP:
-        {
-            WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
-            MouseButtonReleasedEvent event(static_cast<MouseCode>(VK_RBUTTON));
-            data->mEventCallback(event);
-            break;
-        }
-        case WM_SYSCOMMAND:
-        {
-            switch (wParam)
-            {
-            case SC_MINIMIZE:
-            {
-                WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
-                data->mWindowState = WindowState::Minimized;
+                data->mIsOpen = false;
+                Surge::Close();
+                PostQuitMessage(0);
                 break;
             }
-            case SC_RESTORE:
-            {
+            case WM_SIZE: {
                 WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
-                data->mWindowState = WindowState::Normal;
+                data->mWindowData.Width = (UINT)LOWORD(lParam);
+                data->mWindowData.Height = (UINT)HIWORD(lParam);
+
+                WindowResizeEvent event((UINT)LOWORD(lParam), (UINT)HIWORD(lParam));
+                if (data->mEventCallback != nullptr)
+                    data->mEventCallback(event);
                 break;
             }
+            case WM_KEYUP: {
+                WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+                KeyReleasedEvent event(static_cast<KeyCode>(wParam));
+                data->mEventCallback(event);
+                break;
             }
-            return DefWindowProc(hWnd, msg, wParam, lParam);
-            break;
-        }
-        default:
-            return DefWindowProc(hWnd, msg, wParam, lParam);
+            case WM_CHAR: {
+                WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+                KeyTypedEvent event(static_cast<KeyCode>(wParam));
+                data->mEventCallback(event);
+                break;
+            }
+            case WM_KEYDOWN: {
+                WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+                int repeatCount = (lParam & 0xffff);
+                KeyPressedEvent event(static_cast<KeyCode>(wParam), repeatCount);
+                data->mEventCallback(event);
+                break;
+            }
+            case WM_MOUSEMOVE: {
+                WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+                MouseMovedEvent event((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam));
+                data->mEventCallback(event);
+                break;
+            }
+            case WM_MOUSEWHEEL: {
+                WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+                MouseScrolledEvent event((float)GET_WHEEL_DELTA_WPARAM(wParam) / (float)WHEEL_DELTA);
+                data->mEventCallback(event);
+                break;
+            }
+            case WM_LBUTTONDOWN: {
+                WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+                MouseButtonPressedEvent event(static_cast<MouseCode>(VK_LBUTTON));
+                data->mEventCallback(event);
+                break;
+            }
+            case WM_LBUTTONUP: {
+                WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+                MouseButtonReleasedEvent event(static_cast<MouseCode>(VK_LBUTTON));
+                data->mEventCallback(event);
+                break;
+            }
+            case WM_MBUTTONDOWN: {
+                WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+                MouseButtonPressedEvent event(static_cast<MouseCode>(VK_MBUTTON));
+                data->mEventCallback(event);
+                break;
+            }
+            case WM_MBUTTONUP: {
+                WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+                MouseButtonReleasedEvent event(static_cast<MouseCode>(VK_MBUTTON));
+                data->mEventCallback(event);
+                break;
+            }
+            case WM_RBUTTONDOWN: {
+                WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+                MouseButtonPressedEvent event(static_cast<MouseCode>(VK_RBUTTON));
+                data->mEventCallback(event);
+                break;
+            }
+            case WM_RBUTTONUP: {
+                WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+                MouseButtonReleasedEvent event(static_cast<MouseCode>(VK_RBUTTON));
+                data->mEventCallback(event);
+                break;
+            }
+            case WM_SYSCOMMAND: {
+                switch (wParam)
+                {
+                    case SC_MINIMIZE: {
+                        WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+                        data->mWindowState = WindowState::Minimized;
+                        break;
+                    }
+                    case SC_RESTORE: {
+                        WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+                        data->mWindowState = WindowState::Normal;
+                        break;
+                    }
+                }
+                return DefWindowProc(hWnd, msg, wParam, lParam);
+                break;
+            }
+            default: return DefWindowProc(hWnd, msg, wParam, lParam);
         }
 
         return 0;
     }
-}
+} // namespace Surge

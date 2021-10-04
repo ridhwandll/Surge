@@ -1,9 +1,9 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
-#include "Pch.hpp"
 #include "Window.hpp"
+#include "Pch.hpp"
 
 #ifdef SURGE_WINDOWS
-    #include "Surge/Platform/Windows/WindowsWindow.hpp"
+#include "Surge/Platform/Windows/WindowsWindow.hpp"
 #endif
 
 namespace Surge
@@ -16,4 +16,4 @@ namespace Surge
         SG_ASSERT_INTERNAL("Only windows currently is supported!");
 #endif
     }
-}
+} // namespace Surge

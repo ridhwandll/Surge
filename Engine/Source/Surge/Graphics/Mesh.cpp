@@ -1,32 +1,37 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Mesh.hpp"
 #include <assimp/Importer.hpp>
-#include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <assimp/scene.h>
 
 namespace Surge
 {
     glm::mat4 AssimpMat4ToGlmMat4(const aiMatrix4x4& matrix)
     {
         glm::mat4 result;
-        result[0][0] = matrix.a1; result[1][0] = matrix.a2; result[2][0] = matrix.a3; result[3][0] = matrix.a4;
-        result[0][1] = matrix.b1; result[1][1] = matrix.b2; result[2][1] = matrix.b3; result[3][1] = matrix.b4;
-        result[0][2] = matrix.c1; result[1][2] = matrix.c2; result[2][2] = matrix.c3; result[3][2] = matrix.c4;
-        result[0][3] = matrix.d1; result[1][3] = matrix.d2; result[2][3] = matrix.d3; result[3][3] = matrix.d4;
+        result[0][0] = matrix.a1;
+        result[1][0] = matrix.a2;
+        result[2][0] = matrix.a3;
+        result[3][0] = matrix.a4;
+        result[0][1] = matrix.b1;
+        result[1][1] = matrix.b2;
+        result[2][1] = matrix.b3;
+        result[3][1] = matrix.b4;
+        result[0][2] = matrix.c1;
+        result[1][2] = matrix.c2;
+        result[2][2] = matrix.c3;
+        result[3][2] = matrix.c4;
+        result[0][3] = matrix.d1;
+        result[1][3] = matrix.d2;
+        result[2][3] = matrix.d3;
+        result[3][3] = matrix.d4;
         return result;
     }
 
-    static const Uint sMeshImportFlags =
-        aiProcess_Triangulate |
-        aiProcess_GenNormals |
-        aiProcess_GenUVCoords |
-        aiProcess_OptimizeMeshes |
-        aiProcess_ValidateDataStructure |
-        aiProcess_JoinIdenticalVertices |
-        aiProcess_CalcTangentSpace;
+    static const Uint sMeshImportFlags = aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_GenUVCoords | aiProcess_OptimizeMeshes | aiProcess_ValidateDataStructure |
+                                         aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace;
 
-    Mesh::Mesh(const String& filepath)
-        : mPath(filepath)
+    Mesh::Mesh(const String& filepath) : mPath(filepath)
     {
         Assimp::Importer importer;
         const aiScene* scene = importer.ReadFile(filepath, sMeshImportFlags);
@@ -60,13 +65,13 @@ namespace Surge
 
         TraverseNodes(scene->mRootNode);
 
-        //TODO: Materials here
+        // TODO: Materials here
 
         mVertexBuffer = VertexBuffer::Create(mVertices.data(), static_cast<Uint>(mVertices.size()) * sizeof(Vertex));
         mIndexBuffer = IndexBuffer::Create(mIndices.data(), static_cast<Uint>(mIndices.size() * sizeof(Index)));
 
-        GraphicsPipelineSpecification pipelineSpec{};
-        pipelineSpec.Shader = CoreGetRenderer()->GetShader("Simple"); //TODO: Should be handled by material
+        GraphicsPipelineSpecification pipelineSpec {};
+        pipelineSpec.Shader = CoreGetRenderer()->GetShader("Simple"); // TODO: Should be handled by material
         pipelineSpec.Topology = PrimitiveTopology::LineStrip;
         pipelineSpec.CullingMode = CullMode::None;
         pipelineSpec.UseDepth = true;
@@ -82,8 +87,8 @@ namespace Surge
         for (size_t i = 0; i < mesh->mNumVertices; i++)
         {
             Vertex vertex;
-            vertex.Position = { mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
-            vertex.Normal = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };
+            vertex.Position = {mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z};
+            vertex.Normal = {mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z};
 
             outAABB.Min.x = glm::min(vertex.Position.x, outAABB.Min.x);
             outAABB.Min.y = glm::min(vertex.Position.y, outAABB.Min.y);
@@ -94,18 +99,17 @@ namespace Surge
 
             if (mesh->HasTangentsAndBitangents())
             {
-                vertex.Tangent = { mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z };
-                vertex.Bitangent = { mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z };
+                vertex.Tangent = {mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z};
+                vertex.Bitangent = {mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z};
             }
 
             if (mesh->HasTextureCoords(0))
-                vertex.TexCoord = { mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y };
+                vertex.TexCoord = {mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y};
             else
-                vertex.TexCoord = { 0.0f, 0.0f };
+                vertex.TexCoord = {0.0f, 0.0f};
 
             mVertices.push_back(vertex);
         }
-
     }
 
     void Mesh::GetIndexData(const aiMesh* mesh)
@@ -113,7 +117,7 @@ namespace Surge
         for (size_t i = 0; i < mesh->mNumFaces; i++)
         {
             SG_ASSERT(mesh->mFaces[i].mNumIndices == 3, "Mesh Must have 3 indices!");
-            Index index = { mesh->mFaces[i].mIndices[0], mesh->mFaces[i].mIndices[1], mesh->mFaces[i].mIndices[2] };
+            Index index = {mesh->mFaces[i].mIndices[0], mesh->mFaces[i].mIndices[1], mesh->mFaces[i].mIndices[2]};
             mIndices.push_back(index);
         }
     }
@@ -135,4 +139,4 @@ namespace Surge
         for (Uint i = 0; i < node->mNumChildren; i++)
             TraverseNodes(node->mChildren[i], transform, level + 1);
     }
-}
+} // namespace Surge

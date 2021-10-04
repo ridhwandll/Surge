@@ -1,11 +1,11 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
-#include "Surge/Graphics/RenderContext.hpp"
-#include "Surge/Graphics/Abstraction/Vulkan/VulkanDiagnostics.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDevice.hpp"
-#include "Surge/Graphics/Abstraction/Vulkan/VulkanSwapChain.hpp"
-#include "Surge/Graphics/Abstraction/Vulkan/VulkanMemoryAllocator.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanDiagnostics.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanImGuiContext.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanMemoryAllocator.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanSwapChain.hpp"
+#include "Surge/Graphics/RenderContext.hpp"
 #include <volk.h>
 
 #define SURGE_GET_VULKAN_CONTEXT(renderContext) renderContext = static_cast<VulkanRenderContext*>(CoreGetRenderContext().get())
@@ -30,19 +30,21 @@ namespace Surge
         VkInstance GetInstance() const { return mVulkanInstance; }
         VulkanDevice* GetDevice() { return &mDevice; }
         VulkanSwapChain* GetSwapChain() { return &mSwapChain; }
+
     private:
         Vector<const char*> GetRequiredInstanceExtensions();
         Vector<const char*> GetRequiredInstanceLayers();
+
     private:
         VkInstance mVulkanInstance = VK_NULL_HANDLE;
-        VulkanDiagnostics mVulkanDiagnostics{};
-        VulkanDevice mDevice{};
-        VulkanSwapChain mSwapChain{};
-        VulkanMemoryAllocator mMemoryAllocator{};
+        VulkanDiagnostics mVulkanDiagnostics {};
+        VulkanDevice mDevice {};
+        VulkanSwapChain mSwapChain {};
+        VulkanMemoryAllocator mMemoryAllocator {};
         VulkanImGuiContext mImGuiContext;
 
         GPUInfo mGPUInfo;
         friend class VulkanImGuiContext;
         friend class VulkanDevice;
     };
-}
+} // namespace Surge

@@ -1,16 +1,11 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
-#include "Pch.hpp"
-#include "VulkanImage.hpp"
-#include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderContext.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanImage.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanGraphicsPipeline.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderContext.hpp"
 
 namespace Surge
 {
-    VulkanImage2D::VulkanImage2D(const ImageSpecification& specification)
-        : mSpecification(specification)
-    {
-        Invalidate();
-    }
+    VulkanImage2D::VulkanImage2D(const ImageSpecification& specification) : mSpecification(specification) { Invalidate(); }
 
     void VulkanImage2D::Release()
     {
@@ -43,7 +38,7 @@ namespace Surge
         if (mSpecification.Format == ImageFormat::Depth24Stencil8)
             aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
 
-        VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+        VkImageCreateInfo imageInfo {VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
         imageInfo.imageType = VK_IMAGE_TYPE_2D;
         imageInfo.extent.width = mSpecification.Width;
         imageInfo.extent.height = mSpecification.Height;
@@ -59,7 +54,7 @@ namespace Surge
         mImageMemory = allocator->AllocateImage(imageInfo, VMA_MEMORY_USAGE_GPU_ONLY, mImage, nullptr);
 
         // Create the image view
-        VkImageViewCreateInfo imageViewCreateInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+        VkImageViewCreateInfo imageViewCreateInfo {VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
         imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
         imageViewCreateInfo.format = imageInfo.format;
         imageViewCreateInfo.subresourceRange = {};
@@ -72,9 +67,9 @@ namespace Surge
         VK_CALL(vkCreateImageView(device->GetLogicalDevice(), &imageViewCreateInfo, nullptr, &mImageView));
 
         // Sampler
-        VkSamplerCreateInfo samplerCreateInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
+        VkSamplerCreateInfo samplerCreateInfo {VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
         samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
-        samplerCreateInfo.anisotropyEnable = VK_FALSE; //TODO: have an option to enable it
+        samplerCreateInfo.anisotropyEnable = VK_FALSE; // TODO: have an option to enable it
         samplerCreateInfo.magFilter = VulkanUtils::GetImageFiltering(mSpecification.Sampler.SamplerFilter);
         samplerCreateInfo.minFilter = samplerCreateInfo.magFilter;
         samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
@@ -89,18 +84,15 @@ namespace Surge
         // Transition image to VK_IMAGE_LAYOUT_GENERAL layout, if it is Storage
         if (mSpecification.Usage == ImageUsage::Storage)
         {
-            device->InstantSubmit(VulkanQueueType::Graphics, [&](VkCommandBuffer& cmd)
-            {
-                VkImageSubresourceRange subresourceRange{};
+            device->InstantSubmit(VulkanQueueType::Graphics, [&](VkCommandBuffer& cmd) {
+                VkImageSubresourceRange subresourceRange {};
                 subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
                 subresourceRange.baseMipLevel = 0;
                 subresourceRange.levelCount = mSpecification.Mips;
                 subresourceRange.layerCount = 1;
 
-                VulkanUtils::InsertImageMemoryBarrier(cmd, mImage, 0, 0,
-                    VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-                    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                    subresourceRange);
+                VulkanUtils::InsertImageMemoryBarrier(cmd, mImage, 0, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                                                      VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, subresourceRange);
             });
         }
 
@@ -143,4 +135,4 @@ namespace Surge
             mImage = VK_NULL_HANDLE;
         }
     }
-}
+} // namespace Surge

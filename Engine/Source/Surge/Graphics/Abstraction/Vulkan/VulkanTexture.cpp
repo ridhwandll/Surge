@@ -5,8 +5,7 @@
 
 namespace Surge
 {
-    VulkanTexture2D::VulkanTexture2D(const String& filepath, TextureSpecification specification)
-        : mFilePath(filepath), mSpecification(specification)
+    VulkanTexture2D::VulkanTexture2D(const String& filepath, TextureSpecification specification) : mFilePath(filepath), mSpecification(specification)
     {
         // Loading the texture
         int width, height, channels;
@@ -33,14 +32,15 @@ namespace Surge
                 imageFormat = ImageFormat::RGBA8;
         }
         SG_ASSERT(mPixelData, "Failed to load image!");
-        mWidth = width; mHeight = height;
+        mWidth = width;
+        mHeight = height;
         mPixelDataSize = VulkanUtils::GetMemorySize(imageFormat, width, height);
 
         // Getting the mip levels
         Uint mipChainLevels = CalculateMipChainLevels(width, height);
 
         // Creating the image
-        ImageSpecification imageSpec{};
+        ImageSpecification imageSpec {};
         imageSpec.Format = imageFormat;
         imageSpec.Width = mWidth;
         imageSpec.Height = mHeight;
@@ -76,7 +76,7 @@ namespace Surge
         VkDeviceSize size = mPixelDataSize;
 
         // Create staging buffer
-        VkBufferCreateInfo bufferCreateInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+        VkBufferCreateInfo bufferCreateInfo {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
         bufferCreateInfo.size = size;
         bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
         bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -89,9 +89,8 @@ namespace Surge
         memcpy(destData, mPixelData, mPixelDataSize);
         allocator->UnmapMemory(stagingBufferAllocation);
 
-        device->InstantSubmit(VulkanQueueType::Graphics, [&](VkCommandBuffer& cmd)
-        {
-            VkImageSubresourceRange subresourceRange{};
+        device->InstantSubmit(VulkanQueueType::Graphics, [&](VkCommandBuffer& cmd) {
+            VkImageSubresourceRange subresourceRange {};
             subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             subresourceRange.baseMipLevel = 0;
             subresourceRange.levelCount = imageSpec.Mips;
@@ -99,7 +98,7 @@ namespace Surge
 
             // Transition the texture image layout to VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
             // VK_IMAGE_LAYOUT_UNDEFINED to VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
-            VkImageMemoryBarrier imageMemoryBarrier{};
+            VkImageMemoryBarrier imageMemoryBarrier {};
             imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
             imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -127,49 +126,44 @@ namespace Surge
             if (!mSpecification.UseMips)
             {
                 // VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                VulkanUtils::InsertImageMemoryBarrier(cmd, image->GetVulkanImage(),
-                    VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
-                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                    VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                    subresourceRange);
+                VulkanUtils::InsertImageMemoryBarrier(cmd, image->GetVulkanImage(), VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                                                      subresourceRange);
             }
             else
             {
                 // VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL to VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
                 // Note: Later transition-ed to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL in GenerateMips();
-                VulkanUtils::InsertImageMemoryBarrier(cmd, image->GetVulkanImage(),
-                    VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT,
-                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                    VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                    subresourceRange);
+                VulkanUtils::InsertImageMemoryBarrier(cmd, image->GetVulkanImage(), VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                                      VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, subresourceRange);
             }
         });
         allocator->DestroyBuffer(stagingBuffer, stagingBufferAllocation);
 
         if (mSpecification.UseMips)
-            GenerateMips();         
+            GenerateMips();
     }
 
     void VulkanTexture2D::GenerateMips()
     {
-        VulkanRenderContext* renderContext = nullptr; SURGE_GET_VULKAN_CONTEXT(renderContext);
+        VulkanRenderContext* renderContext = nullptr;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
         VulkanDevice* device = renderContext->GetDevice();
         VkDevice logicalDevice = device->GetLogicalDevice();
 
         Ref<VulkanImage2D>& image = mImage.As<VulkanImage2D>();
         ImageSpecification& imageSpec = mImage->GetSpecification();
 
-        device->InstantSubmit(VulkanQueueType::Graphics, [&](VkCommandBuffer& cmd)
-        {
+        device->InstantSubmit(VulkanQueueType::Graphics, [&](VkCommandBuffer& cmd) {
             VkImage& vulkanImage = image->GetVulkanImage();
-            VkImageMemoryBarrier barrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+            VkImageMemoryBarrier barrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
             barrier.image = vulkanImage;
             barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
             for (Uint i = 1; i < imageSpec.Mips; i++)
             {
-                VkImageBlit imageBlit{};
+                VkImageBlit imageBlit {};
 
                 // Source
                 imageBlit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -187,29 +181,22 @@ namespace Surge
                 imageBlit.dstOffsets[1].y = int32_t(mHeight >> i);
                 imageBlit.dstOffsets[1].z = 1;
 
-                VkImageSubresourceRange mipSubRange{};
+                VkImageSubresourceRange mipSubRange {};
                 mipSubRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
                 mipSubRange.baseMipLevel = i;
                 mipSubRange.levelCount = 1;
                 mipSubRange.layerCount = 1;
 
                 // Prepare current mip level as image blit destination
-                VulkanUtils::InsertImageMemoryBarrier(cmd, vulkanImage,
-                    0, VK_ACCESS_TRANSFER_WRITE_BIT,
-                    VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                    VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                    mipSubRange);
+                VulkanUtils::InsertImageMemoryBarrier(cmd, vulkanImage, 0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                                      VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, mipSubRange);
 
                 // Blit from previous level
-                vkCmdBlitImage(cmd, vulkanImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, vulkanImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                    1, &imageBlit, VK_FILTER_LINEAR);
+                vkCmdBlitImage(cmd, vulkanImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, vulkanImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlit, VK_FILTER_LINEAR);
 
                 // Prepare current mip level as image blit source for next level
-                VulkanUtils::InsertImageMemoryBarrier(cmd, vulkanImage,
-                    VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT,
-                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                    VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                    mipSubRange);
+                VulkanUtils::InsertImageMemoryBarrier(cmd, vulkanImage, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                                      VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, mipSubRange);
             }
 
             // After the loop, all mip layers are in TRANSFER_SRC layout, so transition all to SHADER_READ
@@ -218,11 +205,9 @@ namespace Surge
             subresourceRange.layerCount = 1;
             subresourceRange.levelCount = imageSpec.Mips;
 
-            VulkanUtils::InsertImageMemoryBarrier(cmd, vulkanImage,
-                VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_READ_BIT,
-                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                subresourceRange);
+            VulkanUtils::InsertImageMemoryBarrier(cmd, vulkanImage, VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                                                  subresourceRange);
         });
     }
-}
+} // namespace Surge

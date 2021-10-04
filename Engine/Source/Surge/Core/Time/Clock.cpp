@@ -1,6 +1,6 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
-#include "Pch.hpp"
 #include "Clock.hpp"
+#include "Pch.hpp"
 #include <chrono>
 
 namespace Surge
@@ -33,4 +33,4 @@ namespace Surge
         sThen = sNow;
         sNow = std::chrono::high_resolution_clock::now();
     }
-}
+} // namespace Surge

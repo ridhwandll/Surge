@@ -8,12 +8,11 @@
 
 namespace Surge
 {
-    EditorCamera::EditorCamera(float fov, float aspectRatio, float nearClip, float farClip)
-        : Camera(glm::perspective(glm::radians(fov), aspectRatio, nearClip, farClip))
+    EditorCamera::EditorCamera(float fov, float aspectRatio, float nearClip, float farClip) : Camera(glm::perspective(glm::radians(fov), aspectRatio, nearClip, farClip))
     {
         mFocalPoint = glm::vec3(0.0f);
 
-        glm::vec3 position = { -5, 5, 5 };
+        glm::vec3 position = {-5, 5, 5};
         mDistance = glm::distance(position, mFocalPoint);
 
         mYaw = 3.0f * (float)PI / 4.0f;
@@ -36,7 +35,7 @@ namespace Surge
     void EditorCamera::OnUpdate()
     {
         const float ts = Clock::GetDelta() * 1000.0f; // Convert to milliseconds
-        const glm::vec2& mouse{ Input::GetMouseX(), Input::GetMouseY() };
+        const glm::vec2& mouse {Input::GetMouseX(), Input::GetMouseY()};
         const glm::vec2 delta = (mouse - mInitialMousePosition) * 0.001f;
 
         if (mIsActive)
@@ -47,9 +46,9 @@ namespace Surge
                 const float yawSign = GetUpDirection().y < 0 ? -1.0f : 1.0f;
 
                 if (Input::IsKeyPressed(Key::Q))
-                    mPositionDelta -= ts * mSpeed * glm::vec3{ 0.f, yawSign, 0.f };
+                    mPositionDelta -= ts * mSpeed * glm::vec3 {0.f, yawSign, 0.f};
                 if (Input::IsKeyPressed(Key::E))
-                    mPositionDelta += ts * mSpeed * glm::vec3{ 0.f, yawSign, 0.f };
+                    mPositionDelta += ts * mSpeed * glm::vec3 {0.f, yawSign, 0.f};
                 if (Input::IsKeyPressed(Key::S))
                     mPositionDelta -= ts * mSpeed * mWorldRotation;
                 if (Input::IsKeyPressed(Key::W))
@@ -59,12 +58,12 @@ namespace Surge
                 if (Input::IsKeyPressed(Key::D))
                     mPositionDelta += ts * mSpeed * mRightDirection;
 
-                constexpr float maxRate{ 0.12f };
+                constexpr float maxRate {0.12f};
                 mYawDelta += glm::clamp(yawSign * delta.x, -maxRate, maxRate);
                 mPitchDelta += glm::clamp(delta.y, -maxRate, maxRate);
-                mRightDirection = glm::cross(mWorldRotation, glm::vec3{ 0.f, yawSign, 0.f });
-                mWorldRotation = glm::rotate(glm::normalize(glm::cross(glm::angleAxis(-mPitchDelta, mRightDirection),
-                    glm::angleAxis(-mYawDelta, glm::vec3{ 0.f, yawSign, 0.f }))), mWorldRotation);
+                mRightDirection = glm::cross(mWorldRotation, glm::vec3 {0.f, yawSign, 0.f});
+                mWorldRotation = glm::rotate(glm::normalize(glm::cross(glm::angleAxis(-mPitchDelta, mRightDirection), glm::angleAxis(-mYawDelta, glm::vec3 {0.f, yawSign, 0.f}))),
+                                             mWorldRotation);
             }
             else if (Input::IsKeyPressed(Key::LeftAlt))
             {
@@ -103,7 +102,7 @@ namespace Surge
         mWorldRotation = glm::normalize(mFocalPoint - mPosition);
         mFocalPoint = mPosition + GetForwardDirection() * mDistance;
         mDistance = glm::distance(mPosition, mFocalPoint);
-        mViewMatrix = glm::lookAt(mPosition, lookAt, glm::vec3{ 0.0f, yawSign, 0.0f });
+        mViewMatrix = glm::lookAt(mPosition, lookAt, glm::vec3 {0.0f, yawSign, 0.0f});
 
         // Damping for smooth camera
         mYawDelta *= 0.6f;
@@ -132,13 +131,10 @@ namespace Surge
         const float y = std::min(float(mViewportHeight) / 1000.0f, 2.2f);
         const float yFactor = 0.08f * (y * y) - 0.1778f * y + 0.3021f;
 
-        return { xFactor, yFactor };
+        return {xFactor, yFactor};
     }
 
-    float EditorCamera::RotationSpeed() const
-    {
-        return 0.8f;
-    }
+    float EditorCamera::RotationSpeed() const { return 0.8f; }
 
     float EditorCamera::ZoomSpeed() const
     {
@@ -237,28 +233,13 @@ namespace Surge
         mPositionDelta += delta * ZoomSpeed() * forwardDir;
     }
 
-    glm::vec3 EditorCamera::GetUpDirection() const
-    {
-        return glm::rotate(GetOrientation(), glm::vec3(0.0f, 1.0f, 0.0f));
-    }
+    glm::vec3 EditorCamera::GetUpDirection() const { return glm::rotate(GetOrientation(), glm::vec3(0.0f, 1.0f, 0.0f)); }
 
-    glm::vec3 EditorCamera::GetRightDirection() const
-    {
-        return glm::rotate(GetOrientation(), glm::vec3(1.f, 0.f, 0.f));
-    }
+    glm::vec3 EditorCamera::GetRightDirection() const { return glm::rotate(GetOrientation(), glm::vec3(1.f, 0.f, 0.f)); }
 
-    glm::vec3 EditorCamera::GetForwardDirection() const
-    {
-        return glm::rotate(GetOrientation(), glm::vec3(0.0f, 0.0f, -1.0f));
-    }
+    glm::vec3 EditorCamera::GetForwardDirection() const { return glm::rotate(GetOrientation(), glm::vec3(0.0f, 0.0f, -1.0f)); }
 
-    glm::vec3 EditorCamera::CalculatePosition() const
-    {
-        return mFocalPoint - GetForwardDirection() * mDistance + mPositionDelta;
-    }
+    glm::vec3 EditorCamera::CalculatePosition() const { return mFocalPoint - GetForwardDirection() * mDistance + mPositionDelta; }
 
-    glm::quat EditorCamera::GetOrientation() const
-    {
-        return glm::quat(glm::vec3(-mPitch - mPitchDelta, -mYaw - mYawDelta, 0.0f));
-    }
-}
+    glm::quat EditorCamera::GetOrientation() const { return glm::quat(glm::vec3(-mPitch - mPitchDelta, -mYaw - mYawDelta, 0.0f)); }
+} // namespace Surge

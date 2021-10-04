@@ -1,29 +1,47 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "Surge/Core/Memory.hpp"
-#include "Surge/Graphics/Shader/Shader.hpp"
 #include "Surge/Graphics/RenderCommandBuffer.hpp"
+#include "Surge/Graphics/Shader/Shader.hpp"
 
 namespace Surge
 {
     enum class PrimitiveTopology
     {
-        None = 0, Points, Lines, LineStrip, Triangles, TriangleStrip
+        None = 0,
+        Points,
+        Lines,
+        LineStrip,
+        Triangles,
+        TriangleStrip
     };
 
     enum class CompareOperation
     {
-        Never = 0, Less, Equal, LessOrEqual, Greater, NotEqual, GreaterOrEqual, Always
+        Never = 0,
+        Less,
+        Equal,
+        LessOrEqual,
+        Greater,
+        NotEqual,
+        GreaterOrEqual,
+        Always
     };
 
     enum class PolygonMode
     {
-        None = 0, Fill, Line, Point
+        None = 0,
+        Fill,
+        Line,
+        Point
     };
 
     enum class CullMode
     {
-        None = 0, Front, Back, FrontAndBack
+        None = 0,
+        Front,
+        Back,
+        FrontAndBack
     };
 
     struct GraphicsPipelineSpecification
@@ -52,4 +70,4 @@ namespace Surge
 
         static Ref<GraphicsPipeline> Create(const GraphicsPipelineSpecification& pipelineSpec);
     };
-}
+} // namespace Surge

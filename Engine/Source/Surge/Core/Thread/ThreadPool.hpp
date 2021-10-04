@@ -1,15 +1,15 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
-#include <thread>
-#include <mutex>
-#include <future>
-#include <utility>
-#include <queue>
 #include <algorithm>
 #include <atomic>
-#include <functional>
 #include <chrono>
+#include <functional>
+#include <future>
 #include <memory>
+#include <mutex>
+#include <queue>
+#include <thread>
+#include <utility>
 
 namespace Surge
 {
@@ -44,8 +44,7 @@ namespace Surge
                 T start = (T)(t * blockSize + firstIndex);
                 T end = (t == numTasks - 1) ? lastIndex : (T)((t + 1) * blockSize + firstIndex - 1);
                 blocksRunning++;
-                PushTask([&start, &end, &loop, &blocksRunning]
-                {
+                PushTask([&start, &end, &loop, &blocksRunning] {
                     for (T i = start; i <= end; i++)
                         loop(i);
                     blocksRunning--;
@@ -70,15 +69,15 @@ namespace Surge
         template <typename F, typename... A>
         void PushTask(const F& task, const A&... args)
         {
-            PushTask([task, args...]{ task(args...); });
+            PushTask([task, args...] { task(args...); });
         }
 
         template <typename F, typename... A, typename E = std::enable_if_t<std::is_void_v<std::invoke_result_t<std::decay_t<F>, std::decay_t<A>...>>>>
         std::future<bool> Submit(const F& task, const A&... args)
         {
-            std::shared_ptr<std::promise<bool>> promise =  std::make_shared<std::promise<bool>>();
+            std::shared_ptr<std::promise<bool>> promise = std::make_shared<std::promise<bool>>();
             std::future<bool> future = promise->get_future();
-            PushTask([task, args..., promise]{
+            PushTask([task, args..., promise] {
                 task(args...);
                 promise->set_value(true);
             });
@@ -90,15 +89,13 @@ namespace Surge
         {
             std::shared_ptr<std::promise<R>> promise = std::make_shared<std::promise<R>>();
             std::future<R> future = promise->get_future();
-            PushTask([task, args..., promise]
-            {
-                promise->set_value(task(args...));
-            });
+            PushTask([task, args..., promise] { promise->set_value(task(args...)); });
             return future;
         }
 
         void WaitForTasks();
         void Reset(Uint threadCount = std::thread::hardware_concurrency());
+
     private:
         void CreateThreads();
         void DestroyThreads();
@@ -113,4 +110,4 @@ namespace Surge
         Uint mThreadCount;
         Scope<std::thread[]> mThreads;
     };
-}
+} // namespace Surge

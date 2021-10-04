@@ -6,55 +6,40 @@ namespace Surge
     class RefCounted
     {
     public:
-        void IncRefCount() const
-        {
-            mRefCount++;
-        }
-        void DecRefCount() const
-        {
-            mRefCount--;
-        }
-        void ZeroRefCount() const
-        {
-            mRefCount = 0;
-        }
+        void IncRefCount() const { mRefCount++; }
+        void DecRefCount() const { mRefCount--; }
+        void ZeroRefCount() const { mRefCount = 0; }
 
         Uint GetRefCount() const { return mRefCount; }
+
     private:
         mutable Uint mRefCount = 0;
     };
 
-    template<typename T>
+    template <typename T>
     class Ref
     {
     public:
-        Ref()
-            : mInstance(nullptr) {}
+        Ref() : mInstance(nullptr) {}
 
-        Ref(std::nullptr_t n)
-            : mInstance(nullptr) {}
+        Ref(std::nullptr_t n) : mInstance(nullptr) {}
 
-        Ref(T* instance)
-            : mInstance(instance)
+        Ref(T* instance) : mInstance(instance)
         {
             static_assert(std::is_base_of<RefCounted, T>::value, "Class is not RefCounted!");
             IncRef();
         }
 
-        template<typename Ts>
+        template <typename Ts>
         Ref(const Ref<Ts>& other)
         {
             mInstance = static_cast<T*>(other.mInstance);
             IncRef();
         }
 
-        Ref(const Ref<T>& other)
-            : mInstance(other.mInstance)
-        {
-            IncRef();
-        }
+        Ref(const Ref<T>& other) : mInstance(other.mInstance) { IncRef(); }
 
-        template<typename Ts>
+        template <typename Ts>
         Ref(Ref<Ts>&& other)
         {
             mInstance = static_cast<T*>(other.mInstance);
@@ -77,7 +62,7 @@ namespace Surge
             return *this;
         }
 
-        template<typename Ts>
+        template <typename Ts>
         Ref& operator=(const Ref<Ts>& other)
         {
             other.IncRef();
@@ -87,7 +72,7 @@ namespace Surge
             return *this;
         }
 
-        template<typename Ts>
+        template <typename Ts>
         Ref& operator=(Ref<Ts>&& other)
         {
             DecRef();
@@ -121,22 +106,19 @@ namespace Surge
             mInstance = instance;
         }
 
-        template<typename... Args>
+        template <typename... Args>
         static Ref<T> Create(Args&&... args)
         {
             return Ref<T>(new T(std::forward<Args>(args)...));
         }
 
-        template<typename Ts>
+        template <typename Ts>
         Ref<Ts> As() const
         {
             return Ref<Ts>(*this);
         }
 
-        ~Ref()
-        {
-            DecRef();
-        }
+        ~Ref() { DecRef(); }
 
     private:
         void IncRef() const
@@ -158,4 +140,4 @@ namespace Surge
         friend class Ref;
         T* mInstance;
     };
-}
+} // namespace Surge

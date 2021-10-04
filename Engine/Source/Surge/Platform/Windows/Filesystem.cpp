@@ -1,7 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Surge/Utility/Filesystem.hpp"
-#include <fstream>
 #include <filesystem>
+#include <fstream>
 
 namespace Surge::Filesystem
 {
@@ -36,10 +36,7 @@ namespace Surge::Filesystem
         return rawName;
     }
 
-    String GetNameWithExtension(const Path& assetFilepath)
-    {
-        return std::filesystem::path(assetFilepath).filename().string();
-    }
+    String GetNameWithExtension(const Path& assetFilepath) { return std::filesystem::path(assetFilepath).filename().string(); }
 
     String GetNameWithoutExtension(const Path& assetFilepath)
     {
@@ -60,4 +57,4 @@ namespace Surge::Filesystem
 
         return false;
     }
-}
+} // namespace Surge::Filesystem

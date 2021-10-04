@@ -14,4 +14,4 @@ namespace Surge
 
         static Ref<RenderCommandBuffer> Create(bool createFromSwapchain, Uint size = 0, const String& debugName = "");
     };
-}
+} // namespace Surge

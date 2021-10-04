@@ -6,10 +6,7 @@
 
 namespace Surge
 {
-    static void ImGuiCheckVkResult(VkResult err)
-    {
-        VK_CALL(err);
-    }
+    static void ImGuiCheckVkResult(VkResult err) { VK_CALL(err); }
 
     void VulkanImGuiContext::Initialize(void* vulkanRenderContext)
     {
@@ -18,20 +15,17 @@ namespace Surge
         VulkanDevice* vulkanDevice = &renderContext->mDevice;
         VkDevice logicalDevice = vulkanDevice->GetLogicalDevice();
 
-        VkDescriptorPoolSize poolSizes[] =
-        {
-            { VK_DESCRIPTOR_TYPE_SAMPLER, 100 },
-            { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100 },
-            { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 100 },
-            { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 100 },
-            { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 100 },
-            { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 100 },
-            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100 },
-            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 100 },
-            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 100 },
-            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 100 },
-            { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 100 }
-        };
+        VkDescriptorPoolSize poolSizes[] = {{VK_DESCRIPTOR_TYPE_SAMPLER, 100},
+                                            {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100},
+                                            {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 100},
+                                            {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 100},
+                                            {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 100},
+                                            {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 100},
+                                            {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100},
+                                            {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 100},
+                                            {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 100},
+                                            {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 100},
+                                            {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 100}};
         VkDescriptorPoolCreateInfo poolInfo = {};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
@@ -58,7 +52,7 @@ namespace Surge
 
         // Setup Platform/Renderer backends
         ImGui_ImplWin32_Init(CoreGetWindow()->GetNativeWindowHandle());
-        ImGui_ImplVulkan_InitInfo initInfo{};
+        ImGui_ImplVulkan_InitInfo initInfo {};
         initInfo.Instance = renderContext->mVulkanInstance;
         initInfo.PhysicalDevice = vulkanDevice->GetPhysicalDevice();
         initInfo.Device = logicalDevice;
@@ -70,13 +64,10 @@ namespace Surge
         initInfo.Allocator = VK_NULL_HANDLE;
         initInfo.PipelineCache = VK_NULL_HANDLE;
         initInfo.CheckVkResultFn = ImGuiCheckVkResult;
-        ImGui_ImplVulkan_Init(&initInfo, renderContext->mSwapChain.GetVulkanRenderPass()); 
+        ImGui_ImplVulkan_Init(&initInfo, renderContext->mSwapChain.GetVulkanRenderPass());
 
         VkCommandBuffer cmd = nullptr;
-        vulkanDevice->InstantSubmit(VulkanQueueType::Graphics, [&](VkCommandBuffer& cmd)
-            {
-                ImGui_ImplVulkan_CreateFontsTexture(cmd);
-            });
+        vulkanDevice->InstantSubmit(VulkanQueueType::Graphics, [&](VkCommandBuffer& cmd) { ImGui_ImplVulkan_CreateFontsTexture(cmd); });
 
         ImGui_ImplVulkan_DestroyFontUploadObjects();
     }
@@ -112,4 +103,4 @@ namespace Surge
             ImGui::RenderPlatformWindowsDefault();
         }
     }
-}
+} // namespace Surge

@@ -34,6 +34,7 @@ namespace Surge
         Vector<VkCommandBuffer> GetVulkanCommandBuffers() const { return mCommandBuffers; }
         Uint GetCurrentFrameIndex() const { return mCurrentFrameIndex; }
         Uint GetCurrentImageIndex() const { return mCurrentImageIndex; }
+
     private:
         void Present();
         VkResult AcquireNextImage(VkSemaphore imageAvailableSemaphore, Uint* imageIndex);
@@ -43,6 +44,7 @@ namespace Surge
         void CreateFramebuffer();
         void CreateCmdBuffers();
         void CreateSyncObjects();
+
     private:
         // Swapchain
         VkSwapchainKHR mSwapChain = VK_NULL_HANDLE;
@@ -65,12 +67,12 @@ namespace Surge
 
         // Commandbuffer
         VkCommandPool mCommandPool = VK_NULL_HANDLE;
-        Vector<VkCommandBuffer> mCommandBuffers{};
+        Vector<VkCommandBuffer> mCommandBuffers {};
 
         // Sync objects
         VkSemaphore mImageAvailable = VK_NULL_HANDLE, mRenderAvailable = VK_NULL_HANDLE;
-        Vector<VkFence> mWaitFences{};
+        Vector<VkFence> mWaitFences {};
 
         bool mVsync = false;
     };
-}
+} // namespace Surge

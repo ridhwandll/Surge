@@ -1,15 +1,11 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanIndexBuffer.hpp"
-#include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderContext.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderCommandBuffer.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderContext.hpp"
 
 namespace Surge
 {
-    VulkanIndexBuffer::VulkanIndexBuffer(const void* data, const Uint& size)
-        : mSize(size)
-    {
-        CreateIndexBuffer(data);
-    }
+    VulkanIndexBuffer::VulkanIndexBuffer(const void* data, const Uint& size) : mSize(size) { CreateIndexBuffer(data); }
 
     VulkanIndexBuffer::~VulkanIndexBuffer()
     {
@@ -27,7 +23,8 @@ namespace Surge
         VkDeviceSize offset = 0;
         Uint frameIndex = CoreGetRenderContext()->GetFrameIndex();
         VkCommandBuffer vulkanCmdBuffer = cmdBuffer.As<VulkanRenderCommandBuffer>()->GetVulkanCommandBuffer(frameIndex);
-        vkCmdBindIndexBuffer(vulkanCmdBuffer, mVulkanBuffer, 0, VK_INDEX_TYPE_UINT32);;
+        vkCmdBindIndexBuffer(vulkanCmdBuffer, mVulkanBuffer, 0, VK_INDEX_TYPE_UINT32);
+        ;
     }
 
     void VulkanIndexBuffer::CreateIndexBuffer(const void* data)
@@ -38,7 +35,7 @@ namespace Surge
         VulkanMemoryAllocator* allocator = static_cast<VulkanMemoryAllocator*>(renderContext->GetMemoryAllocator());
         VulkanDevice* vulkanDevice = renderContext->GetDevice();
 
-        VkBufferCreateInfo bufferCreateInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+        VkBufferCreateInfo bufferCreateInfo {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
         bufferCreateInfo.size = mSize;
         bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
         bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -57,13 +54,12 @@ namespace Surge
         indexBufferCreateInfo.flags = VK_SHARING_MODE_EXCLUSIVE;
         mAllocation = allocator->AllocateBuffer(indexBufferCreateInfo, VMA_MEMORY_USAGE_GPU_ONLY, mVulkanBuffer, &mAllocationInfo);
 
-        vulkanDevice->InstantSubmit(VulkanQueueType::Transfer, [&](VkCommandBuffer& cmd)
-            {
-                VkBufferCopy copyRegion = {};
-                copyRegion.size = mSize;
-                vkCmdCopyBuffer(cmd, stagingBuffer, mVulkanBuffer, 1, &copyRegion);
-            });
+        vulkanDevice->InstantSubmit(VulkanQueueType::Transfer, [&](VkCommandBuffer& cmd) {
+            VkBufferCopy copyRegion = {};
+            copyRegion.size = mSize;
+            vkCmdCopyBuffer(cmd, stagingBuffer, mVulkanBuffer, 1, &copyRegion);
+        });
 
         allocator->DestroyBuffer(stagingBuffer, stagingBufferAllocation);
     }
-}
+} // namespace Surge

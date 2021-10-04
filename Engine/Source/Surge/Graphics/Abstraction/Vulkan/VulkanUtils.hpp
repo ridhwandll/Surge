@@ -1,9 +1,9 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
-#include "Surge/Graphics/Shader/Shader.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanGraphicsPipeline.hpp"
-#include "Surge/Graphics/Shader/ReflectionData.hpp"
 #include "Surge/Graphics/Image.hpp"
+#include "Surge/Graphics/Shader/ReflectionData.hpp"
+#include "Surge/Graphics/Shader/Shader.hpp"
 #include <shaderc/shaderc.h>
 
 namespace Surge::VulkanUtils
@@ -33,10 +33,6 @@ namespace Surge::VulkanUtils
     VkSamplerAddressMode GetImageAddressMode(TextureAddressMode wrap);
     VkImageUsageFlags GetImageUsageFlags(ImageUsage usage, ImageFormat format);
 
-    void InsertImageMemoryBarrier(
-        VkCommandBuffer cmdbuffer, VkImage& image,
-        VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask,
-        VkImageLayout oldImageLayout, VkImageLayout newImageLayout,
-        VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask,
-        VkImageSubresourceRange subresourceRange);
-}
+    void InsertImageMemoryBarrier(VkCommandBuffer cmdbuffer, VkImage& image, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkImageLayout oldImageLayout,
+                                  VkImageLayout newImageLayout, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, VkImageSubresourceRange subresourceRange);
+} // namespace Surge::VulkanUtils

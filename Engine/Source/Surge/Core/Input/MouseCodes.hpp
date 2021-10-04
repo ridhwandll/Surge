@@ -13,5 +13,5 @@ namespace Surge
             ButtonRight = 2,
             ButtonMiddle = 4
         };
-    }
-}
+    } // namespace Mouse
+} // namespace Surge

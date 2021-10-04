@@ -12,7 +12,7 @@ namespace Surge
         VK_CALL(vkEnumeratePhysicalDevices(instance, &deviceCount, physicalDevices.data()));
 
         std::multimap<int, VkPhysicalDevice> candidates;
-        for (const auto& device : physicalDevices)
+        for (const auto& device: physicalDevices)
         {
             int32_t score = RatePhysicalDevice(device);
             candidates.insert(std::make_pair(score, device));
@@ -36,7 +36,7 @@ namespace Surge
         mQueueFamilyProperties.resize(queueFamilyCount);
         vkGetPhysicalDeviceQueueFamilyProperties(mPhysicalDevice, &queueFamilyCount, mQueueFamilyProperties.data());
 
-        Vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
+        Vector<VkDeviceQueueCreateInfo> queueCreateInfos {};
         int requiredQueueFlags = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT;
         FillQueueFamilyIndicesAndStructures(requiredQueueFlags, mQueueFamilyIndices, queueCreateInfos);
 
@@ -44,12 +44,13 @@ namespace Surge
         Vector<const char*> deviceExtensions;
         deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
-        VkPhysicalDeviceFeatures enabledFeatures{};
+        VkPhysicalDeviceFeatures enabledFeatures {};
 
-        VkDeviceCreateInfo deviceCreateInfo{};
+        VkDeviceCreateInfo deviceCreateInfo {};
         deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
         deviceCreateInfo.pEnabledFeatures = nullptr;
-        deviceCreateInfo.queueCreateInfoCount = static_cast<Uint>(queueCreateInfos.size());;
+        deviceCreateInfo.queueCreateInfoCount = static_cast<Uint>(queueCreateInfos.size());
+        ;
         deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
         deviceCreateInfo.pNext = &mFeatures;
 
@@ -86,15 +87,9 @@ namespace Surge
 
         switch (type)
         {
-        case VulkanQueueType::Graphics:
-            cmdBufAllocateInfo.commandPool = mGraphicsCommandPool;
-            break;
-        case VulkanQueueType::Compute:
-            cmdBufAllocateInfo.commandPool = mComputeCommandPool;
-            break;
-        case VulkanQueueType::Transfer:
-            cmdBufAllocateInfo.commandPool = mTransferCommandPool;
-            break;
+            case VulkanQueueType::Graphics: cmdBufAllocateInfo.commandPool = mGraphicsCommandPool; break;
+            case VulkanQueueType::Compute: cmdBufAllocateInfo.commandPool = mComputeCommandPool; break;
+            case VulkanQueueType::Transfer: cmdBufAllocateInfo.commandPool = mTransferCommandPool; break;
         }
 
         cmdBufAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -102,7 +97,7 @@ namespace Surge
 
         VK_CALL(vkAllocateCommandBuffers(mLogicalDevice, &cmdBufAllocateInfo, &commandBuffer));
 
-        VkCommandBufferBeginInfo cmdBufferBeginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+        VkCommandBufferBeginInfo cmdBufferBeginInfo {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
         VK_CALL(vkBeginCommandBuffer(commandBuffer, &cmdBufferBeginInfo));
 
         function(commandBuffer); // Execute
@@ -127,9 +122,18 @@ namespace Surge
         // Submit to the queue
         switch (type)
         {
-        case VulkanQueueType::Graphics: { VK_CALL(vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, fence)); break; }
-        case VulkanQueueType::Compute: { VK_CALL(vkQueueSubmit(mComputeQueue, 1, &submitInfo, fence));  break; }
-        case VulkanQueueType::Transfer: { VK_CALL(vkQueueSubmit(mTransferQueue, 1, &submitInfo, fence)); break; }
+            case VulkanQueueType::Graphics: {
+                VK_CALL(vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, fence));
+                break;
+            }
+            case VulkanQueueType::Compute: {
+                VK_CALL(vkQueueSubmit(mComputeQueue, 1, &submitInfo, fence));
+                break;
+            }
+            case VulkanQueueType::Transfer: {
+                VK_CALL(vkQueueSubmit(mTransferQueue, 1, &submitInfo, fence));
+                break;
+            }
         }
 
         // Wait for the fence to signal that command buffer has finished executing
@@ -137,9 +141,18 @@ namespace Surge
 
         switch (type)
         {
-        case VulkanQueueType::Graphics: { vkFreeCommandBuffers(mLogicalDevice, mGraphicsCommandPool, 1, &commandBuffer); break; }
-        case VulkanQueueType::Compute: { vkFreeCommandBuffers(mLogicalDevice, mComputeCommandPool, 1, &commandBuffer);  break; }
-        case VulkanQueueType::Transfer: { vkFreeCommandBuffers(mLogicalDevice, mTransferCommandPool, 1, &commandBuffer); break; }
+            case VulkanQueueType::Graphics: {
+                vkFreeCommandBuffers(mLogicalDevice, mGraphicsCommandPool, 1, &commandBuffer);
+                break;
+            }
+            case VulkanQueueType::Compute: {
+                vkFreeCommandBuffers(mLogicalDevice, mComputeCommandPool, 1, &commandBuffer);
+                break;
+            }
+            case VulkanQueueType::Transfer: {
+                vkFreeCommandBuffers(mLogicalDevice, mTransferCommandPool, 1, &commandBuffer);
+                break;
+            }
         }
 
         vkDestroyFence(mLogicalDevice, fence, nullptr);
@@ -155,7 +168,7 @@ namespace Surge
             if (vkEnumerateDeviceExtensionProperties(mPhysicalDevice, nullptr, &extCount, &extensions.front()) == VK_SUCCESS)
             {
                 Log<Severity::Trace>("Found {1} extensions on {0}", mProperties.vk10Properties.properties.deviceName, extensions.size());
-                for (const VkExtensionProperties& ext : extensions)
+                for (const VkExtensionProperties& ext: extensions)
                     mSupportedExtensions.emplace(ext.extensionName);
             }
         }
@@ -181,7 +194,7 @@ namespace Surge
         mFeatures.sync2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR;
         mFeatures.sync2Features.pNext = nullptr;
 
-        VkPhysicalDeviceFeatures requestedVulkan10Features{};
+        VkPhysicalDeviceFeatures requestedVulkan10Features {};
         requestedVulkan10Features.samplerAnisotropy = VK_TRUE;
         requestedVulkan10Features.multiDrawIndirect = VK_TRUE;
         requestedVulkan10Features.imageCubeArray = VK_TRUE;
@@ -189,21 +202,21 @@ namespace Surge
         requestedVulkan10Features.wideLines = VK_TRUE;
         requestedVulkan10Features.fillModeNonSolid = VK_TRUE;
 
-        VkPhysicalDeviceVulkan11Features requestedVulkan11Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES };
+        VkPhysicalDeviceVulkan11Features requestedVulkan11Features {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES};
         requestedVulkan11Features.shaderDrawParameters = VK_TRUE;
 
-        VkPhysicalDeviceVulkan12Features requestedVulkan12Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
+        VkPhysicalDeviceVulkan12Features requestedVulkan12Features {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
         requestedVulkan12Features.drawIndirectCount = VK_TRUE;
         requestedVulkan12Features.imagelessFramebuffer = VK_TRUE;
         requestedVulkan12Features.shaderInt8 = VK_TRUE;
 
-        VkPhysicalDeviceSynchronization2FeaturesKHR requestedSync2Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR };
+        VkPhysicalDeviceSynchronization2FeaturesKHR requestedSync2Features {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR};
         requestedSync2Features.synchronization2 = VK_TRUE;
 
-        VkPhysicalDeviceFeatures2 availableVulkan10Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
-        VkPhysicalDeviceVulkan11Features availableVulkan11Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES };
-        VkPhysicalDeviceVulkan12Features availableVulkan12Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
-        VkPhysicalDeviceSynchronization2FeaturesKHR availableSync2Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR };
+        VkPhysicalDeviceFeatures2 availableVulkan10Features {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+        VkPhysicalDeviceVulkan11Features availableVulkan11Features {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES};
+        VkPhysicalDeviceVulkan12Features availableVulkan12Features {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
+        VkPhysicalDeviceSynchronization2FeaturesKHR availableSync2Features {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR};
 
         availableVulkan10Features.pNext = &availableVulkan11Features;
         availableVulkan11Features.pNext = &availableVulkan12Features;
@@ -220,7 +233,7 @@ namespace Surge
         {
             if (requested[i] && available[i])
             {
-                VkBool32* feature{ (&mFeatures.vk10Features.features.robustBufferAccess) + i };
+                VkBool32* feature {(&mFeatures.vk10Features.features.robustBufferAccess) + i};
                 *feature = VK_TRUE;
             }
         }
@@ -231,7 +244,7 @@ namespace Surge
         {
             if (requested[i] && available[i])
             {
-                VkBool32* feature{ (&mFeatures.vk11Features.storageBuffer16BitAccess) + i };
+                VkBool32* feature {(&mFeatures.vk11Features.storageBuffer16BitAccess) + i};
                 *feature = VK_TRUE;
             }
         }
@@ -242,7 +255,7 @@ namespace Surge
         {
             if (requested[i] && available[i])
             {
-                VkBool32* feature{ (&mFeatures.vk12Features.samplerMirrorClampToEdge) + i };
+                VkBool32* feature {(&mFeatures.vk12Features.samplerMirrorClampToEdge) + i};
                 *feature = VK_TRUE;
             }
         }
@@ -274,7 +287,8 @@ namespace Surge
             for (Uint i = 0; i < mQueueFamilyProperties.size(); i++)
             {
                 auto& queueFamilyProperties = mQueueFamilyProperties[i];
-                if ((queueFamilyProperties.queueFlags & VK_QUEUE_TRANSFER_BIT) && ((queueFamilyProperties.queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0) && ((queueFamilyProperties.queueFlags & VK_QUEUE_COMPUTE_BIT) == 0))
+                if ((queueFamilyProperties.queueFlags & VK_QUEUE_TRANSFER_BIT) && ((queueFamilyProperties.queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0) &&
+                    ((queueFamilyProperties.queueFlags & VK_QUEUE_COMPUTE_BIT) == 0))
                 {
                     outQueueFamilyIndices.TransferQueue = i;
                     break;
@@ -282,7 +296,8 @@ namespace Surge
             }
         }
 
-        // For other queue types or if no separate compute queue is present, return the first one to support the requested flags
+        // For other queue types or if no separate compute queue is present, return the first one to support the
+        // requested flags
         for (Uint i = 0; i < mQueueFamilyProperties.size(); i++)
         {
             if ((flags & VK_QUEUE_TRANSFER_BIT) && outQueueFamilyIndices.TransferQueue == -1)
@@ -310,7 +325,7 @@ namespace Surge
         // Graphics queue
         if (flags & VK_QUEUE_GRAPHICS_BIT)
         {
-            VkDeviceQueueCreateInfo queueInfo{};
+            VkDeviceQueueCreateInfo queueInfo {};
             queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
             queueInfo.queueFamilyIndex = mQueueFamilyIndices.GraphicsQueue;
             queueInfo.queueCount = 1;
@@ -323,7 +338,7 @@ namespace Surge
         {
             if (mQueueFamilyIndices.ComputeQueue != mQueueFamilyIndices.GraphicsQueue)
             {
-                VkDeviceQueueCreateInfo queueInfo{};
+                VkDeviceQueueCreateInfo queueInfo {};
                 queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
                 queueInfo.queueFamilyIndex = mQueueFamilyIndices.ComputeQueue;
                 queueInfo.queueCount = 1;
@@ -337,7 +352,7 @@ namespace Surge
         {
             if ((mQueueFamilyIndices.TransferQueue != mQueueFamilyIndices.GraphicsQueue) && (mQueueFamilyIndices.TransferQueue != mQueueFamilyIndices.ComputeQueue))
             {
-                VkDeviceQueueCreateInfo queueInfo{};
+                VkDeviceQueueCreateInfo queueInfo {};
                 queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
                 queueInfo.queueFamilyIndex = mQueueFamilyIndices.TransferQueue;
                 queueInfo.queueCount = 1;
@@ -364,8 +379,8 @@ namespace Surge
 
     int32_t VulkanDevice::RatePhysicalDevice(VkPhysicalDevice physicalDevice)
     {
-        VkPhysicalDeviceFeatures features{};
-        VkPhysicalDeviceProperties properties{};
+        VkPhysicalDeviceFeatures features {};
+        VkPhysicalDeviceProperties properties {};
         vkGetPhysicalDeviceProperties(physicalDevice, &properties);
         vkGetPhysicalDeviceFeatures(physicalDevice, &features);
         int32_t score = 0;
@@ -397,4 +412,4 @@ namespace Surge
 
         return score;
     }
-}
+} // namespace Surge
