@@ -90,8 +90,17 @@ namespace Surge
 
             if (VulkanUtils::IsDepthFormat(format))
             {
-                //TODO: Depth Attachment
                 mDepthAttachmentImage = image;
+                VkAttachmentDescription& depthAttachment = attachmentDescriptions.emplace_back();
+                depthAttachment.format = VulkanUtils::GetImageFormat(format);
+                depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+                depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+                depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+                depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+                depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+                depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+                depthAttachmentReference = {attachmentIndex, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
             }
             else
             {
@@ -118,15 +127,8 @@ namespace Surge
         subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
         subpassDescription.colorAttachmentCount = Uint(colorAttachmentReferences.size());
         subpassDescription.pColorAttachments = colorAttachmentReferences.data();
-        //TODO: Depth Attachment
-
-        VkSubpassDependency dependency {};
-        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-        dependency.dstSubpass = 0;
-        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        dependency.srcAccessMask = 0;
-        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        if (mDepthAttachmentImage)
+            subpassDescription.pDepthStencilAttachment = &depthAttachmentReference;
 
         // Create the Framebuffer
         VkRenderPassCreateInfo renderPassInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
@@ -134,8 +136,8 @@ namespace Surge
         renderPassInfo.pAttachments = attachmentDescriptions.data();
         renderPassInfo.subpassCount = 1;
         renderPassInfo.pSubpasses = &subpassDescription;
-        renderPassInfo.dependencyCount = 1;
-        renderPassInfo.pDependencies = &dependency;
+        renderPassInfo.dependencyCount = 0;     // https://stackoverflow.com/a/53005446/14349078
+        renderPassInfo.pDependencies = nullptr; // ^^ Says there is an implicit one provided, still should we add one explicitly?
         VK_CALL(vkCreateRenderPass(logicalDevice, &renderPassInfo, nullptr, &mRenderPass));
 
         Uint colorAttachmentImagesSize = mColorAttachmentImages.size();
@@ -146,12 +148,16 @@ namespace Surge
             attachments[i] = image->GetVulkanImageView();
             SG_ASSERT(attachments[i], "Invalid Vulkan ImageView!");
         }
-        //TODO: Depth Attachment
+        if (mDepthAttachmentImage)
+        {
+            Ref<VulkanImage2D> image = mDepthAttachmentImage.As<VulkanImage2D>();
+            attachments.emplace_back(image->GetVulkanImageView());
+            SG_ASSERT(attachments.back(), "Invalid Vulkan ImageView!");
+        }
 
-        VkFramebufferCreateInfo framebufferCreateInfo = {};
-        framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        VkFramebufferCreateInfo framebufferCreateInfo = {VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
         framebufferCreateInfo.renderPass = mRenderPass;
-        framebufferCreateInfo.attachmentCount = uint32_t(attachments.size());
+        framebufferCreateInfo.attachmentCount = Uint(attachments.size());
         framebufferCreateInfo.pAttachments = attachments.data();
         framebufferCreateInfo.width = mSpecification.Width;
         framebufferCreateInfo.height = mSpecification.Height;

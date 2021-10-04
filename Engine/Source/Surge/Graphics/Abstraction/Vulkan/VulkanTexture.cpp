@@ -69,7 +69,7 @@ namespace Surge
 
         ImageSpecification& imageSpec = mImage->GetSpecification();
         imageSpec.Format = mSpecification.Format;
-        Ref<VulkanImage2D>& image = mImage.As<VulkanImage2D>();
+        Ref<VulkanImage2D> image = mImage.As<VulkanImage2D>();
         image->Invalidate(); // ReCreate the image
 
         VkDeviceSize size = mPixelDataSize;
@@ -150,7 +150,7 @@ namespace Surge
         VulkanDevice* device = renderContext->GetDevice();
         VkDevice logicalDevice = device->GetLogicalDevice();
 
-        Ref<VulkanImage2D>& image = mImage.As<VulkanImage2D>();
+        Ref<VulkanImage2D> image = mImage.As<VulkanImage2D>();
         ImageSpecification& imageSpec = mImage->GetSpecification();
 
         device->InstantSubmit(VulkanQueueType::Graphics, [&](VkCommandBuffer& cmd) {

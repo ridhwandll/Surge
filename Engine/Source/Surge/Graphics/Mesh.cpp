@@ -72,12 +72,12 @@ namespace Surge
 
         GraphicsPipelineSpecification pipelineSpec {};
         pipelineSpec.Shader = CoreGetRenderer()->GetShader("Simple"); // TODO: Should be handled by material
-        pipelineSpec.Topology = PrimitiveTopology::LineStrip;
-        pipelineSpec.CullingMode = CullMode::None;
+        pipelineSpec.Topology = PrimitiveTopology::TriangleList;
+        pipelineSpec.CullingMode = CullMode::Back;
         pipelineSpec.UseDepth = true;
         pipelineSpec.UseStencil = false;
         pipelineSpec.DebugName = "MeshPipeline";
-        pipelineSpec.LineWidth = 3.0f;
+        pipelineSpec.LineWidth = 1.0f;
         pipelineSpec.TargetFramebuffer = CoreGetRenderer()->GetFramebuffer();
         mPipeline = GraphicsPipeline::Create(pipelineSpec);
     }

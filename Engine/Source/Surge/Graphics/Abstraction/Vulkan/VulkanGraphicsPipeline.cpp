@@ -118,7 +118,7 @@ namespace Surge
         colorBlending.blendConstants[3] = 0.0f;
 
         // Setting up the pipeline layout
-        Ref<VulkanShader>& vulkanShader = mSpecification.Shader.As<VulkanShader>();
+        Ref<VulkanShader> vulkanShader = mSpecification.Shader.As<VulkanShader>();
         Vector<VkDescriptorSetLayout> descriptorSetLayouts = VulkanUtils::GetDescriptorSetLayoutVectorFromHashMap(vulkanShader->GetDescriptorSetLayouts());
         Vector<VkPushConstantRange> pushConstants = VulkanUtils::GetPushConstantRangesVectorFromHashMap(vulkanShader->GetPushConstantRanges());
 

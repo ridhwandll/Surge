@@ -52,8 +52,8 @@ namespace Surge
         {
             VulkanSwapChain* swapchain = renderContext->GetSwapChain();
             mCommandPool = swapchain->GetVulkanCommandPool();
-            Vector<VkCommandBuffer>& swapchainCommandBuffers = swapchain->GetVulkanCommandBuffers();
-            for (VkCommandBuffer& cmdBuffer : swapchainCommandBuffers)
+            const Vector<VkCommandBuffer>& swapchainCommandBuffers = swapchain->GetVulkanCommandBuffers();
+            for (const VkCommandBuffer& cmdBuffer : swapchainCommandBuffers)
                 mCommandBuffers.push_back(cmdBuffer);
         }
     }

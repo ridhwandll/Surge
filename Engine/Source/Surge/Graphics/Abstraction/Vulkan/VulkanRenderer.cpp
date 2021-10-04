@@ -25,7 +25,7 @@ namespace Surge
         mData->ShaderSet.LoadAll();
 
         FramebufferSpecification spec = {};
-        spec.Formats = {ImageFormat::RGBA8};
+        spec.Formats = {ImageFormat::RGBA8, ImageFormat::Depth32};
         spec.Width = 1280;
         spec.Height = 720;
         mData->OutputFrambuffer = Framebuffer::Create(spec);

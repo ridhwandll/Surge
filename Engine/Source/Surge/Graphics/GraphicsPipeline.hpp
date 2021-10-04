@@ -10,10 +10,10 @@ namespace Surge
     enum class PrimitiveTopology
     {
         None = 0,
-        Points,
-        Lines,
+        PointList,
+        LineList,
         LineStrip,
-        Triangles,
+        TriangleList,
         TriangleStrip
     };
 
@@ -48,7 +48,7 @@ namespace Surge
     struct GraphicsPipelineSpecification
     {
         Ref<Shader> Shader;
-        PrimitiveTopology Topology = PrimitiveTopology::Triangles;
+        PrimitiveTopology Topology = PrimitiveTopology::TriangleList;
         PolygonMode PolygonMode = PolygonMode::Fill;
         CullMode CullingMode = CullMode::Back;
         CompareOperation DepthCompOperation = CompareOperation::Less;

@@ -21,7 +21,6 @@ namespace Surge
         float GetDistance() const { return mDistance; }
         void SetDistance(float distance) { mDistance = distance; }
 
-        const glm::vec3& GetFocalPoint() const { return mFocalPoint; }
         void SetViewportSize(const glm::vec2& size)
         {
             mViewportWidth = size.x;
@@ -29,14 +28,14 @@ namespace Surge
             UpdateProjection();
         }
 
-        const glm::mat4& GetViewMatrix() const { return mViewMatrix; }
-        const glm::mat4& GetViewProjection() const { return mProjection * mViewMatrix; }
-
+        glm::mat4 GetViewMatrix() const { return mViewMatrix; }
+        glm::mat4 GetViewProjection() const { return mProjection * mViewMatrix; }
         glm::vec3 GetUpDirection() const;
         glm::vec3 GetRightDirection() const;
         glm::vec3 GetForwardDirection() const;
         glm::quat GetOrientation() const;
 
+        const glm::vec3& GetFocalPoint() const { return mFocalPoint; }
         const glm::vec3& GetPosition() const { return mPosition; }
 
         float GetPitch() const { return mPitch; }
