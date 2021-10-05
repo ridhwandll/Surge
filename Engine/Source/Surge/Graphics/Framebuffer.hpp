@@ -22,10 +22,6 @@ namespace Surge
         virtual FramebufferSpecification& GetSpecification() = 0;
         virtual const Ref<Image2D>& GetColorAttachment(Uint index) const = 0;
 
-        // TODO: Maybe move to separate class?
-        virtual void BeginRenderPass(const Ref<RenderCommandBuffer>& cmd) const = 0;
-        virtual void EndRenderPass(const Ref<RenderCommandBuffer>& cmd) const = 0;
-
         static Ref<Framebuffer> Create(const FramebufferSpecification& spec);
     };
 } // namespace Surge

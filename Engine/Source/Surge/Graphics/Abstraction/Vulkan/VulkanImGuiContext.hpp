@@ -11,6 +11,7 @@ namespace Surge
         VulkanImGuiContext() = default;
         ~VulkanImGuiContext() = default;
 
+    private:
         void Initialize(void* vulkanRenderContext);
         void Destroy();
 
@@ -18,8 +19,15 @@ namespace Surge
         void Render(); // Must be called inside a "Graphics" command buffer
         void EndFrame();
 
+        void* AddImage(const Ref<Image2D>& image2d) const;
+        void SetDarkThemeColors();
+
     private:
         VkDescriptorPool mImguiPool;
         void* mVulkanRenderContext = nullptr;
+
+    private:
+        friend class VulkanRenderContext;
     };
+
 } // namespace Surge

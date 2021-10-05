@@ -16,7 +16,8 @@ namespace Surge
         if (mImage == VK_NULL_HANDLE)
             return;
 
-        VulkanRenderContext* renderContext = static_cast<VulkanRenderContext*>(CoreGetRenderContext().get());
+        VulkanRenderContext* renderContext;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
         VulkanMemoryAllocator* allocator = static_cast<VulkanMemoryAllocator*>(renderContext->GetMemoryAllocator());
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
 
@@ -31,7 +32,8 @@ namespace Surge
 
     void VulkanImage2D::Invalidate()
     {
-        VulkanRenderContext* renderContext = static_cast<VulkanRenderContext*>(CoreGetRenderContext().get());
+        VulkanRenderContext* renderContext;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
         VulkanDevice* device = renderContext->GetDevice();
         VulkanMemoryAllocator* allocator = static_cast<VulkanMemoryAllocator*>(renderContext->GetMemoryAllocator());
 
@@ -118,7 +120,8 @@ namespace Surge
 
     VulkanImage2D::~VulkanImage2D()
     {
-        VulkanRenderContext* renderContext = static_cast<VulkanRenderContext*>(CoreGetRenderContext().get());
+        VulkanRenderContext* renderContext;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
         VulkanMemoryAllocator* allocator = static_cast<VulkanMemoryAllocator*>(renderContext->GetMemoryAllocator());
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
         vkDeviceWaitIdle(device);

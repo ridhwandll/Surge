@@ -9,11 +9,10 @@ namespace Surge
 {
     enum class WindowFlags
     {
-        NonResizeable = BIT(0),
-        NoDecoration = BIT(1),
-        Minimized = BIT(2),
-        Maximized = BIT(3),
-        CreateDefault = BIT(4)
+        // TODO: Add more falgs
+        Minimized = BIT(1),
+        Maximized = BIT(2),
+        CreateDefault = BIT(3)
     };
     MAKE_BIT_ENUM(WindowFlags);
 
@@ -26,9 +25,7 @@ namespace Surge
     struct WindowData
     {
         WindowData(Uint width, Uint height, const String& title, WindowFlags flags = WindowFlags::CreateDefault) : Width(width), Height(height), Title(title), Flags(flags) {}
-
         WindowData() : Width(1280), Height(720), Title("Surge Window"), Flags(WindowFlags::CreateDefault) {}
-
         ~WindowData() = default;
 
         Uint Width;
@@ -65,7 +62,6 @@ namespace Surge
         virtual void* GetNativeWindowHandle() = 0;
 
         const WindowData& GetData() const { return mWindowData; }
-        static Scope<Window> Create(const WindowData& windowData);
 
     protected:
         WindowData mWindowData;

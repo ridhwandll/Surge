@@ -348,7 +348,7 @@ namespace Surge
 
     void VulkanSwapChain::EndFrame()
     {
-        VulkanRenderContext* vkContext = static_cast<VulkanRenderContext*>(CoreGetRenderContext().get());
+        VulkanRenderContext* vkContext = static_cast<VulkanRenderContext*>(SurgeCore::GetRenderContext());
         Uint frameIndex = vkContext->GetFrameIndex();
 
         vkResetCommandBuffer(mCommandBuffers[frameIndex], 0);

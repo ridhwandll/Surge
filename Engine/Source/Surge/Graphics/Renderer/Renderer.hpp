@@ -34,7 +34,6 @@ namespace Surge
         glm::mat4 ViewProjection;
     };
 
-    // Simply a class that renders to a texture
     class Renderer
     {
     public:
@@ -48,6 +47,9 @@ namespace Surge
         virtual void EndFrame() = 0;
         virtual void SubmitMesh(const Ref<Mesh>& mesh, const glm::mat4& transform) = 0;
 
+        virtual void BeginRenderPass(const Ref<RenderCommandBuffer>& cmdBuffer, const Ref<Framebuffer>& framebuffer) = 0;
+        virtual void EndRenderPass(const Ref<RenderCommandBuffer>& cmdBuffer) = 0;
+
         RendererData* GetData() { return mData.get(); }
         Ref<Shader>& GetShader(const String& name);
         Ref<Framebuffer>& GetFramebuffer(); //TODO REMOVE: Have something like FramebufferSet(similar to ShaderSet)
@@ -55,4 +57,5 @@ namespace Surge
     protected:
         Scope<RendererData> mData;
     };
+
 } // namespace Surge

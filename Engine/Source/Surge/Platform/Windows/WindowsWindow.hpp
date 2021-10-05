@@ -12,8 +12,8 @@ namespace Surge
 
         virtual bool IsOpen() const override { return mIsOpen; };
         virtual void Update() override;
-        virtual void Minimize() override;
-        virtual void Maximize() override;
+        virtual void Minimize() override { ShowWindow(mWin32Window, SW_MINIMIZE); }
+        virtual void Maximize() override { ShowWindow(mWin32Window, SW_MAXIMIZE); }
         virtual void RegisterEventCallback(std::function<void(Event&)> eventCallback) override { mEventCallback = eventCallback; }
 
         virtual String GetTitle() const override { return mWindowData.Title; }
@@ -37,7 +37,6 @@ namespace Surge
         WindowState mWindowState;
         bool mIsOpen = false;
         HWND mWin32Window;
-        RenderContext* mRenderingContext;
         static LRESULT CALLBACK WindowProc(HWND hWnd, UINT msg, WPARAM lparam, LPARAM wparam);
     };
 } // namespace Surge

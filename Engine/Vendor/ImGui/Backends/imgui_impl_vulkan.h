@@ -66,12 +66,15 @@ struct ImGui_ImplVulkan_InitInfo
 
 // Called by user code
 IMGUI_IMPL_API bool     ImGui_ImplVulkan_Init(ImGui_ImplVulkan_InitInfo* info, VkRenderPass render_pass);
+IMGUI_IMPL_API void     ImGui_ImplVulkan_Init_InternalDescriptors();
 IMGUI_IMPL_API void     ImGui_ImplVulkan_Shutdown();
 IMGUI_IMPL_API void     ImGui_ImplVulkan_NewFrame();
 IMGUI_IMPL_API void     ImGui_ImplVulkan_RenderDrawData(ImDrawData* draw_data, VkCommandBuffer command_buffer, VkPipeline pipeline = VK_NULL_HANDLE);
 IMGUI_IMPL_API bool     ImGui_ImplVulkan_CreateFontsTexture(VkCommandBuffer command_buffer);
 IMGUI_IMPL_API void     ImGui_ImplVulkan_DestroyFontUploadObjects();
 IMGUI_IMPL_API void     ImGui_ImplVulkan_SetMinImageCount(uint32_t min_image_count); // To override MinImageCount after initialization (e.g. if swap chain is recreated)
+IMGUI_IMPL_API ImTextureID  ImGui_ImplVulkan_AddTexture(VkImageView image_view, VkImageLayout image_layout, VkSampler sampler, VkDescriptorSet descriptor_set);
+IMGUI_IMPL_API VkDescriptorSetLayout  ImGui_ImplVulkan_GetDescriptorSetLayout();
 
 // Optional: load Vulkan functions with a custom function loader
 // This is only useful with IMGUI_IMPL_VULKAN_NO_PROTOTYPES / VK_NO_PROTOTYPES

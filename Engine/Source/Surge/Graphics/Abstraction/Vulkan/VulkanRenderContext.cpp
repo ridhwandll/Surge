@@ -1,22 +1,22 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderContext.hpp"
-#include "Pch.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDiagnostics.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderer.hpp"
 
 namespace Surge
 {
+    // clang-format off
 #ifdef SURGE_DEBUG
-#define ENABLE_IF_VK_VALIDATION(x) \
-    {                              \
-        x;                         \
-    }
+#define ENABLE_IF_VK_VALIDATION(x) { x; }
 #else
 #define ENABLE_IF_VK_VALIDATION(x)
 #endif // SURGE_DEBUG
+    // clang-format on
 
-    void VulkanRenderContext::Initialize(Window* window)
+    void VulkanRenderContext::Initialize(Window* window, bool enableImGui)
     {
         VK_CALL(volkInitialize());
+        mImGuiEnabled = enableImGui;
 
         /// VkApplicationInfo ///
         VkApplicationInfo appInfo {VK_STRUCTURE_TYPE_APPLICATION_INFO};
@@ -46,7 +46,9 @@ namespace Surge
         mDevice.Initialize(mVulkanInstance);
         mSwapChain.Initialize(window);
         mMemoryAllocator.Initialize(mVulkanInstance, mDevice);
-        mImGuiContext.Initialize(this);
+
+        if (mImGuiEnabled)
+            mImGuiContext.Initialize(this);
 
         // Fill In GPUInfo
         mGPUInfo.Name = mDevice.GetProperties().vk10Properties.properties.deviceName;
@@ -55,19 +57,27 @@ namespace Surge
 
     void VulkanRenderContext::BeginFrame()
     {
-        mSwapChain.BeginFrame();    // Acquires the next image
-        mImGuiContext.BeginFrame(); // Starts the ImGui API
+        mSwapChain.BeginFrame();
+        if (mImGuiEnabled)
+            mImGuiContext.BeginFrame();
+
+        // Reset the renderer descriptor pool
+        VkDescriptorPool descriptorPool = static_cast<VulkanRenderer*>(SurgeCore::GetRenderer())->GetDescriptorPool();
+        VK_CALL(vkResetDescriptorPool(mDevice.GetLogicalDevice(), descriptorPool, 0));
     }
 
     void VulkanRenderContext::EndFrame()
     {
         mSwapChain.EndFrame(); // Present
-        mImGuiContext.EndFrame();
+        if (mImGuiEnabled)
+            mImGuiContext.EndFrame();
     }
 
     void VulkanRenderContext::Shutdown()
     {
-        mImGuiContext.Destroy();
+        if (mImGuiEnabled)
+            mImGuiContext.Destroy();
+
         mMemoryAllocator.Destroy();
         mSwapChain.Destroy();
         ENABLE_IF_VK_VALIDATION(mVulkanDiagnostics.EndDiagnostics(mVulkanInstance));
@@ -75,9 +85,26 @@ namespace Surge
         vkDestroyInstance(mVulkanInstance, nullptr);
     }
 
-    void VulkanRenderContext::OnResize() { mSwapChain.Resize(); }
+    void VulkanRenderContext::OnResize()
+    {
+        mSwapChain.Resize();
+    }
 
-    void VulkanRenderContext::RenderImGui() { mImGuiContext.Render(); }
+    void VulkanRenderContext::RenderImGui()
+    {
+        if (mImGuiEnabled)
+            mImGuiContext.Render();
+    }
+
+    void* VulkanRenderContext::GetImGuiTextureID(const Ref<Image2D>& image) const
+    {
+        if (mImGuiEnabled)
+        {
+            void* imTextureID = mImGuiContext.AddImage(image);
+            return imTextureID;
+        }
+        return nullptr;
+    }
 
     Vector<const char*> VulkanRenderContext::GetRequiredInstanceExtensions()
     {

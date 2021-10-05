@@ -21,6 +21,7 @@
 #include "Surge/Graphics/VertexBuffer.hpp"
 
 #include <imgui.h>
+#include "Surge/Utility/ImGuiUtils.hpp"
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm/gtc/type_ptr.hpp"

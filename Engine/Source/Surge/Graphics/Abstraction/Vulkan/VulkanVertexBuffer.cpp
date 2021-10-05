@@ -21,7 +21,7 @@ namespace Surge
     void VulkanVertexBuffer::Bind(const Ref<RenderCommandBuffer>& cmdBuffer) const
     {
         VkDeviceSize offset = 0;
-        Uint frameIndex = CoreGetRenderContext()->GetFrameIndex();
+        Uint frameIndex = SurgeCore::GetRenderContext()->GetFrameIndex();
         VkCommandBuffer vulkanCmdBuffer = cmdBuffer.As<VulkanRenderCommandBuffer>()->GetVulkanCommandBuffer(frameIndex);
         vkCmdBindVertexBuffers(vulkanCmdBuffer, 0, 1, &mVulkanBuffer, &offset);
     }

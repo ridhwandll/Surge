@@ -4,6 +4,11 @@
 
 namespace Surge
 {
+    struct ApplicationOptions
+    {
+        bool EnableImGui = true;
+    };
+
     class Application
     {
     public:
@@ -15,5 +20,12 @@ namespace Surge
         virtual void OnEvent(Event& e) {};
         virtual void OnImGuiRender() {};
         virtual void OnShutdown() {};
+
+        void SetAppOptions(const ApplicationOptions& appCreateInfo) { mAppOptions = appCreateInfo; }
+        const ApplicationOptions& GetAppOptions() const { return mAppOptions; }
+
+    private:
+        ApplicationOptions mAppOptions;
     };
+
 } // namespace Surge

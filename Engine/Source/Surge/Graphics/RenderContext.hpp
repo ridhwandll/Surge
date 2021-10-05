@@ -1,13 +1,10 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "Surge/Core/Window/Window.hpp"
+#include "Surge/Graphics/Image.hpp"
 
 namespace Surge
 {
-    // NOTE(Rid):
-    // The "Core" owns the RenderContext
-    // RenderContext owns the API Instance, LogicalDevice, SwapChain, PhysicalDevice, MemoryAllocator etc.
-
     struct GPUInfo
     {
         String Name;
@@ -24,26 +21,31 @@ namespace Surge
         uint64_t Free = 0;
     };
 
+    // NOTE(Rid):
+    // The "Core" owns the RenderContext
+    // RenderContext owns the API Instance, LogicalDevice, SwapChain, PhysicalDevice, MemoryAllocator etc.
     class RenderContext
     {
     public:
         RenderContext() = default;
         virtual ~RenderContext() = default;
 
-        virtual void Initialize(Window* window) = 0;
+        virtual void Initialize(Window* window, bool enableImGui = true) = 0;
         virtual void Shutdown() = 0;
 
         virtual void BeginFrame() = 0;
         virtual void EndFrame() = 0;
 
         virtual void OnResize() = 0;
-        virtual void RenderImGui() = 0;
         virtual Uint GetFrameIndex() const = 0;
+
+        virtual void* GetMemoryAllocator() const = 0;
+
+        virtual void RenderImGui() = 0;
+        virtual void* GetImGuiTextureID(const Ref<Image2D>& image) const = 0;
 
         virtual GPUMemoryStats GetMemoryStatus() const = 0;
         virtual GPUInfo GetGPUInfo() const = 0;
-        virtual void* GetMemoryAllocator() const = 0;
-
-        static Scope<RenderContext> Create();
     };
+
 } // namespace Surge

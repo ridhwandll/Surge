@@ -15,10 +15,6 @@ namespace Surge
         virtual FramebufferSpecification& GetSpecification() override { return mSpecification; }
         virtual const Ref<Image2D>& GetColorAttachment(Uint index) const override { return mColorAttachmentImages[index]; }
 
-        // TODO: Maybe move to separate class?
-        virtual void BeginRenderPass(const Ref<RenderCommandBuffer>& cmd) const override;
-        virtual void EndRenderPass(const Ref<RenderCommandBuffer>& cmd) const override;
-
         VkFramebuffer& GetVulkanFramebuffer() { return mFramebuffer; }
         VkRenderPass& GetVulkanRenderPass() { return mRenderPass; }
 

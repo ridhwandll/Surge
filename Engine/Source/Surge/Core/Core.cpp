@@ -5,54 +5,46 @@
 #include "Surge/Core/Time/Clock.hpp"
 #include "Surge/Core/Window/Window.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderer.hpp"
+#include "../Platform/Windows/WindowsWindow.hpp"
 
 namespace Surge
 {
-    struct CoreData
+    Surge::CoreData SurgeCore::sCoreData;
+
+    void OnEvent(Event& e)
     {
-        Application* SurgeApplication = nullptr; // Provided by the User
-
-        Scope<Window> SurgeWindow = nullptr;
-        Scope<RenderContext> SurgeRenderContext = nullptr;
-        Scope<Renderer> SurgeRenderer = nullptr;
-        bool mRunning = false;
-    };
-
-    static CoreData sCoreData;
-
-    void CoreOnEvent(Event& e)
-    {
-        sCoreData.SurgeApplication->OnEvent(e);
+        SurgeCore::GetData()->SurgeApplication->OnEvent(e);
         Surge::EventDispatcher dispatcher(e);
         dispatcher.Dispatch<Surge::WindowResizeEvent>([](Surge::WindowResizeEvent& e) {
-            if (CoreGetWindow()->GetWindowState() != WindowState::Minimized)
-                sCoreData.SurgeRenderContext->OnResize();
+            if (SurgeCore::GetWindow()->GetWindowState() != WindowState::Minimized)
+                SurgeCore::GetData()->SurgeRenderContext->OnResize();
         });
     }
 
-    void Initialize(Application* application)
+    void SurgeCore::Initialize(Application* application)
     {
         SCOPED_TIMER("Initialization");
         Clock::Start();
         sCoreData.SurgeApplication = application;
+        const ApplicationOptions& appOptions = sCoreData.SurgeApplication->GetAppOptions();
 
-        sCoreData.SurgeWindow = Window::Create({1280, 720, "Surge", WindowFlags::CreateDefault});
-        sCoreData.SurgeWindow->RegisterEventCallback(Surge::CoreOnEvent);
+        // Window
+        sCoreData.SurgeWindow = new WindowsWindow({1280, 720, "Surge", WindowFlags::CreateDefault});
+        sCoreData.SurgeWindow->RegisterEventCallback(OnEvent);
 
         // Render Context
-        sCoreData.SurgeRenderContext = RenderContext::Create();
-        sCoreData.SurgeRenderContext->Initialize(sCoreData.SurgeWindow.get());
+        sCoreData.SurgeRenderContext = new VulkanRenderContext();
+        sCoreData.SurgeRenderContext->Initialize(sCoreData.SurgeWindow, appOptions.EnableImGui);
 
         // Renderer
-        // TODO: Check which Renderer(DirextX12/Vulkan/Metal) to create (currently only "VulkanRenderer")
-        sCoreData.SurgeRenderer = CreateScope<VulkanRenderer>();
+        sCoreData.SurgeRenderer = new VulkanRenderer();
         sCoreData.SurgeRenderer->Initialize();
 
-        sCoreData.SurgeApplication->OnInitialize();
         sCoreData.mRunning = true;
+        sCoreData.SurgeApplication->OnInitialize();
     }
 
-    void Run()
+    void SurgeCore::Run()
     {
         while (sCoreData.mRunning)
         {
@@ -62,14 +54,17 @@ namespace Surge
             if (sCoreData.SurgeWindow->GetWindowState() != WindowState::Minimized)
             {
                 sCoreData.SurgeRenderContext->BeginFrame();
-                sCoreData.SurgeApplication->OnImGuiRender();
+
                 sCoreData.SurgeApplication->OnUpdate();
+                if (sCoreData.SurgeApplication->GetAppOptions().EnableImGui)
+                    sCoreData.SurgeApplication->OnImGuiRender();
+
                 sCoreData.SurgeRenderContext->EndFrame();
             }
         }
     }
 
-    void Shutdown()
+    void SurgeCore::Shutdown()
     {
         SCOPED_TIMER("Shutdown");
 
@@ -79,13 +74,16 @@ namespace Surge
 
         sCoreData.SurgeRenderer->Shutdown();
         sCoreData.SurgeRenderContext->Shutdown();
+
+        delete sCoreData.SurgeWindow;
+        delete sCoreData.SurgeRenderer;
+        delete sCoreData.SurgeRenderContext;
     }
 
-    void Close() { sCoreData.mRunning = false; }
+    void SurgeCore::Close() { sCoreData.mRunning = false; }
 
-    Scope<RenderContext>& CoreGetRenderContext() { return sCoreData.SurgeRenderContext; }
+    Window* SurgeCore::GetWindow() { return sCoreData.SurgeWindow; }
+    RenderContext* SurgeCore::GetRenderContext() { return sCoreData.SurgeRenderContext; }
+    Renderer* SurgeCore::GetRenderer() { return sCoreData.SurgeRenderer; }
 
-    Scope<Window>& CoreGetWindow() { return sCoreData.SurgeWindow; }
-
-    Scope<Renderer>& CoreGetRenderer() { return sCoreData.SurgeRenderer; }
 } // namespace Surge

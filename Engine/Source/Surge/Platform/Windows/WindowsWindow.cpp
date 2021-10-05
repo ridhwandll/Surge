@@ -30,7 +30,7 @@ namespace Surge
             Log<Severity::Error>("Could not initialize the window class!");
 
         mWin32Window = CreateWindow(wc.lpszClassName, mWindowData.Title.c_str(),
-                                    mWindowData.Flags & WindowFlags::NonResizeable ? WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX : WS_OVERLAPPEDWINDOW, 0, 0, mWindowData.Width,
+                                    WS_OVERLAPPEDWINDOW, 0, 0, mWindowData.Width,
                                     mWindowData.Height, nullptr, NULL, wc.hInstance, this);
 
         ApplyFlags();
@@ -38,8 +38,6 @@ namespace Surge
             Log<Severity::Info>("Created {0} ({1}, {2})", mWindowData.Title, mWindowData.Width, mWindowData.Height);
         else
             Log<Severity::Error>("WindowsWindow creation failure!");
-
-        mRenderingContext = CoreGetRenderContext().get();
     }
 
     WindowsWindow::~WindowsWindow() { DestroyWindow(mWin32Window); }
@@ -52,13 +50,7 @@ namespace Surge
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
-        // if(CoreGetRenderContext())
-        //    CoreGetRenderContext()->Present();
     }
-
-    void WindowsWindow::Minimize() { ShowWindow(mWin32Window, SW_MINIMIZE); }
-
-    void WindowsWindow::Maximize() { ShowWindow(mWin32Window, SW_MAXIMIZE); }
 
     void WindowsWindow::SetTitle(const String& name)
     {
@@ -113,9 +105,6 @@ namespace Surge
             if (flags & WindowFlags::CreateDefault)
                 ShowWindow(mWin32Window, SW_SHOWDEFAULT);
         }
-
-        if (flags & WindowFlags::NoDecoration)
-            SetWindowLong(mWin32Window, GWL_STYLE, 0);
     }
 
     LRESULT WindowsWindow::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -140,7 +129,7 @@ namespace Surge
                 WindowClosedEvent event;
                 data->mEventCallback(event);
                 data->mIsOpen = false;
-                Surge::Close();
+                SurgeCore::Close();
                 PostQuitMessage(0);
                 break;
             }

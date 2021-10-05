@@ -8,22 +8,31 @@
 
 namespace Surge
 {
-    // Initializes the whole Engine, along with it's subsystems, everything! - only call this once, at startup
-    void Initialize(Application* application);
+    struct CoreData
+    {
+        Application* SurgeApplication = nullptr; // Provided by the User
 
-    // Runs the engine, performs a GIANT while loop
-    void Run();
+        Window* SurgeWindow = nullptr;
+        RenderContext* SurgeRenderContext = nullptr;
+        Renderer* SurgeRenderer = nullptr;
+        bool mRunning = false;
+    };
 
-    // Cleans up all allocated resources, shutdowns internal systems - only call it at the program shutdown
-    void Shutdown();
+    class SurgeCore
+    {
+    public:
+        static void Initialize(Application* application);
+        static void Run();
+        static void Shutdown();
+        static void Close();
 
-    // Ends the engine loop, returns from "Run"
-    void Close();
+        static Window* GetWindow();
+        static RenderContext* GetRenderContext();
+        static Renderer* GetRenderer();
+        static CoreData* GetData() { return &sCoreData; }
 
-    // Core Getters
-    Scope<Window>& CoreGetWindow();
+    private:
+        static CoreData sCoreData;
+    };
 
-    Scope<RenderContext>& CoreGetRenderContext();
-
-    Scope<Renderer>& CoreGetRenderer();
 } // namespace Surge

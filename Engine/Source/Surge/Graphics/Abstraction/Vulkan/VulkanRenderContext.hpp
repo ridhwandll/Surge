@@ -8,14 +8,14 @@
 #include "Surge/Graphics/RenderContext.hpp"
 #include <volk.h>
 
-#define SURGE_GET_VULKAN_CONTEXT(renderContext) renderContext = static_cast<VulkanRenderContext*>(CoreGetRenderContext().get())
+#define SURGE_GET_VULKAN_CONTEXT(renderContext) renderContext = static_cast<VulkanRenderContext*>(SurgeCore::GetRenderContext())
 
 namespace Surge
 {
     class VulkanRenderContext : public RenderContext
     {
     public:
-        virtual void Initialize(Window* window) override;
+        virtual void Initialize(Window* window, bool enableImGui = true) override;
         virtual void BeginFrame() override;
         virtual void EndFrame() override;
         virtual void Shutdown() override;
@@ -30,6 +30,7 @@ namespace Surge
         VkInstance GetInstance() const { return mVulkanInstance; }
         VulkanDevice* GetDevice() { return &mDevice; }
         VulkanSwapChain* GetSwapChain() { return &mSwapChain; }
+        virtual void* GetImGuiTextureID(const Ref<Image2D>& image) const;
 
     private:
         Vector<const char*> GetRequiredInstanceExtensions();
@@ -42,6 +43,7 @@ namespace Surge
         VulkanSwapChain mSwapChain {};
         VulkanMemoryAllocator mMemoryAllocator {};
         VulkanImGuiContext mImGuiContext;
+        bool mImGuiEnabled;
 
         GPUInfo mGPUInfo;
         friend class VulkanImGuiContext;
