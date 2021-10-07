@@ -29,10 +29,7 @@ namespace Surge
         static Window* GetWindow();
         static RenderContext* GetRenderContext();
         static Renderer* GetRenderer();
-        static CoreData* GetData() { return &sCoreData; }
-
-    private:
-        static CoreData sCoreData;
+        static CoreData* GetData();
     };
 
 } // namespace Surge

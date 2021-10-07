@@ -3,11 +3,14 @@ include(${CMAKE_SOURCE_DIR}/scripts/CMakeUtils.cmake)
 file(GLOB_RECURSE SOURCE_FILES
     Source/Surge/*.cpp
     Source/Surge/*.hpp
+    Source/SurgeReflect/*.hpp
+    Source/SurgeReflect/*.cpp
     Vendor/stb/stb_image.cpp
 )
 
 set(INCLUDE_DIRS
     Source
+    Source/SurgeReflect/Include
     Vendor
     Vendor/fmt/Include
     Vendor/glm

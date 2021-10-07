@@ -5,11 +5,12 @@
 #include "Surge/Core/Time/Clock.hpp"
 #include "Surge/Core/Window/Window.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderer.hpp"
-#include "../Platform/Windows/WindowsWindow.hpp"
+#include "Surge/Platform/Windows/WindowsWindow.hpp"
+#include "SurgeReflect/SurgeReflect.hpp"
 
 namespace Surge
 {
-    Surge::CoreData SurgeCore::sCoreData;
+    static CoreData sCoreData;
 
     void OnEvent(Event& e)
     {
@@ -40,6 +41,9 @@ namespace Surge
         sCoreData.SurgeRenderer = new VulkanRenderer();
         sCoreData.SurgeRenderer->Initialize();
 
+        // Reflection Engine
+        SurgeReflect::Registry::Initialize();
+
         sCoreData.mRunning = true;
         sCoreData.SurgeApplication->OnInitialize();
     }
@@ -68,6 +72,8 @@ namespace Surge
     {
         SCOPED_TIMER("Shutdown");
 
+        SurgeReflect::Registry::Shutdown();
+
         sCoreData.SurgeApplication->OnShutdown();
         delete sCoreData.SurgeApplication;
         sCoreData.SurgeApplication = nullptr;
@@ -85,5 +91,10 @@ namespace Surge
     Window* SurgeCore::GetWindow() { return sCoreData.SurgeWindow; }
     RenderContext* SurgeCore::GetRenderContext() { return sCoreData.SurgeRenderContext; }
     Renderer* SurgeCore::GetRenderer() { return sCoreData.SurgeRenderer; }
+
+    Surge::CoreData* SurgeCore::GetData()
+    {
+        return &sCoreData;
+    }
 
 } // namespace Surge

@@ -1,6 +1,14 @@
 #include <Surge/Surge.hpp>
+#include <SurgeReflect/SurgeReflect.hpp>
 
 using namespace Surge; //Ooof
+
+struct ReflectableStruct
+{
+    uint64_t X;
+    float GetAFloat() { return 3.1416f; }
+    SURGE_REFLECTION_ENABLE;
+};
 
 class MyApp : public Application
 {
@@ -11,6 +19,22 @@ public:
         mMesh = Ref<Mesh>::Create("Engine/Assets/Mesh/Vulkan.obj");
         mCamera.SetActive(true);
         mRenderer = SurgeCore::GetRenderer();
+
+        // Testing the new reflection system
+        const SurgeReflect::Class* clazz = SurgeReflect::GetReflection<ReflectableStruct>();
+        Log<Severity::Info>("Class: {0}", clazz->GetName());
+        Log<Severity::Info>("  Variables:-");
+
+        for (const auto& [name, variable] : clazz->GetVariables())
+        {
+            Log<Severity::Info>("    {0} | {2} | {1}", name, variable.GetSize(), variable.GetType().GetFullName());
+        }
+
+        Log<Severity::Info>("  Functions:-");
+        for (const auto& [name, func] : clazz->GetFunctions())
+        {
+            Log<Severity::Info>("    {0} | ReturnType: {1}", name, func.GetReturnType().GetFullName());
+        }
     }
 
     virtual void OnUpdate() override
@@ -91,5 +115,12 @@ int main()
 
     SurgeCore::Initialize(app);
     SurgeCore::Run();
+
     SurgeCore::Shutdown();
 }
+
+// clang-format off
+SURGE_REFLECT_CLASS_REGISTER_BEGIN(ReflectableStruct)
+    .AddVariable<&ReflectableStruct::X>("X", SurgeReflect::AccessModifier::Public)
+    .AddFunction<&ReflectableStruct::GetAFloat>("GetAFloat", SurgeReflect::AccessModifier::Public)
+SURGE_REFLECT_CLASS_REGISTER_END(ReflectableStruct)
