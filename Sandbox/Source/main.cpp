@@ -19,6 +19,9 @@ public:
         mMesh = Ref<Mesh>::Create("Engine/Assets/Mesh/Vulkan.obj");
         mCamera.SetActive(true);
         mRenderer = SurgeCore::GetRenderer();
+        mScene = Ref<Scene>::Create(false);
+        mScene->CreateEntity(mEntity);
+        mEntity.AddComponent<TransformComponent>();
 
         // Testing the new reflection system
         const SurgeReflect::Class* clazz = SurgeReflect::GetReflection<ReflectableStruct>();
@@ -39,15 +42,12 @@ public:
 
     virtual void OnUpdate() override
     {
-        const glm::mat4 rot = glm::toMat4(glm::quat(mRotation));
-        mTransform = glm::translate(glm::mat4(1.0f), mPosition) * rot * glm::scale(glm::mat4(1.0f), mScale);
-
         mCamera.OnUpdate();
         if (mViewportSize.y != 0)
             mCamera.SetViewportSize({mViewportSize.x, mViewportSize.y});
 
         mRenderer->BeginFrame(mCamera);
-        mRenderer->SubmitMesh(mMesh, mTransform);
+        mRenderer->SubmitMesh(mMesh, mEntity.GetComponent<TransformComponent>().GetTransform());
         mRenderer->EndFrame();
     }
 
@@ -58,9 +58,11 @@ public:
 
         if (ImGui::Begin("Settings"))
         {
-            ImGui::DragFloat3("Translation", glm::value_ptr(mPosition), 0.1);
-            ImGui::DragFloat3("Rotation", glm::value_ptr(mRotation), 0.1);
-            ImGui::DragFloat3("Scale", glm::value_ptr(mScale), 0.1);
+            TransformComponent& transformComponent = mEntity.GetComponent<TransformComponent>();
+
+            ImGui::DragFloat3("Translation", glm::value_ptr(transformComponent.Position), 0.1);
+            ImGui::DragFloat3("Rotation", glm::value_ptr(transformComponent.Rotation), 0.1);
+            ImGui::DragFloat3("Scale", glm::value_ptr(transformComponent.Scale), 0.1);
             ImGui::TextUnformatted("Status:");
             float used = memoryStatus.Used / 1000000.0f;
             float free = memoryStatus.Free / 1000000.0f;
@@ -91,18 +93,17 @@ public:
 
     virtual void OnShutdown() override
     {
+        mScene->DestroyEntity(mEntity);
     }
 
 private:
-    glm::vec3 mPosition = glm::vec3(0.0f, 0.0f, 1.0f);
-    glm::vec3 mScale = glm::vec3(1.0f, 1.0f, 1.0f);
-    glm::vec3 mRotation = glm::vec3(0.0f, 0.0f, 0.0f);
-    glm::mat4 mTransform;
-
     Ref<Mesh> mMesh;
     EditorCamera mCamera;
     glm::vec2 mViewportSize;
     Renderer* mRenderer;
+
+    Ref<Scene> mScene;
+    Entity mEntity;
 };
 
 int main()

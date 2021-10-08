@@ -20,6 +20,8 @@
 #include "Surge/Graphics/Texture.hpp"
 #include "Surge/Graphics/VertexBuffer.hpp"
 
+#include "Surge/ECS/Scene.hpp"
+
 #include <imgui.h>
 #include "Surge/Utility/ImGuiUtils.hpp"
 
