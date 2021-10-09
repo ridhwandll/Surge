@@ -1,42 +1,40 @@
 #include <Surge/Surge.hpp>
-#include <SurgeReflect/SurgeReflect.hpp>
 
 using namespace Surge; //Ooof
-
-struct ReflectableStruct
-{
-    uint64_t X;
-    float GetAFloat() { return 3.1416f; }
-    SURGE_REFLECTION_ENABLE;
-};
 
 class MyApp : public Application
 {
 public:
     virtual void OnInitialize() override
     {
-        mCamera = EditorCamera(45.0f, 1.778f, 0.1f, 1000.0f);
-        mMesh = Ref<Mesh>::Create("Engine/Assets/Mesh/Vulkan.obj");
-        mCamera.SetActive(true);
         mRenderer = SurgeCore::GetRenderer();
+        mCamera = EditorCamera(45.0f, 1.778f, 0.1f, 1000.0f);
         mScene = Ref<Scene>::Create(false);
+
         mScene->CreateEntity(mEntity);
         mEntity.AddComponent<TransformComponent>();
+        mEntity.AddComponent<MeshComponent>(Ref<Mesh>::Create("Engine/Assets/Mesh/Vulkan.obj"));
 
-        // Testing the new reflection system
-        const SurgeReflect::Class* clazz = SurgeReflect::GetReflection<ReflectableStruct>();
-        Log<Severity::Info>("Class: {0}", clazz->GetName());
-        Log<Severity::Info>("  Variables:-");
+        mScene->CreateEntity(mOtherEntity);
+        mOtherEntity.AddComponent<TransformComponent>(glm::vec3(15.0f, 0.0f, 0.0f), glm::vec3(0.0f), glm::vec3(1.0f));
+        mOtherEntity.AddComponent<MeshComponent>(Ref<Mesh>::Create("Engine/Assets/Mesh/Vulkan.obj"));
 
-        for (const auto& [name, variable] : clazz->GetVariables())
-        {
-            Log<Severity::Info>("    {0} | {2} | {1}", name, variable.GetSize(), variable.GetType().GetFullName());
-        }
+        mCamera.SetActive(true);
 
-        Log<Severity::Info>("  Functions:-");
-        for (const auto& [name, func] : clazz->GetFunctions())
-        {
-            Log<Severity::Info>("    {0} | ReturnType: {1}", name, func.GetReturnType().GetFullName());
+        { // TransformComponent reflection test
+            const SurgeReflect::Class* clazz = SurgeReflect::GetReflection<TransformComponent>();
+            Log<Severity::Info>("Class: {0}", clazz->GetName());
+            Log<Severity::Info>(" Variable(s):");
+
+            for (const auto& [name, variable] : clazz->GetVariables())
+            {
+                Log<Severity::Info>("  {0} | {2} | {1}", name, variable.GetSize(), variable.GetType().GetFullName());
+            }
+            Log<Severity::Info>(" Function(s):");
+            for (const auto& [name, func] : clazz->GetFunctions())
+            {
+                Log<Severity::Info>("  {0} | ReturnType: {1}", name, func.GetReturnType().GetFullName());
+            }
         }
     }
 
@@ -47,7 +45,8 @@ public:
             mCamera.SetViewportSize({mViewportSize.x, mViewportSize.y});
 
         mRenderer->BeginFrame(mCamera);
-        mRenderer->SubmitMesh(mMesh, mEntity.GetComponent<TransformComponent>().GetTransform());
+        mRenderer->SubmitMesh(mEntity.GetComponent<MeshComponent>().Mesh, mEntity.GetComponent<TransformComponent>().GetTransform());
+        mRenderer->SubmitMesh(mOtherEntity.GetComponent<MeshComponent>().Mesh, mOtherEntity.GetComponent<TransformComponent>().GetTransform());
         mRenderer->EndFrame();
     }
 
@@ -86,24 +85,23 @@ public:
     {
         mCamera.OnEvent(e);
         EventDispatcher dispatcher(e);
-        dispatcher.Dispatch<Surge::KeyPressedEvent>([this](KeyPressedEvent& e) {
-            //Log("{0}", e.ToString());
-        });
+        dispatcher.Dispatch<Surge::KeyPressedEvent>([this](KeyPressedEvent& e) { /*Log("{0}", e.ToString());*/ });
     }
 
     virtual void OnShutdown() override
     {
         mScene->DestroyEntity(mEntity);
+        mScene->DestroyEntity(mOtherEntity);
     }
 
 private:
-    Ref<Mesh> mMesh;
     EditorCamera mCamera;
     glm::vec2 mViewportSize;
     Renderer* mRenderer;
 
     Ref<Scene> mScene;
     Entity mEntity;
+    Entity mOtherEntity;
 };
 
 int main()
@@ -119,9 +117,3 @@ int main()
 
     SurgeCore::Shutdown();
 }
-
-// clang-format off
-SURGE_REFLECT_CLASS_REGISTER_BEGIN(ReflectableStruct)
-    .AddVariable<&ReflectableStruct::X>("X", SurgeReflect::AccessModifier::Public)
-    .AddFunction<&ReflectableStruct::GetAFloat>("GetAFloat", SurgeReflect::AccessModifier::Public)
-SURGE_REFLECT_CLASS_REGISTER_END(ReflectableStruct)

@@ -21,6 +21,7 @@
 #include "Surge/Graphics/VertexBuffer.hpp"
 
 #include "Surge/ECS/Scene.hpp"
+#include "Surge/ECS/Components.hpp"
 
 #include <imgui.h>
 #include "Surge/Utility/ImGuiUtils.hpp"

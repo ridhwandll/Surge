@@ -1,20 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderer.hpp"
-#include "Surge/Graphics/Abstraction/Vulkan/VulkanImGuiContext.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanFramebuffer.hpp"
-#include <imgui.h> // TODO(AC3R): Temporary
-
-#define GLM_ENABLE_EXPERIMENTAL
-#include "Surge/Graphics/IndexBuffer.hpp"
-#include "Surge/Graphics/VertexBuffer.hpp"
-#include "Surge/Graphics/Framebuffer.hpp"
-#include "VulkanGraphicsPipeline.hpp"
-#include "VulkanImage.hpp"
-#include "VulkanRenderCommandBuffer.hpp"
-#include "VulkanShader.hpp"
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/quaternion.hpp>
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderCommandBuffer.hpp"
 
 namespace Surge
 {

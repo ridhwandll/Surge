@@ -9,6 +9,7 @@ namespace Surge
 
     Scene::~Scene()
     {
+        mRegistry.clear();
     }
 
     void Scene::CreateEntity(Entity& outEntity)

@@ -19,7 +19,7 @@ namespace SurgeReflect
         const std::unordered_map<std::string, Function>& GetFunctions() const { return mFunctions; }
 
         template <auto Var>
-        Class& AddVariable(const std::string& name, AccessModifier accessModifier)
+        Class& AddVariable(const std::string& name, AccessModifier accessModifier = AccessModifier::Public)
         {
             Variable v(name, accessModifier);
             v.Initialize<Var>();
@@ -28,7 +28,7 @@ namespace SurgeReflect
         }
 
         template <auto Func>
-        Class& AddFunction(const std::string& name, AccessModifier accessModifier)
+        Class& AddFunction(const std::string& name, AccessModifier accessModifier = AccessModifier::Public)
         {
             Function fun(name, accessModifier);
             fun.Initialize<Func>();

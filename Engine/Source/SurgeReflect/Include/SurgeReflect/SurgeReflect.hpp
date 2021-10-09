@@ -6,14 +6,14 @@
 
 #define SURGE_REFLECTION_ENABLE                         \
 private:                                                \
-    static struct ReflectionRegister                    \
+    struct ReflectionRegister                           \
     {                                                   \
         ReflectionRegister();                           \
         void CookClassData(SurgeReflect::Class& clazz); \
-    } sReflectionRegister
+    };                                                  \
+    inline static ReflectionRegister sReflectionRegister;
 
 #define SURGE_REFLECT_CLASS_REGISTER_BEGIN(ClassName)                             \
-    ClassName::ReflectionRegister ClassName::sReflectionRegister;                 \
     ClassName::ReflectionRegister::ReflectionRegister()                           \
     {                                                                             \
         SurgeReflect::Class& clazz = SurgeReflect::Class(#ClassName);             \
@@ -37,7 +37,7 @@ namespace SurgeReflect
         const Class* clazz = Registry::Get()->GetClass(className);
         if (!clazz->IsSetup())
         {
-            assert(false && "The class is not registered/setup in reflection engine! Maybe you forgot to Register the class?");
+            SG_ASSERT_INTERNAL("The class is not registered/setup in reflection engine! Maybe you forgot to Register the class?");
             Registry::Get()->RemoveClass(className);
         }
         return clazz;
