@@ -6,6 +6,7 @@
 #include "Surge/Core/Window/Window.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderer.hpp"
 #include "Surge/Platform/Windows/WindowsWindow.hpp"
+#include "Surge/Debug/Profiler.hpp"
 #include "SurgeReflect/SurgeReflect.hpp"
 
 namespace Surge
@@ -52,6 +53,7 @@ namespace Surge
     {
         while (sCoreData.mRunning)
         {
+            SURGE_PROFILE_FRAME("Frame");
             Clock::Update();
             sCoreData.SurgeWindow->Update();
 

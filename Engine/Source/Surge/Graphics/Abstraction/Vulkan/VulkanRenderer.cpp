@@ -7,6 +7,7 @@ namespace Surge
 {
     void VulkanRenderer::Initialize()
     {
+        SURGE_PROFILE_FUNC("VulkanRenderer::Initialize()");
         mData = CreateScope<RendererData>();
         mData->RenderCmdBuffer = RenderCommandBuffer::Create(false);
         mData->ShaderSet.Initialize(BASE_SHADER_PATH);
@@ -50,6 +51,7 @@ namespace Surge
 
     void VulkanRenderer::Shutdown()
     {
+        SURGE_PROFILE_FUNC("VulkanRenderer::Shutdown()");
         VulkanRenderContext* renderContext = nullptr;
         SURGE_GET_VULKAN_CONTEXT(renderContext);
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
@@ -64,6 +66,7 @@ namespace Surge
 
     void VulkanRenderer::BeginFrame(const EditorCamera& camera)
     {
+        SURGE_PROFILE_FUNC("VulkanRenderer::BeginFrame");
         VulkanRenderContext* renderContext = nullptr;
         SURGE_GET_VULKAN_CONTEXT(renderContext);
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
@@ -77,6 +80,7 @@ namespace Surge
 
     void VulkanRenderer::EndFrame()
     {
+        SURGE_PROFILE_FUNC("VulkanRenderer::EndFrame()");
         mData->RenderCmdBuffer->BeginRecording();
 
         // ViewProjection and Transform
@@ -113,6 +117,7 @@ namespace Surge
 
     void VulkanRenderer::BeginRenderPass(const Ref<RenderCommandBuffer>& cmdBuffer, const Ref<Framebuffer>& framebuffer)
     {
+        SURGE_PROFILE_FUNC("VulkanRenderer::BeginRenderPass()");
         VulkanRenderContext* renderContext;
         SURGE_GET_VULKAN_CONTEXT(renderContext);
         Uint frameIndex = renderContext->GetFrameIndex();
@@ -148,6 +153,7 @@ namespace Surge
 
     void VulkanRenderer::EndRenderPass(const Ref<RenderCommandBuffer>& cmdBuffer)
     {
+        SURGE_PROFILE_FUNC("VulkanRenderer::EndRenderPass()");
         VulkanRenderContext* renderContext;
         SURGE_GET_VULKAN_CONTEXT(renderContext);
         Uint frameIndex = renderContext->GetFrameIndex();

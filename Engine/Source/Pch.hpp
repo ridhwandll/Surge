@@ -5,6 +5,7 @@
 #include "Surge/Core/Core.hpp"
 #include "Surge/Core/Logger/Logger.hpp"
 #include "Surge/Core/Time/Timer.hpp"
+#include "Surge/Debug/Profiler.hpp"
 
 #include <string>
 #include <memory>

@@ -15,6 +15,7 @@ namespace Surge
 
     void VulkanRenderContext::Initialize(Window* window, bool enableImGui)
     {
+        SURGE_PROFILE_FUNC("VulkanRenderContext::Initialize()");
         VK_CALL(volkInitialize());
         mImGuiEnabled = enableImGui;
 
@@ -57,6 +58,7 @@ namespace Surge
 
     void VulkanRenderContext::BeginFrame()
     {
+        SURGE_PROFILE_FUNC("VulkanRenderContext::BeginFrame()");
         mSwapChain.BeginFrame();
         if (mImGuiEnabled)
             mImGuiContext.BeginFrame();
@@ -68,6 +70,7 @@ namespace Surge
 
     void VulkanRenderContext::EndFrame()
     {
+        SURGE_PROFILE_FUNC("VulkanRenderContext::EndFrame()");
         mSwapChain.EndFrame(); // Present
         if (mImGuiEnabled)
             mImGuiContext.EndFrame();
@@ -75,6 +78,8 @@ namespace Surge
 
     void VulkanRenderContext::Shutdown()
     {
+        SURGE_PROFILE_FUNC("VulkanRenderContext::Shutdown()");
+
         if (mImGuiEnabled)
             mImGuiContext.Destroy();
 
@@ -92,6 +97,7 @@ namespace Surge
 
     void VulkanRenderContext::RenderImGui()
     {
+        SURGE_PROFILE_FUNC("VulkanRenderContext::RenderImGui()");
         if (mImGuiEnabled)
             mImGuiContext.Render();
     }

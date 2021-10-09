@@ -21,6 +21,7 @@ set(INCLUDE_DIRS
     Vendor/SPIRV-Cross/Include
     Vendor/stb
     Vendor/ImGui
+    Vendor/Optick/Include
     Vendor/entt/Include
     Vendor/json/Include
     Vendor/assimp/Include
@@ -31,6 +32,7 @@ set(LIB_LINKS
     volk
     SPIRV-Cross
     ImGui
+    Optick
     ${CMAKE_SOURCE_DIR}/Engine/Vendor/shaderc/Lib/shaderc_shared.lib
     ${CMAKE_SOURCE_DIR}/Engine/Vendor/assimp/Lib/assimp-vc142-mt.lib
 )

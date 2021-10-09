@@ -44,6 +44,7 @@ namespace Surge
 
     void WindowsWindow::Update()
     {
+        SURGE_PROFILE_FUNC("WindowsWindow::Update()");
         MSG msg;
         while (PeekMessageA(&msg, nullptr, 0, 0, PM_REMOVE))
         {

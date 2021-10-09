@@ -114,6 +114,5 @@ int main()
 
     SurgeCore::Initialize(app);
     SurgeCore::Run();
-
     SurgeCore::Shutdown();
 }
