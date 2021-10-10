@@ -93,7 +93,9 @@ namespace Surge
         Shader() = default;
         virtual ~Shader() = default;
 
-        virtual void Load(const HashMap<ShaderType, bool>& forceCompileStages) = 0;
+        virtual void Load(const HashMap<ShaderType, bool>& compileStages = {}) = 0;
+        virtual void Reload() = 0;
+        virtual void AddReloadCallback(const std::function<void()> callback) = 0;
         virtual const ShaderReflectionData& GetReflectionData() const = 0;
         virtual const Vector<SPIRVHandle>& GetSPIRVs() const = 0;
         virtual const Path& GetPath() const = 0;

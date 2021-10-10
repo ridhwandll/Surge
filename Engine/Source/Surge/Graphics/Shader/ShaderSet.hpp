@@ -17,9 +17,11 @@ namespace Surge
 
         void Initialize(const String& baseShaderPath);
         void AddShader(const String& shaderName);
-        Ref<Shader>& GetShader(const String& shaderName); // Name without extension
         void LoadAll();
         void Shutdown();
+
+        Ref<Shader>& GetShader(const String& shaderName); // Name without extension
+        Vector<Ref<Shader>>& GetAllShaders() { return mShaders; }
 
     private:
         HashCode GetHashCodeFromCache(const Ref<Shader>& shader, ShaderType type);
@@ -33,4 +35,5 @@ namespace Surge
         Vector<Ref<Shader>> mShaders;
         Ref<Shader> mDummyShader = nullptr;
     };
+
 } // namespace Surge

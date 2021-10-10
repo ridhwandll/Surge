@@ -17,7 +17,7 @@ namespace Surge
 
     Ref<Shader>& ShaderSet::GetShader(const String& shaderName)
     {
-        for (Ref<Shader>& shader: mShaders)
+        for (Ref<Shader>& shader : mShaders)
         {
             String nameWithoutExtension = Filesystem::RemoveExtension(shader->GetPath());
             if (nameWithoutExtension == fmt::format("{0}/{1}", mBaseShaderPath, shaderName))
@@ -30,38 +30,48 @@ namespace Surge
 
     void ShaderSet::LoadAll()
     {
-        for (Ref<Shader>& shader: mShaders)
+        SCOPED_TIMER("ShaderSet::LoadAll");
+        for (Ref<Shader>& shader : mShaders)
         {
             bool saveHash = false;
 
             const HashMap<ShaderType, String>& sources = shader->GetSources();
-            HashMap<ShaderType, bool> forceCompileStages;
-            for (auto& source: sources)
+            HashMap<ShaderType, bool> compileStages;
+
+            // Find which shader source needs to be reloaded
+            for (auto& source : sources)
             {
                 const HashCode& currentHashCode = shader->GetHash(source.first);
                 const HashCode cacheHashCode = GetHashCodeFromCache(shader, source.first);
 
-                String cachePath = GetCachePath(shader->GetPath(), source.first);
-                bool existsInCache = Filesystem::Exists(cachePath);
+                const String cachePath = GetCachePath(shader->GetPath(), source.first);
+                const bool existsInCache = Filesystem::Exists(cachePath);
 
+                // Recompile if:
+                //-> Doesn't exist in cache |or| the hash codes are different
                 if (!existsInCache || (existsInCache && cacheHashCode != currentHashCode))
                 {
-                    forceCompileStages[source.first] = true;
+                    compileStages[source.first] = true;
                     saveHash = true;
                 }
                 else
-                    forceCompileStages[source.first] = false;
+                    compileStages[source.first] = false;
             }
 
-            shader->Load(forceCompileStages);
-            CacheRequiredSPIRVs(shader, forceCompileStages);
+            // Load only required shader stages
+            shader->Load(compileStages);
+
+            CacheRequiredSPIRVs(shader, compileStages);
 
             if (saveHash)
                 WriteHashToFile(shader);
         }
     }
 
-    void ShaderSet::Shutdown() { mShaders.clear(); }
+    void ShaderSet::Shutdown()
+    {
+        mShaders.clear();
+    }
 
     HashCode ShaderSet::GetHashCodeFromCache(const Ref<Shader>& shader, ShaderType type)
     {
@@ -81,6 +91,7 @@ namespace Surge
             fclose(f);
         }
 
+        // Create a json
         String name = GetCacheName(shader->GetPath(), type);
         nlohmann::json j = previousContents.empty() ? nlohmann::json() : nlohmann::json::parse(previousContents);
 
@@ -92,7 +103,7 @@ namespace Surge
 
     void ShaderSet::CacheRequiredSPIRVs(const Ref<Shader>& shader, const HashMap<ShaderType, bool>& stagesToCache)
     {
-        for (auto& stage: stagesToCache)
+        for (auto& stage : stagesToCache)
         {
             if (!stage.second)
                 continue;
@@ -104,7 +115,7 @@ namespace Surge
             {
                 SPIRVHandle spirvToCache;
                 Vector<SPIRVHandle> spirvs = shader->GetSPIRVs();
-                for (SPIRVHandle& spirvHandle: spirvs)
+                for (SPIRVHandle& spirvHandle : spirvs)
                 {
                     if (spirvHandle.Type == stage.first)
                     {
@@ -159,7 +170,7 @@ namespace Surge
         nlohmann::json j = previousContents.empty() ? nlohmann::json() : nlohmann::json::parse(previousContents);
 
         // For each HashCodes, update it
-        for (auto& e: shader->GetHashCodes())
+        for (auto& e : shader->GetHashCodes())
         {
             String name = GetCacheName(shader->GetPath(), e.first);
             j[name] = e.second;

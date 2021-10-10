@@ -43,10 +43,10 @@ namespace Surge
     class Mesh : public RefCounted
     {
     public:
-        Mesh(const String& filepath);
+        Mesh(const Path& filepath);
 
         // Returns the path from which the Mesh was loaded
-        const String& GetPath() const { return mPath; }
+        const Path& GetPath() const { return mPath; }
 
         // Returns the pipeline object
         const Ref<GraphicsPipeline>& GetPipeline() const { return mPipeline; }
@@ -66,7 +66,7 @@ namespace Surge
         void TraverseNodes(aiNode* node, const glm::mat4& parentTransform = glm::mat4(1.0f), Uint level = 0);
 
     private:
-        String mPath;
+        Path mPath;
         Vector<Submesh> mSubmeshes;
 
         Ref<GraphicsPipeline> mPipeline; // Only graphics pipelines for now

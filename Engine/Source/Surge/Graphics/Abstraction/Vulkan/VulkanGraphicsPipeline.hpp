@@ -12,6 +12,7 @@ namespace Surge
         VulkanGraphicsPipeline(const GraphicsPipelineSpecification& pipelineSpec);
         virtual ~VulkanGraphicsPipeline();
 
+        virtual void Reload() override;
         virtual void Bind(const Ref<RenderCommandBuffer>& cmdBuffer) const override;
         virtual void SetPushConstantData(const Ref<RenderCommandBuffer>& cmdBuffer, const String& bufferName, void* data) const override;
         virtual void DrawIndexed(const Ref<RenderCommandBuffer>& cmdBuffer, Uint indicesCount, Uint baseIndex, Uint baseVertex) const override;
@@ -21,8 +22,12 @@ namespace Surge
         virtual const GraphicsPipelineSpecification& GetPipelineSpecification() const override { return mSpecification; }
 
     private:
-        VkPipeline mPipeline;
-        VkPipelineLayout mPipelineLayout;
+        void Clear();
+
+    private:
         GraphicsPipelineSpecification mSpecification;
+        VkPipeline mPipeline = VK_NULL_HANDLE;
+        VkPipelineLayout mPipelineLayout = VK_NULL_HANDLE;
     };
+
 } // namespace Surge

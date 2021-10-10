@@ -31,7 +31,7 @@ namespace Surge
     static const Uint sMeshImportFlags = aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_GenUVCoords | aiProcess_OptimizeMeshes | aiProcess_ValidateDataStructure |
                                          aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace;
 
-    Mesh::Mesh(const String& filepath) : mPath(filepath)
+    Mesh::Mesh(const Path& filepath) : mPath(filepath)
     {
         Assimp::Importer importer;
         const aiScene* scene = importer.ReadFile(filepath, sMeshImportFlags);

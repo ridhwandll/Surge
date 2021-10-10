@@ -45,7 +45,7 @@
 #define SG_ASSERT(...)
 #define SG_ASSERT_NOMSG(...)
 #define SG_ASSERT_INTERNAL(...)
-#define SCOPED_TIMER(...)
+#define SCOPED_TIMER(...) Timer tImEr(fmt::format(__VA_ARGS__), true)
 #endif
 
 #define BIT(x) (1 << x)

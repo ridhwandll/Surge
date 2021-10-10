@@ -1,26 +1,35 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
-#include "VulkanGraphicsPipeline.hpp"
-#include "Surge/Graphics/Abstraction/Vulkan/VulkanDevice.hpp"
-#include "Surge/Graphics/Abstraction/Vulkan/VulkanDiagnostics.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanGraphicsPipeline.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderCommandBuffer.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanShader.hpp"
-#include "Surge/Graphics/Abstraction/Vulkan/VulkanSwapChain.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanUtils.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanFramebuffer.hpp"
-#include "Surge/Graphics/Shader/ReflectionData.hpp"
 
 namespace Surge
 {
-    VulkanGraphicsPipeline::VulkanGraphicsPipeline(const GraphicsPipelineSpecification& pipelineSpec) : mSpecification(pipelineSpec)
+    VulkanGraphicsPipeline::VulkanGraphicsPipeline(const GraphicsPipelineSpecification& pipelineSpec)
+        : mSpecification(pipelineSpec)
     {
-        SCOPED_TIMER("[{0}] Pipeline Creation", mSpecification.DebugName);
+        Reload();
+        mSpecification.Shader->AddReloadCallback([&]() { this->Reload(); }); // Recreate the pipeline if shader gets reloaded
+    }
+
+    VulkanGraphicsPipeline::~VulkanGraphicsPipeline()
+    {
+        Clear();
+    }
+
+    void VulkanGraphicsPipeline::Reload()
+    {
+        Clear();
+
+        SCOPED_TIMER("Pipeline ({0})", mSpecification.DebugName);
         VulkanRenderContext* renderContext = nullptr;
         SURGE_GET_VULKAN_CONTEXT(renderContext);
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
 
         // Setting up all the shaders into a create info class
-        HashMap<ShaderType, VkShaderModule> shaderModules = pipelineSpec.Shader.As<VulkanShader>()->GetVulkanShaderModules();
+        HashMap<ShaderType, VkShaderModule> shaderModules = mSpecification.Shader.As<VulkanShader>()->GetVulkanShaderModules();
         Vector<VkPipelineShaderStageCreateInfo> shaderStages;
         for (const auto& shader : shaderModules)
         {
@@ -65,7 +74,7 @@ namespace Surge
 
         // Input Assembly
         VkPipelineInputAssemblyStateCreateInfo inputAssembly {VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO};
-        inputAssembly.topology = VulkanUtils::GetVulkanPrimitiveTopology(pipelineSpec.Topology);
+        inputAssembly.topology = VulkanUtils::GetVulkanPrimitiveTopology(mSpecification.Topology);
         inputAssembly.primitiveRestartEnable = VK_FALSE;
         inputAssembly.flags = 0;
 
@@ -81,9 +90,9 @@ namespace Surge
         VkPipelineRasterizationStateCreateInfo rasterizer {VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO};
         rasterizer.depthClampEnable = VK_FALSE;
         rasterizer.rasterizerDiscardEnable = VK_FALSE;
-        rasterizer.polygonMode = VulkanUtils::GetVulkanPolygonMode(pipelineSpec.PolygonMode);
-        rasterizer.lineWidth = pipelineSpec.LineWidth;
-        rasterizer.cullMode = VulkanUtils::GetVulkanCullModeFlags(pipelineSpec.CullingMode);
+        rasterizer.polygonMode = VulkanUtils::GetVulkanPolygonMode(mSpecification.PolygonMode);
+        rasterizer.lineWidth = mSpecification.LineWidth;
+        rasterizer.cullMode = VulkanUtils::GetVulkanCullModeFlags(mSpecification.CullingMode);
         rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE; // TODO: Maybe add as an specification option?
         rasterizer.depthBiasEnable = VK_FALSE;
         rasterizer.depthBiasConstantFactor = 0.0f;
@@ -97,11 +106,11 @@ namespace Surge
 
         // Depth state
         VkPipelineDepthStencilStateCreateInfo depthStencil {VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
-        depthStencil.depthTestEnable = pipelineSpec.UseDepth;
-        depthStencil.depthWriteEnable = pipelineSpec.UseDepth;
-        depthStencil.depthCompareOp = VulkanUtils::GetVulkanCompareOp(pipelineSpec.DepthCompOperation);
+        depthStencil.depthTestEnable = mSpecification.UseDepth;
+        depthStencil.depthWriteEnable = mSpecification.UseDepth;
+        depthStencil.depthCompareOp = VulkanUtils::GetVulkanCompareOp(mSpecification.DepthCompOperation);
         depthStencil.depthBoundsTestEnable = VK_FALSE;
-        depthStencil.stencilTestEnable = pipelineSpec.UseStencil;
+        depthStencil.stencilTestEnable = mSpecification.UseStencil;
 
         // Blending
         VkPipelineColorBlendAttachmentState colorBlendAttachment {};
@@ -152,25 +161,12 @@ namespace Surge
         pipelineInfo.layout = mPipelineLayout;
 
         if (mSpecification.TargetFramebuffer)
-        {
             pipelineInfo.renderPass = mSpecification.TargetFramebuffer.As<VulkanFramebuffer>()->GetVulkanRenderPass();
-        }
         else
             pipelineInfo.renderPass = renderContext->GetSwapChain()->GetVulkanRenderPass();
 
         pipelineInfo.subpass = 0;
-
         VK_CALL(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mPipeline));
-    }
-
-    VulkanGraphicsPipeline::~VulkanGraphicsPipeline()
-    {
-        VulkanRenderContext* renderContext = nullptr;
-        SURGE_GET_VULKAN_CONTEXT(renderContext);
-        VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
-        vkDeviceWaitIdle(device);
-        vkDestroyPipeline(device, mPipeline, nullptr);
-        vkDestroyPipelineLayout(device, mPipelineLayout, nullptr);
     }
 
     void VulkanGraphicsPipeline::Bind(const Ref<RenderCommandBuffer>& cmdBuffer) const
@@ -215,4 +211,23 @@ namespace Surge
 
         vkCmdDrawIndexed(vulkanCmdBuffer, indicesCount, 1, baseIndex, baseVertex, 0);
     }
+
+    void VulkanGraphicsPipeline::Clear()
+    {
+        VulkanRenderContext* renderContext = nullptr;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
+        VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
+        vkDeviceWaitIdle(device);
+        if (mPipeline)
+        {
+            vkDestroyPipeline(device, mPipeline, nullptr);
+            mPipeline = VK_NULL_HANDLE;
+        }
+        if (mPipelineLayout)
+        {
+            vkDestroyPipelineLayout(device, mPipelineLayout, nullptr);
+            mPipelineLayout = VK_NULL_HANDLE;
+        }
+    }
+
 } // namespace Surge

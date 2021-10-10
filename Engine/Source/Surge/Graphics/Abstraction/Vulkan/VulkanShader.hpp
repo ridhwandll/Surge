@@ -12,7 +12,9 @@ namespace Surge
         VulkanShader(const Path& path);
         virtual ~VulkanShader() override;
 
-        virtual void Load(const HashMap<ShaderType, bool>& forceCompileStages) override;
+        virtual void Load(const HashMap<ShaderType, bool>& compileStages = {}) override;
+        virtual void Reload() override;
+        virtual void AddReloadCallback(const std::function<void()> callback) override { mCallbacks.push_back(callback); }
         virtual const ShaderReflectionData& GetReflectionData() const override { return mReflectionData; }
         virtual const Vector<SPIRVHandle>& GetSPIRVs() const override { return mShaderSPIRVs; }
         virtual const Path& GetPath() const override { return mPath; }
@@ -42,5 +44,6 @@ namespace Surge
 
         Vector<SPIRVHandle> mShaderSPIRVs {};
         ShaderReflectionData mReflectionData;
+        Vector<std::function<void()>> mCallbacks;
     };
 } // namespace Surge

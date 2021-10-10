@@ -67,6 +67,24 @@ public:
             float free = memoryStatus.Free / 1000000.0f;
             ImGui::Text("Device: %s", SurgeCore::GetRenderContext()->GetGPUInfo().Name.c_str());
             ImGui::Text("Used: %f Mb | Local-Free: %f Mb | Total: %f Mb", used, free, used + free);
+
+            if (ImGui::TreeNode("Shaders"))
+            {
+                Vector<Ref<Shader>>& allAhaders = mRenderer->GetData()->ShaderSet.GetAllShaders();
+                for (Ref<Shader>& shader : allAhaders)
+                {
+                    if (ImGui::TreeNode(shader->GetPath().c_str()))
+                    {
+                        ImGui::PushID(shader->GetPath().c_str());
+                        if (ImGui::Button("Reload"))
+                            shader->Reload();
+
+                        ImGui::PopID();
+                        ImGui::TreePop();
+                    }
+                }
+                ImGui::TreePop();
+            }
         }
         ImGui::End();
 

@@ -77,9 +77,13 @@ namespace Surge
     {
         VulkanRenderContext* renderContext = nullptr;
         SURGE_GET_VULKAN_CONTEXT(renderContext);
-
+        VkDevice logicalDevice = renderContext->GetDevice()->GetLogicalDevice();
         Uint frameIndex = renderContext->GetFrameIndex();
-        vkResetCommandBuffer(mCommandBuffers[frameIndex], 0);
+
+        VK_CALL(vkWaitForFences(logicalDevice, 1, &mWaitFences[frameIndex], VK_TRUE, UINT64_MAX));
+        VK_CALL(vkResetFences(logicalDevice, 1, &mWaitFences[frameIndex]));
+
+        //vkResetCommandBuffer(mCommandBuffers[frameIndex], 0); TODO: Should we use this?
         VkCommandBufferBeginInfo cmdBufInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
         cmdBufInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
@@ -103,15 +107,13 @@ namespace Surge
         VulkanRenderContext* renderContext = nullptr;
         SURGE_GET_VULKAN_CONTEXT(renderContext);
         VulkanDevice* vulkanDevice = renderContext->GetDevice();
-        VkDevice logicalDevice = vulkanDevice->GetLogicalDevice();
         Uint frameIndex = renderContext->GetFrameIndex();
 
         VkSubmitInfo submitInfo {VK_STRUCTURE_TYPE_SUBMIT_INFO};
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &mCommandBuffers[frameIndex];
 
-        VK_CALL(vkWaitForFences(logicalDevice, 1, &mWaitFences[frameIndex], VK_TRUE, UINT64_MAX));
-        VK_CALL(vkResetFences(logicalDevice, 1, &mWaitFences[frameIndex]));
         VK_CALL(vkQueueSubmit(vulkanDevice->GetGraphicsQueue(), 1, &submitInfo, mWaitFences[frameIndex]));
     }
+
 } // namespace Surge

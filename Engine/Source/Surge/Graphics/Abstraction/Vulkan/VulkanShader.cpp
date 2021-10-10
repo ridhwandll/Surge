@@ -14,21 +14,35 @@
 
 namespace Surge
 {
-    VulkanShader::VulkanShader(const Path& path) : mPath(path) { ParseShader(); }
+    VulkanShader::VulkanShader(const Path& path)
+        : mPath(path)
+    {
+        ParseShader();
+    }
 
-    VulkanShader::~VulkanShader() { Clear(); }
+    VulkanShader::~VulkanShader()
+    {
+        Clear();
+    }
 
-    void VulkanShader::Load(const HashMap<ShaderType, bool>& forceCompileStages)
+    void VulkanShader::Load(const HashMap<ShaderType, bool>& compileStages)
     {
         SCOPED_TIMER("Shader({0}) Compilation", Filesystem::GetNameWithExtension(mPath));
         Clear();
         ParseShader();
-        Compile(forceCompileStages);
+        Compile(compileStages);
         CreateVulkanDescriptorSetLayouts();
         CreateVulkanPushConstantRanges();
     }
 
-    void VulkanShader::Compile(const HashMap<ShaderType, bool>& forceCompileStages)
+    void VulkanShader::Reload()
+    {
+        Load();
+        for (const std::function<void()>& callback : mCallbacks)
+            callback();
+    }
+
+    void VulkanShader::Compile(const HashMap<ShaderType, bool>& compileStages)
     {
         VulkanRenderContext* renderContext = nullptr;
         SURGE_GET_VULKAN_CONTEXT(renderContext);
@@ -39,13 +53,21 @@ namespace Surge
         options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2);
         bool saveHash = false;
 
-        // NOTE(Rid - AC3R) If we enable optimization, it removes the names :kekCry:
+        // NOTE(Rid - AC3R) If we enable optimization, it removes the name :kekCry:
         // options.SetOptimizationLevel(shaderc_optimization_level_performance);
-        for (auto&& [stage, source]: mShaderSources)
+
+        for (auto&& [stage, source] : mShaderSources)
         {
             SPIRVHandle spirvHandle;
             spirvHandle.Type = stage;
-            bool compile = forceCompileStages.at(stage);
+            bool compile = true;
+
+            if (!compileStages.empty())
+            {
+                auto itr = compileStages.find(stage);
+                if (itr != compileStages.end())
+                    compile = compileStages.at(stage);
+            }
 
             // Load or create the SPIRV
             if (compile)
@@ -103,11 +125,17 @@ namespace Surge
         mShaderSources.clear();
         mShaderSPIRVs.clear();
 
-        for (auto&& [stage, source]: mVkShaderModules)
-            vkDestroyShaderModule(device, mVkShaderModules[stage], nullptr);
+        for (auto&& [stage, source] : mVkShaderModules)
+        {
+            if (mVkShaderModules[stage])
+                vkDestroyShaderModule(device, mVkShaderModules[stage], nullptr);
+        }
 
-        for (auto& descriptorSetLayout: mDescriptorSetLayouts)
-            vkDestroyDescriptorSetLayout(device, descriptorSetLayout.second, nullptr);
+        for (auto& descriptorSetLayout : mDescriptorSetLayouts)
+        {
+            if (descriptorSetLayout.second)
+                vkDestroyDescriptorSetLayout(device, descriptorSetLayout.second, nullptr);
+        }
 
         mDescriptorSetLayouts.clear();
         mPushConstants.clear();
@@ -124,10 +152,10 @@ namespace Surge
         // (descriptor layouts use HashMap<Uint, VkDescriptorSetLayout> because the Uint specifies at which set number
         // the layout is going to be used
         const Vector<Uint>& descriptorSetCount = mReflectionData.GetDescriptorSetCount();
-        for (const Uint& descriptorSet: descriptorSetCount)
+        for (const Uint& descriptorSet : descriptorSetCount)
         {
             Vector<VkDescriptorSetLayoutBinding> layoutBindings;
-            for (const ShaderBuffer& buffer: mReflectionData.GetBuffers())
+            for (const ShaderBuffer& buffer : mReflectionData.GetBuffers())
             {
                 if (buffer.Set != descriptorSet)
                     continue;
@@ -139,7 +167,7 @@ namespace Surge
                 LayoutBinding.stageFlags = VulkanUtils::GetShaderStagesFlagsFromShaderTypes(buffer.ShaderStages);
             }
 
-            for (const ShaderResource& texture: mReflectionData.GetResources())
+            for (const ShaderResource& texture : mReflectionData.GetResources())
             {
                 if (texture.Set != descriptorSet)
                     continue;
@@ -163,7 +191,7 @@ namespace Surge
 
     void VulkanShader::CreateVulkanPushConstantRanges()
     {
-        for (const ShaderPushConstant& pushConstant: mReflectionData.GetPushConstantBuffers())
+        for (const ShaderPushConstant& pushConstant : mReflectionData.GetPushConstantBuffers())
         {
             VkPushConstantRange& pushConstantRange = mPushConstants[pushConstant.BufferName];
             pushConstantRange.offset = 0;
