@@ -43,7 +43,11 @@ namespace Surge
         virtual void Update() = 0;
         virtual void Minimize() = 0;
         virtual void Maximize() = 0;
+        virtual void RestoreFromMaximize() = 0;
         virtual void RegisterEventCallback(std::function<void(Event&)> eventCallback) = 0;
+
+        virtual bool IsWindowMaximized() const = 0;
+        virtual bool IsWindowMinimized() const = 0;
 
         // Get/Set the title Window(in pixels)
         virtual String GetTitle() const = 0;
@@ -66,4 +70,5 @@ namespace Surge
     protected:
         WindowData mWindowData;
     };
+
 } // namespace Surge

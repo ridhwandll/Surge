@@ -1,8 +1,9 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "Surge/Graphics/Image.hpp"
+#include <glm/glm.hpp>
 
-namespace Surge::ImGuiUtils
+namespace Surge::ImGuiAux
 {
     void Image(const Ref<Image2D>& image, const glm::vec2& size);
 }
