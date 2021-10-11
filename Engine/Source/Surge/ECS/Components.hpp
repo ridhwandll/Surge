@@ -20,7 +20,7 @@ namespace Surge
 
         glm::mat4 GetTransform()
         {
-            const glm::mat4 rot = glm::toMat4(glm::quat(Rotation));
+            const glm::mat4 rot = glm::toMat4(glm::quat(glm::radians(Rotation)));
             glm::mat4 result = glm::translate(glm::mat4(1.0f), Position) * rot * glm::scale(glm::mat4(1.0f), Scale);
             return result;
         }

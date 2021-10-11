@@ -20,7 +20,7 @@ namespace Surge
         SURGE_GET_VULKAN_CONTEXT(renderContext);
         VulkanMemoryAllocator* allocator = static_cast<VulkanMemoryAllocator*>(renderContext->GetMemoryAllocator());
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
-
+        vkDeviceWaitIdle(device);
         vkDestroyImageView(device, mImageView, nullptr);
         vkDestroySampler(device, mImageSampler, nullptr);
         allocator->DestroyImage(mImage, mImageMemory);

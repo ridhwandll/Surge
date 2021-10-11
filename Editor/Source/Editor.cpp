@@ -1,8 +1,6 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Editor.hpp"
 #include "Utility/ImGuiAux.hpp"
-#define IMGUI_DEFINE_MATH_OPERATORS
-#include "imgui_internal.h"
 
 namespace Surge
 {
@@ -62,112 +60,9 @@ namespace Surge
     {
         RenderContext* renderContext = SurgeCore::GetRenderContext();
         Surge::GPUMemoryStats memoryStatus = renderContext->GetMemoryStatus();
+        mTitleBar.Render();
 
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.0f, 8.0f));
-
-        if (ImGui::BeginMainMenuBar())
-        {
-            // System buttons
-            {
-                const char* title = "Surge Editor";
-                float windowWidth = ImGui::GetWindowSize().x;
-                float textWidth = ImGui::CalcTextSize(title).x;
-                ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
-                ImGui::Text(title);
-
-                Window* window = SurgeCore::GetWindow();
-                const float buttonSize = ImGui::GetFrameHeight();
-                const float iconMargin = buttonSize * 0.35f;
-                ImRect buttonRect = ImRect(ImGui::GetWindowPos() + ImVec2(ImGui::GetWindowWidth() - buttonSize, 0.0f), ImGui::GetWindowPos() + ImGui::GetWindowSize());
-                ImDrawList* drawList = ImGui::GetWindowDrawList();
-
-                // Exit button
-                {
-                    bool hovered = false;
-                    bool held = false;
-                    bool pressed = ImGui::ButtonBehavior(buttonRect, ImGui::GetID("EXIT"), &hovered, &held, 0);
-
-                    if (hovered)
-                    {
-                        const ImU32 color = ImGui::GetColorU32(ImVec4(1.0f, 0.2f, 0.2f, 1.0f));
-                        drawList->AddRectFilled(buttonRect.Min, buttonRect.Max, color);
-                    }
-
-                    // Render the cross
-                    {
-                        const ImU32 color = ImGui::GetColorU32(ImGuiCol_Text);
-                        drawList->AddLine(buttonRect.Min + ImVec2(iconMargin, iconMargin), buttonRect.Max - ImVec2(iconMargin, iconMargin), color, 2.0f);
-                        drawList->AddLine(buttonRect.Min + ImVec2(buttonRect.GetWidth() - iconMargin, iconMargin), buttonRect.Max - ImVec2(buttonRect.GetWidth() - iconMargin, iconMargin), color, 2.0f);
-                    }
-
-                    if (pressed)
-                        SurgeCore::Close();
-
-                    buttonRect.Min.x -= buttonSize;
-                    buttonRect.Max.x -= buttonSize;
-                }
-
-                // Maximize button
-                {
-                    bool hovered = false;
-                    bool held = false;
-                    bool pressed = ImGui::ButtonBehavior(buttonRect, ImGui::GetID("MAXIMIZE"), &hovered, &held, 0);
-
-                    if (hovered)
-                    {
-                        const ImU32 color = ImGui::GetColorU32(held ? ImGuiCol_ButtonActive : ImGuiCol_ButtonHovered);
-                        drawList->AddRectFilled(buttonRect.Min, buttonRect.Max, color);
-                    }
-
-                    // Render the box
-                    {
-                        const ImU32 color = ImGui::GetColorU32({1.0f, 1.0f, 1.0f, 1.0f});
-                        drawList->AddRect(buttonRect.Min + ImVec2(iconMargin, iconMargin), buttonRect.Max - ImVec2(iconMargin, iconMargin), color, 1.0f, 0, 2.0f);
-                    }
-
-                    if (pressed)
-                    {
-                        if (!window->IsWindowMaximized())
-                            window->Maximize();
-                        else
-                            window->RestoreFromMaximize();
-                    }
-
-                    buttonRect.Min.x -= buttonSize;
-                    buttonRect.Max.x -= buttonSize;
-                }
-
-                // Minimize button
-                {
-                    bool hovered = false;
-                    bool held = false;
-                    bool pressed = ImGui::ButtonBehavior(buttonRect, ImGui::GetID("MINIMIZE"), &hovered, &held, 0);
-
-                    if (hovered)
-                    {
-                        const ImU32 color = ImGui::GetColorU32(held ? ImGuiCol_ButtonActive : ImGuiCol_ButtonHovered);
-                        drawList->AddRectFilled(buttonRect.Min, buttonRect.Max, color);
-                    }
-
-                    // Render the Line
-                    {
-                        const ImU32 color = ImGui::GetColorU32(ImGuiCol_Text);
-                        drawList->AddLine(buttonRect.Min + ImVec2(iconMargin, buttonRect.GetHeight() / 2), buttonRect.Max - ImVec2(iconMargin, buttonRect.GetHeight() / 2), color, 2.0f);
-                    }
-
-                    if (pressed)
-                        window->Minimize();
-
-                    buttonRect.Min.x -= buttonSize;
-                    buttonRect.Max.x -= buttonSize;
-                }
-            }
-
-            ImGui::EndMainMenuBar();
-        }
-
-        ImGui::PopStyleVar();
-
+        ImGuiAux::BeginDockSpace();
         if (ImGui::Begin("Settings"))
         {
             TransformComponent& transformComponent = mEntity.GetComponent<TransformComponent>();
@@ -201,6 +96,7 @@ namespace Surge
         }
         ImGui::End();
 
+        // Viewport
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
         if (ImGui::Begin("Viewport"))
         {
@@ -210,6 +106,8 @@ namespace Surge
         }
         ImGui::End();
         ImGui::PopStyleVar();
+
+        ImGuiAux::EndDockSpace();
     }
 
     void Editor::OnEvent(Event& e)

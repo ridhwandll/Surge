@@ -27,6 +27,8 @@ namespace Surge
         static void Run();
         static void Shutdown();
         static void Close();
+
+        // FrameEndCallbacks are a way to accomplish some task at the very end of a frame
         static void AddFrameEndCallback(const std::function<void()>& func);
 
         static Window* GetWindow();

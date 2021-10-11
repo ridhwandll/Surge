@@ -68,11 +68,13 @@ namespace Surge
                 sCoreData.SurgeRenderContext->EndFrame();
             }
 
-            for (std::function<void()>& func : sCoreData.FrameEndCallbacks)
-                func();
-
             if (!sCoreData.FrameEndCallbacks.empty())
+            {
+                for (std::function<void()>& func : sCoreData.FrameEndCallbacks)
+                    func();
+
                 sCoreData.FrameEndCallbacks.clear();
+            }
         }
     }
 

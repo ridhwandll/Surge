@@ -1,6 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include <Surge/Surge.hpp>
+#include "Panels/Titlebar.hpp"
 
 namespace Surge
 {
@@ -21,6 +22,9 @@ namespace Surge
         Ref<Scene> mScene;
         Entity mEntity;
         Entity mOtherEntity;
+
+        // Panels //TODO: Have a panel manager, and automate all these stuff
+        Titlebar mTitleBar;
     };
 
 } // namespace Surge

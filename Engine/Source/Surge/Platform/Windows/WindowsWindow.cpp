@@ -20,7 +20,7 @@ namespace Surge
         wc.style = CS_CLASSDC;
         wc.hInstance = hInstance;
         wc.lpszClassName = "Surge Win32Window";
-        wc.hbrBackground = (HBRUSH)GetStockObject(LTGRAY_BRUSH);
+        wc.hbrBackground = (HBRUSH)GetStockObject(DKGRAY_BRUSH);
         wc.hCursor = LoadCursor(hInstance, IDC_ARROW);
         wc.hIcon = nullptr;
         wc.hIconSm = wc.hIcon;
