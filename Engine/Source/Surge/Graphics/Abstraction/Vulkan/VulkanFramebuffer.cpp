@@ -14,18 +14,20 @@ namespace Surge
 
     VulkanFramebuffer::~VulkanFramebuffer()
     {
-        VulkanRenderContext* renderContext;
-        SURGE_GET_VULKAN_CONTEXT(renderContext);
-        VkDevice logicalDevice = renderContext->GetDevice()->GetLogicalDevice();
+        Clear();
+    }
 
-        if (mRenderPass)
-            vkDestroyRenderPass(logicalDevice, mRenderPass, nullptr);
-        if (mFramebuffer)
-            vkDestroyFramebuffer(logicalDevice, mFramebuffer, nullptr);
+    void VulkanFramebuffer::Resize(Uint width, Uint height)
+    {
+        SG_ASSERT(width != 0 && height != 0, "Invalid size!");
+        mSpecification.Width = width;
+        mSpecification.Height = height;
+        Invalidate();
     }
 
     void VulkanFramebuffer::Invalidate()
     {
+        Clear();
         VulkanRenderContext* renderContext;
         SURGE_GET_VULKAN_CONTEXT(renderContext);
         VkDevice logicalDevice = renderContext->GetDevice()->GetLogicalDevice();
@@ -121,6 +123,29 @@ namespace Surge
         framebufferCreateInfo.height = mSpecification.Height;
         framebufferCreateInfo.layers = 1;
         VK_CALL(vkCreateFramebuffer(logicalDevice, &framebufferCreateInfo, nullptr, &mFramebuffer));
+    }
+
+    void VulkanFramebuffer::Clear()
+    {
+        VulkanRenderContext* renderContext;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
+        VkDevice logicalDevice = renderContext->GetDevice()->GetLogicalDevice();
+
+        mColorAttachmentImages.clear();
+
+        if (mDepthAttachmentImage)
+            mDepthAttachmentImage = nullptr;
+
+        if (mRenderPass)
+        {
+            vkDestroyRenderPass(logicalDevice, mRenderPass, nullptr);
+            mRenderPass = VK_NULL_HANDLE;
+        }
+        if (mFramebuffer)
+        {
+            vkDestroyFramebuffer(logicalDevice, mFramebuffer, nullptr);
+            mFramebuffer = VK_NULL_HANDLE;
+        }
     }
 
 } // namespace Surge

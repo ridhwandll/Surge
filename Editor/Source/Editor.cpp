@@ -3,7 +3,6 @@
 #include "Utility/ImGuiAux.hpp"
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui_internal.h"
-#include <windows.h>
 
 namespace Surge
 {
@@ -43,8 +42,15 @@ namespace Surge
     void Editor::OnUpdate()
     {
         mCamera.OnUpdate();
+
         if (mViewportSize.y != 0)
+        {
+            Ref<Framebuffer> frameBuffer = mRenderer->GetData()->OutputFrambuffer;
+            FramebufferSpecification spec = frameBuffer->GetSpecification();
             mCamera.SetViewportSize({mViewportSize.x, mViewportSize.y});
+            if (spec.Width != mViewportSize.x || spec.Height != mViewportSize.y)
+                frameBuffer->Resize(mViewportSize.x, mViewportSize.y);
+        }
 
         mRenderer->BeginFrame(mCamera);
         mRenderer->SubmitMesh(mEntity.GetComponent<MeshComponent>().Mesh, mEntity.GetComponent<TransformComponent>().GetTransform());
@@ -57,15 +63,21 @@ namespace Surge
         RenderContext* renderContext = SurgeCore::GetRenderContext();
         Surge::GPUMemoryStats memoryStatus = renderContext->GetMemoryStatus();
 
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 10.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.0f, 8.0f));
 
         if (ImGui::BeginMainMenuBar())
         {
             // System buttons
             {
+                const char* title = "Surge Editor";
+                float windowWidth = ImGui::GetWindowSize().x;
+                float textWidth = ImGui::CalcTextSize(title).x;
+                ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
+                ImGui::Text(title);
+
                 Window* window = SurgeCore::GetWindow();
                 const float buttonSize = ImGui::GetFrameHeight();
-                const float iconMargin = buttonSize * 0.33f;
+                const float iconMargin = buttonSize * 0.35f;
                 ImRect buttonRect = ImRect(ImGui::GetWindowPos() + ImVec2(ImGui::GetWindowWidth() - buttonSize, 0.0f), ImGui::GetWindowPos() + ImGui::GetWindowSize());
                 ImDrawList* drawList = ImGui::GetWindowDrawList();
 

@@ -11,6 +11,7 @@ namespace Surge
         VulkanFramebuffer(const FramebufferSpecification& spec);
         virtual ~VulkanFramebuffer() override;
 
+        virtual void Resize(Uint width, Uint height) override;
         virtual const FramebufferSpecification& GetSpecification() const override { return mSpecification; }
         virtual FramebufferSpecification& GetSpecification() override { return mSpecification; }
         virtual const Ref<Image2D>& GetColorAttachment(Uint index) const override { return mColorAttachmentImages[index]; }
@@ -20,6 +21,7 @@ namespace Surge
 
     private:
         void Invalidate();
+        void Clear();
 
     private:
         FramebufferSpecification mSpecification;

@@ -61,6 +61,24 @@ namespace Surge
         }
     }
 
+    void WindowsWindow::Minimize()
+    {
+        SurgeCore::AddFrameEndCallback([this]() {
+            ShowWindow(mWin32Window, SW_MINIMIZE);
+            mWindowState = WindowState::Minimized;
+        });
+    }
+
+    void WindowsWindow::Maximize()
+    {
+        SurgeCore::AddFrameEndCallback([this]() { ShowWindow(mWin32Window, SW_MAXIMIZE); });
+    }
+
+    void WindowsWindow::RestoreFromMaximize()
+    {
+        SurgeCore::AddFrameEndCallback([this]() { ShowWindow(mWin32Window, SW_SHOWNORMAL); });
+    }
+
     void WindowsWindow::SetTitle(const String& name)
     {
         mWindowData.Title = name;

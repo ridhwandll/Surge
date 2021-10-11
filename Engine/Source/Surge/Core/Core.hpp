@@ -16,6 +16,8 @@ namespace Surge
         RenderContext* SurgeRenderContext = nullptr;
         Renderer* SurgeRenderer = nullptr;
         bool mRunning = false;
+
+        Vector<std::function<void()>> FrameEndCallbacks;
     };
 
     class SurgeCore
@@ -25,6 +27,7 @@ namespace Surge
         static void Run();
         static void Shutdown();
         static void Close();
+        static void AddFrameEndCallback(const std::function<void()>& func);
 
         static Window* GetWindow();
         static RenderContext* GetRenderContext();

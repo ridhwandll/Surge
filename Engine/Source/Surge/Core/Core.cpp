@@ -67,6 +67,12 @@ namespace Surge
 
                 sCoreData.SurgeRenderContext->EndFrame();
             }
+
+            for (std::function<void()>& func : sCoreData.FrameEndCallbacks)
+                func();
+
+            if (!sCoreData.FrameEndCallbacks.empty())
+                sCoreData.FrameEndCallbacks.clear();
         }
     }
 
@@ -89,6 +95,11 @@ namespace Surge
     }
 
     void SurgeCore::Close() { sCoreData.mRunning = false; }
+
+    void SurgeCore::AddFrameEndCallback(const std::function<void()>& func)
+    {
+        sCoreData.FrameEndCallbacks.push_back(func);
+    }
 
     Window* SurgeCore::GetWindow() { return sCoreData.SurgeWindow; }
     RenderContext* SurgeCore::GetRenderContext() { return sCoreData.SurgeRenderContext; }

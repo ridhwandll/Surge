@@ -18,10 +18,10 @@ namespace Surge
     public:
         virtual ~Framebuffer() = default;
 
+        virtual void Resize(Uint width, Uint height) = 0;
         virtual const FramebufferSpecification& GetSpecification() const = 0;
         virtual FramebufferSpecification& GetSpecification() = 0;
         virtual const Ref<Image2D>& GetColorAttachment(Uint index) const = 0;
-
         static Ref<Framebuffer> Create(const FramebufferSpecification& spec);
     };
 } // namespace Surge

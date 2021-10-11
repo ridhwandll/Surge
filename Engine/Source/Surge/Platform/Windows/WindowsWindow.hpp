@@ -13,13 +13,9 @@ namespace Surge
 
         virtual bool IsOpen() const override { return mIsOpen; };
         virtual void Update() override;
-        virtual void Minimize() override
-        {
-            ShowWindow(mWin32Window, SW_MINIMIZE);
-            mWindowState = WindowState::Minimized;
-        }
-        virtual void Maximize() override { ShowWindow(mWin32Window, SW_MAXIMIZE); }
-        virtual void RestoreFromMaximize() override { ShowWindow(mWin32Window, SW_SHOWNORMAL); }
+        virtual void Minimize() override;
+        virtual void Maximize() override;
+        virtual void RestoreFromMaximize() override;
         virtual void RegisterEventCallback(std::function<void(Event&)> eventCallback) override { mEventCallback = eventCallback; }
         virtual bool IsWindowMaximized() const override { return IsMaximized(mWin32Window); }
         virtual bool IsWindowMinimized() const override { return IsIconic(mWin32Window); }
