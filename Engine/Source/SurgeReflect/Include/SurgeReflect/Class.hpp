@@ -15,6 +15,7 @@ namespace SurgeReflect
             : mName(name) {}
 
         const std::string& GetName() const { return mName; }
+        const int64_t& GetHash() const { return mHash; }
         const std::unordered_map<std::string, Variable>& GetVariables() const { return mVariables; }
         const std::unordered_map<std::string, Function>& GetFunctions() const { return mFunctions; }
 
@@ -62,6 +63,7 @@ namespace SurgeReflect
             if (mSetup)
                 return;
 
+            mHash = Utility::GenerateStringHash(mName);
             mVariables.reserve(clazz.GetVariables().size());
             for (auto& [name, variable] : clazz.mVariables)
                 mVariables[name] = variable;
@@ -76,6 +78,7 @@ namespace SurgeReflect
     private:
         bool mSetup = false;
         std::string mName;
+        int64_t mHash;
         std::unordered_map<std::string, Variable> mVariables;
         std::unordered_map<std::string, Function> mFunctions;
         friend class Registry;

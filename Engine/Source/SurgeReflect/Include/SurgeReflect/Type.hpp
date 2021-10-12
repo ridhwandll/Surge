@@ -2,6 +2,7 @@
 #pragma once
 #include <string>
 #include <functional>
+#include "SurgeReflect/Utility.hpp"
 
 namespace SurgeReflect
 {
@@ -33,7 +34,7 @@ namespace SurgeReflect
         bool EqualTo() const
         {
             const std::string givenTypeName = std::string(TypeTraits::GetTypeName<T>());
-            const int64_t givenTypeHash = GenerateStringHash(givenTypeName);
+            const int64_t givenTypeHash = Utility::GenerateStringHash(givenTypeName);
 
             bool result = mHashCode == givenTypeHash;
             return result;
@@ -55,22 +56,7 @@ namespace SurgeReflect
             mIsPrimitive = TypeTraits::IsTypePrimitive<T>;
 
             mFullName = std::string(TypeTraits::GetTypeName<T>());
-            mHashCode = GenerateStringHash(mFullName);
-        }
-
-    private:
-        int64_t GenerateStringHash(const std::string& s) const
-        {
-            int64_t result = 0;
-            const int p = 31;
-            const int m = 1e9 + 9;
-            long long pPow = 1;
-            for (char c : s)
-            {
-                result = (result + (c - 'a' + 1) * pPow) % m;
-                pPow = (pPow * p) % m;
-            }
-            return result;
+            mHashCode = Utility::GenerateStringHash(mFullName);
         }
 
     private:

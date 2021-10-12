@@ -60,11 +60,9 @@ namespace Surge
             if (sCoreData.SurgeWindow->GetWindowState() != WindowState::Minimized)
             {
                 sCoreData.SurgeRenderContext->BeginFrame();
-
                 sCoreData.SurgeApplication->OnUpdate();
                 if (sCoreData.SurgeApplication->GetAppOptions().EnableImGui)
                     sCoreData.SurgeApplication->OnImGuiRender();
-
                 sCoreData.SurgeRenderContext->EndFrame();
             }
 

@@ -2,6 +2,7 @@
 #pragma once
 #include <Surge/Surge.hpp>
 #include "Panels/Titlebar.hpp"
+#include "Panels/PaneManager.hpp"
 
 namespace Surge
 {
@@ -16,13 +17,13 @@ namespace Surge
 
     private:
         EditorCamera mCamera;
-        glm::vec2 mViewportSize;
         Renderer* mRenderer;
 
         Ref<Scene> mScene;
         Entity mEntity;
         Entity mOtherEntity;
 
+        PanelManager mPanelManager;
         // Panels //TODO: Have a panel manager, and automate all these stuff
         Titlebar mTitleBar;
     };

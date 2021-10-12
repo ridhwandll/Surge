@@ -15,6 +15,7 @@ namespace SurgeReflect
         Class* GetClass(const std::string& name);
         void RegisterReflectionClass(Class&& clazz);
         void RemoveClass(const std::string& name);
+        Class* GetIfExists(const std::string& name);
 
     private:
         std::unordered_map<std::string, Class*> mClasses;

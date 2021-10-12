@@ -22,10 +22,16 @@ namespace Surge
         return lifeTime.count();
     }
 
-    float Clock::GetDelta()
+    float Clock::GetSeconds()
     {
         std::chrono::duration<float> deltaTime = std::chrono::duration_cast<std::chrono::duration<float>>(sNow - sThen);
         return deltaTime.count();
+    }
+
+    float Clock::GetMilliseconds()
+    {
+        std::chrono::duration<float> deltaTime = std::chrono::duration_cast<std::chrono::duration<float>>(sNow - sThen);
+        return deltaTime.count() * 1000.0f;
     }
 
     void Clock::Update()

@@ -10,8 +10,9 @@ namespace Surge::Clock
     // Returns the time (in seconds) since the engine was initialized
     float GetLife();
 
-    // Returns the time (in seconds) since the last frame
-    float GetDelta();
+    // Returns the time since the last frame
+    float GetSeconds();
+    float GetMilliseconds();
 
     // Updates the internal timer. Increments Life and refreshes Delta
     void Update();

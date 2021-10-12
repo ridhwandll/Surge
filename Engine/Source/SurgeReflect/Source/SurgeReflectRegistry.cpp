@@ -30,6 +30,7 @@ namespace SurgeReflect
         auto itr = mClasses.find(name);
         if (itr != mClasses.end())
             return itr->second;
+
         return mClasses.insert({name, new Class(name)}).first->second;
     }
 
@@ -43,6 +44,15 @@ namespace SurgeReflect
             return;
         }
         SG_ASSERT_INTERNAL("Trying to remove a class that is not present!");
+    }
+
+    SurgeReflect::Class* Registry::GetIfExists(const std::string& name)
+    {
+        auto itr = mClasses.find(name);
+        if (itr != mClasses.end())
+            return itr->second;
+
+        return nullptr;
     }
 
     void Registry::Shutdown()

@@ -26,7 +26,7 @@ namespace Surge
         ImGuiWindowFlags windowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
         ImGuiViewport* viewport = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos({viewport->Pos.x, viewport->Pos.y + 10});
-        ImGui::SetNextWindowSize({viewport->Size.x, viewport->Size.y - 10});
+        ImGui::SetNextWindowSize({viewport->Size.x, viewport->Size.y});
         ImGui::SetNextWindowViewport(viewport->ID);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
@@ -45,9 +45,7 @@ namespace Surge
         if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
         {
             ImGuiID dockspaceID = ImGui::GetID("MyDockSpace");
-            ImGui::DockSpace(dockspaceID, ImVec2(0.0f, ImGui::GetWindowHeight() - 60.0f), dockspaceFlags);
-            ImGui::Separator();
-            ImGuiAux::TextCentered("Surge Editor - v0.01a");
+            ImGui::DockSpace(dockspaceID, ImVec2(0.0f, ImGui::GetWindowHeight() - 33.0f), dockspaceFlags);
         }
         style.WindowMinSize.x = minWinSizeX;
     }

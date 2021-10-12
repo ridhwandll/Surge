@@ -1,6 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Editor.hpp"
 #include "Utility/ImGuiAux.hpp"
+#include "Panels/ViewportPanel.hpp"
 
 namespace Surge
 {
@@ -20,6 +21,8 @@ namespace Surge
 
         mCamera.SetActive(true);
 
+        mPanelManager = PanelManager();
+        mPanelManager.PushPanel<ViewportPanel>(nullptr);
         { // TransformComponent reflection test
             const SurgeReflect::Class* clazz = SurgeReflect::GetReflection<TransformComponent>();
             Log<Severity::Info>("Class: {0}", clazz->GetName());
@@ -41,13 +44,15 @@ namespace Surge
     {
         mCamera.OnUpdate();
 
-        if (mViewportSize.y != 0)
+        ViewportPanel* vp = mPanelManager.GetPanel<ViewportPanel>();
+        if (vp->GetViewportSize().y > 0)
         {
+            glm::vec2 viewportSize = vp->GetViewportSize();
             Ref<Framebuffer> frameBuffer = mRenderer->GetData()->OutputFrambuffer;
             FramebufferSpecification spec = frameBuffer->GetSpecification();
-            mCamera.SetViewportSize({mViewportSize.x, mViewportSize.y});
-            if (spec.Width != mViewportSize.x || spec.Height != mViewportSize.y)
-                frameBuffer->Resize(mViewportSize.x, mViewportSize.y);
+            mCamera.SetViewportSize({viewportSize.x, viewportSize.y});
+            if (spec.Width != viewportSize.x || spec.Height != viewportSize.y)
+                frameBuffer->Resize(viewportSize.x, viewportSize.y);
         }
 
         mRenderer->BeginFrame(mCamera);
@@ -63,7 +68,7 @@ namespace Surge
         mTitleBar.Render();
 
         ImGuiAux::BeginDockSpace();
-        if (ImGui::Begin("Settings"))
+        if (ImGui::Begin("Settings and Stats"))
         {
             TransformComponent& transformComponent = mEntity.GetComponent<TransformComponent>();
 
@@ -93,19 +98,14 @@ namespace Surge
                 }
                 ImGui::TreePop();
             }
+
+            ImGui::Text("Frame Time: % .2f ms ", Clock::GetMilliseconds());
+            ImGui::Text("FPS: % .2f", ImGui::GetIO().Framerate);
         }
         ImGui::End();
 
         // Viewport
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
-        if (ImGui::Begin("Viewport"))
-        {
-            const Ref<Image2D>& outputImage = mRenderer->GetData()->OutputFrambuffer->GetColorAttachment(0);
-            mViewportSize = {ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y};
-            ImGuiAux::Image(outputImage, mViewportSize);
-        }
-        ImGui::End();
-        ImGui::PopStyleVar();
+        mPanelManager.RenderAll();
 
         ImGuiAux::EndDockSpace();
     }

@@ -43,4 +43,12 @@ namespace SurgeReflect
         return clazz;
     }
 
+    template <typename T>
+    const Class* GetReflectionIfExists()
+    {
+        std::string className = std::string(TypeTraits::GetClassName<T>());
+        const Class* clazz = Registry::Get()->GetIfExists(className);
+        return clazz;
+    }
+
 } // namespace SurgeReflect
