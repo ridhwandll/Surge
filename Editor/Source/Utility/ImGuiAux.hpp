@@ -5,9 +5,6 @@
 
 namespace Surge::ImGuiAux
 {
-    void BeginDockSpace();
-    void EndDockSpace();
-
     void TextCentered(const char* text);
     void Image(const Ref<Image2D>& image, const glm::vec2& size);
 

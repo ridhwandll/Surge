@@ -3,6 +3,7 @@
 #include "Panels/Titlebar.hpp"
 #include "Surge/Core/Core.hpp"
 #include "Utility/ImGUIAux.hpp"
+#include "Editor.hpp"
 #include <imgui.h>
 #include <imgui_internal.h>
 
@@ -14,13 +15,8 @@ namespace Surge
 
         // Start drawing window
         ImGuiViewport* viewport = ImGui::GetMainViewport();
-
         ImGui::SetNextWindowBgAlpha(1.0f);
-        ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x, viewport->WorkPos.y));
-        ImGui::SetNextWindowSize(ImVec2(viewport->WorkSize.x, 25));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2.0f);
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, {0.1f, 0.1f, 0.1f, 1.0f});
-        if (ImGui::Begin("##dummy", NULL, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoDecoration))
+        if (ImGui::BeginMainMenuBar())
         {
             // System buttons
             {
@@ -31,8 +27,21 @@ namespace Surge
                 ImDrawList* drawList = ImGui::GetWindowDrawList();
 
                 ImGui::Text("Surge Editor");
-                //ImGui::SameLine();
-                //ImGui::SmallButton("Play");
+                ImGui::SameLine();
+                if (ImGui::BeginMenu("View"))
+                {
+                    Editor* editor = static_cast<Editor*>(SurgeCore::GetApplication());
+                    PanelManager& panelManager = editor->GetPanelManager();
+
+                    for (auto& [code, element] : panelManager.GetAllPanels())
+                    {
+                        if (ImGui::MenuItem(PanelCodeToString(code)))
+                            element.Show = !element.Show;
+                    }
+
+                    ImGui::EndMenu();
+                }
+                ImGui::SameLine();
 
                 // Exit button
                 {
@@ -49,8 +58,8 @@ namespace Surge
                     // Render the cross
                     {
                         const ImU32 color = ImGui::GetColorU32({1.0f, 1.0f, 1.0f, 1.0f});
-                        drawList->AddLine(buttonRect.Min + ImVec2(iconMargin, iconMargin), buttonRect.Max - ImVec2(iconMargin, iconMargin), color, 2.0f);
-                        drawList->AddLine(buttonRect.Min + ImVec2(buttonRect.GetWidth() - iconMargin, iconMargin), buttonRect.Max - ImVec2(buttonRect.GetWidth() - iconMargin, iconMargin), color, 2.0f);
+                        drawList->AddLine(buttonRect.Min + ImVec2(iconMargin, iconMargin), buttonRect.Max - ImVec2(iconMargin, iconMargin), color, 1.5f);
+                        drawList->AddLine(buttonRect.Min + ImVec2(buttonRect.GetWidth() - iconMargin, iconMargin), buttonRect.Max - ImVec2(buttonRect.GetWidth() - iconMargin, iconMargin), color, 1.5f);
                     }
 
                     if (pressed)
@@ -75,7 +84,7 @@ namespace Surge
                     // Render the box
                     {
                         const ImU32 color = ImGui::GetColorU32({1.0f, 1.0f, 1.0f, 1.0f});
-                        drawList->AddRect(buttonRect.Min + ImVec2(iconMargin, iconMargin), buttonRect.Max - ImVec2(iconMargin, iconMargin), color, 1.0f, 0, 2.0f);
+                        drawList->AddRect(buttonRect.Min + ImVec2(iconMargin, iconMargin), buttonRect.Max - ImVec2(iconMargin, iconMargin), color, 0.0f, 0, 1.2f);
                     }
 
                     if (pressed)
@@ -105,7 +114,7 @@ namespace Surge
                     // Render the Line
                     {
                         const ImU32 color = ImGui::GetColorU32(ImGuiCol_Text);
-                        drawList->AddLine(buttonRect.Min + ImVec2(iconMargin, buttonRect.GetHeight() / 2), buttonRect.Max - ImVec2(iconMargin, buttonRect.GetHeight() / 2), color, 2.0f);
+                        drawList->AddLine(buttonRect.Min + ImVec2(iconMargin, buttonRect.GetHeight() / 2), buttonRect.Max - ImVec2(iconMargin, buttonRect.GetHeight() / 2), color, 1.2f);
                     }
 
                     if (pressed)
@@ -115,10 +124,9 @@ namespace Surge
                     buttonRect.Max.x -= buttonSize;
                 }
             }
+            ImGui::EndMainMenuBar();
         }
-        ImGui::End();
-        ImGui::PopStyleVar(2);
-        ImGui::PopStyleColor();
+        ImGui::PopStyleVar();
     }
 
 } // namespace Surge

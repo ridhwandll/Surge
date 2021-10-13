@@ -15,6 +15,9 @@ namespace Surge
         virtual void OnEvent(Event& e) override;
         virtual void OnShutdown() override;
 
+        // Editor specific
+        PanelManager& GetPanelManager() { return mPanelManager; }
+
     private:
         EditorCamera mCamera;
         Renderer* mRenderer;
@@ -24,7 +27,6 @@ namespace Surge
         Entity mOtherEntity;
 
         PanelManager mPanelManager;
-        // Panels //TODO: Have a panel manager, and automate all these stuff
         Titlebar mTitleBar;
     };
 

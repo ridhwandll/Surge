@@ -1,29 +1,24 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "Panels/IPanel.hpp"
-#include <glm/glm.hpp>
 
 namespace Surge
 {
-    class ViewportPanel : public IPanel
+    class PerformancePanel : public IPanel
     {
     public:
-        ViewportPanel() = default;
-        virtual ~ViewportPanel() override = default;
+        PerformancePanel() = default;
+        virtual ~PerformancePanel() override = default;
 
         virtual void Init(void* panelInitArgs) override;
         virtual void Render(bool* show) override;
         virtual void Shutdown() override;
         virtual PanelCode GetCode() const override { return GetStaticCode(); }
 
-        const glm::vec2& GetViewportSize() const { return mViewportSize; }
-
     public:
-        static PanelCode GetStaticCode() { return PanelCode::Viewport; }
+        static PanelCode GetStaticCode() { return PanelCode::Performance; }
 
     private:
         PanelCode mCode;
-        glm::vec2 mViewportSize = glm::vec2(0.0f);
     };
-
 } // namespace Surge

@@ -14,7 +14,7 @@ namespace Surge
         virtual void Init(void* panelInitArgs) = 0;
         virtual void Render(bool* show) = 0;
         virtual void Shutdown() = 0;
-        virtual PanelCode GetCode() = 0;
+        virtual PanelCode GetCode() const = 0;
     };
 
 } // namespace Surge

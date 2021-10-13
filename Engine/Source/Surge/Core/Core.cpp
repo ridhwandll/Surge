@@ -94,7 +94,15 @@ namespace Surge
         delete sCoreData.SurgeRenderContext;
     }
 
-    void SurgeCore::Close() { sCoreData.mRunning = false; }
+    void SurgeCore::Close()
+    {
+        sCoreData.mRunning = false;
+    }
+
+    void* SurgeCore::GetApplication()
+    {
+        return static_cast<void*>(sCoreData.SurgeApplication);
+    }
 
     void SurgeCore::AddFrameEndCallback(const std::function<void()>& func)
     {

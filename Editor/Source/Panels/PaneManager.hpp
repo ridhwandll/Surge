@@ -26,7 +26,7 @@ namespace Surge
         }
 
         template <typename T>
-        void PushPanel(void* panelInitArgs)
+        void PushPanel(void* panelInitArgs = nullptr)
         {
             static_assert(std::is_base_of_v<IPanel, T>, "T must derive from IPanel!");
             PanelData panelData {};
@@ -36,7 +36,7 @@ namespace Surge
             panelData.Panel->Init(panelInitArgs);
         }
 
-        template <typename T>
+        template <typename T> //TODO: Switch to C++20 Concepts
         T* GetPanel() const
         {
             static_assert(std::is_base_of_v<IPanel, T>, "T must derive from IPanel!");
@@ -50,9 +50,7 @@ namespace Surge
         void RenderAll()
         {
             for (auto& [code, element] : mPanels)
-            {
                 element.Panel->Render(&element.Show);
-            }
         }
 
         HashMap<PanelCode, PanelData>& GetAllPanels()

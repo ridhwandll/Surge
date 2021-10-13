@@ -11,12 +11,16 @@ namespace Surge
 {
     void ViewportPanel::Init(void* panelInitArgs)
     {
+        mCode = GetStaticCode();
     }
 
     void ViewportPanel::Render(bool* show)
     {
+        if (!*show)
+            return;
+
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
-        if (ImGui::Begin("Viewport", show))
+        if (ImGui::Begin(PanelCodeToString(mCode), show))
         {
             const Ref<Image2D>& outputImage = SurgeCore::GetRenderer()->GetData()->OutputFrambuffer->GetColorAttachment(0);
             mViewportSize = {ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y};
