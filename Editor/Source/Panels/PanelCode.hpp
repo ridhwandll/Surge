@@ -6,15 +6,19 @@ namespace Surge
     enum class PanelCode
     {
         Viewport = 0,
-        Performance
+        SceneHierarchy,
+        Inspector,
+        Performance,
     };
 
     inline const char* PanelCodeToString(PanelCode code)
     {
         switch (code)
         {
-            case Surge::PanelCode::Viewport: return "Viewport";
-            case Surge::PanelCode::Performance: return "Performance";
+            case PanelCode::Viewport: return "Viewport";
+            case PanelCode::SceneHierarchy: return "Hierarchy";
+            case PanelCode::Inspector: return "Inspector";
+            case PanelCode::Performance: return "Performance";
         }
         return nullptr;
     }

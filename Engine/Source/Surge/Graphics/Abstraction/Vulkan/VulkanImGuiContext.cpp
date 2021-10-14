@@ -42,7 +42,7 @@ namespace Surge
         ImGuiIO& io = ImGui::GetIO();
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;   // Enable Docking
         io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows
-        io.FontDefault = io.Fonts->AddFontFromFileTTF("Engine/Assets/Fonts/Ruda-Medium.ttf", 16.0f);
+        io.FontDefault = io.Fonts->AddFontFromFileTTF("Engine/Assets/Fonts/Ruda-Medium.ttf", 14.0f);
         ImGui::StyleColorsDark();
 
         ImGuiStyle& style = ImGui::GetStyle();
@@ -178,7 +178,8 @@ namespace Surge
         colors[ImGuiCol_WindowBg] = colorFromBytes(45, 45, 45);
         colors[ImGuiCol_PopupBg] = colorFromBytes(45, 45, 45);
         colors[ImGuiCol_DockingPreview] = colorFromBytes(26, 26, 26);
-
+        colors[ImGuiCol_TitleBg] = {0.12, 0.12, 0.12, 1.0};
+        colors[ImGuiCol_TitleBgActive] = {0.14, 0.14, 0.14, 1.0};
         //colors[ImGuiCol_Separator] = colorFromBytes(10, 200, 10);
         //colors[ImGuiCol_Border] = colorFromBytes(10, 200, 10);
     }

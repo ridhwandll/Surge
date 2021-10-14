@@ -17,6 +17,7 @@ namespace Surge
 
         // Editor specific
         PanelManager& GetPanelManager() { return mPanelManager; }
+        Titlebar& GetTitlebar() { return mTitleBar; }
 
     private:
         EditorCamera mCamera;

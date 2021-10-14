@@ -10,6 +10,7 @@ namespace Surge
         ~Titlebar() = default;
 
         void Render();
+        float GetHeight() { return 60.0f; }
     };
 
 } // namespace Surge

@@ -3,6 +3,8 @@
 #include "Utility/ImGuiAux.hpp"
 #include "Panels/ViewportPanel.hpp"
 #include "Panels/PerformancePanel.hpp"
+#include "Panels/SceneHierarchyPanel.hpp"
+#include "Panels/InspectorPanel.hpp"
 #include <imgui_internal.h>
 
 namespace Surge
@@ -15,16 +17,20 @@ namespace Surge
 
         mScene = Ref<Scene>::Create(false);
 
-        mScene->CreateEntity(mEntity);
+        mScene->CreateEntity(mEntity, "VulkanMesh1");
         mEntity.AddComponent<TransformComponent>();
         mEntity.AddComponent<MeshComponent>(Ref<Mesh>::Create("Engine/Assets/Mesh/Vulkan.obj"));
 
-        mScene->CreateEntity(mOtherEntity);
+        mScene->CreateEntity(mOtherEntity, "VulkanMesh1");
         mOtherEntity.AddComponent<TransformComponent>(glm::vec3(15.0f, 0.0f, 0.0f), glm::vec3(0.0f), glm::vec3(1.0f));
         mOtherEntity.AddComponent<MeshComponent>(Ref<Mesh>::Create("Engine/Assets/Mesh/Vulkan.obj"));
 
-        mPanelManager.PushPanel<ViewportPanel>();
+        SceneHierarchyPanel* sceneHierarchy;
+        sceneHierarchy = mPanelManager.PushPanel<SceneHierarchyPanel>();
+        sceneHierarchy->SetSceneContext(mScene.Raw());
+        mPanelManager.PushPanel<InspectorPanel>()->SetHierarchy(sceneHierarchy);
         mPanelManager.PushPanel<PerformancePanel>();
+        mPanelManager.PushPanel<ViewportPanel>();
     }
 
     void Editor::OnUpdate()
@@ -51,7 +57,7 @@ namespace Surge
     void Editor::OnImGuiRender()
     {
         mTitleBar.Render();
-        ImGui::DockSpaceOverViewport(nullptr, ImGuiDockNodeFlags_NoWindowMenuButton);
+        ImGuiAux::DockSpace();
         mPanelManager.RenderAll();
     }
 

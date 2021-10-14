@@ -11,7 +11,7 @@
 
 namespace Surge
 {
-    static CoreData sCoreData;
+    Surge::CoreData SurgeCore::sCoreData;
 
     void OnEvent(Event& e)
     {
@@ -97,11 +97,6 @@ namespace Surge
     void SurgeCore::Close()
     {
         sCoreData.mRunning = false;
-    }
-
-    void* SurgeCore::GetApplication()
-    {
-        return static_cast<void*>(sCoreData.SurgeApplication);
     }
 
     void SurgeCore::AddFrameEndCallback(const std::function<void()>& func)

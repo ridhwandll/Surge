@@ -26,7 +26,7 @@ namespace Surge
         }
 
         template <typename T>
-        void PushPanel(void* panelInitArgs = nullptr)
+        T* PushPanel(void* panelInitArgs = nullptr)
         {
             static_assert(std::is_base_of_v<IPanel, T>, "T must derive from IPanel!");
             PanelData panelData {};
@@ -34,6 +34,7 @@ namespace Surge
 
             mPanels[T::GetStaticCode()] = panelData;
             panelData.Panel->Init(panelInitArgs);
+            return static_cast<T*>(panelData.Panel);
         }
 
         template <typename T> //TODO: Switch to C++20 Concepts

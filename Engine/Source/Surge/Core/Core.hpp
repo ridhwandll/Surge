@@ -27,7 +27,12 @@ namespace Surge
         static void Run();
         static void Shutdown();
         static void Close();
-        static void* GetApplication();
+
+        template <typename T>
+        static T* GetApplication()
+        {
+            return static_cast<T*>(sCoreData.SurgeApplication);
+        }
 
         // FrameEndCallbacks are a way to accomplish some task at the very end of a frame
         static void AddFrameEndCallback(const std::function<void()>& func);
@@ -36,6 +41,9 @@ namespace Surge
         static RenderContext* GetRenderContext();
         static Renderer* GetRenderer();
         static CoreData* GetData();
+
+    private:
+        static CoreData sCoreData;
     };
 
 } // namespace Surge

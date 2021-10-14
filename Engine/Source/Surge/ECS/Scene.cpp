@@ -1,5 +1,6 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
-#include "Scene.hpp"
+#include "Surge/ECS/Scene.hpp"
+#include "Surge/ECS/Components.hpp"
 
 namespace Surge
 {
@@ -12,10 +13,11 @@ namespace Surge
         mRegistry.clear();
     }
 
-    void Scene::CreateEntity(Entity& outEntity)
+    void Scene::CreateEntity(Entity& outEntity, const String& name)
     {
         entt::entity e = mRegistry.create();
         outEntity = Entity(e, this);
+        outEntity.AddComponent<NameComponent>(name);
     }
 
     void Scene::DestroyEntity(Entity& InEntity)

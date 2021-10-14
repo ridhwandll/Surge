@@ -14,7 +14,7 @@ namespace Surge
         Scene(bool runtime);
         ~Scene();
 
-        void CreateEntity(Entity& outEntity);
+        void CreateEntity(Entity& outEntity, const String& name = "New Entity");
         void DestroyEntity(Entity& InEntity);
 
         entt::registry& GetRegistry() { return mRegistry; }
@@ -64,6 +64,11 @@ namespace Surge
         bool IsValid()
         {
             return mScene->GetRegistry().valid(mEnttHandle);
+        }
+
+        bool operator==(Entity& other)
+        {
+            return this->mEnttHandle == other.mEnttHandle;
         }
 
     private:

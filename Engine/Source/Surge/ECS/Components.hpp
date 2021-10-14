@@ -1,13 +1,24 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
-#include "SurgeReflect/SurgeReflect.hpp"
-
 #define GLM_ENABLE_EXPERIMENTAL
 #pragma once
+#include "Surge/Graphics/Mesh.hpp"
+#include "SurgeReflect/SurgeReflect.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
 namespace Surge
 {
+    struct NameComponent
+    {
+        NameComponent() {}
+        NameComponent(const String& name)
+            : Name(name) {}
+
+        String Name;
+
+        SURGE_REFLECTION_ENABLE;
+    };
+
     struct TransformComponent
     {
         TransformComponent() {}

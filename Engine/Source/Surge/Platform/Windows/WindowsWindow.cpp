@@ -210,6 +210,8 @@ namespace Surge
             case WM_NCCALCSIZE:
             {
                 // Preserve the old client area and align it with the upper-left corner of the new client area
+                // Starting with Windows Vista, removing the standard frame by simply returning 0 when the wParam is TRUE does not affect frames that area
+                // extended into the client area using the DwmExtendFrameIntoClientArea function.Only the standard frame will be removed
                 return 0;
                 break;
             }
