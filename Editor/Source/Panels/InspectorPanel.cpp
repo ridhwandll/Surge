@@ -4,6 +4,7 @@
 #include <imgui.h>
 #include <imgui_stdlib.h>
 #include "glm/gtc/type_ptr.hpp"
+#include "Surge/Utility/FileDialogs.hpp"
 
 namespace Surge
 {
@@ -80,7 +81,17 @@ namespace Surge
         if (entity.HasComponent<MeshComponent>())
         {
             MeshComponent& component = entity.GetComponent<MeshComponent>();
-            DrawComponent("Mesh", []() {});
+            DrawComponent("Mesh", [&component]() {
+                ImGui::TextUnformatted("Path");
+                ImGui::TableNextColumn();
+                const String& path = component.Mesh ? component.Mesh->GetPath() : "";
+                if (ImGui::Button(path.empty() ? "Open..." : path.c_str()))
+                {
+                    String path = FileDialog::OpenFile("");
+                    if (!path.empty())
+                        component.Mesh = Ref<Mesh>::Create(path);
+                }
+            });
         }
     }
 

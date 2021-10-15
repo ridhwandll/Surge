@@ -17,14 +17,6 @@ namespace Surge
 
         mScene = Ref<Scene>::Create(false);
 
-        mScene->CreateEntity(mEntity, "VulkanMesh1");
-        mEntity.AddComponent<TransformComponent>();
-        mEntity.AddComponent<MeshComponent>(Ref<Mesh>::Create("Engine/Assets/Mesh/Vulkan.obj"));
-
-        mScene->CreateEntity(mOtherEntity, "VulkanMesh2");
-        mOtherEntity.AddComponent<TransformComponent>(glm::vec3(15.0f, 0.0f, 0.0f), glm::vec3(0.0f), glm::vec3(1.0f));
-        mOtherEntity.AddComponent<MeshComponent>(Ref<Mesh>::Create("Engine/Assets/Mesh/Vulkan.obj"));
-
         SceneHierarchyPanel* sceneHierarchy;
         sceneHierarchy = mPanelManager.PushPanel<SceneHierarchyPanel>();
         sceneHierarchy->SetSceneContext(mScene.Raw());
@@ -48,10 +40,7 @@ namespace Surge
                 frameBuffer->Resize(viewportSize.x, viewportSize.y);
         }
 
-        mRenderer->BeginFrame(mCamera);
-        mRenderer->SubmitMesh(mEntity.GetComponent<MeshComponent>().Mesh, mEntity.GetComponent<TransformComponent>().GetTransform());
-        mRenderer->SubmitMesh(mOtherEntity.GetComponent<MeshComponent>().Mesh, mOtherEntity.GetComponent<TransformComponent>().GetTransform());
-        mRenderer->EndFrame();
+        mScene->Update(mCamera);
     }
 
     void Editor::OnImGuiRender()

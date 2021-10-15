@@ -1,6 +1,8 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
+#include "Surge/Core/Core.hpp"
 #include "Surge/Core/Memory.hpp"
+#include "Surge/Graphics/Camera/EditorCamera.hpp"
 #include <entt.hpp>
 
 namespace Surge
@@ -14,12 +16,14 @@ namespace Surge
         Scene(bool runtime);
         ~Scene();
 
+        void Update(const EditorCamera& camera);
         void CreateEntity(Entity& outEntity, const String& name = "New Entity");
         void DestroyEntity(Entity& InEntity);
 
         entt::registry& GetRegistry() { return mRegistry; }
 
     private:
+        Renderer* mRenderer;
         entt::registry mRegistry;
     };
 

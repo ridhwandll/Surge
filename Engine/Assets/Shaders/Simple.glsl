@@ -20,7 +20,7 @@ layout(push_constant) uniform PushConstants
 void main()
 {
     vTexCoord = aTexCoord;
-    vNormal = aNormal;
+    vNormal = normalize(aNormal);
     gl_Position = uFrameData.ViewProjection * uFrameData.Transform * vec4(aPosition, 1.0);
 }
 
