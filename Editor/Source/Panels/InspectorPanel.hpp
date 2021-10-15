@@ -20,6 +20,9 @@ namespace Surge
         void SetHierarchy(SceneHierarchyPanel* hierarchy) { mHierarchy = hierarchy; }
 
     private:
+        void DrawComponents(Entity& entity);
+
+    private:
         PanelCode mCode;
         SceneHierarchyPanel* mHierarchy;
     };

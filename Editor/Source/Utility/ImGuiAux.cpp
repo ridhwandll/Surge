@@ -3,9 +3,19 @@
 #include "Utility/ImGuiAux.hpp"
 #include <imgui.h>
 #include "Editor.hpp"
+#include <imgui_internal.h>
 
 namespace Surge
 {
+    void ImGuiAux::DrawRectAroundWidget(const glm::vec4& color, float thickness, float rounding)
+    {
+        ImGuiContext& g = *GImGui;
+        ImGuiWindow* window = g.CurrentWindow;
+        const ImRect& rect = (g.LastItemData.StatusFlags & ImGuiItemStatusFlags_HasDisplayRect) ? g.LastItemData.DisplayRect : g.LastItemData.Rect;
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
+        drawList->AddRect(rect.Min, rect.Max, ImGui::ColorConvertFloat4ToU32(ImVec4(color.x, color.y, color.z, color.w)), rounding, ImDrawCornerFlags_All, thickness);
+    }
+
     void ImGuiAux::Image(const Ref<Image2D>& image, const glm::vec2& size)
     {
         void* imguiTextureId = SurgeCore::GetRenderContext()->GetImGuiTextureID(image);

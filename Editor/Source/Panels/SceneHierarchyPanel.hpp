@@ -22,7 +22,7 @@ namespace Surge
         Scene* GetSceneContext(Scene* scene) { return mSceneContext; }
 
         void SetSelectedEntity(Entity& e) { mSelectedEntity = e; }
-        Entity GetSelectedEntity() { return mSelectedEntity; }
+        Entity& GetSelectedEntity() { return mSelectedEntity; }
 
     private:
         void DrawEntityNode(Entity& e);

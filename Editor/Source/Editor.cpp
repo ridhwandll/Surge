@@ -21,7 +21,7 @@ namespace Surge
         mEntity.AddComponent<TransformComponent>();
         mEntity.AddComponent<MeshComponent>(Ref<Mesh>::Create("Engine/Assets/Mesh/Vulkan.obj"));
 
-        mScene->CreateEntity(mOtherEntity, "VulkanMesh1");
+        mScene->CreateEntity(mOtherEntity, "VulkanMesh2");
         mOtherEntity.AddComponent<TransformComponent>(glm::vec3(15.0f, 0.0f, 0.0f), glm::vec3(0.0f), glm::vec3(1.0f));
         mOtherEntity.AddComponent<MeshComponent>(Ref<Mesh>::Create("Engine/Assets/Mesh/Vulkan.obj"));
 

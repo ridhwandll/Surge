@@ -51,7 +51,7 @@ namespace Surge
         }
 
         template <typename T>
-        bool HasComponent()
+        bool HasComponent() const
         {
             return mScene->GetRegistry().any_of<T>(mEnttHandle);
         }
@@ -66,10 +66,15 @@ namespace Surge
             return mScene->GetRegistry().valid(mEnttHandle);
         }
 
-        bool operator==(Entity& other)
+        Scene* GetScene() const
         {
-            return this->mEnttHandle == other.mEnttHandle;
+            return mScene;
         }
+
+        operator bool() const { return (mEnttHandle != entt::null && mScene); }
+        operator entt::entity() const { return mEnttHandle; }
+        bool operator==(const Entity& other) const { return mEnttHandle == other.mEnttHandle && mScene == other.mScene; }
+        bool operator!=(const Entity& other) const { return !(*this == other); }
 
     private:
         entt::entity mEnttHandle;

@@ -5,6 +5,7 @@
 
 namespace Surge::ImGuiAux
 {
+    void DrawRectAroundWidget(const glm::vec4& color, float thickness, float rounding);
     void DockSpace();
 
     void TextCentered(const char* text);
