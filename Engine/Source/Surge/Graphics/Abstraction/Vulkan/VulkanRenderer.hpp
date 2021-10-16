@@ -11,6 +11,7 @@ namespace Surge
         virtual void Initialize() override;
         virtual void Shutdown() override;
 
+        virtual void BeginFrame(const Camera& camera, const glm::mat4& transform) override;
         virtual void BeginFrame(const EditorCamera& camera) override;
         virtual void EndFrame() override;
         virtual void SubmitMesh(const Ref<Mesh>& mesh, const glm::mat4& transform) override;

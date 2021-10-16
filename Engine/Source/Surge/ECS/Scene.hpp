@@ -3,6 +3,7 @@
 #include "Surge/Core/Core.hpp"
 #include "Surge/Core/Memory.hpp"
 #include "Surge/Graphics/Camera/EditorCamera.hpp"
+#include "Surge/Graphics/Camera/RuntimeCamera.hpp"
 #include <entt.hpp>
 
 namespace Surge
@@ -16,11 +17,16 @@ namespace Surge
         Scene(bool runtime);
         ~Scene();
 
+        void Update();
         void Update(const EditorCamera& camera);
         void CreateEntity(Entity& outEntity, const String& name = "New Entity");
-        void DestroyEntity(Entity& InEntity);
+        void DestroyEntity(Entity& entity);
+        void OnResize(Uint width, Uint height);
 
         entt::registry& GetRegistry() { return mRegistry; }
+
+    private:
+        Pair<RuntimeCamera*, glm::mat4> GetMainCamera(); // Camera - CameraTransform(view = glm::inverse(CameraTransform))
 
     private:
         Renderer* mRenderer;
@@ -75,14 +81,14 @@ namespace Surge
             return mScene;
         }
 
-        operator bool() const { return (mEnttHandle != entt::null && mScene); }
+        operator bool() const { return mEnttHandle != entt::null; }
         operator entt::entity() const { return mEnttHandle; }
         bool operator==(const Entity& other) const { return mEnttHandle == other.mEnttHandle && mScene == other.mScene; }
         bool operator!=(const Entity& other) const { return !(*this == other); }
 
     private:
-        entt::entity mEnttHandle;
-        Scene* mScene;
+        entt::entity mEnttHandle = entt::null;
+        Scene* mScene = nullptr;
     };
 
 } // namespace Surge

@@ -13,7 +13,6 @@ namespace Surge
         mCode = GetStaticCode();
         mSceneContext = nullptr;
         mSelectedEntity = {};
-        mHierarchyHovered = false;
         mRenaming = false;
     }
 
@@ -27,14 +26,10 @@ namespace Surge
         ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
         if (ImGui::Begin(PanelCodeToString(mCode), show))
         {
-            //mHierarchyHovered = ImGui::IsWindowHovered();
-            //if (mHierarchyHovered && ImGui::IsMouseClicked(0))
-            //    mSelectedEntity = {};
-
-            if (ImGui::Button("Add Entity", {ImGui::GetWindowWidth(), 0.0f}))
+            if (ImGui::Button("Add Entity", {ImGui::GetWindowWidth() - 15, 0.0f}))
                 ImGui::OpenPopup("Add Entity");
 
-            if (ImGui::BeginPopup("Add Entity") || ImGui::BeginPopupContextWindow(nullptr, 1, false))
+            if (ImGui::BeginPopup("Add Entity") || (ImGui::BeginPopupContextWindow(nullptr, 1, false)))
             {
                 if (ImGui::MenuItem("Empty Entity"))
                 {
@@ -46,6 +41,11 @@ namespace Surge
                     mSceneContext->CreateEntity(mSelectedEntity, "Mesh");
                     mSelectedEntity.AddComponent<MeshComponent>();
                     mRenaming = true;
+                }
+                if (ImGui::MenuItem("Camera"))
+                {
+                    mSceneContext->CreateEntity(mSelectedEntity, "Camera");
+                    mSelectedEntity.AddComponent<CameraComponent>();
                 }
                 ImGui::EndPopup();
             }
@@ -67,7 +67,7 @@ namespace Surge
     {
         String& name = e.GetComponent<NameComponent>().Name;
         ImGuiTreeNodeFlags flags = ((mSelectedEntity == e) ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow;
-        flags |= ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_FramePadding;
+        flags |= ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_AllowItemOverlap;
 
         bool isSelectedEntity = false;
         if (mSelectedEntity == e)
@@ -78,6 +78,9 @@ namespace Surge
 
         bool opened = false;
         opened = ImGui::TreeNodeEx(reinterpret_cast<void*>(static_cast<uint64_t>(static_cast<Uint>(e.Raw()))), flags, name.c_str());
+
+        if (ImGui::IsItemClicked() && !mRenaming)
+            mSelectedEntity = e;
 
         if (isSelectedEntity)
         {
@@ -122,8 +125,18 @@ namespace Surge
             ImGui::PopStyleColor();
         }
 
-        if (ImGui::IsItemClicked() && !mRenaming)
-            mSelectedEntity = e;
+        if (ImGui::BeginPopupContextItem() && !mRenaming)
+        {
+            if (ImGui::MenuItem("Delete"))
+            {
+                if (mSelectedEntity == e)
+                    mSelectedEntity = {};
+
+                mSceneContext->DestroyEntity(e);
+            }
+
+            ImGui::EndPopup();
+        }
 
         if (opened)
             ImGui::TreePop();

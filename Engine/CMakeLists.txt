@@ -25,6 +25,7 @@ set(INCLUDE_DIRS
     Vendor/entt/Include
     Vendor/json/Include
     Vendor/assimp/Include
+    Vendor/FontAwesome
 )
 
 set(LIB_LINKS

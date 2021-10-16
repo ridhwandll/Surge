@@ -27,6 +27,24 @@ namespace Surge
         mRenderer->EndFrame();
     }
 
+    void Scene::Update()
+    {
+        Pair<RuntimeCamera*, glm::mat4> camera = GetMainCamera();
+
+        if (camera.Data1)
+        {
+            mRenderer->BeginFrame(*camera.Data1, camera.Data2);
+            auto group = mRegistry.group<TransformComponent>(entt::get<MeshComponent>);
+            for (auto& entity : group)
+            {
+                auto [transform, mesh] = group.get<TransformComponent, MeshComponent>(entity);
+                if (mesh.Mesh)
+                    mRenderer->SubmitMesh(mesh.Mesh, transform.GetTransform());
+            }
+            mRenderer->EndFrame();
+        }
+    }
+
     void Scene::CreateEntity(Entity& outEntity, const String& name)
     {
         entt::entity e = mRegistry.create();
@@ -35,9 +53,32 @@ namespace Surge
         outEntity.AddComponent<TransformComponent>();
     }
 
-    void Scene::DestroyEntity(Entity& InEntity)
+    void Scene::DestroyEntity(Entity& entity)
     {
-        mRegistry.destroy(InEntity.Raw());
+        mRegistry.destroy(entity.Raw());
+    }
+
+    void Scene::OnResize(Uint width, Uint height)
+    {
+        Pair<RuntimeCamera*, glm::mat4> camera = GetMainCamera();
+        if (camera.Data1)
+            camera.Data1->SetViewportSize(width, height);
+    }
+
+    Pair<RuntimeCamera*, glm::mat4> Scene::GetMainCamera()
+    {
+        Pair<RuntimeCamera*, glm::mat4> result = {nullptr, glm::mat4(1.0f)};
+        auto view = mRegistry.view<TransformComponent, CameraComponent>();
+        for (auto& entity : view)
+        {
+            const auto& [transform, camera] = view.get<TransformComponent, CameraComponent>(entity);
+            if (camera.Primary)
+            {
+                result = {&camera.Camera, transform.GetTransform()};
+                break;
+            }
+        }
+        return result;
     }
 
 } // namespace Surge

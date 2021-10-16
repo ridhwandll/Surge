@@ -36,6 +36,7 @@ namespace Surge
             Ref<Framebuffer> frameBuffer = mRenderer->GetData()->OutputFrambuffer;
             FramebufferSpecification spec = frameBuffer->GetSpecification();
             mCamera.SetViewportSize({viewportSize.x, viewportSize.y});
+            mScene->OnResize(viewportSize.x, viewportSize.y);
             if (spec.Width != viewportSize.x || spec.Height != viewportSize.y)
                 frameBuffer->Resize(viewportSize.x, viewportSize.y);
         }

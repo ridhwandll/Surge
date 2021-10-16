@@ -1,8 +1,9 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
-#define GLM_ENABLE_EXPERIMENTAL
 #pragma once
+#define GLM_ENABLE_EXPERIMENTAL
 #include "Surge/Graphics/Mesh.hpp"
 #include "SurgeReflect/SurgeReflect.hpp"
+#include "Surge/Graphics/Camera/RuntimeCamera.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
@@ -46,6 +47,19 @@ namespace Surge
             : Mesh(mesh) {}
 
         Ref<Surge::Mesh> Mesh;
+
+        SURGE_REFLECTION_ENABLE;
+    };
+
+    struct CameraComponent
+    {
+        CameraComponent() = default;
+        CameraComponent(const RuntimeCamera& cam, bool primary, bool fixedAspectRatio)
+            : Camera(cam), Primary(primary), FixedAspectRatio(fixedAspectRatio) {}
+
+        RuntimeCamera Camera;
+        bool Primary = true;
+        bool FixedAspectRatio = false;
 
         SURGE_REFLECTION_ENABLE;
     };

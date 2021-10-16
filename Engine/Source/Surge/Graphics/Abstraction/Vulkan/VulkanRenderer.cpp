@@ -64,14 +64,18 @@ namespace Surge
         mData.reset();
     }
 
+    void VulkanRenderer::BeginFrame(const Camera& camera, const glm::mat4& transform)
+    {
+        SURGE_PROFILE_FUNC("VulkanRenderer::BeginFrame(Camera)");
+        mData->ViewMatrix = glm::inverse(transform);
+        mData->ProjectionMatrix = camera.GetProjectionMatrix();
+        mData->ViewProjection = mData->ProjectionMatrix * mData->ViewMatrix;
+        mData->DrawList.clear();
+    }
+
     void VulkanRenderer::BeginFrame(const EditorCamera& camera)
     {
-        SURGE_PROFILE_FUNC("VulkanRenderer::BeginFrame");
-        VulkanRenderContext* renderContext = nullptr;
-        SURGE_GET_VULKAN_CONTEXT(renderContext);
-        VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
-        Uint currentFrameIndex = renderContext->GetFrameIndex();
-
+        SURGE_PROFILE_FUNC("VulkanRenderer::BeginFrame(EditorCamera)");
         mData->ViewMatrix = camera.GetViewMatrix();
         mData->ProjectionMatrix = camera.GetProjectionMatrix();
         mData->ViewProjection = mData->ProjectionMatrix * mData->ViewMatrix;
