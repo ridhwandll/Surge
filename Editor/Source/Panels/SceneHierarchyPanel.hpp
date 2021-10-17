@@ -18,8 +18,13 @@ namespace Surge
 
         static PanelCode GetStaticCode() { return PanelCode::SceneHierarchy; }
 
-        void SetSceneContext(Scene* scene) { mSceneContext = scene; }
-        Scene* GetSceneContext(Scene* scene) { return mSceneContext; }
+        void SetSceneContext(Scene* scene)
+        {
+            SG_ASSERT_NOMSG(scene);
+            mSelectedEntity = {};
+            mSceneContext = scene;
+        }
+        Scene* GetSceneContext() { return mSceneContext; }
 
         void SetSelectedEntity(Entity& e) { mSelectedEntity = e; }
         Entity& GetSelectedEntity() { return mSelectedEntity; }

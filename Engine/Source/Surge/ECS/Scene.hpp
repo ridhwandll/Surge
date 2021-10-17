@@ -2,6 +2,7 @@
 #pragma once
 #include "Surge/Core/Core.hpp"
 #include "Surge/Core/Memory.hpp"
+#include "Surge/Core/UUID.hpp"
 #include "Surge/Graphics/Camera/EditorCamera.hpp"
 #include "Surge/Graphics/Camera/RuntimeCamera.hpp"
 #include <entt.hpp>
@@ -17,19 +18,20 @@ namespace Surge
         Scene(bool runtime);
         ~Scene();
 
+        void OnRuntimeStart();
         void Update();
         void Update(const EditorCamera& camera);
+        void OnRuntimeEnd();
+        void CopyTo(Scene* other);
         void CreateEntity(Entity& outEntity, const String& name = "New Entity");
+        void CreateEntityWithID(Entity& outEntity, const UUID& id, const String& name = "New Entity");
         void DestroyEntity(Entity& entity);
         void OnResize(Uint width, Uint height);
 
         entt::registry& GetRegistry() { return mRegistry; }
+        Pair<RuntimeCamera*, glm::mat4> GetMainCameraEntity(); // Camera - CameraTransform(view = glm::inverse(CameraTransform))
 
     private:
-        Pair<RuntimeCamera*, glm::mat4> GetMainCamera(); // Camera - CameraTransform(view = glm::inverse(CameraTransform))
-
-    private:
-        Renderer* mRenderer;
         entt::registry mRegistry;
     };
 

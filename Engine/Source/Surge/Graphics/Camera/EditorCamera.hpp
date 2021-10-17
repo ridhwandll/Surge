@@ -27,6 +27,7 @@ namespace Surge
             mViewportHeight = size.y;
             UpdateProjection();
         }
+        glm::vec2 GetViewportSize() const { return glm::vec2(mViewportWidth, mViewportHeight); }
 
         glm::mat4 GetViewMatrix() const { return mViewMatrix; }
         glm::mat4 GetViewProjection() const { return mProjection * mViewMatrix; }

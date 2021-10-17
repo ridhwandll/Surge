@@ -3,14 +3,18 @@
 
 namespace Surge
 {
+    class Editor;
     class Titlebar
     {
     public:
-        Titlebar() = default;
+        Titlebar();
         ~Titlebar() = default;
 
         void Render();
         float GetHeight() { return 60.0f; }
+
+    private:
+        Editor* mEditor;
     };
 
 } // namespace Surge

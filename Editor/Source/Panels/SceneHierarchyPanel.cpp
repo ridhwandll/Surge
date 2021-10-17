@@ -140,6 +140,8 @@ namespace Surge
 
         if (opened)
             ImGui::TreePop();
+
+        ImGui::SetCursorPos({ImGui::GetCursorPos().x, ImGui::GetCursorPos().y - 3});
     }
 
     void SceneHierarchyPanel::Shutdown()

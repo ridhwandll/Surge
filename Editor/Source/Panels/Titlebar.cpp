@@ -6,9 +6,15 @@
 #include "Editor.hpp"
 #include <imgui.h>
 #include <imgui_internal.h>
+#include <IconsFontAwesome.hpp>
 
 namespace Surge
 {
+    Titlebar::Titlebar()
+    {
+        mEditor = SurgeCore::GetApplication<Editor>();
+    }
+
     void Titlebar::Render()
     {
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5.0f, 8.0f));
@@ -23,6 +29,28 @@ namespace Surge
         ImGui::PushStyleColor(ImGuiCol_Button, {0.12f, 0.12f, 0.12f, 1.0f});
         if (ImGui::Begin("##dummy", NULL, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoDecoration))
         {
+            if (ImGui::SmallButton("View"))
+                ImGui::OpenPopup("ViewPopup");
+
+            float windowWidth = ImGui::GetWindowSize().x;
+            float textWidth = ImGui::CalcTextSize(ICON_SURGE_PLAY).x;
+            ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
+            SceneState sceneState = mEditor->GetSceneState();
+            if (sceneState == SceneState::Edit)
+            {
+                if (ImGui::Button(ICON_SURGE_PLAY))
+                {
+                    mEditor->OnRuntimeStart();
+                }
+            }
+            else if (sceneState == SceneState::Play)
+            {
+                if (ImGui::Button(ICON_SURGE_STOP))
+                {
+                    mEditor->OnRuntimeEnd();
+                }
+            }
+
             // System buttons
             {
                 Window* window = SurgeCore::GetWindow();
@@ -36,11 +64,6 @@ namespace Surge
                 buttonRect.Min = windowPos + ImVec2(ImGui::GetWindowWidth() - buttonSize, buttonOffsetFromWindowBorder);
                 buttonRect.Max = windowPos + windowSize - ImVec2(0, 20);
                 buttonRect.TranslateX(-buttonOffsetFromWindowBorder);
-
-                ImGui::Text("Surge Editor");
-                ImGui::SameLine();
-                if (ImGui::SmallButton("View"))
-                    ImGui::OpenPopup("ViewPopup");
 
                 if (ImGui::BeginPopup("ViewPopup"))
                 {

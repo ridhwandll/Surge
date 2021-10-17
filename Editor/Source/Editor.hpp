@@ -6,6 +6,12 @@
 
 namespace Surge
 {
+    enum class SceneState
+    {
+        Edit,
+        Play
+    };
+
     class Editor : public Application
     {
     public:
@@ -16,19 +22,28 @@ namespace Surge
         virtual void OnShutdown() override;
 
         // Editor specific
+        void OnRuntimeStart();
+        void OnRuntimeEnd();
+
+        SceneState GetSceneState() { return mSceneState; }
         PanelManager& GetPanelManager() { return mPanelManager; }
         Titlebar& GetTitlebar() { return mTitleBar; }
+
+    private:
+        void Resize();
 
     private:
         EditorCamera mCamera;
         Renderer* mRenderer;
 
-        Ref<Scene> mScene;
+        Ref<Scene> mEditorScene, mRuntimeScene;
+
         Entity mEntity;
         Entity mOtherEntity;
 
         PanelManager mPanelManager;
-        Titlebar mTitleBar;
+        Titlebar mTitleBar {};
+        SceneState mSceneState;
     };
 
 } // namespace Surge

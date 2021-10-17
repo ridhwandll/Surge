@@ -15,11 +15,12 @@ namespace Surge
         mCamera = EditorCamera(45.0f, 1.778f, 0.1f, 1000.0f);
         mCamera.SetActive(true);
 
-        mScene = Ref<Scene>::Create(false);
+        mEditorScene = Ref<Scene>::Create(false);
 
+        mTitleBar = Titlebar();
         SceneHierarchyPanel* sceneHierarchy;
         sceneHierarchy = mPanelManager.PushPanel<SceneHierarchyPanel>();
-        sceneHierarchy->SetSceneContext(mScene.Raw());
+        sceneHierarchy->SetSceneContext(mEditorScene.Raw());
         mPanelManager.PushPanel<InspectorPanel>()->SetHierarchy(sceneHierarchy);
         mPanelManager.PushPanel<PerformancePanel>();
         mPanelManager.PushPanel<ViewportPanel>();
@@ -27,21 +28,14 @@ namespace Surge
 
     void Editor::OnUpdate()
     {
-        mCamera.OnUpdate();
-
-        ViewportPanel* viewportPanel = mPanelManager.GetPanel<ViewportPanel>();
-        if (viewportPanel->GetViewportSize().y > 0)
+        Resize();
+        if (mSceneState == SceneState::Edit)
         {
-            glm::vec2 viewportSize = viewportPanel->GetViewportSize();
-            Ref<Framebuffer> frameBuffer = mRenderer->GetData()->OutputFrambuffer;
-            FramebufferSpecification spec = frameBuffer->GetSpecification();
-            mCamera.SetViewportSize({viewportSize.x, viewportSize.y});
-            mScene->OnResize(viewportSize.x, viewportSize.y);
-            if (spec.Width != viewportSize.x || spec.Height != viewportSize.y)
-                frameBuffer->Resize(viewportSize.x, viewportSize.y);
+            mCamera.OnUpdate();
+            mEditorScene->Update(mCamera);
         }
-
-        mScene->Update(mCamera);
+        else if (mSceneState == SceneState::Play)
+            mRuntimeScene->Update();
     }
 
     void Editor::OnImGuiRender()
@@ -56,6 +50,45 @@ namespace Surge
         mCamera.OnEvent(e);
         EventDispatcher dispatcher(e);
         dispatcher.Dispatch<Surge::KeyPressedEvent>([this](KeyPressedEvent& e) { /*Log("{0}", e.ToString());*/ });
+    }
+
+    void Editor::OnRuntimeStart()
+    {
+        mRuntimeScene = Ref<Scene>::Create(true);
+        mEditorScene->CopyTo(mRuntimeScene.Raw());
+        mRuntimeScene->OnRuntimeStart();
+        mPanelManager.GetPanel<SceneHierarchyPanel>()->SetSceneContext(mRuntimeScene.Raw());
+        mSceneState = SceneState::Play;
+    }
+
+    void Editor::OnRuntimeEnd()
+    {
+        SG_ASSERT_NOMSG(mRuntimeScene);
+        mRuntimeScene->OnRuntimeEnd();
+        mRuntimeScene.Reset();
+        mPanelManager.GetPanel<SceneHierarchyPanel>()->SetSceneContext(mEditorScene.Raw());
+        mSceneState = SceneState::Edit;
+    }
+
+    void Editor::Resize()
+    {
+        ViewportPanel* viewportPanel = mPanelManager.GetPanel<ViewportPanel>();
+        glm::vec2 viewportSize = viewportPanel->GetViewportSize();
+        Ref<Framebuffer> framebuffer = mRenderer->GetData()->OutputFrambuffer;
+
+        if (mSceneState == SceneState::Play && mRuntimeScene && mRuntimeScene->GetMainCameraEntity().Data1->GetAspectRatio() != (viewportSize.x / viewportSize.y))
+            mRuntimeScene->OnResize(viewportSize.x, viewportSize.y);
+
+        if (FramebufferSpecification spec = framebuffer->GetSpecification();
+            viewportSize.x > 0.0f && viewportSize.y > 0.0f &&
+            (spec.Width != viewportSize.x || spec.Height != viewportSize.y))
+        {
+            framebuffer->Resize((Uint)viewportSize.x, (Uint)viewportSize.y);
+            mCamera.SetViewportSize(viewportSize);
+
+            if (mSceneState == SceneState::Edit)
+                mEditorScene->OnResize(viewportSize.x, viewportSize.y);
+        }
     }
 
     void Editor::OnShutdown()

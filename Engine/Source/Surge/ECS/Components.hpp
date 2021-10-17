@@ -1,17 +1,30 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #define GLM_ENABLE_EXPERIMENTAL
+#include "Surge/Core/UUID.hpp"
 #include "Surge/Graphics/Mesh.hpp"
 #include "SurgeReflect/SurgeReflect.hpp"
 #include "Surge/Graphics/Camera/RuntimeCamera.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include "Surge/Core/UUID.hpp"
 
 namespace Surge
 {
+    struct IDComponent
+    {
+        IDComponent() = default;
+        IDComponent(const UUID& id)
+            : ID(id) {}
+
+        UUID ID;
+
+        SURGE_REFLECTION_ENABLE;
+    };
+
     struct NameComponent
     {
-        NameComponent() {}
+        NameComponent() = default;
         NameComponent(const String& name)
             : Name(name) {}
 
@@ -22,7 +35,7 @@ namespace Surge
 
     struct TransformComponent
     {
-        TransformComponent() {}
+        TransformComponent() = default;
         TransformComponent(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scale)
             : Position(position), Rotation(rotation), Scale(scale) {}
 

@@ -42,9 +42,9 @@ namespace Surge
             RecalculateProjection();
         }
 
-        void SetViewportSize(Uint width, Uint height)
+        void SetViewportSize(float width, float height)
         {
-            mAspectRatio = (float)width / (float)height;
+            mAspectRatio = width / height;
             RecalculateProjection();
         }
 

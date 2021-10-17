@@ -6,6 +6,10 @@
 // Must be in Gobal Namespace
 // clang-format off
 
+SURGE_REFLECT_CLASS_REGISTER_BEGIN(Surge::IDComponent)
+    .AddVariable<&Surge::IDComponent::ID>("ID")
+SURGE_REFLECT_CLASS_REGISTER_END(Surge::IDComponent)
+
 SURGE_REFLECT_CLASS_REGISTER_BEGIN(Surge::NameComponent)
     .AddVariable<&Surge::NameComponent::Name>("Name")
 SURGE_REFLECT_CLASS_REGISTER_END(Surge::NameComponent)
