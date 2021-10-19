@@ -51,10 +51,10 @@ namespace Surge
         float GetAspectRatio() { return mAspectRatio; }
 
         //Perspective
-        float GetPerspectiveVerticalFOV() const { return mPerspectiveFOV; }
+        float GetPerspectiveVerticalFOV() const { return glm::degrees(mPerspectiveFOV); }
         void SetPerspectiveVerticalFOV(float verticalFov)
         {
-            mPerspectiveFOV = verticalFov;
+            mPerspectiveFOV = glm::radians(verticalFov);
             RecalculateProjection();
         }
         float GetPerspectiveNearClip() const { return mPerspectiveNear; }

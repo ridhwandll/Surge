@@ -9,6 +9,7 @@ namespace Surge
         UUID();
         UUID(uint64_t id);
         UUID(const UUID& other);
+        uint64_t Get() const { return mID; }
 
         operator uint64_t() { return mID; }
         operator const uint64_t() const { return mID; }

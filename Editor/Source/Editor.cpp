@@ -76,7 +76,7 @@ namespace Surge
         glm::vec2 viewportSize = viewportPanel->GetViewportSize();
         Ref<Framebuffer> framebuffer = mRenderer->GetData()->OutputFrambuffer;
 
-        if (mSceneState == SceneState::Play && mRuntimeScene && mRuntimeScene->GetMainCameraEntity().Data1->GetAspectRatio() != (viewportSize.x / viewportSize.y))
+        if (mSceneState == SceneState::Play && mRuntimeScene && mRuntimeScene->GetMainCameraEntity().Data1 && mRuntimeScene->GetMainCameraEntity().Data1->GetAspectRatio() != (viewportSize.x / viewportSize.y))
             mRuntimeScene->OnResize(viewportSize.x, viewportSize.y);
 
         if (FramebufferSpecification spec = framebuffer->GetSpecification();

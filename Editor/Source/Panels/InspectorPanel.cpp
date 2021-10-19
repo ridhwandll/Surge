@@ -125,12 +125,12 @@ namespace Surge
 
                 if (camera.GetProjectionType() == RuntimeCamera::ProjectionType::Perspective)
                 {
-                    float verticalFOV = glm::degrees(camera.GetPerspectiveVerticalFOV());
+                    float verticalFOV = camera.GetPerspectiveVerticalFOV();
                     ImGui::TableNextColumn();
                     ImGui::TextUnformatted("Vertical FOV");
                     ImGui::TableNextColumn();
-                    if (ImGui::DragFloat("##verticalFov", &verticalFOV))
-                        camera.SetPerspectiveVerticalFOV(glm::radians(verticalFOV));
+                    if (ImGui::DragFloat("##verticalFov", &verticalFOV)) // In degree
+                        camera.SetPerspectiveVerticalFOV(verticalFOV);
 
                     float nearClip = camera.GetPerspectiveNearClip();
                     ImGui::TableNextColumn();

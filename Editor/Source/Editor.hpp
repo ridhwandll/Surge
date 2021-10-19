@@ -25,6 +25,7 @@ namespace Surge
         void OnRuntimeStart();
         void OnRuntimeEnd();
 
+        Scene* GetEditorScene() { return mEditorScene.Raw(); }
         SceneState GetSceneState() { return mSceneState; }
         PanelManager& GetPanelManager() { return mPanelManager; }
         Titlebar& GetTitlebar() { return mTitleBar; }

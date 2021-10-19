@@ -2,6 +2,8 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "Panels/Titlebar.hpp"
 #include "Surge/Core/Core.hpp"
+#include "Surge/Utility/FileDialogs.hpp"
+#include "Surge/Serializer/Serializer.hpp"
 #include "Utility/ImGUIAux.hpp"
 #include "Editor.hpp"
 #include <imgui.h>
@@ -29,8 +31,34 @@ namespace Surge
         ImGui::PushStyleColor(ImGuiCol_Button, {0.12f, 0.12f, 0.12f, 1.0f});
         if (ImGui::Begin("##dummy", NULL, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoDecoration))
         {
+            if (ImGui::SmallButton("File"))
+                ImGui::OpenPopup("FilePopup");
+            if (ImGui::BeginPopup("FilePopup"))
+            {
+                if (ImGui::MenuItem("Save"))
+                {
+                    String path = FileDialog::SaveFile("");
+                    if (!path.empty())
+                        Serializer::Serialize<Scene>(path, mEditor->GetEditorScene());
+                }
+                ImGui::EndPopup();
+            }
+            ImGui::SameLine();
             if (ImGui::SmallButton("View"))
                 ImGui::OpenPopup("ViewPopup");
+            if (ImGui::BeginPopup("ViewPopup"))
+            {
+                Editor* editor = SurgeCore::GetApplication<Editor>();
+                PanelManager& panelManager = editor->GetPanelManager();
+
+                for (auto& [code, element] : panelManager.GetAllPanels())
+                {
+                    if (ImGui::MenuItem(PanelCodeToString(code)))
+                        element.Show = !element.Show;
+                }
+
+                ImGui::EndPopup();
+            }
 
             float windowWidth = ImGui::GetWindowSize().x;
             float textWidth = ImGui::CalcTextSize(ICON_SURGE_PLAY).x;
@@ -64,20 +92,6 @@ namespace Surge
                 buttonRect.Min = windowPos + ImVec2(ImGui::GetWindowWidth() - buttonSize, buttonOffsetFromWindowBorder);
                 buttonRect.Max = windowPos + windowSize - ImVec2(0, 20);
                 buttonRect.TranslateX(-buttonOffsetFromWindowBorder);
-
-                if (ImGui::BeginPopup("ViewPopup"))
-                {
-                    Editor* editor = SurgeCore::GetApplication<Editor>();
-                    PanelManager& panelManager = editor->GetPanelManager();
-
-                    for (auto& [code, element] : panelManager.GetAllPanels())
-                    {
-                        if (ImGui::MenuItem(PanelCodeToString(code)))
-                            element.Show = !element.Show;
-                    }
-
-                    ImGui::EndMenu();
-                }
 
                 // Exit button
                 {
