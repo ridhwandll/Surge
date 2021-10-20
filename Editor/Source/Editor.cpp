@@ -16,6 +16,7 @@ namespace Surge
         mCamera.SetActive(true);
 
         mEditorScene = Ref<Scene>::Create(false);
+        Serializer::Deserialize<Scene>("Engine/Assets/Scenes/Test.surge", mEditorScene);
 
         mTitleBar = Titlebar();
         SceneHierarchyPanel* sceneHierarchy;

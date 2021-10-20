@@ -8,10 +8,11 @@
 
 namespace Surge
 {
-    template <typename Func>
+    template <typename XComponent, typename Func>
     static void DrawComponent(const String& name, Func& function)
     {
-        ImGui::PushID(name.c_str());
+        int64_t hash = SurgeReflect::GetReflection<XComponent>()->GetHash();
+        ImGui::PushID(static_cast<int>(hash));
         if (ImGui::CollapsingHeader(name.c_str(), ImGuiTreeNodeFlags_DefaultOpen))
         {
             if (ImGui::BeginTable("##ComponentTable", 2, ImGuiTableFlags_Resizable))
@@ -38,8 +39,22 @@ namespace Surge
         if (ImGui::Begin(PanelCodeToString(mCode), show))
         {
             Entity& entity = mHierarchy->GetSelectedEntity();
-            if (entity)
+            if (mHierarchy->GetSceneContext()->IsValid(entity.Raw()))
+            {
                 DrawComponents(entity);
+
+                if (ImGui::Button("Add Component", {ImGui::GetWindowWidth() - 15, 0.0f}))
+                    ImGui::OpenPopup("AddComponentPopup");
+
+                if (ImGui::BeginPopup("AddComponentPopup"))
+                {
+                    if (ImGui::MenuItem("Camera"))
+                        entity.AddComponent<CameraComponent>();
+                    if (ImGui::MenuItem("Mesh"))
+                        entity.AddComponent<MeshComponent>();
+                    ImGui::EndPopup();
+                }
+            }
         }
         ImGui::End();
     }
@@ -57,27 +72,27 @@ namespace Surge
         if (entity.HasComponent<TransformComponent>())
         {
             TransformComponent& component = entity.GetComponent<TransformComponent>();
-            DrawComponent("Transform", [&component]() {
+            DrawComponent<TransformComponent>("Transform", [&component]() {
                 ImGui::TextUnformatted("Position");
                 ImGui::TableNextColumn();
-                ImGui::DragFloat3("##pos", glm::value_ptr(component.Position));
+                ImGui::DragFloat3("##pos", glm::value_ptr(component.Position), 0.1f, 0.0f, 0.0f, "%.2f");
                 ImGui::TableNextColumn();
 
                 ImGui::TextUnformatted("Rotation");
                 ImGui::TableNextColumn();
-                ImGui::DragFloat3("##rot", glm::value_ptr(component.Rotation));
+                ImGui::DragFloat3("##rot", glm::value_ptr(component.Rotation), 0.1f, 0.0f, 0.0f, "%.2f");
                 ImGui::TableNextColumn();
 
                 ImGui::TextUnformatted("Scale");
                 ImGui::TableNextColumn();
-                ImGui::DragFloat3("##scale", glm::value_ptr(component.Scale));
+                ImGui::DragFloat3("##scale", glm::value_ptr(component.Scale), 0.1f, 0.0f, 0.0f, "%.2f");
             });
         }
 
         if (entity.HasComponent<MeshComponent>())
         {
             MeshComponent& component = entity.GetComponent<MeshComponent>();
-            DrawComponent("Mesh", [&component]() {
+            DrawComponent<MeshComponent>("Mesh", [&component]() {
                 ImGui::TextUnformatted("Path");
                 ImGui::TableNextColumn();
                 const String& path = component.Mesh ? component.Mesh->GetPath() : "";
@@ -93,7 +108,7 @@ namespace Surge
         if (entity.HasComponent<CameraComponent>())
         {
             CameraComponent& component = entity.GetComponent<CameraComponent>();
-            DrawComponent("Camera", [&component]() {
+            DrawComponent<CameraComponent>("Camera", [&component]() {
                 RuntimeCamera& camera = component.Camera;
                 ImGui::TextUnformatted("Primary");
                 ImGui::TableNextColumn();

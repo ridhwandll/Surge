@@ -132,9 +132,9 @@ namespace Surge
         Vector<VkPushConstantRange> pushConstants = VulkanUtils::GetPushConstantRangesVectorFromHashMap(vulkanShader->GetPushConstantRanges());
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
-        pipelineLayoutInfo.setLayoutCount = descriptorSetLayouts.size();
+        pipelineLayoutInfo.setLayoutCount = static_cast<Uint>(descriptorSetLayouts.size());
         pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
-        pipelineLayoutInfo.pushConstantRangeCount = pushConstants.size();
+        pipelineLayoutInfo.pushConstantRangeCount = static_cast<Uint>(pushConstants.size());
         pipelineLayoutInfo.pPushConstantRanges = pushConstants.data();
         VK_CALL(vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &mPipelineLayout));
 
@@ -144,7 +144,7 @@ namespace Surge
         dynamicStates[1] = VK_DYNAMIC_STATE_SCISSOR;
         dynamicStates[2] = VK_DYNAMIC_STATE_LINE_WIDTH;
         VkPipelineDynamicStateCreateInfo dynamicStatesCreateInfo {VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO};
-        dynamicStatesCreateInfo.dynamicStateCount = dynamicStates.size();
+        dynamicStatesCreateInfo.dynamicStateCount = static_cast<Uint>(dynamicStates.size());
         dynamicStatesCreateInfo.pDynamicStates = dynamicStates.data();
 
         VkGraphicsPipelineCreateInfo pipelineInfo {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};

@@ -6,12 +6,21 @@
 namespace Surge::Serializer
 {
     template <typename T>
-    void Serialize(const Path& path, T* out)
+    void Serialize(const Path& path, Ref<T>& in)
+    {
+        static_assert(false);
+    }
+
+    template <typename T>
+    void Deserialize(const Path& path, Ref<T>& out)
     {
         static_assert(false);
     }
 
     template <>
-    void Serialize(const Path& path, Scene* out);
+    void Serialize(const Path& path, Ref<Scene>& in);
+
+    template <>
+    void Deserialize(const Path& path, Ref<Scene>& out);
 
 } // namespace Surge::Serializer

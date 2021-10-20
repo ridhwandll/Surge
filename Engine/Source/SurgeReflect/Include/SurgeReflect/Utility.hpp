@@ -8,7 +8,7 @@ namespace SurgeReflect::Utility
     {
         int64_t result = 0;
         const int p = 31;
-        const int m = 1e9 + 9;
+        const int m = static_cast<int>(1e9 + 9);
         long long pPow = 1;
         for (char c : s)
         {

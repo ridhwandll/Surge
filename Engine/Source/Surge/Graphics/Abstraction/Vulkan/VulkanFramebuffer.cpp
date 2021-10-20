@@ -100,7 +100,7 @@ namespace Surge
         renderPassInfo.pDependencies = nullptr; // ^^ Says there is an implicit one provided, still should we add one explicitly?
         VK_CALL(vkCreateRenderPass(logicalDevice, &renderPassInfo, nullptr, &mRenderPass));
 
-        Uint colorAttachmentImagesSize = mColorAttachmentImages.size();
+        Uint colorAttachmentImagesSize = static_cast<Uint>(mColorAttachmentImages.size());
         Vector<VkImageView> attachments(colorAttachmentImagesSize);
         for (Uint i = 0; i < colorAttachmentImagesSize; i++)
         {

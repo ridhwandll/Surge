@@ -108,7 +108,7 @@ namespace Surge
         mRegistry.destroy(entity.Raw());
     }
 
-    void Scene::OnResize(Uint width, Uint height)
+    void Scene::OnResize(float width, float height)
     {
         Pair<RuntimeCamera*, glm::mat4> camera = GetMainCameraEntity();
         if (camera.Data1)

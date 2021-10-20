@@ -24,9 +24,9 @@ namespace Surge
         HashCode result = 0;
         // Based on: https://cp-algorithms.com/string/string-hashing.html
         const int p = 53;
-        const int m = 1e9 + 9;
+        const int m = static_cast<int>(1e9 + 9);
         long long pPow = 1;
-        for (char c: s)
+        for (char c : s)
         {
             result = (result + (c - 'a' + 1) * pPow) % m;
             pPow = (pPow * p) % m;

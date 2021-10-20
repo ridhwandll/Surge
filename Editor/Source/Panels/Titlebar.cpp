@@ -35,11 +35,19 @@ namespace Surge
                 ImGui::OpenPopup("FilePopup");
             if (ImGui::BeginPopup("FilePopup"))
             {
+                if (ImGui::MenuItem("Load"))
+                {
+                    String path = FileDialog::OpenFile("");
+                    if (!path.empty())
+                        Serializer::Deserialize<Scene>(path, mEditor->GetEditorScene());
+                }
                 if (ImGui::MenuItem("Save"))
                 {
                     String path = FileDialog::SaveFile("");
                     if (!path.empty())
+                    {
                         Serializer::Serialize<Scene>(path, mEditor->GetEditorScene());
+                    }
                 }
                 ImGui::EndPopup();
             }
@@ -84,20 +92,20 @@ namespace Surge
                 Window* window = SurgeCore::GetWindow();
                 ImDrawList* drawList = ImGui::GetWindowDrawList();
                 const float buttonSize = ImGui::GetFrameHeight();
-                const float iconMargin = buttonSize * 0.33;
-                const float buttonOffsetFromWindowBorder = 10;
+                const float iconMargin = buttonSize * 0.33f;
+                const float buttonOffsetFromWindowBorder = 10.0f;
                 const ImVec2 windowPos = ImGui::GetWindowPos();
                 const ImVec2 windowSize = ImGui::GetWindowSize();
                 ImRect buttonRect {};
                 buttonRect.Min = windowPos + ImVec2(ImGui::GetWindowWidth() - buttonSize, buttonOffsetFromWindowBorder);
-                buttonRect.Max = windowPos + windowSize - ImVec2(0, 20);
+                buttonRect.Max = windowPos + windowSize - ImVec2(0, 20.0f);
                 buttonRect.TranslateX(-buttonOffsetFromWindowBorder);
 
                 // Exit button
                 {
                     bool hovered = false;
                     bool held = false;
-                    bool pressed = ImGui::ButtonBehavior(buttonRect, ImGui::GetID("EXIT"), &hovered, &held, 0);
+                    bool pressed = ImGui::ButtonBehavior(buttonRect, ImGui::GetID("EXIT"), &hovered, &held);
 
                     if (hovered)
                     {

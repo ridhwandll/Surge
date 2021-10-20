@@ -26,9 +26,11 @@ namespace Surge
         void CreateEntity(Entity& outEntity, const String& name = "New Entity");
         void CreateEntityWithID(Entity& outEntity, const UUID& id, const String& name = "New Entity");
         void DestroyEntity(Entity& entity);
-        void OnResize(Uint width, Uint height);
-
+        void OnResize(float width, float height);
+        bool IsValid(const entt::entity& e) { return mRegistry.valid(e); }
         entt::registry& GetRegistry() { return mRegistry; }
+
+        const entt::registry& GetRegistry() const { return mRegistry; }
         Pair<RuntimeCamera*, glm::mat4> GetMainCameraEntity(); // Camera - CameraTransform(view = glm::inverse(CameraTransform))
 
     private:
@@ -71,11 +73,6 @@ namespace Surge
         entt::entity Raw()
         {
             return mEnttHandle;
-        }
-
-        bool IsValid()
-        {
-            return mScene->GetRegistry().valid(mEnttHandle);
         }
 
         Scene* GetScene() const

@@ -50,7 +50,7 @@ namespace Surge
                 ImGui::EndPopup();
             }
 
-            uint64_t idCounter = 0;
+            Uint idCounter = 0;
             mSceneContext->GetRegistry().each([&](entt::entity e) {
                 ImGui::PushID(idCounter);
                 Entity ent = Entity(e, mSceneContext);

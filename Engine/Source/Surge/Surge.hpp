@@ -25,6 +25,7 @@
 
 #include <imgui.h>
 #include "Surge/Utility/Filesystem.hpp"
+#include "Surge/Serializer/Serializer.hpp"
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm/gtc/type_ptr.hpp"
