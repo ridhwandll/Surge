@@ -11,11 +11,12 @@ namespace Surge
         : mSpecification(pipelineSpec)
     {
         Reload();
-        mSpecification.Shader->AddReloadCallback([&]() { this->Reload(); }); // Recreate the pipeline if shader gets reloaded
+        mShaderReloadID = mSpecification.Shader->AddReloadCallback([&]() { this->Reload(); });
     }
 
     VulkanGraphicsPipeline::~VulkanGraphicsPipeline()
     {
+        mSpecification.Shader->RemoveReloadCallback(mShaderReloadID);
         Clear();
     }
 

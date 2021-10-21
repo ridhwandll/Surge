@@ -37,13 +37,13 @@ namespace Surge
     ShaderReflectionData ShaderReflector::Reflect(const Vector<SPIRVHandle>& spirvHandles)
     {
         ShaderReflectionData result;
-        for (auto& handle: spirvHandles)
+        for (auto& handle : spirvHandles)
         {
             spirv_cross::Compiler compiler(handle.SPIRV);
             spirv_cross::ShaderResources resources = compiler.get_shader_resources();
 
             // Fetch the sampled textures
-            for (const spirv_cross::Resource& resource: resources.sampled_images)
+            for (const spirv_cross::Resource& resource : resources.sampled_images)
             {
                 ShaderResource res;
                 res.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
@@ -55,7 +55,7 @@ namespace Surge
             }
 
             // Fetch the storage textures
-            for (const spirv_cross::Resource& resource: resources.storage_images)
+            for (const spirv_cross::Resource& resource : resources.storage_images)
             {
                 ShaderResource res;
                 res.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
@@ -67,7 +67,7 @@ namespace Surge
             }
 
             // Fetch all the Uniform/Constant buffers
-            for (const spirv_cross::Resource& resource: resources.uniform_buffers)
+            for (const spirv_cross::Resource& resource : resources.uniform_buffers)
             {
                 ShaderBuffer buffer;
                 const spirv_cross::SPIRType& bufferType = compiler.get_type(resource.base_type_id);
@@ -81,9 +81,12 @@ namespace Surge
 
                 for (Uint i = 0; i < bufferType.member_types.size(); i++)
                 {
+                    const spirv_cross::SPIRType& spvType = compiler.get_type(bufferType.member_types[i]);
+
                     ShaderBufferMember bufferMember;
                     bufferMember.Name = buffer.BufferName + '.' + compiler.get_member_name(bufferType.self, i);
                     bufferMember.MemoryOffset = compiler.type_struct_member_offset(bufferType, i); // In bytes
+                    bufferMember.DataType = Utils::SPVTypeToShaderDataType(spvType);
                     buffer.Members.emplace_back(bufferMember);
                 }
 
@@ -91,7 +94,7 @@ namespace Surge
             }
 
             // Fetch all the Storage buffers
-            for (const spirv_cross::Resource& resource: resources.storage_buffers)
+            for (const spirv_cross::Resource& resource : resources.storage_buffers)
             {
                 ShaderBuffer buffer;
                 const spirv_cross::SPIRType& bufferType = compiler.get_type(resource.base_type_id);
@@ -105,9 +108,12 @@ namespace Surge
 
                 for (Uint i = 0; i < bufferType.member_types.size(); i++)
                 {
+                    const spirv_cross::SPIRType& spvType = compiler.get_type(bufferType.member_types[i]);
+
                     ShaderBufferMember bufferMember;
                     bufferMember.Name = buffer.BufferName + '.' + compiler.get_member_name(bufferType.self, i);
                     bufferMember.MemoryOffset = compiler.type_struct_member_offset(bufferType, i); // In bytes
+                    bufferMember.DataType = Utils::SPVTypeToShaderDataType(spvType);
                     buffer.Members.emplace_back(bufferMember);
                 }
 
@@ -115,7 +121,7 @@ namespace Surge
             }
 
             // Fetch the StageInputs
-            for (const spirv_cross::Resource& resource: resources.stage_inputs)
+            for (const spirv_cross::Resource& resource : resources.stage_inputs)
             {
                 ShaderStageInput stageInput;
 
@@ -131,14 +137,14 @@ namespace Surge
 
             // Calculating the offsets after the locations are sorted
             Uint elementOffset = 0;
-            for (auto& [location, stageInput]: result.mStageInputs.at(ShaderType::Vertex))
+            for (auto& [location, stageInput] : result.mStageInputs.at(handle.Type))
             {
                 stageInput.Offset = elementOffset;
                 elementOffset += stageInput.Size;
             }
 
             // Fetch Push Constants
-            for (const spirv_cross::Resource& resource: resources.push_constant_buffers)
+            for (const spirv_cross::Resource& resource : resources.push_constant_buffers)
             {
                 ShaderPushConstant pushConstant;
                 const spirv_cross::SPIRType& bufferType = compiler.get_type(resource.base_type_id);

@@ -13,6 +13,22 @@ if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
     message(FATAL_ERROR "In-source builds not allowed. Please make a new directory (called a build directory) and run CMake from there. You may need to remove CMakeCache.txt.")
 endif()
 
+#check the compiler
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  # using Clang
+  set(CMAKE_CXX_FLAGS "-g3 -O0 -Wall -pedantic -Wextra -m64 -mfma -ffast-math -fno-rtti")
+  MESSAGE(STATUS "[Surge] Compiler id ${CMAKE_CXX_COMPILER_ID}")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  # using GCC
+  set(CMAKE_CXX_FLAGS "-Wall -pedantic -Wextra -m64 -mfma -ffast-math -fno-rtti")
+  MESSAGE(STATUS "[Surge] Compiler id ${CMAKE_CXX_COMPILER_ID}")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+  # using Visual Studio C++
+  set(CMAKE_CXX_FLAGS "/W3 /fp:fast /GR- /MP")
+  MESSAGE(STATUS "[Surge] Compiler id ${CMAKE_CXX_COMPILER_ID}(The best compiler)")
+
+
+endif()
 add_subdirectory(Engine/Vendor)
 add_subdirectory(Engine)
 add_subdirectory(Editor)

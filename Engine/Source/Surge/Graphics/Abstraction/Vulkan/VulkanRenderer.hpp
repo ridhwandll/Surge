@@ -29,4 +29,5 @@ namespace Surge
     private:
         Vector<VkDescriptorPool> sDescriptorPool;
     };
+
 } // namespace Surge

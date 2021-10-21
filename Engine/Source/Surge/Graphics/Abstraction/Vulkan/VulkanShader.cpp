@@ -22,6 +22,7 @@ namespace Surge
 
     VulkanShader::~VulkanShader()
     {
+        SG_ASSERT(mCallbacks.empty(), "Callbacks must be empty! Did you forgot to call 'RemoveReloadCallback(id);' somewhere?");
         Clear();
     }
 
@@ -38,8 +39,26 @@ namespace Surge
     void VulkanShader::Reload()
     {
         Load();
-        for (const std::function<void()>& callback : mCallbacks)
+        for (const auto& [id, callback] : mCallbacks)
             callback();
+    }
+
+    Surge::CallbackID VulkanShader::AddReloadCallback(const std::function<void()> callback)
+    {
+        UUID id = UUID();
+        mCallbacks[id] = callback;
+        return id;
+    }
+
+    void VulkanShader::RemoveReloadCallback(const CallbackID& id)
+    {
+        auto itr = mCallbacks.find(id);
+        if (itr != mCallbacks.end())
+        {
+            mCallbacks.erase(id);
+            return;
+        }
+        SG_ASSERT_INTERNAL("Invalid CallbackID!");
     }
 
     void VulkanShader::Compile(const HashMap<ShaderType, bool>& compileStages)

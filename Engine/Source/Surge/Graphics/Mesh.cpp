@@ -80,6 +80,8 @@ namespace Surge
         pipelineSpec.LineWidth = 1.0f;
         pipelineSpec.TargetFramebuffer = SurgeCore::GetRenderer()->GetFramebuffer();
         mPipeline = GraphicsPipeline::Create(pipelineSpec);
+
+        mMaterialStorage = Ref<Material>::Create(pipelineSpec.Shader);
     }
 
     void Mesh::GetVertexData(const aiMesh* mesh, AABB& outAABB)

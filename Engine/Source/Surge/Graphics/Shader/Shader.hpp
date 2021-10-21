@@ -2,6 +2,7 @@
 #pragma once
 #include "Surge/Core/Hash.hpp"
 #include "Surge/Core/Memory.hpp"
+#include "Surge/Core/UUID.hpp"
 
 namespace Surge
 {
@@ -86,6 +87,7 @@ namespace Surge
         ShaderType Type;
     };
 
+    using CallbackID = UUID;
     class ShaderReflectionData;
     class Shader : public RefCounted
     {
@@ -95,7 +97,8 @@ namespace Surge
 
         virtual void Load(const HashMap<ShaderType, bool>& compileStages = {}) = 0;
         virtual void Reload() = 0;
-        virtual void AddReloadCallback(const std::function<void()> callback) = 0;
+        [[nodiscard]] virtual CallbackID AddReloadCallback(const std::function<void()> callback) = 0;
+        virtual void RemoveReloadCallback(const CallbackID& id) = 0;
         virtual const ShaderReflectionData& GetReflectionData() const = 0;
         virtual const Vector<SPIRVHandle>& GetSPIRVs() const = 0;
         virtual const Path& GetPath() const = 0;

@@ -43,7 +43,7 @@ namespace Surge
             VkDescriptorPoolCreateInfo poolInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
             poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
             poolInfo.maxSets = 100 * (sizeof(poolSizes) / sizeof(VkDescriptorPoolSize));
-            poolInfo.poolSizeCount = (uint32_t)(sizeof(poolSizes) / sizeof(VkDescriptorPoolSize));
+            poolInfo.poolSizeCount = (Uint)(sizeof(poolSizes) / sizeof(VkDescriptorPoolSize));
             poolInfo.pPoolSizes = poolSizes;
             VK_CALL(vkCreateDescriptorPool(renderContext->GetDevice()->GetLogicalDevice(), &poolInfo, nullptr, &descriptorPool));
         }

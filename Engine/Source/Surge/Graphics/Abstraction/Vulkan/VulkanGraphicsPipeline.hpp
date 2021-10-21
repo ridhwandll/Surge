@@ -19,7 +19,7 @@ namespace Surge
 
         VkPipeline GetVulkanPipeline() const { return mPipeline; }
         VkPipelineLayout GetPipelineLayout() const { return mPipelineLayout; }
-        virtual const GraphicsPipelineSpecification& GetPipelineSpecification() const override { return mSpecification; }
+        virtual const GraphicsPipelineSpecification& GetSpecification() const override { return mSpecification; }
 
     private:
         void Clear();
@@ -28,6 +28,7 @@ namespace Surge
         GraphicsPipelineSpecification mSpecification;
         VkPipeline mPipeline = VK_NULL_HANDLE;
         VkPipelineLayout mPipelineLayout = VK_NULL_HANDLE;
+        CallbackID mShaderReloadID;
     };
 
 } // namespace Surge

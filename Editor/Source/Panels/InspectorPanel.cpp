@@ -102,6 +102,24 @@ namespace Surge
                     if (!path.empty())
                         component.Mesh = Ref<Mesh>::Create(path);
                 }
+                if (component.Mesh)
+                {
+                    Ref<Material>& material = component.Mesh->GetMaterial();
+                    const ShaderBuffer& shaderBuffer = material->GetShaderBuffer();
+                    for (const ShaderBufferMember& member : shaderBuffer.Members)
+                    {
+                        if (member.DataType == ShaderDataType::Int)
+                            ImGui::DragInt(member.Name.c_str(), &material->Get<int>(member.Name));
+                        if (member.DataType == ShaderDataType::Float)
+                            ImGui::DragFloat(member.Name.c_str(), &material->Get<float>(member.Name));
+                        if (member.DataType == ShaderDataType::Float2)
+                            ImGui::DragFloat2(member.Name.c_str(), glm::value_ptr(material->Get<glm::vec2>(member.Name)));
+                        if (member.DataType == ShaderDataType::Float3)
+                            ImGui::DragFloat3(member.Name.c_str(), glm::value_ptr(material->Get<glm::vec3>(member.Name)));
+                        if (member.DataType == ShaderDataType::Float4)
+                            ImGui::DragFloat4(member.Name.c_str(), glm::value_ptr(material->Get<glm::vec4>(member.Name)));
+                    }
+                }
             });
         }
 

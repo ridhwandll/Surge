@@ -66,7 +66,7 @@ namespace Surge
         virtual ~GraphicsPipeline() = default;
 
         virtual void Reload() = 0;
-        virtual const GraphicsPipelineSpecification& GetPipelineSpecification() const = 0;
+        virtual const GraphicsPipelineSpecification& GetSpecification() const = 0;
         virtual void Bind(const Ref<RenderCommandBuffer>& cmdBuffer) const = 0;
         virtual void SetPushConstantData(const Ref<RenderCommandBuffer>& cmdBuffer, const String& bufferName, void* data) const = 0;
         virtual void DrawIndexed(const Ref<RenderCommandBuffer>& cmdBuffer, Uint indicesCount, Uint baseIndex, Uint baseVertex) const = 0;

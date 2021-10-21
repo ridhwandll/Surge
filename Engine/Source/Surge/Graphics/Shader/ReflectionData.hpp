@@ -37,6 +37,7 @@ namespace Surge
     {
         String Name = "";
         Uint MemoryOffset = 0;
+        ShaderDataType DataType = ShaderDataType::None;
     };
 
     // Represents a ConstantBuffer
@@ -55,6 +56,16 @@ namespace Surge
         Vector<ShaderBufferMember> Members = {};
         ShaderBuffer::Usage Type;
         Vector<ShaderType> ShaderStages; // Specify what shader stages the buffer is being used for
+
+        const ShaderBufferMember* GetMember(const String& name)
+        {
+            for (const ShaderBufferMember& member : Members)
+            {
+                if (member.Name == name)
+                    return &member;
+            }
+            return nullptr;
+        }
     };
 
     struct ShaderPushConstant

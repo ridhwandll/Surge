@@ -31,7 +31,13 @@ layout(location = 0) out vec4 outColor;
 layout(location = 0) in vec3 vNormal;
 layout(location = 1) in vec2 vTexCoord;
 
-//layout(binding = 0, set = 0) uniform sampler2D u_Texture;
+layout(binding = 0, set = 0) uniform Material
+{
+   vec3 Albedo;
+
+
+} uMaterial;
+
 
 void main()
 {

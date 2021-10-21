@@ -51,7 +51,7 @@ set_property(TARGET Surge PROPERTY VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_
 set_target_properties(Surge PROPERTIES FOLDER Engine)
 
 if (WIN32)
-set(PLATFORM_COMPILE_DEFS VK_USE_PLATFORM_WIN32_KHR)
+set(PLATFORM_COMPILE_DEFS VK_USE_PLATFORM_WIN32_KHR NOMINMAX)
 endif (WIN32)
 
 target_compile_definitions(Surge
@@ -60,7 +60,7 @@ target_compile_definitions(Surge
     "_CRT_SECURE_NO_WARNINGS"
     "GLM_FORCE_DEPTH_ZERO_TO_ONE"
     "GLM_FORCE_RADIANS"
-    "NOMINMAX"
+    
     ${PLATFORM_COMPILE_DEFS}
 
     $<$<CONFIG:Debug>:SURGE_DEBUG>

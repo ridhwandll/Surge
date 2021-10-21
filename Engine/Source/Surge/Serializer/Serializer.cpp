@@ -8,6 +8,17 @@
 // https://github.com/nlohmann/json#arbitrary-types-conversions
 namespace glm
 {
+    inline void to_json(nlohmann::json& j, const vec2& p)
+    {
+        j = nlohmann::json {{"X", p.x}, {"Y", p.y}};
+    }
+
+    inline void from_json(const nlohmann::json& j, vec2& p)
+    {
+        j.at("X").get_to(p.x);
+        j.at("Y").get_to(p.y);
+    }
+
     inline void to_json(nlohmann::json& j, const vec3& p)
     {
         j = nlohmann::json {{"X", p.x}, {"Y", p.y}, {"Z", p.z}};
@@ -18,6 +29,19 @@ namespace glm
         j.at("X").get_to(p.x);
         j.at("Y").get_to(p.y);
         j.at("Z").get_to(p.z);
+    }
+
+    inline void to_json(nlohmann::json& j, const vec4& p)
+    {
+        j = nlohmann::json {{"X", p.x}, {"Y", p.y}, {"Z", p.z}, {"W", p.w}};
+    }
+
+    inline void from_json(const nlohmann::json& j, vec4& p)
+    {
+        j.at("X").get_to(p.x);
+        j.at("Y").get_to(p.y);
+        j.at("Z").get_to(p.z);
+        j.at("W").get_to(p.w);
     }
 
 } // namespace glm
@@ -142,7 +166,8 @@ namespace Surge
             index++;
         });
 
-        outJson["Scene"]["Size"] = in->GetRegistry().size();
+        size_t size = in->GetRegistry().size<IDComponent>();
+        outJson["Scene"]["Size"] = size;
 
         String result = outJson.dump(4);
         FILE* f;
@@ -268,7 +293,7 @@ namespace Surge
         }
 
         // Parse the json
-        nlohmann::json parsedJson = nlohmann::json::parse(jsonContents);
+        nlohmann::json parsedJson = nlohmann::json::parse(jsonContents, nullptr, true, true);
         uint64_t size = parsedJson["Scene"]["Size"];
 
         for (uint64_t i = 0; i < size; i++)
