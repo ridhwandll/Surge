@@ -26,7 +26,7 @@ namespace Surge
         Ref<Framebuffer> OutputFrambuffer;
         Ref<RenderCommandBuffer> RenderCmdBuffer;
         Vector<DrawCommand> DrawList;
-
+        Ref<GraphicsPipeline> mGeometryPipeline;
         Surge::ShaderSet ShaderSet;
 
         glm::mat4 ViewMatrix;

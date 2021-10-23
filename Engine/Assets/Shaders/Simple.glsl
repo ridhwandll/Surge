@@ -34,8 +34,7 @@ layout(location = 1) in vec2 vTexCoord;
 layout(binding = 0, set = 0) uniform Material
 {
    vec3 Albedo;
-
-
+   float Emmision;
 } uMaterial;
 
 

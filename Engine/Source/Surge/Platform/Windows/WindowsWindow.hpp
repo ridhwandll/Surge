@@ -35,7 +35,8 @@ namespace Surge
 
     private:
         void ApplyFlags();
-        static LRESULT CALLBACK WindowProc(HWND hWnd, UINT msg, WPARAM lParam, LPARAM wParam);
+        static LRESULT CALLBACK WindowProcWithImgui(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+        static LRESULT CALLBACK WindowProcWithoutImGui(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
     private:
         std::function<void(Event&)> mEventCallback;

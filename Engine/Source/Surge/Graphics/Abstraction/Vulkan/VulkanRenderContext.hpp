@@ -25,11 +25,12 @@ namespace Surge
         Uint GetFrameIndex() const override { return mSwapChain.GetCurrentFrameIndex(); }
         virtual GPUMemoryStats GetMemoryStatus() const override { return mMemoryAllocator.GetStats(); };
         virtual GPUInfo GetGPUInfo() const override { return mGPUInfo; }
-        virtual void* GetMemoryAllocator() const override { return (void*)&mMemoryAllocator; }
 
         VkInstance GetInstance() const { return mVulkanInstance; }
         VulkanDevice* GetDevice() { return &mDevice; }
         VulkanSwapChain* GetSwapChain() { return &mSwapChain; }
+        VulkanMemoryAllocator* GetMemoryAllocator() { return &mMemoryAllocator; }
+
         virtual void* GetImGuiTextureID(const Ref<Image2D>& image) const;
 
     private:

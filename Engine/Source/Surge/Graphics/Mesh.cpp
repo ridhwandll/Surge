@@ -65,23 +65,10 @@ namespace Surge
 
         TraverseNodes(scene->mRootNode);
 
-        // TODO: Materials here
+        // TODO: Material data here
 
         mVertexBuffer = VertexBuffer::Create(mVertices.data(), static_cast<Uint>(mVertices.size()) * sizeof(Vertex));
         mIndexBuffer = IndexBuffer::Create(mIndices.data(), static_cast<Uint>(mIndices.size() * sizeof(Index)));
-
-        GraphicsPipelineSpecification pipelineSpec {};
-        pipelineSpec.Shader = SurgeCore::GetRenderer()->GetShader("Simple"); // TODO: Should be handled by material
-        pipelineSpec.Topology = PrimitiveTopology::TriangleList;
-        pipelineSpec.CullingMode = CullMode::Back;
-        pipelineSpec.UseDepth = true;
-        pipelineSpec.UseStencil = false;
-        pipelineSpec.DebugName = "MeshPipeline";
-        pipelineSpec.LineWidth = 1.0f;
-        pipelineSpec.TargetFramebuffer = SurgeCore::GetRenderer()->GetFramebuffer();
-        mPipeline = GraphicsPipeline::Create(pipelineSpec);
-
-        mMaterialStorage = Ref<Material>::Create(pipelineSpec.Shader);
     }
 
     void Mesh::GetVertexData(const aiMesh* mesh, AABB& outAABB)

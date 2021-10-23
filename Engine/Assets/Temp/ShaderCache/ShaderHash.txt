@@ -1,4 +1,4 @@
 {
-    "Simple.glsl.Pixel.spv": 724532896,
+    "Simple.glsl.Pixel.spv": 301820830,
     "Simple.glsl.Vertex.spv": -441704720
 }

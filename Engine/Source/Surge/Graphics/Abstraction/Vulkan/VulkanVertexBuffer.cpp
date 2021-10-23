@@ -50,7 +50,7 @@ namespace Surge
         vertexBufferCreateInfo.size = mSize;
         vertexBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
         vertexBufferCreateInfo.flags = VK_SHARING_MODE_EXCLUSIVE;
-        mAllocation = allocator->AllocateBuffer(vertexBufferCreateInfo, VMA_MEMORY_USAGE_GPU_ONLY, mVulkanBuffer, &mAllocationInfo);
+        mAllocation = allocator->AllocateBuffer(vertexBufferCreateInfo, VMA_MEMORY_USAGE_GPU_ONLY, mVulkanBuffer, nullptr);
 
         device->InstantSubmit(VulkanQueueType::Transfer, [&](VkCommandBuffer& cmd) {
             VkBufferCopy copyRegion = {};

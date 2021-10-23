@@ -38,17 +38,19 @@ namespace Surge
             if (ImGui::CollapsingHeader("Shaders"))
             {
                 Vector<Ref<Shader>>& allAhaders = SurgeCore::GetRenderer()->GetData()->ShaderSet.GetAllShaders();
-                for (Ref<Shader>& shader : allAhaders)
+                if (ImGui::BeginTable("ShaderTable", 2, ImGuiTableFlags_BordersOuter | ImGuiTableFlags_Resizable))
                 {
-                    if (ImGui::TreeNode(Filesystem::GetNameWithoutExtension(shader->GetPath()).c_str()))
+                    for (Ref<Shader>& shader : allAhaders)
                     {
                         ImGui::PushID(shader->GetPath().c_str());
+                        ImGui::TableNextColumn();
+                        ImGui::TextUnformatted(Filesystem::GetNameWithExtension(shader->GetPath()).c_str());
+                        ImGui::TableNextColumn();
                         if (ImGui::Button("Reload"))
                             shader->Reload();
-
                         ImGui::PopID();
-                        ImGui::TreePop();
                     }
+                    ImGui::EndTable();
                 }
             }
         }

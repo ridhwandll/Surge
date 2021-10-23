@@ -104,7 +104,7 @@ namespace Surge
                 }
                 if (component.Mesh)
                 {
-                    Ref<Material>& material = component.Mesh->GetMaterial();
+                    Ref<Material>& material = component.Material;
                     const ShaderBuffer& shaderBuffer = material->GetShaderBuffer();
                     for (const ShaderBufferMember& member : shaderBuffer.Members)
                     {

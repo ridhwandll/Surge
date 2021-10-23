@@ -1,7 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
-#include "Surge/Graphics/Abstraction/Vulkan/VulkanMemoryAllocator.hpp"
 #include "Surge/Graphics/VertexBuffer.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanMemoryAllocator.hpp"
 #include <volk.h>
 
 namespace Surge
@@ -26,6 +26,5 @@ namespace Surge
         Uint mSize = 0;
         VkBuffer mVulkanBuffer = VK_NULL_HANDLE;
         VmaAllocation mAllocation = VK_NULL_HANDLE;
-        VmaAllocationInfo mAllocationInfo = {};
     };
 } // namespace Surge

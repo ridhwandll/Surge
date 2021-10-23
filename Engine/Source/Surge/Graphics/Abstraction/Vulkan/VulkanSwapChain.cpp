@@ -341,7 +341,7 @@ namespace Surge
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains = &mSwapChain;
         presentInfo.pImageIndices = &mCurrentImageIndex;
-        VK_CALL(vkQueuePresentKHR(mPresentQueue, &presentInfo));
+        VK_CHECK_WITHOUT_OUT_OF_DATE(vkQueuePresentKHR(mPresentQueue, &presentInfo));
 
         mCurrentFrameIndex = (mCurrentFrameIndex + 1) % FRAMES_IN_FLIGHT;
     }

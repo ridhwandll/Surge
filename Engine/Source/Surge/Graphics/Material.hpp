@@ -3,6 +3,7 @@
 #include "Surge/Core/Buffer.hpp"
 #include "Surge/Graphics/Shader/Shader.hpp"
 #include "Surge/Graphics/Shader/ReflectionData.hpp"
+#include "Surge/Graphics/UniformBuffer.hpp"
 
 namespace Surge
 {
@@ -39,6 +40,7 @@ namespace Surge
         Ref<Shader> mShader;
         Buffer mBufferMemory;
         ShaderBuffer mShaderBuffer;
+        Ref<UniformBuffer> mUniformBuffer;
         CallbackID mShaderReloadID;
     };
 

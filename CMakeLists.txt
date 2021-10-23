@@ -24,7 +24,7 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   MESSAGE(STATUS "[Surge] Compiler id ${CMAKE_CXX_COMPILER_ID}")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   # using Visual Studio C++
-  set(CMAKE_CXX_FLAGS "/W3 /fp:fast /GR- /MP")
+  set(CMAKE_CXX_FLAGS "/W3 /fp:fast /GR- /MP /EHsc")
   MESSAGE(STATUS "[Surge] Compiler id ${CMAKE_CXX_COMPILER_ID}(The best compiler)")
 
 

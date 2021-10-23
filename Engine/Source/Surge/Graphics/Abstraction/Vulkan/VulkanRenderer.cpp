@@ -24,8 +24,8 @@ namespace Surge
         VulkanRenderContext* renderContext = nullptr;
         SURGE_GET_VULKAN_CONTEXT(renderContext);
 
-        sDescriptorPool.resize(FRAMES_IN_FLIGHT);
-        for (auto& descriptorPool : sDescriptorPool)
+        mDescriptorPool.resize(FRAMES_IN_FLIGHT);
+        for (auto& descriptorPool : mDescriptorPool)
         {
             VkDescriptorPoolSize poolSizes[] =
                 {{VK_DESCRIPTOR_TYPE_SAMPLER, 100},
@@ -47,6 +47,18 @@ namespace Surge
             poolInfo.pPoolSizes = poolSizes;
             VK_CALL(vkCreateDescriptorPool(renderContext->GetDevice()->GetLogicalDevice(), &poolInfo, nullptr, &descriptorPool));
         }
+
+        // Geometry Pipeline
+        GraphicsPipelineSpecification pipelineSpec {};
+        pipelineSpec.Shader = SurgeCore::GetRenderer()->GetShader("Simple"); // TODO: Should be handled by material
+        pipelineSpec.Topology = PrimitiveTopology::TriangleList;
+        pipelineSpec.CullingMode = CullMode::Back;
+        pipelineSpec.UseDepth = true;
+        pipelineSpec.UseStencil = false;
+        pipelineSpec.DebugName = "MeshPipeline";
+        pipelineSpec.LineWidth = 1.0f;
+        pipelineSpec.TargetFramebuffer = SurgeCore::GetRenderer()->GetFramebuffer();
+        mData->mGeometryPipeline = GraphicsPipeline::Create(pipelineSpec);
     }
 
     void VulkanRenderer::Shutdown()
@@ -57,7 +69,7 @@ namespace Surge
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
 
         vkDeviceWaitIdle(device);
-        for (auto& descriptorPool : sDescriptorPool)
+        for (auto& descriptorPool : mDescriptorPool)
             vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 
         mData->ShaderSet.Shutdown();
@@ -94,8 +106,7 @@ namespace Surge
         for (const DrawCommand& object : mData->DrawList)
         {
             const Ref<Mesh>& mesh = object.Mesh;
-            const Ref<GraphicsPipeline>& graphicsPipeline = mesh->GetPipeline();
-            graphicsPipeline->Bind(mData->RenderCmdBuffer);
+            mData->mGeometryPipeline->Bind(mData->RenderCmdBuffer);
             mesh->GetVertexBuffer()->Bind(mData->RenderCmdBuffer);
             mesh->GetIndexBuffer()->Bind(mData->RenderCmdBuffer);
 
@@ -104,8 +115,8 @@ namespace Surge
             {
                 const Submesh& submesh = submeshes[i];
                 pushConstantData[1] = object.Transform * submesh.Transform;
-                graphicsPipeline->SetPushConstantData(mData->RenderCmdBuffer, "uFrameData", &pushConstantData);
-                graphicsPipeline->DrawIndexed(mData->RenderCmdBuffer, submesh.IndexCount, submesh.BaseIndex, submesh.BaseVertex);
+                mData->mGeometryPipeline->SetPushConstantData(mData->RenderCmdBuffer, "uFrameData", &pushConstantData);
+                mData->mGeometryPipeline->DrawIndexed(mData->RenderCmdBuffer, submesh.IndexCount, submesh.BaseIndex, submesh.BaseVertex);
             }
         }
         EndRenderPass(mData->RenderCmdBuffer);
@@ -172,7 +183,7 @@ namespace Surge
         Uint currentFrameIndex = renderContext->GetFrameIndex();
 
         VkDescriptorSet descriptorSet;
-        allocInfo.descriptorPool = sDescriptorPool[currentFrameIndex];
+        allocInfo.descriptorPool = mDescriptorPool[currentFrameIndex];
         VK_CALL(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
         return descriptorSet;

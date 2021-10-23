@@ -4,7 +4,6 @@
 #include "Surge/Graphics/GraphicsPipeline.hpp"
 #include "Surge/Graphics/IndexBuffer.hpp"
 #include "Surge/Graphics/VertexBuffer.hpp"
-#include "Surge/Graphics/Material.hpp"
 #include <glm/glm.hpp>
 
 struct aiMesh;
@@ -49,9 +48,6 @@ namespace Surge
         // Returns the path from which the Mesh was loaded
         const Path& GetPath() const { return mPath; }
 
-        // Returns the pipeline object
-        const Ref<GraphicsPipeline>& GetPipeline() const { return mPipeline; }
-
         // Returns the vertex buffer of the mesh
         const Ref<VertexBuffer>& GetVertexBuffer() const { return mVertexBuffer; }
 
@@ -60,13 +56,6 @@ namespace Surge
 
         // Returns the submeshes of the mesh/model
         const Vector<Submesh>& GetSubmeshes() const { return mSubmeshes; }
-
-        // Set the material, the material is bound in the Rendering loop
-        void SetMaterial(const Ref<Material>& material) { mMaterialStorage = material; }
-
-        // Get the material
-        const Ref<Material>& GetMaterial() const { return mMaterialStorage; }
-        Ref<Material>& GetMaterial() { return mMaterialStorage; }
 
     private:
         void GetVertexData(const aiMesh* mesh, AABB& outAABB);
@@ -77,14 +66,11 @@ namespace Surge
         Path mPath;
         Vector<Submesh> mSubmeshes;
 
-        Ref<GraphicsPipeline> mPipeline; // Only graphics pipelines for now
         Ref<VertexBuffer> mVertexBuffer;
         Ref<IndexBuffer> mIndexBuffer;
 
         Vector<Vertex> mVertices;
         Vector<Index> mIndices;
-
-        Ref<Material> mMaterialStorage;
     };
 
 } // namespace Surge

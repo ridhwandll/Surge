@@ -23,11 +23,11 @@ namespace Surge
         VkDescriptorPool GetDescriptorPool()
         {
             Uint frameIndex = SurgeCore::GetRenderContext()->GetFrameIndex();
-            return sDescriptorPool[frameIndex];
+            return mDescriptorPool[frameIndex];
         }
 
     private:
-        Vector<VkDescriptorPool> sDescriptorPool;
+        Vector<VkDescriptorPool> mDescriptorPool;
     };
 
 } // namespace Surge

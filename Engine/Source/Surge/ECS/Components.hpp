@@ -3,11 +3,11 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include "Surge/Core/UUID.hpp"
 #include "Surge/Graphics/Mesh.hpp"
-#include "SurgeReflect/SurgeReflect.hpp"
 #include "Surge/Graphics/Camera/RuntimeCamera.hpp"
+#include "Surge/Graphics/Material.hpp"
+#include "SurgeReflect/SurgeReflect.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
-#include "Surge/Core/UUID.hpp"
 
 namespace Surge
 {
@@ -60,6 +60,9 @@ namespace Surge
             : Mesh(mesh) {}
 
         Ref<Surge::Mesh> Mesh;
+
+        // TODO: Make sure that material works for all types of shader
+        Ref<Surge::Material> Material = Ref<Surge::Material>::Create(SurgeCore::GetRenderer()->GetShader("Simple"));
 
         SURGE_REFLECTION_ENABLE;
     };

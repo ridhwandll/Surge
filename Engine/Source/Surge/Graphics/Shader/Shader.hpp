@@ -99,12 +99,12 @@ namespace Surge
         virtual void Reload() = 0;
         [[nodiscard]] virtual CallbackID AddReloadCallback(const std::function<void()> callback) = 0;
         virtual void RemoveReloadCallback(const CallbackID& id) = 0;
-        virtual const ShaderReflectionData& GetReflectionData() const = 0;
-        virtual const Vector<SPIRVHandle>& GetSPIRVs() const = 0;
-        virtual const Path& GetPath() const = 0;
-        virtual const HashMap<ShaderType, String>& GetSources() const = 0;
-        virtual const HashCode& GetHash(const ShaderType& type) const = 0;
-        virtual const HashMap<ShaderType, HashCode>& GetHashCodes() const = 0;
+        [[nodiscard]] virtual const ShaderReflectionData& GetReflectionData() const = 0;
+        [[nodiscard]] virtual const Vector<SPIRVHandle>& GetSPIRVs() const = 0;
+        [[nodiscard]] virtual const Path& GetPath() const = 0;
+        [[nodiscard]] virtual const HashMap<ShaderType, String>& GetSources() const = 0;
+        [[nodiscard]] virtual const HashCode& GetHash(const ShaderType& type) const = 0;
+        [[nodiscard]] virtual const HashMap<ShaderType, HashCode>& GetHashCodes() const = 0;
 
         static Ref<Shader> Create(const Path& path);
     };

@@ -39,8 +39,6 @@ namespace Surge
         virtual void OnResize() = 0;
         virtual Uint GetFrameIndex() const = 0;
 
-        virtual void* GetMemoryAllocator() const = 0;
-
         virtual void RenderImGui() = 0;
         virtual void* GetImGuiTextureID(const Ref<Image2D>& image) const = 0;
 

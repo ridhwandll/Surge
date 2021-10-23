@@ -7,6 +7,18 @@
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+#ifdef SURGE_DEBUG
+#define SURGE_GET_WIN32_LAST_ERROR                                                                                                                                                  \
+    {                                                                                                                                                                               \
+        DWORD err = GetLastError();                                                                                                                                                 \
+        LPSTR buffer;                                                                                                                                                               \
+        FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, err, 0, reinterpret_cast<LPSTR>(&buffer), 0, nullptr); \
+        ::Surge::Log<Surge::Severity::Debug>("[Windows] {0}", buffer);                                                                                                              \
+    }
+#else
+#define SURGE_GET_WIN32_LAST_ERROR
+#endif
+
 namespace Surge
 {
     WindowsWindow::WindowsWindow(const WindowData& windowData)
@@ -16,28 +28,30 @@ namespace Surge
 
         WNDCLASSEX wc = {};
         wc.cbSize = sizeof(WNDCLASSEX);
-        wc.lpfnWndProc = WindowProc;
+
+        if (SurgeCore::GetApplication<Application>()->GetAppOptions().EnableImGui)
+            wc.lpfnWndProc = WindowProcWithImgui;
+        else
+            wc.lpfnWndProc = WindowProcWithoutImGui;
+
         wc.style = CS_CLASSDC;
         wc.hInstance = hInstance;
         wc.lpszClassName = "Surge Win32Window";
         wc.hbrBackground = (HBRUSH)GetStockObject(DKGRAY_BRUSH);
-        wc.hCursor = LoadCursor(hInstance, IDC_ARROW);
+        wc.hCursor = NULL;
         wc.hIcon = nullptr;
         wc.hIconSm = wc.hIcon;
         wc.cbClsExtra = 0;
 
-        if (!RegisterClassEx(&wc))
-            Log<Severity::Error>("Could not initialize the window class!");
+        RegisterClassEx(&wc);
+        SURGE_GET_WIN32_LAST_ERROR
 
         mWin32Window = CreateWindow(wc.lpszClassName, mWindowData.Title.c_str(),
                                     WS_OVERLAPPEDWINDOW, 0, 0, mWindowData.Width,
                                     mWindowData.Height, nullptr, NULL, wc.hInstance, this);
-
+        SURGE_GET_WIN32_LAST_ERROR
         ApplyFlags();
-        if (mWin32Window)
-            Log<Severity::Info>("Created {0} ({1}, {2})", mWindowData.Title, mWindowData.Width, mWindowData.Height);
-        else
-            Log<Severity::Error>("WindowsWindow creation failure!");
+        SG_ASSERT(mWin32Window, "WindowsWindow creation failure!");
 
         // Fix missing drop shadow and Windows 11 Rounded corners
         MARGINS ShadowMargins;
@@ -134,92 +148,8 @@ namespace Surge
         }
     }
 
-    LRESULT WindowsWindow::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    LRESULT WindowsWindow::WindowProcWithoutImGui(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     {
-        switch (msg)
-        {
-            // Custom Titlebar
-            case WM_NCHITTEST: // Handle WM_NCHITTEST manually, this signals the default resize
-            {
-                POINT mousePos;
-                RECT windowRect;
-
-                GetCursorPos(&mousePos);
-                GetWindowRect(hWnd, &windowRect);
-
-                if (PtInRect(&windowRect, mousePos))
-                {
-                    const int borderX = GetSystemMetrics(SM_CXFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
-                    const int borderY = GetSystemMetrics(SM_CYFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
-
-                    if (mousePos.y < (windowRect.top + borderY))
-                    {
-                        if (mousePos.x < (windowRect.left + borderX))
-                        {
-                            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
-                            return HTTOPLEFT;
-                        }
-                        else if (mousePos.x >= (windowRect.right - borderX))
-                        {
-                            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNESW);
-                            return HTTOPRIGHT;
-                        }
-                        else
-                        {
-                            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
-                            return HTTOP;
-                        }
-                    }
-                    else if (mousePos.y >= (windowRect.bottom - borderY))
-                    {
-                        if (mousePos.x < (windowRect.left + borderX))
-                        {
-                            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNESW);
-                            return HTBOTTOMLEFT;
-                        }
-                        else if (mousePos.x >= (windowRect.right - borderX))
-                        {
-                            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
-                            return HTBOTTOMRIGHT;
-                        }
-                        else
-                        {
-                            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
-                            return HTBOTTOM;
-                        }
-                    }
-                    else if (mousePos.x < (windowRect.left + borderX))
-                    {
-                        ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
-                        return HTLEFT;
-                    }
-                    else if (mousePos.x >= (windowRect.right - borderX))
-                    {
-                        ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
-                        return HTRIGHT;
-                    }
-                    else
-                    {
-                        // Drag the menu bar to move the window
-                        if (!ImGui::IsAnyItemHovered() && (mousePos.y < (windowRect.top + 35)))
-                            return HTCAPTION;
-                    }
-                }
-                break;
-            }
-            case WM_NCCALCSIZE:
-            {
-                // Preserve the old client area and align it with the upper-left corner of the new client area
-                // Starting with Windows Vista, removing the standard frame by simply returning 0 when the wParam is TRUE does not affect frames that area
-                // extended into the client area using the DwmExtendFrameIntoClientArea function.Only the standard frame will be removed
-                return 0;
-                break;
-            }
-        }
-
-        if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
-            return true;
-
         switch (msg)
         {
             case WM_CREATE:
@@ -356,4 +286,96 @@ namespace Surge
 
         return 0;
     }
+
+    LRESULT WindowsWindow::WindowProcWithImgui(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    {
+        // Custom Titlebar and ImGui
+        {
+            switch (msg)
+            {
+                case WM_NCHITTEST: // Handle WM_NCHITTEST manually, this signals the default resize
+                {
+                    POINT mousePos;
+                    RECT windowRect;
+
+                    GetCursorPos(&mousePos);
+                    GetWindowRect(hWnd, &windowRect);
+
+                    if (PtInRect(&windowRect, mousePos))
+                    {
+                        const int borderX = GetSystemMetrics(SM_CXFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
+                        const int borderY = GetSystemMetrics(SM_CYFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
+
+                        if (mousePos.y < (windowRect.top + borderY))
+                        {
+                            if (mousePos.x < (windowRect.left + borderX))
+                            {
+                                ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
+                                return HTTOPLEFT;
+                            }
+                            else if (mousePos.x >= (windowRect.right - borderX))
+                            {
+                                ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNESW);
+                                return HTTOPRIGHT;
+                            }
+                            else
+                            {
+                                ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+                                return HTTOP;
+                            }
+                        }
+                        else if (mousePos.y >= (windowRect.bottom - borderY))
+                        {
+                            if (mousePos.x < (windowRect.left + borderX))
+                            {
+                                ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNESW);
+                                return HTBOTTOMLEFT;
+                            }
+                            else if (mousePos.x >= (windowRect.right - borderX))
+                            {
+                                ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
+                                return HTBOTTOMRIGHT;
+                            }
+                            else
+                            {
+                                ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+                                return HTBOTTOM;
+                            }
+                        }
+                        else if (mousePos.x < (windowRect.left + borderX))
+                        {
+                            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+                            return HTLEFT;
+                        }
+                        else if (mousePos.x >= (windowRect.right - borderX))
+                        {
+                            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+                            return HTRIGHT;
+                        }
+                        else
+                        {
+                            // Drag the menu bar to move the window
+                            if (!ImGui::IsAnyItemHovered() && (mousePos.y < (windowRect.top + 35)))
+                                return HTCAPTION;
+                        }
+                    }
+                    break;
+                }
+                case WM_NCCALCSIZE:
+                {
+                    // Preserve the old client area and align it with the upper-left corner of the new client area
+                    // Starting with Windows Vista, removing the standard frame by simply returning 0 when the wParam is TRUE does not affect frames that area
+                    // extended into the client area using the DwmExtendFrameIntoClientArea function.Only the standard frame will be removed
+                    return 0;
+                    break;
+                }
+            }
+
+            if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
+                return true;
+        }
+
+        return WindowProcWithoutImGui(hWnd, msg, wParam, lParam);
+    }
+
 } // namespace Surge
