@@ -14,20 +14,16 @@ namespace Surge
         virtual void BeginFrame(const Camera& camera, const glm::mat4& transform) override;
         virtual void BeginFrame(const EditorCamera& camera) override;
         virtual void EndFrame() override;
-        virtual void SubmitMesh(const Ref<Mesh>& mesh, const glm::mat4& transform) override;
+        virtual void SubmitMesh(MeshComponent& meshComp, const glm::mat4& transform) override;
 
         virtual void BeginRenderPass(const Ref<RenderCommandBuffer>& cmdBuffer, const Ref<Framebuffer>& framebuffer) override;
         virtual void EndRenderPass(const Ref<RenderCommandBuffer>& cmdBuffer) override;
 
         VkDescriptorSet AllocateDescriptorSet(VkDescriptorSetAllocateInfo allocInfo);
-        VkDescriptorPool GetDescriptorPool()
-        {
-            Uint frameIndex = SurgeCore::GetRenderContext()->GetFrameIndex();
-            return mDescriptorPool[frameIndex];
-        }
+        Vector<VkDescriptorPool> GetDescriptorPools() { return mDescriptorPools; }
 
     private:
-        Vector<VkDescriptorPool> mDescriptorPool;
+        Vector<VkDescriptorPool> mDescriptorPools;
     };
 
 } // namespace Surge

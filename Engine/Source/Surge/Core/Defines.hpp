@@ -49,11 +49,12 @@
 #endif
 
 #define BIT(x) (1 << x)
-#define SURGE_FORCEINLINE __forceinline
+#define FORCEINLINE __forceinline
 
-#define MAKE_BIT_ENUM(type)                                                                                        \
-    inline type operator|(type a, type b) { return static_cast<type>(static_cast<int>(a) | static_cast<int>(b)); } \
-    inline bool operator&(type a, type b) { return static_cast<bool>(static_cast<int>(a) & static_cast<int>(b)); }
+#define MAKE_BIT_ENUM(type)                                                                                                    \
+    FORCEINLINE type operator|(type a, type b) { return static_cast<type>(static_cast<int>(a) | static_cast<int>(b)); }        \
+    FORCEINLINE type& operator|=(type& a, type b) { return a = static_cast<type>(static_cast<int>(a) | static_cast<int>(b)); } \
+    FORCEINLINE bool operator&(type a, type b) { return static_cast<bool>(static_cast<int>(a) & static_cast<int>(b)); }
 
 namespace Surge
 {

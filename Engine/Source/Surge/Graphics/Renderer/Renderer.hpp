@@ -7,6 +7,7 @@
 #include "Surge/Graphics/Shader/Shader.hpp"
 #include "Surge/Graphics/Shader/ShaderSet.hpp"
 #include "Surge/Graphics/Texture.hpp"
+#include "Surge/ECS/Components.hpp"
 
 #define FRAMES_IN_FLIGHT 3
 #define BASE_SHADER_PATH "Engine/Assets/Shaders"
@@ -15,9 +16,9 @@ namespace Surge
 {
     struct DrawCommand
     {
-        DrawCommand(const Ref<Mesh>& mesh, const glm::mat4& transform) : Mesh(mesh), Transform(transform) {}
+        DrawCommand(MeshComponent* meshComp, const glm::mat4& transform) : MeshComp(meshComp), Transform(transform) {}
 
-        Ref<Surge::Mesh> Mesh;
+        MeshComponent* MeshComp;
         glm::mat4 Transform;
     };
 
@@ -46,7 +47,7 @@ namespace Surge
         virtual void BeginFrame(const Camera& camera, const glm::mat4& transform) = 0;
         virtual void BeginFrame(const EditorCamera& camera) = 0;
         virtual void EndFrame() = 0;
-        virtual void SubmitMesh(const Ref<Mesh>& mesh, const glm::mat4& transform) = 0;
+        virtual void SubmitMesh(MeshComponent& meshComp, const glm::mat4& transform) = 0;
 
         virtual void BeginRenderPass(const Ref<RenderCommandBuffer>& cmdBuffer, const Ref<Framebuffer>& framebuffer) = 0;
         virtual void EndRenderPass(const Ref<RenderCommandBuffer>& cmdBuffer) = 0;

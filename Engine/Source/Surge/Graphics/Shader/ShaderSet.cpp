@@ -196,4 +196,5 @@ namespace Surge
         String name = fmt::format("{0}.{1}.spv", Filesystem::GetNameWithExtension(shaderPath), ShaderTypeToString(type));
         return name;
     }
+
 } // namespace Surge

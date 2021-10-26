@@ -2,9 +2,9 @@
 #pragma once
 #define GLM_ENABLE_EXPERIMENTAL
 #include "Surge/Core/UUID.hpp"
+#include "Surge/Graphics/Material.hpp"
 #include "Surge/Graphics/Mesh.hpp"
 #include "Surge/Graphics/Camera/RuntimeCamera.hpp"
-#include "Surge/Graphics/Material.hpp"
 #include "SurgeReflect/SurgeReflect.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -62,7 +62,7 @@ namespace Surge
         Ref<Surge::Mesh> Mesh;
 
         // TODO: Make sure that material works for all types of shader
-        Ref<Surge::Material> Material = Ref<Surge::Material>::Create(SurgeCore::GetRenderer()->GetShader("Simple"));
+        Ref<Surge::Material> Material = Surge::Material::Create("Simple");
 
         SURGE_REFLECTION_ENABLE;
     };

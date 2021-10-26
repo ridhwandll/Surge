@@ -24,17 +24,17 @@ namespace Surge
         VulkanRenderContext* renderContext = nullptr;
         SURGE_GET_VULKAN_CONTEXT(renderContext);
 
-        mDescriptorPool.resize(FRAMES_IN_FLIGHT);
-        for (auto& descriptorPool : mDescriptorPool)
+        mDescriptorPools.resize(FRAMES_IN_FLIGHT);
+        for (auto& descriptorPool : mDescriptorPools)
         {
             VkDescriptorPoolSize poolSizes[] =
-                {{VK_DESCRIPTOR_TYPE_SAMPLER, 100},
+                {{VK_DESCRIPTOR_TYPE_SAMPLER, 1000},
                  {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100},
                  {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 100},
                  {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 100},
                  {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 100},
                  {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 100},
-                 {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100},
+                 {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000},
                  {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 100},
                  {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 100},
                  {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 100},
@@ -69,7 +69,7 @@ namespace Surge
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
 
         vkDeviceWaitIdle(device);
-        for (auto& descriptorPool : mDescriptorPool)
+        for (auto& descriptorPool : mDescriptorPools)
             vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 
         mData->ShaderSet.Shutdown();
@@ -99,16 +99,18 @@ namespace Surge
         SURGE_PROFILE_FUNC("VulkanRenderer::EndFrame()");
         mData->RenderCmdBuffer->BeginRecording();
 
+        // TODO: Have a "nice, next gen" RenderPass API
         // ViewProjection and Transform
         glm::mat4 pushConstantData[2] = {};
         pushConstantData[0] = mData->ViewProjection;
         BeginRenderPass(mData->RenderCmdBuffer, mData->OutputFrambuffer);
         for (const DrawCommand& object : mData->DrawList)
         {
-            const Ref<Mesh>& mesh = object.Mesh;
+            const Ref<Mesh>& mesh = object.MeshComp->Mesh;
             mData->mGeometryPipeline->Bind(mData->RenderCmdBuffer);
             mesh->GetVertexBuffer()->Bind(mData->RenderCmdBuffer);
             mesh->GetIndexBuffer()->Bind(mData->RenderCmdBuffer);
+            object.MeshComp->Material->Bind(mData->RenderCmdBuffer, mData->mGeometryPipeline);
 
             const Submesh* submeshes = mesh->GetSubmeshes().data();
             for (Uint i = 0; i < mesh->GetSubmeshes().size(); i++)
@@ -125,9 +127,9 @@ namespace Surge
         mData->RenderCmdBuffer->Submit();
     }
 
-    void VulkanRenderer::SubmitMesh(const Ref<Mesh>& mesh, const glm::mat4& transform)
+    void VulkanRenderer::SubmitMesh(MeshComponent& meshComp, const glm::mat4& transform)
     {
-        mData->DrawList.emplace_back(mesh, transform);
+        mData->DrawList.push_back(DrawCommand(&meshComp, transform));
     }
 
     void VulkanRenderer::BeginRenderPass(const Ref<RenderCommandBuffer>& cmdBuffer, const Ref<Framebuffer>& framebuffer)
@@ -180,10 +182,9 @@ namespace Surge
         VulkanRenderContext* renderContext = nullptr;
         SURGE_GET_VULKAN_CONTEXT(renderContext);
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
-        Uint currentFrameIndex = renderContext->GetFrameIndex();
 
+        allocInfo.descriptorPool = mDescriptorPools[renderContext->GetFrameIndex()];
         VkDescriptorSet descriptorSet;
-        allocInfo.descriptorPool = mDescriptorPool[currentFrameIndex];
         VK_CALL(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
         return descriptorSet;

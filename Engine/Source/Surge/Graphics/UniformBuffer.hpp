@@ -8,7 +8,8 @@ namespace Surge
     public:
         virtual ~UniformBuffer() = default;
 
-        virtual void SetData(const void* data, Uint size, Uint offset = 0) = 0;
+        virtual void SetData(const Buffer& data, Uint offset = 0) const = 0;
+        virtual const Buffer& GetData() const = 0;
         virtual Uint GetSize() const = 0;
         virtual Uint GetBinding() const = 0;
 

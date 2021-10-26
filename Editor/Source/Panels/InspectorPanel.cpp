@@ -115,7 +115,10 @@ namespace Surge
                         if (member.DataType == ShaderDataType::Float2)
                             ImGui::DragFloat2(member.Name.c_str(), glm::value_ptr(material->Get<glm::vec2>(member.Name)));
                         if (member.DataType == ShaderDataType::Float3)
-                            ImGui::DragFloat3(member.Name.c_str(), glm::value_ptr(material->Get<glm::vec3>(member.Name)));
+                        {
+                            material->Set<glm::vec3>(member.Name, material->Get<glm::vec3>(member.Name));
+                            ImGui::ColorEdit3(member.Name.c_str(), glm::value_ptr(material->Get<glm::vec3>(member.Name)));
+                        }
                         if (member.DataType == ShaderDataType::Float4)
                             ImGui::DragFloat4(member.Name.c_str(), glm::value_ptr(material->Get<glm::vec4>(member.Name)));
                     }

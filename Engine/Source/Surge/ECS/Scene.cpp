@@ -30,7 +30,7 @@ namespace Surge
         {
             auto [transform, mesh] = group.get<TransformComponent, MeshComponent>(entity);
             if (mesh.Mesh)
-                renderer->SubmitMesh(mesh.Mesh, transform.GetTransform());
+                renderer->SubmitMesh(mesh, transform.GetTransform());
         }
         renderer->EndFrame();
     }
@@ -48,7 +48,7 @@ namespace Surge
             {
                 auto [transform, mesh] = group.get<TransformComponent, MeshComponent>(entity);
                 if (mesh.Mesh)
-                    renderer->SubmitMesh(mesh.Mesh, transform.GetTransform());
+                    renderer->SubmitMesh(mesh, transform.GetTransform());
             }
             renderer->EndFrame();
         }

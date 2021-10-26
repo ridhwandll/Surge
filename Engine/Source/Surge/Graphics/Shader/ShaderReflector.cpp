@@ -49,8 +49,8 @@ namespace Surge
                 res.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
                 res.Set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
                 res.Name = resource.name;
-                res.ShaderStages.push_back(handle.Type);
-                res.Type = ShaderResource::Usage::Sampled;
+                res.ShaderStages |= handle.Type;
+                res.ShaderUsage = ShaderResource::Usage::Sampled;
                 result.PushResource(res);
             }
 
@@ -61,8 +61,8 @@ namespace Surge
                 res.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
                 res.Set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
                 res.Name = resource.name;
-                res.ShaderStages.push_back(handle.Type);
-                res.Type = ShaderResource::Usage::Storage;
+                res.ShaderStages |= handle.Type;
+                res.ShaderUsage = ShaderResource::Usage::Storage;
                 result.PushResource(res);
             }
 
@@ -76,8 +76,8 @@ namespace Surge
                 buffer.Set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
                 buffer.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
                 buffer.BufferName = resource.name;
-                buffer.ShaderStages.push_back(handle.Type);
-                buffer.Type = ShaderBuffer::Usage::Uniform;
+                buffer.ShaderStages |= handle.Type;
+                buffer.ShaderUsage = ShaderBuffer::Usage::Uniform;
 
                 for (Uint i = 0; i < bufferType.member_types.size(); i++)
                 {
@@ -89,7 +89,6 @@ namespace Surge
                     bufferMember.DataType = Utils::SPVTypeToShaderDataType(spvType);
                     buffer.Members.emplace_back(bufferMember);
                 }
-
                 result.PushBuffer(buffer);
             }
 
@@ -103,8 +102,8 @@ namespace Surge
                 buffer.Set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
                 buffer.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
                 buffer.BufferName = resource.name;
-                buffer.ShaderStages.push_back(handle.Type);
-                buffer.Type = ShaderBuffer::Usage::Storage;
+                buffer.ShaderStages |= handle.Type;
+                buffer.ShaderUsage = ShaderBuffer::Usage::Storage;
 
                 for (Uint i = 0; i < bufferType.member_types.size(); i++)
                 {
@@ -151,7 +150,7 @@ namespace Surge
 
                 pushConstant.BufferName = resource.name;
                 pushConstant.Size = static_cast<Uint>(compiler.get_declared_struct_size(bufferType));
-                pushConstant.ShaderStages.push_back(handle.Type);
+                pushConstant.ShaderStages |= handle.Type;
                 result.PushBufferPushConstant(pushConstant);
             }
         }

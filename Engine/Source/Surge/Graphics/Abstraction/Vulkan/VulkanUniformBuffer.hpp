@@ -13,10 +13,12 @@ namespace Surge
         VulkanUniformBuffer(Uint size, Uint binding);
         virtual ~VulkanUniformBuffer() override;
 
-        virtual void SetData(const void* data, Uint size, Uint offset = 0) override;
+        virtual void SetData(const Buffer& data, Uint offset = 0) const override;
+        virtual const Buffer& GetData() const { return mDataBuffer; }
         virtual Uint GetSize() const override { return mSize; }
         virtual Uint GetBinding() const override { return mBinding; }
 
+        const VkBuffer& GetVulkanBuffer() const { return mVulkanBuffer; }
         const VkDescriptorBufferInfo& GetDescriptorBufferInfo() const { return mDescriptorInfo; }
 
     private:

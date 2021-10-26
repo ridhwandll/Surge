@@ -16,9 +16,9 @@ namespace Surge::VulkanUtils
     VkFormat ShaderDataTypeToVulkanFormat(ShaderDataType type);
     Vector<VkDescriptorSetLayout> GetDescriptorSetLayoutVectorFromHashMap(const HashMap<Uint, VkDescriptorSetLayout>& descriptorSetLayouts);
     Vector<VkPushConstantRange> GetPushConstantRangesVectorFromHashMap(const HashMap<String, VkPushConstantRange>& pushConstants);
-    VkDescriptorType ShaderBufferTypeToVulkan(ShaderBuffer::Usage type);
-    VkDescriptorType ShaderImageTypeToVulkan(ShaderResource::Usage type);
-    VkShaderStageFlags GetShaderStagesFlagsFromShaderTypes(const Vector<ShaderType>& shaderStages);
+    VkDescriptorType ShaderBufferUsageToVulkan(ShaderBuffer::Usage type);
+    VkDescriptorType ShaderImageUsageToVulkan(ShaderResource::Usage type);
+    VkShaderStageFlags GetShaderStagesFlagsFromShaderTypes(ShaderType shaderStages);
     void CreateWindowSurface(VkInstance instance, Window* windowHandle, VkSurfaceKHR* surface);
     VkShaderStageFlagBits GetVulkanShaderStage(ShaderType type);
     VkCompareOp GetVulkanCompareOp(CompareOperation op);

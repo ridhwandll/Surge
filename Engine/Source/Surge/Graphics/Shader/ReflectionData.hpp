@@ -19,23 +19,23 @@ namespace Surge
 
         Uint Set = 0;
         Uint Binding = 0;
-        String Name = "";
-        ShaderResource::Usage Type;
-        Vector<ShaderType> ShaderStages; // Specify what shader stages the buffer is being used for
+        String Name;
+        ShaderResource::Usage ShaderUsage;
+        ShaderType ShaderStages {}; // Specify what shader stages the buffer is being used for
     };
 
     struct ShaderStageInput
     {
         String Name = "None";
         Uint Size = 0;
-        Uint Offset;
+        Uint Offset = 0;
         ShaderDataType DataType = ShaderDataType::None;
     };
 
     // Represents a ConstantBuffer Member
     struct ShaderBufferMember
     {
-        String Name = "";
+        String Name;
         Uint MemoryOffset = 0;
         ShaderDataType DataType = ShaderDataType::None;
     };
@@ -51,11 +51,11 @@ namespace Surge
 
         Uint Set = 0;
         Uint Binding = 0;
-        String BufferName = "";
+        String BufferName;
         Uint Size = 0;
         Vector<ShaderBufferMember> Members = {};
-        ShaderBuffer::Usage Type;
-        Vector<ShaderType> ShaderStages; // Specify what shader stages the buffer is being used for
+        ShaderBuffer::Usage ShaderUsage;
+        ShaderType ShaderStages {}; // Specify what shader stages the buffer is being used for
 
         const ShaderBufferMember* GetMember(const String& name)
         {
@@ -72,7 +72,7 @@ namespace Surge
     {
         String BufferName = "";
         Uint Size = 0;
-        Vector<ShaderType> ShaderStages; // Specify what shader stages the buffer is being used for
+        ShaderType ShaderStages {}; // Specify what shader stages the buffer is being used for
     };
 
     class ShaderReflectionData
@@ -112,7 +112,6 @@ namespace Surge
 
         // Stage inputs, per shader stage
         HashMap<ShaderType, std::map<Uint /*location*/, ShaderStageInput /*Data*/>> mStageInputs {};
-
         friend class ShaderReflector;
     };
 } // namespace Surge

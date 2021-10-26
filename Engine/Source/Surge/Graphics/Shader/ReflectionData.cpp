@@ -3,27 +3,28 @@
 
 namespace Surge
 {
-    ShaderBuffer dummyBuffer = ShaderBuffer();
-    ShaderBufferMember dummyBufferMember = ShaderBufferMember();
+    // We hate the warnings
+    static ShaderBuffer sDummyBuffer = ShaderBuffer();
+    static ShaderBufferMember sDummyBufferMember = ShaderBufferMember();
 
     const ShaderBuffer& ShaderReflectionData::GetBuffer(const String& name) const
     {
-        for (const ShaderBuffer& buffer: mShaderBuffers)
+        for (const ShaderBuffer& buffer : mShaderBuffers)
             if (buffer.BufferName == name)
                 return buffer;
 
         SG_ASSERT_INTERNAL("ShaderBuffer with name {0} doesn't exist in shader!", name);
-        return dummyBuffer;
+        return sDummyBuffer;
     }
 
     const ShaderBufferMember& ShaderReflectionData::GetBufferMember(const ShaderBuffer& buffer, const String& memberName) const
     {
-        for (const ShaderBufferMember& member: buffer.Members)
+        for (const ShaderBufferMember& member : buffer.Members)
             if (member.Name == memberName)
                 return member;
 
         SG_ASSERT_INTERNAL("ShaderBufferMember with name {0} doesn't exist in {1} buffer!", memberName, buffer.BufferName);
-        return dummyBufferMember;
+        return sDummyBufferMember;
     }
 
     void ShaderReflectionData::ClearRepeatedMembers()
@@ -41,11 +42,9 @@ namespace Surge
                 // Check if the binding and set of the buffers is the same
                 if (bufferData1.Set == bufferData2.Set && bufferData1.Binding == bufferData2.Binding)
                 {
-                    // If the binding and set of the buffer is the same, then we add the shaderstages from the second
-                    // buffer into the first one (so like we combine them), and then erase the second buffer so we have
-                    // only one combined
-                    for (auto shaderStages: bufferData2.ShaderStages)
-                        bufferData1.ShaderStages.push_back(shaderStages);
+                    // If the binding and set of the buffer is the same, then we add the shaderstages from the second buffer into
+                    // the first one (so like we combine them), and then erase the second buffer so we have only one combined
+                    bufferData1.ShaderStages |= bufferData2.ShaderStages;
 
                     // Deleting the second copy of the same member
                     mShaderBuffers.erase(mShaderBuffers.begin() + j);
@@ -64,11 +63,9 @@ namespace Surge
                 // Check if the binding and set of the textures is the same
                 if (textureData1.Set == textureData2.Set && textureData1.Binding == textureData2.Binding)
                 {
-                    // If the binding and set of the texture is the same, then we add the shaderstages from the second
-                    // texture into the first one (so like we combine them), and then erase the second texture so we
-                    // have only one combined
-                    for (auto shaderStages: textureData2.ShaderStages)
-                        textureData1.ShaderStages.push_back(shaderStages);
+                    // If the binding and set of the texture is the same, then we add the shaderstages from the second texture into
+                    // the first one (so like we combine them), and then erase the second texture so we have only one combined
+                    textureData1.ShaderStages |= textureData2.ShaderStages;
 
                     // Deleting the second copy of the same member
                     mShaderResources.erase(mShaderResources.begin() + j);
@@ -84,14 +81,13 @@ namespace Surge
                 auto& pushConstant1 = mPushConstants[i];
                 auto& pushConstant2 = mPushConstants[j];
 
-                // Check if the size of the push constants are the same
-                if (pushConstant1.BufferName == pushConstant2.BufferName)
+                // Check if the size and the name of the push constants are the same
+                if (pushConstant1.BufferName == pushConstant2.BufferName && pushConstant1.Size == pushConstant2.Size)
                 {
-                    // If the size of the push constants are the same, then we add the shaderstages from the second push
-                    // constant buffer into the first one (so like we combine them), and then erase the second push
-                    // constant buffer so we have only one combined |Explanation 100|
-                    for (auto shaderStages: pushConstant2.ShaderStages)
-                        pushConstant1.ShaderStages.push_back(shaderStages);
+                    // If the size and the name of the push constants are the same, then we add the shaderstages from the second push
+                    // constant buffer into the first one (so like we combine them), and then erase the second pushconstant buffer so
+                    // we have only one combined |Explanation 100|
+                    pushConstant1.ShaderStages |= pushConstant2.ShaderStages;
 
                     // Deleting the second copy of the same member
                     mPushConstants.erase(mPushConstants.begin() + j);
@@ -103,18 +99,19 @@ namespace Surge
     void ShaderReflectionData::CalculateDescriptorSetCount()
     {
         // Adding all the sets used in the shader needed to make the amount of descriptor layout/sets
-        for (const ShaderBuffer& buffer: mShaderBuffers)
+        for (const ShaderBuffer& buffer : mShaderBuffers)
         {
             // Check if the number of the set is already mentioned in the vector
             if (std::find(mDescriptorSetsCount.begin(), mDescriptorSetsCount.end(), buffer.Set) == mDescriptorSetsCount.end())
                 mDescriptorSetsCount.push_back(buffer.Set);
         }
 
-        for (const ShaderResource& texture: mShaderResources)
+        for (const ShaderResource& texture : mShaderResources)
         {
             // Check if the number of the set is already mentioned in the vector
             if (std::find(mDescriptorSetsCount.begin(), mDescriptorSetsCount.end(), texture.Set) == mDescriptorSetsCount.end())
                 mDescriptorSetsCount.push_back(texture.Set);
         }
     }
+
 } // namespace Surge

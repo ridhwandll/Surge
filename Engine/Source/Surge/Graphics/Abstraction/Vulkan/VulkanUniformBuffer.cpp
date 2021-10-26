@@ -18,14 +18,14 @@ namespace Surge
         Release();
     }
 
-    void VulkanUniformBuffer::SetData(const void* data, Uint size, Uint offset)
+    void VulkanUniformBuffer::SetData(const Buffer& data, Uint offset) const
     {
         VulkanRenderContext* renderContext;
         SURGE_GET_VULKAN_CONTEXT(renderContext);
         VulkanMemoryAllocator* allocator = renderContext->GetMemoryAllocator();
 
         void* mappedData = allocator->MapMemory(mAllocation);
-        memcpy(mappedData, (const byte*)data + offset, size);
+        memcpy(mappedData, (const byte*)data.Data + offset, data.Size);
         allocator->UnmapMemory(mAllocation);
     }
 
@@ -50,8 +50,8 @@ namespace Surge
 
         // Update Descriptor info
         mDescriptorInfo.buffer = mVulkanBuffer;
+        mDescriptorInfo.range = VK_WHOLE_SIZE;
         mDescriptorInfo.offset = 0;
-        mDescriptorInfo.range = mSize;
     }
 
     void VulkanUniformBuffer::Release()
@@ -61,6 +61,7 @@ namespace Surge
 
         VulkanRenderContext* renderContext;
         SURGE_GET_VULKAN_CONTEXT(renderContext);
+        vkDeviceWaitIdle(renderContext->GetDevice()->GetLogicalDevice());
         renderContext->GetMemoryAllocator()->DestroyBuffer(mVulkanBuffer, mAllocation);
 
         mDataBuffer.Release();

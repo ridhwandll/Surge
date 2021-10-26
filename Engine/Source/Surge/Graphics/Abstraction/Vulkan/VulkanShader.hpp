@@ -24,13 +24,13 @@ namespace Surge
         virtual const HashMap<ShaderType, HashCode>& GetHashCodes() const override { return mHashCodes; }
 
         // Vulkan Specific (Used by different Pipelines)
-        HashMap<ShaderType, VkShaderModule>& GetVulkanShaderModules() { return mVkShaderModules; }
-        HashMap<Uint, VkDescriptorSetLayout>& GetDescriptorSetLayouts() { return mDescriptorSetLayouts; }
-        HashMap<String, VkPushConstantRange>& GetPushConstantRanges() { return mPushConstants; }
+        const HashMap<ShaderType, VkShaderModule>& GetVulkanShaderModules() const { return mVkShaderModules; }
+        const HashMap<Uint, VkDescriptorSetLayout>& GetDescriptorSetLayouts() const { return mDescriptorSetLayouts; }
+        const HashMap<String, VkPushConstantRange>& GetPushConstantRanges() const { return mPushConstants; }
 
     private:
         void ParseShader();
-        void Compile(const HashMap<ShaderType, bool>& forceCompileStages);
+        void Compile(const HashMap<ShaderType, bool>& compileStages);
         void Clear();
         void CreateVulkanDescriptorSetLayouts();
         void CreateVulkanPushConstantRanges();
@@ -39,11 +39,12 @@ namespace Surge
         Path mPath;
         HashMap<ShaderType, HashCode> mHashCodes;
         HashMap<ShaderType, String> mShaderSources;
+        Vector<SPIRVHandle> mShaderSPIRVs {};
+
         HashMap<ShaderType, VkShaderModule> mVkShaderModules;
         HashMap<Uint, VkDescriptorSetLayout> mDescriptorSetLayouts;
         HashMap<String, VkPushConstantRange> mPushConstants;
 
-        Vector<SPIRVHandle> mShaderSPIRVs {};
         ShaderReflectionData mReflectionData;
         HashMap<CallbackID, std::function<void()>> mCallbacks;
     };

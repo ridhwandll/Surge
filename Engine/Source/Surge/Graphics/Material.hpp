@@ -11,10 +11,12 @@ namespace Surge
     {
     public:
         Material() = default;
-        Material(const Ref<Shader>& shader);
-        ~Material();
+        virtual ~Material() = default;
 
-        void Bind();
+        virtual void Bind(const Ref<RenderCommandBuffer>& cmdBuffer, const Ref<GraphicsPipeline>& gfxPipeline) const = 0;
+        virtual void Load() = 0;
+        virtual void Release() = 0;
+
         const ShaderBuffer& GetShaderBuffer() const { return mShaderBuffer; }
 
         template <typename T>
@@ -22,7 +24,7 @@ namespace Surge
         {
             const ShaderBufferMember* member = mShaderBuffer.GetMember(name);
             SG_ASSERT_NOMSG(member);
-            mBufferMemory.Write((byte*)&data, sizeof(value), member.MemoryOffset);
+            mBufferMemory.Write((byte*)&data, sizeof(data), member->MemoryOffset);
         }
 
         template <typename T>
@@ -33,10 +35,9 @@ namespace Surge
             return mBufferMemory.Read<T>(member->MemoryOffset);
         }
 
-    private:
-        void Load();
+        static Ref<Material> Create(const String& shaderName);
 
-    private:
+    protected:
         Ref<Shader> mShader;
         Buffer mBufferMemory;
         ShaderBuffer mShaderBuffer;

@@ -9,10 +9,11 @@ namespace Surge
     enum class ShaderType
     {
         None = 0,
-        Vertex,
-        Pixel,
-        Compute
+        Vertex = BIT(0),
+        Pixel = BIT(1),
+        Compute = BIT(2)
     };
+    MAKE_BIT_ENUM(ShaderType)
 
     inline String ShaderTypeToString(const ShaderType& type)
     {

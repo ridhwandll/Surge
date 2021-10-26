@@ -85,5 +85,5 @@ namespace Surge
 
 #else
 #define VK_CALL(res) res
-#define VK_CHECK_WITHOUT_OUT_OF_DATE(res)
+#define VK_CHECK_WITHOUT_OUT_OF_DATE(res) res
 #endif

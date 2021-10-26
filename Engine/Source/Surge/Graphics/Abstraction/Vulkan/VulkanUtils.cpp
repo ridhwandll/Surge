@@ -88,7 +88,7 @@ namespace Surge
         return pushConstantsVector;
     }
 
-    VkDescriptorType VulkanUtils::ShaderBufferTypeToVulkan(ShaderBuffer::Usage type)
+    VkDescriptorType VulkanUtils::ShaderBufferUsageToVulkan(ShaderBuffer::Usage type)
     {
         switch (type)
         {
@@ -99,7 +99,7 @@ namespace Surge
         return VkDescriptorType();
     }
 
-    VkDescriptorType VulkanUtils::ShaderImageTypeToVulkan(ShaderResource::Usage type)
+    VkDescriptorType VulkanUtils::ShaderImageUsageToVulkan(ShaderResource::Usage type)
     {
         switch (type)
         {
@@ -110,20 +110,19 @@ namespace Surge
         return VkDescriptorType();
     }
 
-    VkShaderStageFlags VulkanUtils::GetShaderStagesFlagsFromShaderTypes(const Vector<ShaderType>& shaderStages)
+    VkShaderStageFlags VulkanUtils::GetShaderStagesFlagsFromShaderTypes(ShaderType shaderStages)
     {
         VkShaderStageFlags stageFlags {};
-        for (const ShaderType& stage : shaderStages)
-        {
-            // None = 0, VertexShader, PixelShader, ComputeShader
-            switch (stage)
-            {
-                case ShaderType::Vertex: stageFlags |= VK_SHADER_STAGE_VERTEX_BIT; break;
-                case ShaderType::Pixel: stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT; break;
-                case ShaderType::Compute: stageFlags |= VK_SHADER_STAGE_COMPUTE_BIT; break;
-                case ShaderType::None: SG_ASSERT_INTERNAL("ShaderType::None is invalid!");
-            }
-        }
+
+        if (shaderStages & ShaderType::Vertex)
+            stageFlags |= VK_SHADER_STAGE_VERTEX_BIT;
+        if (shaderStages & ShaderType::Pixel)
+            stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
+        if (shaderStages & ShaderType::Compute)
+            stageFlags |= VK_SHADER_STAGE_COMPUTE_BIT;
+        if (shaderStages & ShaderType::None)
+            SG_ASSERT_INTERNAL("ShaderType::None is invalid!");
+
         return stageFlags;
     }
 

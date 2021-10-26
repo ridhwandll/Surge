@@ -79,8 +79,10 @@ namespace Surge
         {
             SPIRVHandle spirvHandle;
             spirvHandle.Type = stage;
-            bool compile = true;
+            bool compile = true; // Default is "true", shader should be compiled if not specified in compileStages
 
+            // If compileStages is not empty, then try to find the "compile" bool
+            // This "compile" bool determines if the shader should be recompiled or not
             if (!compileStages.empty())
             {
                 auto itr = compileStages.find(stage);
@@ -179,11 +181,11 @@ namespace Surge
                 if (buffer.Set != descriptorSet)
                     continue;
 
-                VkDescriptorSetLayoutBinding& LayoutBinding = layoutBindings.emplace_back();
-                LayoutBinding.binding = buffer.Binding;
-                LayoutBinding.descriptorCount = 1; // TODO: Need to add arrays
-                LayoutBinding.descriptorType = VulkanUtils::ShaderBufferTypeToVulkan(buffer.Type);
-                LayoutBinding.stageFlags = VulkanUtils::GetShaderStagesFlagsFromShaderTypes(buffer.ShaderStages);
+                VkDescriptorSetLayoutBinding& layoutBinding = layoutBindings.emplace_back();
+                layoutBinding.binding = buffer.Binding;
+                layoutBinding.descriptorCount = 1; // TODO: Need to add arrays
+                layoutBinding.descriptorType = VulkanUtils::ShaderBufferUsageToVulkan(buffer.ShaderUsage);
+                layoutBinding.stageFlags = VulkanUtils::GetShaderStagesFlagsFromShaderTypes(buffer.ShaderStages);
             }
 
             for (const ShaderResource& texture : mReflectionData.GetResources())
@@ -194,7 +196,7 @@ namespace Surge
                 VkDescriptorSetLayoutBinding& LayoutBinding = layoutBindings.emplace_back();
                 LayoutBinding.binding = texture.Binding;
                 LayoutBinding.descriptorCount = 1; // TODO: Need to add arrays
-                LayoutBinding.descriptorType = VulkanUtils::ShaderImageTypeToVulkan(texture.Type);
+                LayoutBinding.descriptorType = VulkanUtils::ShaderImageUsageToVulkan(texture.ShaderUsage);
                 LayoutBinding.stageFlags = VulkanUtils::GetShaderStagesFlagsFromShaderTypes(texture.ShaderStages);
             }
 
