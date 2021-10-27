@@ -128,7 +128,7 @@ namespace Surge
         VkDescriptorSetAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
         allocInfo.descriptorSetCount = 1;
         allocInfo.pSetLayouts = &descriptorSetLayout;
-        descriptorSet = renderer->AllocateDescriptorSet(allocInfo);
+        descriptorSet = renderer->AllocateDescriptorSet(allocInfo, true);
 
         // Add the texture
         Ref<VulkanImage2D> vulkanImage2d = image2d.As<VulkanImage2D>();

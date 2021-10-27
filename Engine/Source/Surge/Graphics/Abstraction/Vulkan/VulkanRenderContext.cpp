@@ -63,9 +63,9 @@ namespace Surge
         if (mImGuiEnabled)
             mImGuiContext.BeginFrame();
 
-        // Reset the renderer descriptor pool, we currntly don't allocate descriptor sets every frame, thus we don't need a reset
-        //VkDescriptorPool descriptorPool = static_cast<VulkanRenderer*>(SurgeCore::GetRenderer())->GetDescriptorPools()[];
-        //VK_CALL(vkResetDescriptorPool(mDevice.GetLogicalDevice(), descriptorPool, 0));
+        // Reset the renderer descriptor pool
+        VkDescriptorPool descriptorPool = static_cast<VulkanRenderer*>(SurgeCore::GetRenderer())->GetDescriptorPools()[mSwapChain.GetCurrentFrameIndex()];
+        VK_CALL(vkResetDescriptorPool(mDevice.GetLogicalDevice(), descriptorPool, 0));
     }
 
     void VulkanRenderContext::EndFrame()
@@ -127,4 +127,5 @@ namespace Surge
         ENABLE_IF_VK_VALIDATION(mVulkanDiagnostics.AddValidationLayers(instanceLayers));
         return instanceLayers;
     }
+
 } // namespace Surge

@@ -55,14 +55,13 @@ namespace Surge
         mBufferMemory.ZeroInitialize();
         mUniformBuffer = UniformBuffer::Create(mShaderBuffer.Size, 0);
 
+        VkDescriptorSetAllocateInfo allocInfo {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
+        allocInfo.descriptorSetCount = 1;
+        allocInfo.pSetLayouts = &mShader.As<VulkanShader>()->GetDescriptorSetLayouts().at(0);
         mDescriptorSets.resize(FRAMES_IN_FLIGHT);
         for (Uint i = 0; i < mDescriptorSets.size(); i++)
         {
-            VkDescriptorSetAllocateInfo allocInfo {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
-            allocInfo.descriptorSetCount = 1;
-            allocInfo.pSetLayouts = &mShader.As<VulkanShader>()->GetDescriptorSetLayouts().at(0);
-            allocInfo.descriptorPool = static_cast<VulkanRenderer*>(SurgeCore::GetRenderer())->GetDescriptorPools()[i];
-            VK_CALL(vkAllocateDescriptorSets(renderContext->GetDevice()->GetLogicalDevice(), &allocInfo, &mDescriptorSets[i]));
+            mDescriptorSets[i] = static_cast<VulkanRenderer*>(SurgeCore::GetRenderer())->AllocateDescriptorSet(allocInfo, false, i);
         }
 
         mIsLoaded = true;
@@ -79,8 +78,7 @@ namespace Surge
 
         for (Uint i = 0; i < mDescriptorSets.size(); i++)
         {
-            VkDescriptorPool descriptorPool = static_cast<VulkanRenderer*>(SurgeCore::GetRenderer())->GetDescriptorPools()[i];
-            vkFreeDescriptorSets(logicalDevice, descriptorPool, 1, &mDescriptorSets[i]);
+            static_cast<VulkanRenderer*>(SurgeCore::GetRenderer())->FreeDescriptorSet(mDescriptorSets[i], false, i);
         }
 
         mBufferMemory.Release();

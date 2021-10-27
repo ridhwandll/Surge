@@ -19,11 +19,15 @@ namespace Surge
         virtual void BeginRenderPass(const Ref<RenderCommandBuffer>& cmdBuffer, const Ref<Framebuffer>& framebuffer) override;
         virtual void EndRenderPass(const Ref<RenderCommandBuffer>& cmdBuffer) override;
 
-        VkDescriptorSet AllocateDescriptorSet(VkDescriptorSetAllocateInfo allocInfo);
+        // Vulkan Specific
+        VkDescriptorSet AllocateDescriptorSet(VkDescriptorSetAllocateInfo allocInfo, bool resetEveryFrame, int index = -1);
+        void FreeDescriptorSet(VkDescriptorSet& set, bool resetEveryFrame, int index = -1);
+
         Vector<VkDescriptorPool> GetDescriptorPools() { return mDescriptorPools; }
 
     private:
         Vector<VkDescriptorPool> mDescriptorPools;
+        Vector<VkDescriptorPool> mNonResetableDescriptorPools;
     };
 
 } // namespace Surge
