@@ -97,9 +97,11 @@ namespace Surge
 
     void VulkanRenderContext::RenderImGui()
     {
+        if (!mImGuiEnabled)
+            return;
+
         SURGE_PROFILE_FUNC("VulkanRenderContext::RenderImGui()");
-        if (mImGuiEnabled)
-            mImGuiContext.Render();
+        mImGuiContext.Render();
     }
 
     void* VulkanRenderContext::GetImGuiTextureID(const Ref<Image2D>& image) const

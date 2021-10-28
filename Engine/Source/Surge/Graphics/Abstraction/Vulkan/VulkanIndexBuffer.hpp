@@ -27,6 +27,5 @@ namespace Surge
         Uint mSize = 0;
         VkBuffer mVulkanBuffer = VK_NULL_HANDLE;
         VmaAllocation mAllocation = VK_NULL_HANDLE;
-        VmaAllocationInfo mAllocationInfo = {};
     };
 } // namespace Surge

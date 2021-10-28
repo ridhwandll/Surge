@@ -58,6 +58,7 @@ namespace Surge
         imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
         imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         mImageMemory = allocator->AllocateImage(imageInfo, VMA_MEMORY_USAGE_GPU_ONLY, mImage, nullptr);
+        SET_VK_OBJECT_DEBUGNAME(mImage, VK_OBJECT_TYPE_IMAGE, "Image");
 
         // Create the image view
         VkImageViewCreateInfo imageViewCreateInfo {VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
@@ -71,6 +72,7 @@ namespace Surge
         imageViewCreateInfo.subresourceRange.layerCount = 1;
         imageViewCreateInfo.image = mImage;
         VK_CALL(vkCreateImageView(device->GetLogicalDevice(), &imageViewCreateInfo, nullptr, &mImageView));
+        SET_VK_OBJECT_DEBUGNAME(mImageView, VK_OBJECT_TYPE_IMAGE_VIEW, "Image View");
 
         // Sampler
         VkSamplerCreateInfo samplerCreateInfo {VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
@@ -86,6 +88,7 @@ namespace Surge
         samplerCreateInfo.minLod = 0.0f;
         samplerCreateInfo.maxLod = float(mSpecification.Mips);
         VK_CALL(vkCreateSampler(device->GetLogicalDevice(), &samplerCreateInfo, nullptr, &mImageSampler));
+        SET_VK_OBJECT_DEBUGNAME(mImageSampler, VK_OBJECT_TYPE_SAMPLER, "Sampler");
 
         // Transition image to VK_IMAGE_LAYOUT_GENERAL layout, if it is Storage
         if (mSpecification.Usage == ImageUsage::Storage)

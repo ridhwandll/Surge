@@ -41,6 +41,7 @@ namespace Surge
         Ref<Shader> mShader;
         Buffer mBufferMemory;
         ShaderBuffer mShaderBuffer;
+        Uint mBinding;
         Ref<UniformBuffer> mUniformBuffer;
         CallbackID mShaderReloadID;
     };

@@ -1,10 +1,11 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Panels/InspectorPanel.hpp"
 #include "Surge/ECS/Components.hpp"
+#include "Utility/ImGuiAux.hpp"
+#include "Surge/Utility/FileDialogs.hpp"
 #include <imgui.h>
 #include <imgui_stdlib.h>
-#include "glm/gtc/type_ptr.hpp"
-#include "Surge/Utility/FileDialogs.hpp"
+#include <IconsFontAwesome.hpp>
 
 namespace Surge
 {
@@ -17,7 +18,6 @@ namespace Surge
         {
             if (ImGui::BeginTable("##ComponentTable", 2, ImGuiTableFlags_Resizable))
             {
-                ImGui::TableNextColumn();
                 function();
                 ImGui::EndTable();
             }
@@ -52,6 +52,8 @@ namespace Surge
                         entity.AddComponent<CameraComponent>();
                     if (ImGui::MenuItem("Mesh"))
                         entity.AddComponent<MeshComponent>();
+                    if (ImGui::MenuItem("Point Light"))
+                        entity.AddComponent<PointLightComponent>();
                     ImGui::EndPopup();
                 }
             }
@@ -73,19 +75,9 @@ namespace Surge
         {
             TransformComponent& component = entity.GetComponent<TransformComponent>();
             DrawComponent<TransformComponent>("Transform", [&component]() {
-                ImGui::TextUnformatted("Position");
-                ImGui::TableNextColumn();
-                ImGui::DragFloat3("##pos", glm::value_ptr(component.Position), 0.1f, 0.0f, 0.0f, "%.2f");
-                ImGui::TableNextColumn();
-
-                ImGui::TextUnformatted("Rotation");
-                ImGui::TableNextColumn();
-                ImGui::DragFloat3("##rot", glm::value_ptr(component.Rotation), 0.1f, 0.0f, 0.0f, "%.2f");
-                ImGui::TableNextColumn();
-
-                ImGui::TextUnformatted("Scale");
-                ImGui::TableNextColumn();
-                ImGui::DragFloat3("##scale", glm::value_ptr(component.Scale), 0.1f, 0.0f, 0.0f, "%.2f");
+                ImGuiAux::Property<glm::vec3>("Position", component.Position);
+                ImGuiAux::Property<glm::vec3>("Rotation", component.Rotation);
+                ImGuiAux::Property<glm::vec3>("Scale", component.Scale);
             });
         }
 
@@ -93,15 +85,14 @@ namespace Surge
         {
             MeshComponent& component = entity.GetComponent<MeshComponent>();
             DrawComponent<MeshComponent>("Mesh", [&component]() {
-                ImGui::TextUnformatted("Path");
-                ImGui::TableNextColumn();
-                const String& path = component.Mesh ? component.Mesh->GetPath() : "";
-                if (ImGui::Button(path.empty() ? "Open..." : path.c_str()))
+                const String& meshPath = component.Mesh ? component.Mesh->GetPath() : "";
+                if (ImGuiAux::Button("Path", meshPath.empty() ? "Open..." : meshPath.c_str()))
                 {
                     String path = FileDialog::OpenFile("");
                     if (!path.empty())
                         component.Mesh = Ref<Mesh>::Create(path);
                 }
+
                 if (component.Mesh)
                 {
                     Ref<Material>& material = component.Material;
@@ -131,9 +122,7 @@ namespace Surge
             CameraComponent& component = entity.GetComponent<CameraComponent>();
             DrawComponent<CameraComponent>("Camera", [&component]() {
                 RuntimeCamera& camera = component.Camera;
-                ImGui::TextUnformatted("Primary");
-                ImGui::TableNextColumn();
-                ImGui::Checkbox("##prIm@ry", &component.Primary);
+                ImGuiAux::Property<bool>("Primary", component.Primary);
 
                 const char* projectionTypeStrings[] = {"Perspective", "Orthographic"};
                 const char* currentProjectionTypeString = projectionTypeStrings[static_cast<int>(camera.GetProjectionType())];
@@ -162,55 +151,44 @@ namespace Surge
                 if (camera.GetProjectionType() == RuntimeCamera::ProjectionType::Perspective)
                 {
                     float verticalFOV = camera.GetPerspectiveVerticalFOV();
-                    ImGui::TableNextColumn();
-                    ImGui::TextUnformatted("Vertical FOV");
-                    ImGui::TableNextColumn();
-                    if (ImGui::DragFloat("##verticalFov", &verticalFOV)) // In degree
+                    if (ImGuiAux::Property<float>("Vertical FOV", verticalFOV)) // In degree
                         camera.SetPerspectiveVerticalFOV(verticalFOV);
 
                     float nearClip = camera.GetPerspectiveNearClip();
-                    ImGui::TableNextColumn();
-                    ImGui::TextUnformatted("Near Clip");
-                    ImGui::TableNextColumn();
-                    if (ImGui::DragFloat("##nclIp", &nearClip))
+                    if (ImGuiAux::Property<float>("Near Clip", nearClip))
                         camera.SetPerspectiveNearClip(nearClip);
 
                     float farClip = camera.GetPerspectiveFarClip();
-                    ImGui::TableNextColumn();
-                    ImGui::TextUnformatted("Far Clip");
-                    ImGui::TableNextColumn();
-                    if (ImGui::DragFloat("##FaRcLiP", &farClip))
+                    if (ImGuiAux::Property<float>("Far Clip", farClip))
                         camera.SetPerspectiveFarClip(farClip);
                 }
 
                 if (camera.GetProjectionType() == RuntimeCamera::ProjectionType::Orthographic)
                 {
                     float orthoSize = camera.GetOrthographicSize();
-                    ImGui::TableNextColumn();
-                    ImGui::TextUnformatted("Size");
-                    ImGui::TableNextColumn();
-                    if (ImGui::DragFloat("##sizee", &orthoSize))
+                    if (ImGuiAux::Property<float>("Size", orthoSize))
                         camera.SetOrthographicSize(orthoSize);
 
                     float nearClip = camera.GetOrthographicNearClip();
-                    ImGui::TableNextColumn();
-                    ImGui::TextUnformatted("Near Clip");
-                    ImGui::TableNextColumn();
-                    if (ImGui::DragFloat("##neArCLipOrtho", &nearClip))
+                    if (ImGuiAux::Property<float>("Near Clip", nearClip))
                         camera.SetOrthographicNearClip(nearClip);
 
                     float farClip = camera.GetOrthographicFarClip();
-                    ImGui::TableNextColumn();
-                    ImGui::TextUnformatted("Far Clip");
-                    ImGui::TableNextColumn();
-                    if (ImGui::DragFloat("##faRCLiPOrtho", &farClip))
+                    if (ImGuiAux::Property<float>("Far Clip", farClip))
                         camera.SetOrthographicFarClip(farClip);
 
-                    ImGui::TableNextColumn();
-                    ImGui::TextUnformatted("Fixed Aspect Ratio");
-                    ImGui::TableNextColumn();
-                    ImGui::Checkbox("##FiXeDasPectRatio", &component.FixedAspectRatio);
+                    ImGuiAux::Property<bool>("Fixed Aspect Ratio", component.FixedAspectRatio);
                 }
+            });
+        }
+
+        if (entity.HasComponent<PointLightComponent>())
+        {
+            PointLightComponent& component = entity.GetComponent<PointLightComponent>();
+            DrawComponent<PointLightComponent>(ICON_SURGE_LIGHTBULB_O " PointLight", [&component]() {
+                ImGuiAux::Property<glm::vec3, ImGuiAux::CustomProprtyFlag::Color3>("Color", component.Color);
+                ImGuiAux::Property<float>("Intensity", component.Intensity);
+                ImGuiAux::Property<float>("Radius", component.Radius);
             });
         }
     }
@@ -218,5 +196,4 @@ namespace Surge
     void InspectorPanel::Shutdown()
     {
     }
-
 } // namespace Surge

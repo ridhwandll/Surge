@@ -28,7 +28,6 @@ namespace Surge
         const HashMap<Uint, VkDescriptorSetLayout>& GetDescriptorSetLayouts() const { return mDescriptorSetLayouts; }
         const HashMap<String, VkPushConstantRange>& GetPushConstantRanges() const { return mPushConstants; }
 
-    private:
         void ParseShader();
         void Compile(const HashMap<ShaderType, bool>& compileStages);
         void Clear();
@@ -37,6 +36,7 @@ namespace Surge
 
     private:
         Path mPath;
+        HashCode mUnparsedShaderHashCode;
         HashMap<ShaderType, HashCode> mHashCodes;
         HashMap<ShaderType, String> mShaderSources;
         Vector<SPIRVHandle> mShaderSPIRVs {};

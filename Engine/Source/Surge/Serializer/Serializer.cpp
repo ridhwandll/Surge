@@ -43,7 +43,6 @@ namespace glm
         j.at("Z").get_to(p.z);
         j.at("W").get_to(p.w);
     }
-
 } // namespace glm
 
 namespace Surge
@@ -56,7 +55,7 @@ namespace Surge
     NLOHMANN_JSON_SERIALIZE_ENUM(RuntimeCamera::ProjectionType, {{RuntimeCamera::ProjectionType::Perspective, "Perspective"}, {RuntimeCamera::ProjectionType::Orthographic, "Orthographic"}})
 
     template <typename XComponent>
-    static void SerializeComponent(nlohmann::json& j, Entity& e)
+    FORCEINLINE static void SerializeComponent(nlohmann::json& j, Entity& e)
     {
         if (e.HasComponent<XComponent>())
         {
@@ -76,6 +75,14 @@ namespace Surge
                 {
                     bool destination;
                     std::memcpy(&destination, reinterpret_cast<const bool*>(source), size);
+                    out[name] = destination;
+                    offset += size;
+                    continue;
+                }
+                else if (type.EqualTo<float>())
+                {
+                    float destination;
+                    std::memcpy(&destination, reinterpret_cast<const float*>(source), size);
                     out[name] = destination;
                     offset += size;
                     continue;
@@ -150,6 +157,7 @@ namespace Surge
         SerializeComponent<TransformComponent>(out, e);
         SerializeComponent<CameraComponent>(out, e);
         SerializeComponent<MeshComponent>(out, e);
+        SerializeComponent<PointLightComponent>(out, e);
     }
 
     template <>
@@ -166,7 +174,7 @@ namespace Surge
             index++;
         });
 
-        size_t size = in->GetRegistry().size<IDComponent>();
+        const size_t size = in->GetRegistry().size<IDComponent>();
         outJson["Scene"]["Size"] = size;
 
         String result = outJson.dump(4);
@@ -184,7 +192,7 @@ namespace Surge
     //------------
 
     template <typename XComponent>
-    static void DeserializeComponent(nlohmann::json& j, Entity& e)
+    FORCEINLINE static void DeserializeComponent(nlohmann::json& j, Entity& e)
     {
         const SurgeReflect::Class* clazz = SurgeReflect::GetReflection<XComponent>();
 
@@ -209,12 +217,20 @@ namespace Surge
             if (type.EqualTo<bool>())
             {
                 const bool source = inJson[name];
-                std::memcpy(&destination, &source, size);
+                bool* dst = reinterpret_cast<bool*>(destination);
+                std::memcpy(dst, &source, size);
+            }
+            else if (type.EqualTo<float>())
+            {
+                const float source = inJson[name];
+                float* dst = reinterpret_cast<float*>(destination);
+                std::memcpy(dst, &source, size);
             }
             else if (type.EqualTo<UUID>())
             {
                 const uint64_t source = inJson[name];
-                std::memcpy(destination, &source, size);
+                uint64_t* dst = reinterpret_cast<uint64_t*>(destination);
+                std::memcpy(dst, &source, size);
             }
             else if (type.EqualTo<String>())
             {
@@ -228,7 +244,8 @@ namespace Surge
             else if (type.EqualTo<glm::vec3>())
             {
                 glm::vec3 source = inJson[name];
-                std::memcpy(destination, glm::value_ptr(source), size);
+                glm::vec3* dst = reinterpret_cast<glm::vec3*>(destination);
+                std::memcpy(dst, glm::value_ptr(source), size);
             }
             else if (type.EqualTo<RuntimeCamera>())
             {
@@ -268,6 +285,7 @@ namespace Surge
         DeserializeComponent<TransformComponent>(inJson, e);
         DeserializeComponent<MeshComponent>(inJson, e);
         DeserializeComponent<CameraComponent>(inJson, e);
+        DeserializeComponent<PointLightComponent>(inJson, e);
     }
 
     template <>
@@ -303,5 +321,4 @@ namespace Surge
             DeserializeEntity(parsedJson["Scene"], newEntity, i);
         }
     }
-
 } // namespace Surge

@@ -168,7 +168,7 @@ namespace Surge
 
         // Frame
         colors[ImGuiCol_FrameBg] = colorFromBytes(25, 25, 25);
-        colors[ImGuiCol_FrameBgHovered] = colorFromBytes(88, 88, 88);
+        colors[ImGuiCol_FrameBgHovered] = colorFromBytes(55, 55, 55);
         colors[ImGuiCol_FrameBgActive] = colorFromBytes(110, 110, 110);
 
         // Tabs

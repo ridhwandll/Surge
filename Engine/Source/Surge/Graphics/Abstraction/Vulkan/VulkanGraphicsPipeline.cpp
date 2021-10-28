@@ -138,6 +138,7 @@ namespace Surge
         pipelineLayoutInfo.pushConstantRangeCount = static_cast<Uint>(pushConstants.size());
         pipelineLayoutInfo.pPushConstantRanges = pushConstants.data();
         VK_CALL(vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &mPipelineLayout));
+        SET_VK_OBJECT_DEBUGNAME(mPipelineLayout, VK_OBJECT_TYPE_PIPELINE_LAYOUT, "Graphics PipelineLayout");
 
         // Using dynamic pipeline states to avoid pipeline recreation when resizing
         std::array<VkDynamicState, 3> dynamicStates;
@@ -168,6 +169,7 @@ namespace Surge
 
         pipelineInfo.subpass = 0;
         VK_CALL(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mPipeline));
+        SET_VK_OBJECT_DEBUGNAME(mPipeline, VK_OBJECT_TYPE_PIPELINE, "Graphics Pipeline");
     }
 
     void VulkanGraphicsPipeline::Bind(const Ref<RenderCommandBuffer>& cmdBuffer) const
@@ -230,5 +232,4 @@ namespace Surge
             mPipelineLayout = VK_NULL_HANDLE;
         }
     }
-
 } // namespace Surge

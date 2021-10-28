@@ -4,9 +4,9 @@
 
 namespace Surge
 {
-    Ref<UniformBuffer> UniformBuffer::Create(Uint size, Uint binding)
+    Ref<UniformBuffer> UniformBuffer::Create(Uint size)
     {
-        return Ref<VulkanUniformBuffer>::Create(size, binding);
+        return Ref<VulkanUniformBuffer>::Create(size);
     }
 
 } // namespace Surge

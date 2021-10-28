@@ -80,4 +80,16 @@ namespace Surge
         SURGE_REFLECTION_ENABLE;
     };
 
+    struct PointLightComponent
+    {
+        PointLightComponent() = default;
+        PointLightComponent(glm::vec3 color, float intensity, float radius)
+            : Color(color), Intensity(intensity), Radius(radius) {}
+
+        glm::vec3 Color = {1.0f, 1.0f, 1.0f};
+        float Intensity = 1.0f;
+        float Radius = 3.0f;
+
+        SURGE_REFLECTION_ENABLE;
+    };
 } // namespace Surge

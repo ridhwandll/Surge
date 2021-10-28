@@ -64,14 +64,14 @@ namespace Surge
                 if (sCoreData.SurgeApplication->GetAppOptions().EnableImGui)
                     sCoreData.SurgeApplication->OnImGuiRender();
                 sCoreData.SurgeRenderContext->EndFrame();
-            }
 
-            if (!sCoreData.FrameEndCallbacks.empty())
-            {
-                for (std::function<void()>& func : sCoreData.FrameEndCallbacks)
-                    func();
+                if (!sCoreData.FrameEndCallbacks.empty())
+                {
+                    for (std::function<void()>& func : sCoreData.FrameEndCallbacks)
+                        func();
 
-                sCoreData.FrameEndCallbacks.clear();
+                    sCoreData.FrameEndCallbacks.clear();
+                }
             }
         }
     }
@@ -107,10 +107,6 @@ namespace Surge
     Window* SurgeCore::GetWindow() { return sCoreData.SurgeWindow; }
     RenderContext* SurgeCore::GetRenderContext() { return sCoreData.SurgeRenderContext; }
     Renderer* SurgeCore::GetRenderer() { return sCoreData.SurgeRenderer; }
-
-    Surge::CoreData* SurgeCore::GetData()
-    {
-        return &sCoreData;
-    }
+    Surge::CoreData* SurgeCore::GetData() { return &sCoreData; }
 
 } // namespace Surge

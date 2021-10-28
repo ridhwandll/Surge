@@ -5,7 +5,11 @@
 
 namespace Surge
 {
-    VulkanVertexBuffer::VulkanVertexBuffer(const void* data, const Uint& size) : mSize(size) { CreateVertexBuffer(data); }
+    VulkanVertexBuffer::VulkanVertexBuffer(const void* data, const Uint& size)
+        : mSize(size)
+    {
+        CreateVertexBuffer(data);
+    }
 
     VulkanVertexBuffer::~VulkanVertexBuffer()
     {
@@ -59,5 +63,6 @@ namespace Surge
         });
 
         allocator->DestroyBuffer(stagingBuffer, stagingBufferAllocation);
+        SET_VK_OBJECT_DEBUGNAME(mVulkanBuffer, VK_OBJECT_TYPE_BUFFER, "Vertex Buffer");
     }
 } // namespace Surge

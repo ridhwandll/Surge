@@ -99,6 +99,7 @@ namespace Surge
         renderPassInfo.dependencyCount = 0;     // https://stackoverflow.com/a/53005446/14349078
         renderPassInfo.pDependencies = nullptr; // ^^ Says there is an implicit one provided, still should we add one explicitly?
         VK_CALL(vkCreateRenderPass(logicalDevice, &renderPassInfo, nullptr, &mRenderPass));
+        SET_VK_OBJECT_DEBUGNAME(mRenderPass, VK_OBJECT_TYPE_RENDER_PASS, "Render Pass");
 
         Uint colorAttachmentImagesSize = static_cast<Uint>(mColorAttachmentImages.size());
         Vector<VkImageView> attachments(colorAttachmentImagesSize);
@@ -123,6 +124,7 @@ namespace Surge
         framebufferCreateInfo.height = mSpecification.Height;
         framebufferCreateInfo.layers = 1;
         VK_CALL(vkCreateFramebuffer(logicalDevice, &framebufferCreateInfo, nullptr, &mFramebuffer));
+        SET_VK_OBJECT_DEBUGNAME(mFramebuffer, VK_OBJECT_TYPE_FRAMEBUFFER, "Framebuffer");
     }
 
     void VulkanFramebuffer::Clear()
@@ -147,5 +149,4 @@ namespace Surge
             mFramebuffer = VK_NULL_HANDLE;
         }
     }
-
 } // namespace Surge

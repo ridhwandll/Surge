@@ -8,7 +8,7 @@
 #include "Surge/Graphics/RenderContext.hpp"
 #include <volk.h>
 
-#define SURGE_GET_VULKAN_CONTEXT(renderContext) renderContext = static_cast<VulkanRenderContext*>(SurgeCore::GetRenderContext())
+#define SURGE_GET_VULKAN_CONTEXT(renderContext) renderContext = static_cast<::Surge::VulkanRenderContext*>(::Surge::SurgeCore::GetRenderContext())
 
 namespace Surge
 {
@@ -50,4 +50,25 @@ namespace Surge
         friend class VulkanImGuiContext;
         friend class VulkanDevice;
     };
+
+    template <typename T>
+    FORCEINLINE void SetDebugVkResourceName(T handle, VkObjectType type, const char* name)
+    {
+        static_assert(sizeof(T) == sizeof(uint64_t), "Invalid handle");
+        VkDebugUtilsObjectNameInfoEXT info {VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT};
+        info.objectType = type;
+        info.objectHandle = reinterpret_cast<uint64_t>(handle);
+        info.pObjectName = name;
+
+        VulkanRenderContext* renderContext;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
+        vkSetDebugUtilsObjectNameEXT(renderContext->GetDevice()->GetLogicalDevice(), &info);
+    }
+
+#if SURGE_DEBUG
+#define SET_VK_OBJECT_DEBUGNAME(handle, type, name) SetDebugVkResourceName(handle, type, fmt::format("{0}:{1} - {2}", __FILE__, __LINE__, name).c_str())
+#else
+#define SET_VK_OBJECT_DEBUGNAME(handle, type, name)
+#endif
+
 } // namespace Surge

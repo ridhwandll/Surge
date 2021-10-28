@@ -24,6 +24,7 @@ namespace Surge
     {
         SG_ASSERT(mCallbacks.empty(), "Callbacks must be empty! Did you forgot to call 'RemoveReloadCallback(id);' somewhere?");
         Clear();
+        mShaderSources.clear();
     }
 
     void VulkanShader::Load(const HashMap<ShaderType, bool>& compileStages)
@@ -131,6 +132,7 @@ namespace Surge
             createInfo.codeSize = spirvHandle.SPIRV.size() * sizeof(Uint);
             createInfo.pCode = spirvHandle.SPIRV.data();
             VK_CALL(vkCreateShaderModule(device, &createInfo, nullptr, &mVkShaderModules[stage]));
+            SET_VK_OBJECT_DEBUGNAME(mVkShaderModules.at(stage), VK_OBJECT_TYPE_SHADER_MODULE, "Vulkan Shader");
             mShaderSPIRVs.push_back(spirvHandle);
         }
         ShaderReflector reflector;
@@ -143,7 +145,6 @@ namespace Surge
         SURGE_GET_VULKAN_CONTEXT(renderContext);
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
 
-        mShaderSources.clear();
         mShaderSPIRVs.clear();
 
         for (auto&& [stage, source] : mVkShaderModules)
@@ -224,6 +225,11 @@ namespace Surge
     void VulkanShader::ParseShader()
     {
         String source = Filesystem::ReadFile(mPath);
+        HashCode currentHash = Hash().Generate<String>(source);
+
+        // The source is same, return
+        if (mUnparsedShaderHashCode == currentHash)
+            return;
 
         const char* typeToken = "[SurgeShader:";
         size_t typeTokenLength = strlen(typeToken);
@@ -241,5 +247,7 @@ namespace Surge
             mShaderSources[shaderType] = (pos == std::string::npos) ? source.substr(nextLinePos) : source.substr(nextLinePos, pos - nextLinePos);
             mHashCodes[shaderType] = Hash().Generate<String>(mShaderSources.at(shaderType));
         }
+
+        mUnparsedShaderHashCode = currentHash;
     }
 } // namespace Surge

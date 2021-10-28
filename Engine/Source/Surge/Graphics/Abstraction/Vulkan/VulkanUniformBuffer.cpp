@@ -4,8 +4,8 @@
 
 namespace Surge
 {
-    VulkanUniformBuffer::VulkanUniformBuffer(Uint size, Uint binding)
-        : mSize(size), mBinding(binding)
+    VulkanUniformBuffer::VulkanUniformBuffer(Uint size)
+        : mSize(size)
     {
         mDataBuffer.Allocate(size);
         mDataBuffer.ZeroInitialize();
@@ -47,6 +47,7 @@ namespace Surge
         bufferInfo.size = mSize;
 
         mAllocation = renderContext->GetMemoryAllocator()->AllocateBuffer(bufferInfo, VMA_MEMORY_USAGE_CPU_ONLY, mVulkanBuffer, nullptr);
+        SET_VK_OBJECT_DEBUGNAME(mVulkanBuffer, VK_OBJECT_TYPE_BUFFER, "Uniform Buffer");
 
         // Update Descriptor info
         mDescriptorInfo.buffer = mVulkanBuffer;
@@ -68,5 +69,4 @@ namespace Surge
         mVulkanBuffer = VK_NULL_HANDLE;
         mAllocation = VK_NULL_HANDLE;
     }
-
 } // namespace Surge

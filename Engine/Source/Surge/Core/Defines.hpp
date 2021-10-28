@@ -50,6 +50,7 @@
 
 #define BIT(x) (1 << x)
 #define FORCEINLINE __forceinline
+#define NODISCARD [[nodiscard]]
 
 #define MAKE_BIT_ENUM(type)                                                                                                    \
     FORCEINLINE type operator|(type a, type b) { return static_cast<type>(static_cast<int>(a) | static_cast<int>(b)); }        \

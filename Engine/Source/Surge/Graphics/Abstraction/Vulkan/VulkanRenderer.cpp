@@ -37,29 +37,26 @@ namespace Surge
              {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 100},
              {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 100}};
 
+        VkDescriptorPoolCreateInfo poolInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
+        poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+        poolInfo.maxSets = 100 * (sizeof(poolSizes) / sizeof(VkDescriptorPoolSize));
+        poolInfo.poolSizeCount = (Uint)(sizeof(poolSizes) / sizeof(VkDescriptorPoolSize));
+        poolInfo.pPoolSizes = poolSizes;
+
         mDescriptorPools.resize(FRAMES_IN_FLIGHT);
         for (auto& descriptorPool : mDescriptorPools)
         {
-            VkDescriptorPoolCreateInfo poolInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
-            poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-            poolInfo.maxSets = 100 * (sizeof(poolSizes) / sizeof(VkDescriptorPoolSize));
-            poolInfo.poolSizeCount = (Uint)(sizeof(poolSizes) / sizeof(VkDescriptorPoolSize));
-            poolInfo.pPoolSizes = poolSizes;
             VK_CALL(vkCreateDescriptorPool(renderContext->GetDevice()->GetLogicalDevice(), &poolInfo, nullptr, &descriptorPool));
+            SET_VK_OBJECT_DEBUGNAME(descriptorPool, VK_OBJECT_TYPE_DESCRIPTOR_POOL, "DescriptorPool");
         }
-
         mNonResetableDescriptorPools.resize(FRAMES_IN_FLIGHT);
         for (auto& descriptorPool : mNonResetableDescriptorPools)
         {
-            VkDescriptorPoolCreateInfo poolInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
-            poolInfo.flags = 0;
-            poolInfo.maxSets = 100 * (sizeof(poolSizes) / sizeof(VkDescriptorPoolSize));
-            poolInfo.poolSizeCount = (Uint)(sizeof(poolSizes) / sizeof(VkDescriptorPoolSize));
-            poolInfo.pPoolSizes = poolSizes;
             VK_CALL(vkCreateDescriptorPool(renderContext->GetDevice()->GetLogicalDevice(), &poolInfo, nullptr, &descriptorPool));
+            SET_VK_OBJECT_DEBUGNAME(descriptorPool, VK_OBJECT_TYPE_DESCRIPTOR_POOL, "NonResetable DescriptorPool");
         }
 
-        // Geometry Pipeline
+        // Geometry Pipeline - TODO: Move to Render Procedure API
         GraphicsPipelineSpecification pipelineSpec {};
         pipelineSpec.Shader = SurgeCore::GetRenderer()->GetShader("Simple"); // TODO: Should be handled by material
         pipelineSpec.Topology = PrimitiveTopology::TriangleList;
@@ -81,6 +78,8 @@ namespace Surge
 
         vkDeviceWaitIdle(device);
         for (auto& descriptorPool : mDescriptorPools)
+            vkDestroyDescriptorPool(device, descriptorPool, nullptr);
+        for (auto& descriptorPool : mNonResetableDescriptorPools)
             vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 
         mData->ShaderSet.Shutdown();
@@ -216,5 +215,4 @@ namespace Surge
         vkFreeDescriptorSets(device, pool, 1, &set);
         set = VK_NULL_HANDLE;
     }
-
 } // namespace Surge
