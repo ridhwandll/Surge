@@ -2,19 +2,18 @@
 #pragma once
 #include "Surge/Graphics/Renderer/Renderer.hpp"
 #include "VulkanRenderContext.hpp"
+#include "Surge/Graphics/UniformBuffer.hpp"
 
 namespace Surge
 {
     class VulkanRenderer : public Renderer
     {
     public:
+        virtual ~VulkanRenderer() = default;
         virtual void Initialize() override;
         virtual void Shutdown() override;
 
-        virtual void BeginFrame(const Camera& camera, const glm::mat4& transform) override;
-        virtual void BeginFrame(const EditorCamera& camera) override;
         virtual void EndFrame() override;
-        virtual void SubmitMesh(MeshComponent& meshComp, const glm::mat4& transform) override;
 
         virtual void BeginRenderPass(const Ref<RenderCommandBuffer>& cmdBuffer, const Ref<Framebuffer>& framebuffer) override;
         virtual void EndRenderPass(const Ref<RenderCommandBuffer>& cmdBuffer) override;
@@ -28,6 +27,8 @@ namespace Surge
     private:
         Vector<VkDescriptorPool> mDescriptorPools;
         Vector<VkDescriptorPool> mNonResetableDescriptorPools;
-    };
 
+        Ref<UniformBuffer> mLightUniformBuffer;
+        Vector<VkDescriptorSet> mLightsDescriptorSets; // TODO: Come up with a better way of managing descriptor sets
+    };
 } // namespace Surge

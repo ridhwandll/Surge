@@ -28,6 +28,8 @@ namespace Surge
                 return ShaderDataType::Int;
             if (spvType.basetype == spirv_cross::SPIRType::Boolean && spvType.vecsize == 1 && spvType.columns == 1)
                 return ShaderDataType::Bool;
+            if (spvType.basetype == spirv_cross::SPIRType::Struct)
+                return ShaderDataType::Struct;
 
             SG_ASSERT_INTERNAL("No spirv_cross::SPIRType matches Surge::ShaderDataType!");
             return ShaderDataType::None;
@@ -128,7 +130,7 @@ namespace Surge
                 Uint location = compiler.get_decoration(resource.id, spv::DecorationLocation);
                 stageInput.Name = resource.name;
                 stageInput.DataType = Utils::SPVTypeToShaderDataType(spvType);
-                stageInput.Size = ShaderDataTypeSize(stageInput.DataType);
+                stageInput.Size = stageInput.DataType == ShaderDataType::Struct ? 0 : ShaderDataTypeSize(stageInput.DataType);
                 stageInput.Offset = 0; // temporary, calculated later
 
                 result.PushStageInput(stageInput, handle.Type, location);

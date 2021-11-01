@@ -4,6 +4,7 @@
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanImage.hpp"
 #include <ImGui/Backends/imgui_impl_vulkan.h>
 #include <ImGui/Backends/imgui_impl_win32.h>
+#include <ImGui/ImGuizmo.h>
 #include <IconsFontAwesome.hpp>
 
 namespace Surge
@@ -97,6 +98,7 @@ namespace Surge
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
+        ImGuizmo::BeginFrame();
     }
 
     void VulkanImGuiContext::Render()
@@ -191,5 +193,4 @@ namespace Surge
         //colors[ImGuiCol_Separator] = colorFromBytes(10, 200, 10);
         //colors[ImGuiCol_Border] = colorFromBytes(10, 200, 10);
     }
-
 } // namespace Surge

@@ -7,6 +7,7 @@
 #include "Surge/Graphics/Shader/Shader.hpp"
 #include "Surge/Graphics/Shader/ShaderSet.hpp"
 #include "Surge/Graphics/Texture.hpp"
+#include "Surge/Graphics/Renderer/Lights.hpp"
 #include "Surge/ECS/Components.hpp"
 
 #define FRAMES_IN_FLIGHT 3
@@ -30,6 +31,12 @@ namespace Surge
         Ref<GraphicsPipeline> mGeometryPipeline;
         Surge::ShaderSet ShaderSet;
 
+        //Lights
+        LightUniformBufferData LightData;
+        Vector<PointLight> PointLights;
+
+        // Camera
+        glm::vec3 CameraPosition;
         glm::mat4 ViewMatrix;
         glm::mat4 ProjectionMatrix;
         glm::mat4 ViewProjection;
@@ -44,10 +51,20 @@ namespace Surge
         virtual void Initialize() = 0;
         virtual void Shutdown() = 0;
 
-        virtual void BeginFrame(const Camera& camera, const glm::mat4& transform) = 0;
-        virtual void BeginFrame(const EditorCamera& camera) = 0;
+        void BeginFrame(const Camera& camera, const glm::mat4& transform);
+        void BeginFrame(const EditorCamera& camera);
         virtual void EndFrame() = 0;
-        virtual void SubmitMesh(MeshComponent& meshComp, const glm::mat4& transform) = 0;
+
+        FORCEINLINE void SubmitMesh(MeshComponent& meshComp, const glm::mat4& transform) { mData->DrawList.push_back(DrawCommand(&meshComp, transform)); }
+        FORCEINLINE void SubmitPointLight(const PointLightComponent& pointLight, glm::vec3 position)
+        {
+            PointLight light;
+            light.Position = position;
+            light.Intensity = pointLight.Intensity;
+            light.Radius = pointLight.Radius;
+            light.Color = pointLight.Color;
+            mData->PointLights.push_back(light);
+        }
 
         virtual void BeginRenderPass(const Ref<RenderCommandBuffer>& cmdBuffer, const Ref<Framebuffer>& framebuffer) = 0;
         virtual void EndRenderPass(const Ref<RenderCommandBuffer>& cmdBuffer) = 0;
@@ -59,5 +76,4 @@ namespace Surge
     protected:
         Scope<RendererData> mData;
     };
-
 } // namespace Surge

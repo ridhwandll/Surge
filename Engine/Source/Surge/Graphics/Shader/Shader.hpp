@@ -40,7 +40,8 @@ namespace Surge
         Mat2,
         Mat4,
         Mat3,
-        Bool
+        Bool,
+        Struct
     };
 
     inline String ShaderDataTypeToString(const ShaderDataType& type)

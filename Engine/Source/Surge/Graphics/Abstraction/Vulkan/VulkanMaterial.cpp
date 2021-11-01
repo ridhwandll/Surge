@@ -10,7 +10,6 @@ namespace Surge
 {
     VulkanMaterial::VulkanMaterial(const Ref<Shader>& shader)
     {
-        mIsLoaded = false;
         mShader = shader;
         mShaderReloadID = mShader->AddReloadCallback([&]() { Load(); });
         Load();
@@ -24,7 +23,7 @@ namespace Surge
 
     void VulkanMaterial::Load()
     {
-        SG_ASSERT(!mIsLoaded, "Material Already Loaded! Release it to Load again xD");
+        Release();
 
         VulkanRenderContext* renderContext;
         SURGE_GET_VULKAN_CONTEXT(renderContext);
@@ -40,7 +39,7 @@ namespace Surge
                 set = shaderBuffer.Set;
                 break;
             }
-            SG_ASSERT_INTERNAL("Cannot find a suitable uniform buffer, on which Material should work on!")
+            //SG_ASSERT_INTERNAL("Cannot find a suitable uniform buffer, on which Material should work on!")
         }
 
         mShaderBuffer = mShader->GetReflectionData().GetBuffer("Material");
@@ -55,8 +54,6 @@ namespace Surge
         mDescriptorSets.resize(FRAMES_IN_FLIGHT);
         for (Uint i = 0; i < mDescriptorSets.size(); i++)
             mDescriptorSets[i] = static_cast<VulkanRenderer*>(SurgeCore::GetRenderer())->AllocateDescriptorSet(allocInfo, false, i);
-
-        mIsLoaded = true;
     }
 
     void VulkanMaterial::Bind(const Ref<RenderCommandBuffer>& cmdBuffer, const Ref<GraphicsPipeline>& gfxPipeline) const
@@ -82,8 +79,6 @@ namespace Surge
 
     void VulkanMaterial::Release()
     {
-        SG_ASSERT(mIsLoaded, "Material is already released! Load the material to Release it again lol");
-
         VulkanRenderContext* renderContext;
         SURGE_GET_VULKAN_CONTEXT(renderContext);
         VkDevice logicalDevice = renderContext->GetDevice()->GetLogicalDevice();
@@ -93,6 +88,5 @@ namespace Surge
             static_cast<VulkanRenderer*>(SurgeCore::GetRenderer())->FreeDescriptorSet(mDescriptorSets[i], false, i);
 
         mBufferMemory.Release();
-        mIsLoaded = false;
     }
 } // namespace Surge

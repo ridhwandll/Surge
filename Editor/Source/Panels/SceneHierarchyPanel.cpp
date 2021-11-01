@@ -49,7 +49,7 @@ namespace Surge
                 }
                 if (ImGui::MenuItem("Point Light"))
                 {
-                    mSceneContext->CreateEntity(mSelectedEntity, "Camera");
+                    mSceneContext->CreateEntity(mSelectedEntity, "Point Light");
                     mSelectedEntity.AddComponent<PointLightComponent>();
                 }
                 ImGui::EndPopup();

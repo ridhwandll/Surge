@@ -25,7 +25,18 @@ namespace Surge
         VulkanMemoryAllocator* allocator = renderContext->GetMemoryAllocator();
 
         void* mappedData = allocator->MapMemory(mAllocation);
-        memcpy(mappedData, (const byte*)data.Data + offset, data.Size);
+        memcpy(mappedData, (const byte*)data.Data + offset, mSize);
+        allocator->UnmapMemory(mAllocation);
+    }
+
+    void VulkanUniformBuffer::SetData(const void* data, Uint offset) const
+    {
+        VulkanRenderContext* renderContext;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
+        VulkanMemoryAllocator* allocator = renderContext->GetMemoryAllocator();
+
+        void* mappedData = allocator->MapMemory(mAllocation);
+        memcpy(mappedData, (const byte*)data + offset, mSize);
         allocator->UnmapMemory(mAllocation);
     }
 

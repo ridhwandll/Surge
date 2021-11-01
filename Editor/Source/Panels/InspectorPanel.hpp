@@ -12,6 +12,7 @@ namespace Surge
         ~InspectorPanel() = default;
 
         virtual void Init(void* panelInitArgs);
+        virtual void OnEvent(Event& e) override {};
         virtual void Render(bool* show);
         virtual void Shutdown();
         virtual PanelCode GetCode() const { return GetStaticCode(); }
@@ -26,5 +27,4 @@ namespace Surge
         PanelCode mCode;
         SceneHierarchyPanel* mHierarchy;
     };
-
 } // namespace Surge

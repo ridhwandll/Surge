@@ -4,6 +4,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <json/json.hpp>
 #include <filesystem>
+#include <fstream>
 
 // https://github.com/nlohmann/json#arbitrary-types-conversions
 namespace glm
@@ -294,24 +295,12 @@ namespace Surge
         SG_ASSERT_NOMSG(out);
         out->GetRegistry().clear();
 
-        // Read the File
-        FILE* f = nullptr;
-        errno_t e = fopen_s(&f, path.c_str(), "r");
-        String jsonContents;
-        if (f)
-        {
-            // Get the size
-            fseek(f, 0, SEEK_END);
-            uint64_t size = ftell(f);
-            fseek(f, 0, SEEK_SET);
-
-            jsonContents.resize(size / sizeof(char));
-            fread(jsonContents.data(), sizeof(char), jsonContents.size(), f);
-            fclose(f);
-        }
+        std::ifstream ifs(path);
+        String jsonContents((std::istreambuf_iterator<char>(ifs)),
+                            (std::istreambuf_iterator<char>()));
 
         // Parse the json
-        nlohmann::json parsedJson = nlohmann::json::parse(jsonContents, nullptr, true, true);
+        nlohmann::json parsedJson = nlohmann::json::parse(jsonContents);
         uint64_t size = parsedJson["Scene"]["Size"];
 
         for (uint64_t i = 0; i < size; i++)
