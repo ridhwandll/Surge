@@ -25,6 +25,7 @@ namespace Surge
         mPanelManager.PushPanel<InspectorPanel>()->SetHierarchy(sceneHierarchy);
         mPanelManager.PushPanel<PerformancePanel>();
         mPanelManager.PushPanel<ViewportPanel>();
+        mTitleBar.OnInit();
     }
 
     void Editor::OnUpdate()

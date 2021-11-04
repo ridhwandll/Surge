@@ -1,10 +1,10 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Surge/Serializer/Serializer.hpp"
 #include "Surge/ECS/Components.hpp"
+#include "Surge/Utility/Filesystem.hpp"
 #include <glm/gtc/type_ptr.hpp>
-#include <json/json.hpp>
 #include <filesystem>
-#include <fstream>
+#include <json/json.hpp>
 
 // https://github.com/nlohmann/json#arbitrary-types-conversions
 namespace glm
@@ -69,7 +69,7 @@ namespace Surge
             for (const auto& [name, var] : clazz->GetVariables())
             {
                 uint64_t size = var.GetSize();
-                const byte* source = reinterpret_cast<const byte*>(&comp) + offset;
+                const Byte* source = reinterpret_cast<const Byte*>(&comp) + offset;
 
                 const SurgeReflect::Type& type = var.GetType();
                 if (type.EqualTo<bool>())
@@ -213,7 +213,7 @@ namespace Surge
         {
             const SurgeReflect::Type& type = var.GetType();
             uint64_t size = var.GetSize();
-            byte* destination = reinterpret_cast<byte*>(&comp) + offset;
+            Byte* destination = reinterpret_cast<Byte*>(&comp) + offset;
 
             if (type.EqualTo<bool>())
             {
@@ -295,9 +295,7 @@ namespace Surge
         SG_ASSERT_NOMSG(out);
         out->GetRegistry().clear();
 
-        std::ifstream ifs(path);
-        String jsonContents((std::istreambuf_iterator<char>(ifs)),
-                            (std::istreambuf_iterator<char>()));
+        String jsonContents = Filesystem::ReadFile<String>(path);
 
         // Parse the json
         nlohmann::json parsedJson = nlohmann::json::parse(jsonContents);

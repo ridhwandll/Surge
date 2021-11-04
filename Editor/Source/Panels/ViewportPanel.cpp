@@ -24,32 +24,35 @@ namespace Surge
     {
         EventDispatcher dispatcher(e);
         dispatcher.Dispatch<KeyPressedEvent>([&](KeyPressedEvent& keyEvent) -> bool {
-            switch (keyEvent.GetKeyCode())
+            if (!Input::IsMouseButtonPressed(Mouse::ButtonRight))
             {
-                // Gizmos
-                case Key::Q:
+                switch (keyEvent.GetKeyCode())
                 {
-                    if (!mGizmoInUse)
-                        mGizmoType = -20;
-                    break;
-                }
-                case Key::W:
-                {
-                    if (!mGizmoInUse)
-                        mGizmoType = ImGuizmo::OPERATION::TRANSLATE;
-                    break;
-                }
-                case Key::E:
-                {
-                    if (!mGizmoInUse)
-                        mGizmoType = ImGuizmo::OPERATION::ROTATE;
-                    break;
-                }
-                case Key::R:
-                {
-                    if (!mGizmoInUse)
-                        mGizmoType = ImGuizmo::OPERATION::SCALE;
-                    break;
+                    // Gizmos
+                    case Key::Q:
+                    {
+                        if (!mGizmoInUse)
+                            mGizmoType = -20;
+                        break;
+                    }
+                    case Key::W:
+                    {
+                        if (!mGizmoInUse)
+                            mGizmoType = ImGuizmo::OPERATION::TRANSLATE;
+                        break;
+                    }
+                    case Key::E:
+                    {
+                        if (!mGizmoInUse)
+                            mGizmoType = ImGuizmo::OPERATION::ROTATE;
+                        break;
+                    }
+                    case Key::R:
+                    {
+                        if (!mGizmoInUse)
+                            mGizmoType = ImGuizmo::OPERATION::SCALE;
+                        break;
+                    }
                 }
             }
             return false;

@@ -7,18 +7,6 @@
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-#ifdef SURGE_DEBUG
-#define SURGE_GET_WIN32_LAST_ERROR                                                                                                                                                  \
-    {                                                                                                                                                                               \
-        DWORD err = GetLastError();                                                                                                                                                 \
-        LPSTR buffer;                                                                                                                                                               \
-        FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, err, 0, reinterpret_cast<LPSTR>(&buffer), 0, nullptr); \
-        ::Surge::Log<Surge::Severity::Debug>("[Windows] {0}", buffer);                                                                                                              \
-    }
-#else
-#define SURGE_GET_WIN32_LAST_ERROR
-#endif
-
 namespace Surge
 {
     WindowsWindow::WindowsWindow(const WindowData& windowData)
@@ -57,6 +45,7 @@ namespace Surge
         MARGINS ShadowMargins;
         ShadowMargins = {1, 1, 1, 1};
         DwmExtendFrameIntoClientArea(mWin32Window, &ShadowMargins);
+        SURGE_GET_WIN32_LAST_ERROR
     }
 
     WindowsWindow::~WindowsWindow()
@@ -377,5 +366,4 @@ namespace Surge
 
         return WindowProcWithoutImGui(hWnd, msg, wParam, lParam);
     }
-
 } // namespace Surge

@@ -85,7 +85,10 @@ namespace Surge
         vkDeviceWaitIdle(logicalDevice);
 
         for (Uint i = 0; i < mDescriptorSets.size(); i++)
+        {
             static_cast<VulkanRenderer*>(SurgeCore::GetRenderer())->FreeDescriptorSet(mDescriptorSets[i], false, i);
+            mDescriptorSets[i] = nullptr;
+        }
 
         mBufferMemory.Release();
     }

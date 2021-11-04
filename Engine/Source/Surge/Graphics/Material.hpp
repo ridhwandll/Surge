@@ -24,7 +24,7 @@ namespace Surge
         {
             const ShaderBufferMember* member = mShaderBuffer.GetMember(name);
             SG_ASSERT_NOMSG(member);
-            mBufferMemory.Write((byte*)&data, sizeof(data), member->MemoryOffset);
+            mBufferMemory.Write((Byte*)&data, sizeof(data), member->MemoryOffset);
         }
 
         template <typename T>
@@ -45,5 +45,4 @@ namespace Surge
         Ref<UniformBuffer> mUniformBuffer;
         CallbackID mShaderReloadID;
     };
-
 } // namespace Surge

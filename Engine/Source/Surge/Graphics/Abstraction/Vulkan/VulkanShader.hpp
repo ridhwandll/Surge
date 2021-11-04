@@ -36,7 +36,7 @@ namespace Surge
 
     private:
         Path mPath;
-        HashCode mUnparsedShaderHashCode;
+        bool mCreatedDescriptorSetLayouts; // We want to make sure that the DescriptorSetLayouts doesn't get recreated when the shader is reloaded
         HashMap<ShaderType, HashCode> mHashCodes;
         HashMap<ShaderType, String> mShaderSources;
         Vector<SPIRVHandle> mShaderSPIRVs {};
@@ -48,5 +48,4 @@ namespace Surge
         ShaderReflectionData mReflectionData;
         HashMap<CallbackID, std::function<void()>> mCallbacks;
     };
-
 } // namespace Surge

@@ -1,5 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
+#include "Surge/Core/Defines.hpp"
+#include "Surge/Core/Memory.hpp"
 #include "Surge/Graphics/Image.hpp"
 
 namespace Surge
@@ -31,5 +33,4 @@ namespace Surge
         virtual const Ref<Image2D> GetImage2D() const = 0;
         static Ref<Texture2D> Create(const String& filepath, TextureSpecification specification = {});
     };
-
 } // namespace Surge

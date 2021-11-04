@@ -65,5 +65,4 @@ namespace SurgeReflect
         for (auto& clazz : mClasses)
             delete clazz.second;
     }
-
 } // namespace SurgeReflect
