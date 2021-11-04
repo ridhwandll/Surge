@@ -1,8 +1,8 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
+#include "Surge/Core/Defines.hpp"
 #include "Surge/Core/Hash.hpp"
 #include "Surge/Core/Memory.hpp"
-#include "Surge/Core/UUID.hpp"
 
 namespace Surge
 {
@@ -40,7 +40,8 @@ namespace Surge
         Mat2,
         Mat4,
         Mat3,
-        Bool
+        Bool,
+        Struct
     };
 
     inline String ShaderDataTypeToString(const ShaderDataType& type)
@@ -88,7 +89,6 @@ namespace Surge
         ShaderType Type;
     };
 
-    using CallbackID = UUID;
     class ShaderReflectionData;
     class Shader : public RefCounted
     {
@@ -98,14 +98,14 @@ namespace Surge
 
         virtual void Load(const HashMap<ShaderType, bool>& compileStages = {}) = 0;
         virtual void Reload() = 0;
-        [[nodiscard]] virtual CallbackID AddReloadCallback(const std::function<void()> callback) = 0;
+        NODISCARD virtual CallbackID AddReloadCallback(const std::function<void()> callback) = 0;
         virtual void RemoveReloadCallback(const CallbackID& id) = 0;
-        [[nodiscard]] virtual const ShaderReflectionData& GetReflectionData() const = 0;
-        [[nodiscard]] virtual const Vector<SPIRVHandle>& GetSPIRVs() const = 0;
-        [[nodiscard]] virtual const Path& GetPath() const = 0;
-        [[nodiscard]] virtual const HashMap<ShaderType, String>& GetSources() const = 0;
-        [[nodiscard]] virtual const HashCode& GetHash(const ShaderType& type) const = 0;
-        [[nodiscard]] virtual const HashMap<ShaderType, HashCode>& GetHashCodes() const = 0;
+        NODISCARD virtual const ShaderReflectionData& GetReflectionData() const = 0;
+        NODISCARD virtual const Vector<SPIRVHandle>& GetSPIRVs() const = 0;
+        NODISCARD virtual const Path& GetPath() const = 0;
+        NODISCARD virtual const HashMap<ShaderType, String>& GetSources() const = 0;
+        NODISCARD virtual const HashCode& GetHash(const ShaderType& type) const = 0;
+        NODISCARD virtual const HashMap<ShaderType, HashCode>& GetHashCodes() const = 0;
 
         static Ref<Shader> Create(const Path& path);
     };

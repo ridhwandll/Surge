@@ -1,6 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "Panels/IPanel.hpp"
+#include "Panels/SceneHierarchyPanel.hpp"
 #include <glm/glm.hpp>
 
 namespace Surge
@@ -12,6 +13,7 @@ namespace Surge
         virtual ~ViewportPanel() override = default;
 
         virtual void Init(void* panelInitArgs) override;
+        virtual void OnEvent(Event& e) override;
         virtual void Render(bool* show) override;
         virtual void Shutdown() override;
         virtual PanelCode GetCode() const override { return GetStaticCode(); }
@@ -24,6 +26,8 @@ namespace Surge
     private:
         PanelCode mCode;
         glm::vec2 mViewportSize = glm::vec2(0.0f);
+        int mGizmoType = -1;
+        bool mGizmoInUse = false;
+        SceneHierarchyPanel* mSceneHierarchy;
     };
-
 } // namespace Surge

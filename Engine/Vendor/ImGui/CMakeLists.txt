@@ -21,7 +21,8 @@ add_library(ImGui
     "imstb_truetype.h"
     "imgui_demo.cpp"
     "imgui_tables.cpp"
-
+    "ImGuizmo.h"
+    "ImGuizmo.cpp"
     ${BACKENDS}
 )
 

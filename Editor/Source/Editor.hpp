@@ -29,6 +29,7 @@ namespace Surge
         SceneState GetSceneState() { return mSceneState; }
         PanelManager& GetPanelManager() { return mPanelManager; }
         Titlebar& GetTitlebar() { return mTitleBar; }
+        EditorCamera& GetCamera() { return mCamera; }
 
     private:
         void Resize();
@@ -46,5 +47,4 @@ namespace Surge
         Titlebar mTitleBar {};
         SceneState mSceneState;
     };
-
 } // namespace Surge

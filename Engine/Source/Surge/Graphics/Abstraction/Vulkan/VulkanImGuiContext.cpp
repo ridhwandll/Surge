@@ -4,6 +4,7 @@
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanImage.hpp"
 #include <ImGui/Backends/imgui_impl_vulkan.h>
 #include <ImGui/Backends/imgui_impl_win32.h>
+#include <ImGui/ImGuizmo.h>
 #include <IconsFontAwesome.hpp>
 
 namespace Surge
@@ -43,7 +44,7 @@ namespace Surge
         ImGuiIO& io = ImGui::GetIO();
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;   // Enable Docking
         io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows
-        io.FontDefault = io.Fonts->AddFontFromFileTTF("Engine/Assets/Fonts/Ruda-Medium.ttf", 14.0f);
+        io.FontDefault = io.Fonts->AddFontFromFileTTF("Engine/Assets/Fonts/OpenSans-Regular.ttf", 14.0f);
 
         // Merge Icons
         static const ImWchar iconsRanges[] = {ICON_MIN_FK, ICON_MAX_FK, 0};
@@ -97,6 +98,7 @@ namespace Surge
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
+        ImGuizmo::BeginFrame();
     }
 
     void VulkanImGuiContext::Render()
@@ -191,5 +193,4 @@ namespace Surge
         //colors[ImGuiCol_Separator] = colorFromBytes(10, 200, 10);
         //colors[ImGuiCol_Border] = colorFromBytes(10, 200, 10);
     }
-
 } // namespace Surge

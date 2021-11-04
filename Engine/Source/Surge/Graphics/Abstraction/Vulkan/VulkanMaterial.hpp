@@ -17,7 +17,5 @@ namespace Surge
 
     private:
         Vector<VkDescriptorSet> mDescriptorSets;
-        bool mIsLoaded;
     };
-
 } // namespace Surge

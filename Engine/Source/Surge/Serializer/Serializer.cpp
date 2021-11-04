@@ -1,9 +1,10 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Surge/Serializer/Serializer.hpp"
 #include "Surge/ECS/Components.hpp"
+#include "Surge/Utility/Filesystem.hpp"
 #include <glm/gtc/type_ptr.hpp>
-#include <json/json.hpp>
 #include <filesystem>
+#include <json/json.hpp>
 
 // https://github.com/nlohmann/json#arbitrary-types-conversions
 namespace glm
@@ -68,7 +69,7 @@ namespace Surge
             for (const auto& [name, var] : clazz->GetVariables())
             {
                 uint64_t size = var.GetSize();
-                const byte* source = reinterpret_cast<const byte*>(&comp) + offset;
+                const Byte* source = reinterpret_cast<const Byte*>(&comp) + offset;
 
                 const SurgeReflect::Type& type = var.GetType();
                 if (type.EqualTo<bool>())
@@ -212,7 +213,7 @@ namespace Surge
         {
             const SurgeReflect::Type& type = var.GetType();
             uint64_t size = var.GetSize();
-            byte* destination = reinterpret_cast<byte*>(&comp) + offset;
+            Byte* destination = reinterpret_cast<Byte*>(&comp) + offset;
 
             if (type.EqualTo<bool>())
             {
@@ -294,24 +295,10 @@ namespace Surge
         SG_ASSERT_NOMSG(out);
         out->GetRegistry().clear();
 
-        // Read the File
-        FILE* f = nullptr;
-        errno_t e = fopen_s(&f, path.c_str(), "r");
-        String jsonContents;
-        if (f)
-        {
-            // Get the size
-            fseek(f, 0, SEEK_END);
-            uint64_t size = ftell(f);
-            fseek(f, 0, SEEK_SET);
-
-            jsonContents.resize(size / sizeof(char));
-            fread(jsonContents.data(), sizeof(char), jsonContents.size(), f);
-            fclose(f);
-        }
+        String jsonContents = Filesystem::ReadFile<String>(path);
 
         // Parse the json
-        nlohmann::json parsedJson = nlohmann::json::parse(jsonContents, nullptr, true, true);
+        nlohmann::json parsedJson = nlohmann::json::parse(jsonContents);
         uint64_t size = parsedJson["Scene"]["Size"];
 
         for (uint64_t i = 0; i < size; i++)

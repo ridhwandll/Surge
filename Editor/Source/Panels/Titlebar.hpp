@@ -1,5 +1,6 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
+#include "Surge/Graphics/Texture.hpp"
 
 namespace Surge
 {
@@ -7,14 +8,15 @@ namespace Surge
     class Titlebar
     {
     public:
-        Titlebar();
+        Titlebar() = default;
         ~Titlebar() = default;
 
+        void OnInit();
         void Render();
         float GetHeight() { return 60.0f; }
 
     private:
         Editor* mEditor;
+        Ref<Texture2D> mIcon;
     };
-
 } // namespace Surge

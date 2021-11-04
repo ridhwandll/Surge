@@ -49,12 +49,8 @@ namespace Surge
         ImGuiStyle& style = ImGui::GetStyle();
         float minWinSizeX = style.WindowMinSize.x;
         style.WindowMinSize.x = 270.0f;
-        if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
-        {
-            ImGui::DockSpace(ImGui::GetID("MyDockSpace"), ImVec2(0.0f, ImGui::GetWindowHeight() - 60.0f));
-        }
+        ImGui::DockSpace(ImGui::GetID("MyDockSpace"), ImVec2(0.0f, ImGui::GetWindowHeight() - 60.0f));
         style.WindowMinSize.x = minWinSizeX;
         ImGui::End();
     }
-
 } // namespace Surge

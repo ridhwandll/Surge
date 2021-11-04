@@ -2,6 +2,9 @@
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderer.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanFramebuffer.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderCommandBuffer.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanShader.hpp"
+#include "VulkanUniformBuffer.hpp"
+#include "VulkanGraphicsPipeline.hpp"
 
 namespace Surge
 {
@@ -56,9 +59,20 @@ namespace Surge
             SET_VK_OBJECT_DEBUGNAME(descriptorPool, VK_OBJECT_TYPE_DESCRIPTOR_POOL, "NonResetable DescriptorPool");
         }
 
+        // TODO: Come up with a better way of managing descriptor sets
+        Ref<VulkanShader> mainPBRShader = SurgeCore::GetRenderer()->GetShader("Simple").As<VulkanShader>();
+        VkDescriptorSetAllocateInfo allocInfo {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
+        allocInfo.descriptorSetCount = 1;
+        allocInfo.pSetLayouts = &mainPBRShader->GetDescriptorSetLayouts().at(1);
+
+        mLightsDescriptorSets.resize(FRAMES_IN_FLIGHT);
+        for (Uint i = 0; i < mLightsDescriptorSets.size(); i++)
+            mLightsDescriptorSets[i] = AllocateDescriptorSet(allocInfo, false, i);
+        mLightUniformBuffer = UniformBuffer::Create(sizeof(LightUniformBufferData));
+
         // Geometry Pipeline - TODO: Move to Render Procedure API
         GraphicsPipelineSpecification pipelineSpec {};
-        pipelineSpec.Shader = SurgeCore::GetRenderer()->GetShader("Simple"); // TODO: Should be handled by material
+        pipelineSpec.Shader = mainPBRShader;
         pipelineSpec.Topology = PrimitiveTopology::TriangleList;
         pipelineSpec.CullingMode = CullMode::Back;
         pipelineSpec.UseDepth = true;
@@ -86,33 +100,37 @@ namespace Surge
         mData.reset();
     }
 
-    void VulkanRenderer::BeginFrame(const Camera& camera, const glm::mat4& transform)
-    {
-        SURGE_PROFILE_FUNC("VulkanRenderer::BeginFrame(Camera)");
-        mData->ViewMatrix = glm::inverse(transform);
-        mData->ProjectionMatrix = camera.GetProjectionMatrix();
-        mData->ViewProjection = mData->ProjectionMatrix * mData->ViewMatrix;
-        mData->DrawList.clear();
-    }
-
-    void VulkanRenderer::BeginFrame(const EditorCamera& camera)
-    {
-        SURGE_PROFILE_FUNC("VulkanRenderer::BeginFrame(EditorCamera)");
-        mData->ViewMatrix = camera.GetViewMatrix();
-        mData->ProjectionMatrix = camera.GetProjectionMatrix();
-        mData->ViewProjection = mData->ProjectionMatrix * mData->ViewMatrix;
-        mData->DrawList.clear();
-    }
-
     void VulkanRenderer::EndFrame()
     {
         SURGE_PROFILE_FUNC("VulkanRenderer::EndFrame()");
+
+        VulkanRenderContext* renderContext;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
+        VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
+        Uint frameIndex = renderContext->GetFrameIndex();
+
         mData->RenderCmdBuffer->BeginRecording();
 
-        // TODO: Have a "nice, next gen" RenderPass API
         // ViewProjection and Transform
         glm::mat4 pushConstantData[2] = {};
         pushConstantData[0] = mData->ViewProjection;
+
+        // Light UBO data
+        VkWriteDescriptorSet writeDescriptorSet {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+        writeDescriptorSet.dstBinding = 0;
+        writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        writeDescriptorSet.pBufferInfo = &mLightUniformBuffer.As<VulkanUniformBuffer>()->GetDescriptorBufferInfo();
+        writeDescriptorSet.descriptorCount = 1;
+        writeDescriptorSet.dstSet = mLightsDescriptorSets[frameIndex];
+        mData->LightData.CameraPosition = mData->CameraPosition;
+        mData->LightData.PointLightCount = Uint(mData->PointLights.size());
+        for (Uint i = 0; i < mData->LightData.PointLightCount; i++)
+            mData->LightData.PointLights[i] = mData->PointLights[i];
+
+        mLightUniformBuffer->SetData(&mData->LightData);
+        vkUpdateDescriptorSets(renderContext->GetDevice()->GetLogicalDevice(), 1, &writeDescriptorSet, 0, nullptr);
+        vkCmdBindDescriptorSets(mData->RenderCmdBuffer.As<VulkanRenderCommandBuffer>()->GetVulkanCommandBuffer(frameIndex), VK_PIPELINE_BIND_POINT_GRAPHICS, mData->mGeometryPipeline.As<VulkanGraphicsPipeline>()->GetPipelineLayout(), 1, 1, &mLightsDescriptorSets[frameIndex], 0, nullptr);
+
         BeginRenderPass(mData->RenderCmdBuffer, mData->OutputFrambuffer);
         for (const DrawCommand& object : mData->DrawList)
         {
@@ -135,11 +153,8 @@ namespace Surge
 
         mData->RenderCmdBuffer->EndRecording();
         mData->RenderCmdBuffer->Submit();
-    }
-
-    void VulkanRenderer::SubmitMesh(MeshComponent& meshComp, const glm::mat4& transform)
-    {
-        mData->DrawList.push_back(DrawCommand(&meshComp, transform));
+        mData->DrawList.clear();
+        mData->PointLights.clear();
     }
 
     void VulkanRenderer::BeginRenderPass(const Ref<RenderCommandBuffer>& cmdBuffer, const Ref<Framebuffer>& framebuffer)

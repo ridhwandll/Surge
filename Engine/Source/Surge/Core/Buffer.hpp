@@ -23,7 +23,7 @@ namespace Surge
             if (size == 0)
                 return;
 
-            Data = new byte[size];
+            Data = new Byte[size];
             Size = size;
         }
 
@@ -43,21 +43,21 @@ namespace Surge
         template <typename T>
         T& Read(Uint offset = 0)
         {
-            return *(T*)((byte*)Data + offset);
+            return *(T*)((Byte*)Data + offset);
         }
 
-        byte* ReadBytes(Uint size, Uint offset)
+        Byte* ReadBytes(Uint size, Uint offset)
         {
             SG_ASSERT(offset + size <= Size, "Buffer overflow!");
-            byte* buffer = new byte[size];
-            std::memcpy(buffer, (byte*)Data + offset, size);
+            Byte* buffer = new Byte[size];
+            std::memcpy(buffer, (Byte*)Data + offset, size);
             return buffer;
         }
 
         void Write(void* data, Uint size, Uint offset = 0)
         {
             SG_ASSERT(offset + size <= Size, "Buffer overflow!");
-            std::memcpy((byte*)Data + offset, data, size);
+            std::memcpy((Byte*)Data + offset, data, size);
         }
 
         operator bool() const
@@ -65,14 +65,14 @@ namespace Surge
             return Data;
         }
 
-        byte& operator[](int index)
+        Byte& operator[](int index)
         {
-            return ((byte*)Data)[index];
+            return ((Byte*)Data)[index];
         }
 
-        byte operator[](int index) const
+        Byte operator[](int index) const
         {
-            return ((byte*)Data)[index];
+            return ((Byte*)Data)[index];
         }
 
         template <typename T>
@@ -86,5 +86,4 @@ namespace Surge
             return Size;
         }
     };
-
 } // namespace Surge

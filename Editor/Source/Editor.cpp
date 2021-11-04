@@ -25,6 +25,7 @@ namespace Surge
         mPanelManager.PushPanel<InspectorPanel>()->SetHierarchy(sceneHierarchy);
         mPanelManager.PushPanel<PerformancePanel>();
         mPanelManager.PushPanel<ViewportPanel>();
+        mTitleBar.OnInit();
     }
 
     void Editor::OnUpdate()
@@ -49,8 +50,7 @@ namespace Surge
     void Editor::OnEvent(Event& e)
     {
         mCamera.OnEvent(e);
-        EventDispatcher dispatcher(e);
-        dispatcher.Dispatch<Surge::KeyPressedEvent>([this](KeyPressedEvent& e) { /*Log("{0}", e.ToString());*/ });
+        mPanelManager.OnEvent(e);
     }
 
     void Editor::OnRuntimeStart()
@@ -95,7 +95,6 @@ namespace Surge
     void Editor::OnShutdown()
     {
     }
-
 } // namespace Surge
 
 // Entry point

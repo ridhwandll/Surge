@@ -11,6 +11,7 @@ namespace Surge
         virtual ~PerformancePanel() override = default;
 
         virtual void Init(void* panelInitArgs) override;
+        virtual void OnEvent(Event& e) override {};
         virtual void Render(bool* show) override;
         virtual void Shutdown() override;
         virtual PanelCode GetCode() const override { return GetStaticCode(); }

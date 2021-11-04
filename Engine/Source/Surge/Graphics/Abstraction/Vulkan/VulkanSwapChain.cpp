@@ -37,7 +37,11 @@ namespace Surge
         VkSurfaceCapabilitiesKHR surfaceCapabilities;
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, mSurface, &surfaceCapabilities);
 
-        Uint imageCount = surfaceCapabilities.minImageCount + 1;
+        Uint imageCount;
+        if (FRAMES_IN_FLIGHT < surfaceCapabilities.minImageCount)
+            imageCount = surfaceCapabilities.minImageCount;
+        else
+            imageCount = FRAMES_IN_FLIGHT;
 
         VkExtent2D swapChainExtent = {};
         if (surfaceCapabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
@@ -355,7 +359,9 @@ namespace Surge
         VkCommandBufferBeginInfo cmdBufInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
         cmdBufInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
         VkCommandBuffer commandBuffer = mCommandBuffers[frameIndex];
-        vkBeginCommandBuffer(commandBuffer, &cmdBufInfo);
+
+        // Render the ImGui
+        VK_CALL(vkBeginCommandBuffer(commandBuffer, &cmdBufInfo));
         BeginRenderPass();
         vkContext->RenderImGui();
         EndRenderPass();

@@ -67,8 +67,8 @@ namespace Surge
 
                 if (!sCoreData.FrameEndCallbacks.empty())
                 {
-                    for (std::function<void()>& func : sCoreData.FrameEndCallbacks)
-                        func();
+                    for (std::function<void()>& function : sCoreData.FrameEndCallbacks)
+                        function();
 
                     sCoreData.FrameEndCallbacks.clear();
                 }
@@ -87,10 +87,9 @@ namespace Surge
         sCoreData.SurgeApplication = nullptr;
 
         sCoreData.SurgeRenderer->Shutdown();
-        sCoreData.SurgeRenderContext->Shutdown();
-
-        delete sCoreData.SurgeWindow;
         delete sCoreData.SurgeRenderer;
+        delete sCoreData.SurgeWindow;
+        sCoreData.SurgeRenderContext->Shutdown();
         delete sCoreData.SurgeRenderContext;
     }
 
@@ -108,5 +107,4 @@ namespace Surge
     RenderContext* SurgeCore::GetRenderContext() { return sCoreData.SurgeRenderContext; }
     Renderer* SurgeCore::GetRenderer() { return sCoreData.SurgeRenderer; }
     Surge::CoreData* SurgeCore::GetData() { return &sCoreData; }
-
 } // namespace Surge

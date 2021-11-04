@@ -25,12 +25,22 @@ namespace Surge
     {
         Renderer* renderer = SurgeCore::GetRenderer();
         renderer->BeginFrame(camera);
-        auto group = mRegistry.group<TransformComponent>(entt::get<MeshComponent>);
-        for (auto& entity : group)
         {
-            auto [transform, mesh] = group.get<TransformComponent, MeshComponent>(entity);
-            if (mesh.Mesh)
-                renderer->SubmitMesh(mesh, transform.GetTransform());
+            auto group = mRegistry.group<TransformComponent>(entt::get<MeshComponent>);
+            for (auto& entity : group)
+            {
+                auto [transform, mesh] = group.get<TransformComponent, MeshComponent>(entity);
+                if (mesh.Mesh)
+                    renderer->SubmitMesh(mesh, transform.GetTransform());
+            }
+        }
+        {
+            auto group = mRegistry.group<PointLightComponent>(entt::get<TransformComponent>);
+            for (auto& entity : group)
+            {
+                auto [light, transform] = group.get<PointLightComponent, TransformComponent>(entity);
+                renderer->SubmitPointLight(light, transform.Position);
+            }
         }
         renderer->EndFrame();
     }
@@ -49,6 +59,14 @@ namespace Surge
                 auto [transform, mesh] = group.get<TransformComponent, MeshComponent>(entity);
                 if (mesh.Mesh)
                     renderer->SubmitMesh(mesh, transform.GetTransform());
+            }
+            {
+                auto group = mRegistry.group<PointLightComponent>(entt::get<TransformComponent>);
+                for (auto& entity : group)
+                {
+                    auto [light, transform] = group.get<PointLightComponent, TransformComponent>(entity);
+                    renderer->SubmitPointLight(light, transform.Position);
+                }
             }
             renderer->EndFrame();
         }
@@ -83,6 +101,7 @@ namespace Surge
         CopyComponent<TransformComponent>(other->mRegistry, mRegistry, enttMap);
         CopyComponent<MeshComponent>(other->mRegistry, mRegistry, enttMap);
         CopyComponent<CameraComponent>(other->mRegistry, mRegistry, enttMap);
+        CopyComponent<PointLightComponent>(other->mRegistry, mRegistry, enttMap);
     }
 
     void Scene::CreateEntity(Entity& outEntity, const String& name)
@@ -130,5 +149,4 @@ namespace Surge
         }
         return result;
     }
-
 } // namespace Surge

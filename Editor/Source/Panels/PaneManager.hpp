@@ -54,6 +54,12 @@ namespace Surge
                 element.Panel->Render(&element.Show);
         }
 
+        void OnEvent(Event& e) const
+        {
+            for (auto& [code, element] : mPanels)
+                element.Panel->OnEvent(e);
+        }
+
         HashMap<PanelCode, PanelData>& GetAllPanels()
         {
             return mPanels;
@@ -62,5 +68,4 @@ namespace Surge
     private:
         HashMap<PanelCode, PanelData> mPanels;
     };
-
 } // namespace Surge

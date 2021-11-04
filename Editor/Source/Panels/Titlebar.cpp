@@ -12,8 +12,9 @@
 
 namespace Surge
 {
-    Titlebar::Titlebar()
+    void Titlebar::OnInit()
     {
+        mIcon = Texture2D::Create("Engine/Assets/Textures/Surge.png");
         mEditor = SurgeCore::GetApplication<Editor>();
     }
 
@@ -31,6 +32,9 @@ namespace Surge
         ImGui::PushStyleColor(ImGuiCol_Button, {0.12f, 0.12f, 0.12f, 1.0f});
         if (ImGui::Begin("##dummy", NULL, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoDecoration))
         {
+            ImGuiAux::Image(mIcon->GetImage2D(), {20, 20});
+            ImGui::SameLine();
+
             if (ImGui::SmallButton("File"))
                 ImGui::OpenPopup("FilePopup");
             if (ImGui::BeginPopup("FilePopup"))
@@ -70,6 +74,7 @@ namespace Surge
 
             float windowWidth = ImGui::GetWindowSize().x;
             float textWidth = ImGui::CalcTextSize(ICON_SURGE_PLAY).x;
+
             ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
             SceneState sceneState = mEditor->GetSceneState();
             if (sceneState == SceneState::Edit)
@@ -187,5 +192,4 @@ namespace Surge
         ImGui::PopStyleColor(2);
         ImGui::PopStyleVar(2);
     }
-
 } // namespace Surge

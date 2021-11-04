@@ -3,7 +3,12 @@
 
 namespace Surge::Filesystem
 {
-    String ReadFile(const Path& path);
+    void CreateFile(const Path& path);
+
+    // Returns empty String if failed to open the Path
+    template <typename T>
+    T ReadFile(const Path& path);
+
     String RemoveExtension(const Path& path);
     String GetNameWithExtension(const Path& assetFilepath);
     String GetNameWithoutExtension(const Path& assetFilepath);

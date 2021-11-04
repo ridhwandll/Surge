@@ -75,24 +75,9 @@ namespace Surge
 
     HashCode ShaderSet::GetHashCodeFromCache(const Ref<Shader>& shader, ShaderType type)
     {
-        FILE* f = nullptr;
-        errno_t e = fopen_s(&f, SHADER_HASH_CACHE_PATH, "r");
-        String previousContents;
-        if (f)
-        {
-            // Get the size
-            fseek(f, 0, SEEK_END);
-            uint64_t size = ftell(f);
-            fseek(f, 0, SEEK_SET);
-
-            // Read all the previous contents to a String
-            previousContents.resize(size / sizeof(char));
-            fread(previousContents.data(), sizeof(char), previousContents.size(), f);
-            fclose(f);
-        }
-
-        // Create a json
+        String previousContents = Filesystem::ReadFile<String>(SHADER_HASH_CACHE_PATH);
         String name = GetCacheName(shader->GetPath(), type);
+
         nlohmann::json j = previousContents.empty() ? nlohmann::json() : nlohmann::json::parse(previousContents);
 
         HashCode result = 0;
@@ -134,50 +119,26 @@ namespace Surge
     void ShaderSet::WriteHashToFile(const Ref<Shader>& shader)
     {
         FILE* f = nullptr;
-        errno_t e;
 
         // Create the file if it doesn't exist
         if (!Filesystem::Exists(SHADER_HASH_CACHE_PATH))
-        {
-            fopen_s(&f, SHADER_HASH_CACHE_PATH, "w");
-            if (f)
-                fclose(f);
-        }
-
-        e = fopen_s(&f, SHADER_HASH_CACHE_PATH, "r");
-
-        // If the file doesn't exists, create an empty file
-        if (e == ENOENT)
-        {
-            e = fopen_s(&f, SHADER_HASH_CACHE_PATH, "w");
-            if (f)
-                fclose(f);
-        }
+            Filesystem::CreateFile(SHADER_HASH_CACHE_PATH);
 
         // Load in the contents of the file, because we append to it later
-        String previousContents;
-        if (f)
-        {
-            fseek(f, 0, SEEK_END);
-            uint64_t size = ftell(f);
-            fseek(f, 0, SEEK_SET);
-            previousContents.resize(size / sizeof(char));
-            fread(previousContents.data(), sizeof(char), previousContents.size(), f);
-            fclose(f);
-        }
+        String previousContents = Filesystem::ReadFile<String>(SHADER_HASH_CACHE_PATH);
 
         // Create A JSON, from the previous file for writing the new contents
         nlohmann::json j = previousContents.empty() ? nlohmann::json() : nlohmann::json::parse(previousContents);
 
         // For each HashCodes, update it
-        for (auto& e : shader->GetHashCodes())
+        for (auto& element : shader->GetHashCodes())
         {
-            String name = GetCacheName(shader->GetPath(), e.first);
-            j[name] = e.second;
+            String name = GetCacheName(shader->GetPath(), element.first);
+            j[name] = element.second;
         }
 
         String result = j.dump(4);
-        e = fopen_s(&f, SHADER_HASH_CACHE_PATH, "w");
+        fopen_s(&f, SHADER_HASH_CACHE_PATH, "w");
         if (f)
         {
             fwrite(result.c_str(), sizeof(char), result.size(), f);
@@ -196,5 +157,4 @@ namespace Surge
         String name = fmt::format("{0}.{1}.spv", Filesystem::GetNameWithExtension(shaderPath), ShaderTypeToString(type));
         return name;
     }
-
 } // namespace Surge
