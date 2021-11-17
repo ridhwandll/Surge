@@ -38,6 +38,7 @@ namespace Surge
         String Name;
         Uint MemoryOffset = 0;
         ShaderDataType DataType = ShaderDataType::None;
+        Uint Size = 0;
     };
 
     // Represents a ConstantBuffer

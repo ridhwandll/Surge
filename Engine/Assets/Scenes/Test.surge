@@ -1,28 +1,26 @@
 {
     "Scene": {
         "Entity0": {
-            "Surge::CameraComponent": {
-                "FixedAspectRatio": false,
-                "Orthographic FarClip": 1.0,
-                "Orthographic NearClip": -1.0,
-                "Orthographic Size": 10.0,
-                "Perspective FarClip": 1024.0,
-                "Perspective NearClip": 0.10000000149011612,
-                "Primary": true,
-                "Projection": "Perspective",
-                "Vertical FOV": 45.0
-            },
             "Surge::IDComponent": {
-                "ID": 12027356869343910256
+                "ID": 9517561151805697306
             },
             "Surge::NameComponent": {
-                "Name": "Camera"
+                "Name": "Point Light2"
+            },
+            "Surge::PointLightComponent": {
+                "Color": {
+                    "X": 0.8465116024017334,
+                    "Y": 0.5433423519134521,
+                    "Z": 0.5433423519134521
+                },
+                "Intensity": 1.0,
+                "Radius": 5.0
             },
             "Surge::TransformComponent": {
                 "Position": {
-                    "X": 0.0,
-                    "Y": 0.0,
-                    "Z": 15.0
+                    "X": -3.401956796646118,
+                    "Y": 2.630078077316284,
+                    "Z": 3.199159622192383
                 },
                 "Rotation": {
                     "X": 0.0,
@@ -37,34 +35,6 @@
             }
         },
         "Entity1": {
-            "Surge::IDComponent": {
-                "ID": 15706910303489017503
-            },
-            "Surge::MeshComponent": {
-                "Mesh": "Engine\\Assets\\Mesh\\Vulkan.obj"
-            },
-            "Surge::NameComponent": {
-                "Name": "KekwVulkan"
-            },
-            "Surge::TransformComponent": {
-                "Position": {
-                    "X": 0.0,
-                    "Y": 0.0,
-                    "Z": 0.0
-                },
-                "Rotation": {
-                    "X": 0.0,
-                    "Y": 0.0,
-                    "Z": 0.0
-                },
-                "Scale": {
-                    "X": 1.0,
-                    "Y": 1.0,
-                    "Z": 1.0
-                }
-            }
-        },
-        "Entity2": {
             "Surge::IDComponent": {
                 "ID": 9875666104701052868
             },
@@ -98,6 +68,70 @@
                 }
             }
         },
-        "Size": 3
+        "Entity2": {
+            "Surge::IDComponent": {
+                "ID": 15706910303489017503
+            },
+            "Surge::MeshComponent": {
+                "Mesh": "Engine\\Assets\\Mesh\\Vulkan.obj"
+            },
+            "Surge::NameComponent": {
+                "Name": "KekwVulkan"
+            },
+            "Surge::TransformComponent": {
+                "Position": {
+                    "X": 0.0,
+                    "Y": 0.0,
+                    "Z": 0.0
+                },
+                "Rotation": {
+                    "X": 0.0,
+                    "Y": 0.0,
+                    "Z": 0.0
+                },
+                "Scale": {
+                    "X": 1.0,
+                    "Y": 1.0,
+                    "Z": 1.0
+                }
+            }
+        },
+        "Entity3": {
+            "Surge::CameraComponent": {
+                "FixedAspectRatio": false,
+                "Orthographic FarClip": 1.0,
+                "Orthographic NearClip": -1.0,
+                "Orthographic Size": 10.0,
+                "Perspective FarClip": 1024.0,
+                "Perspective NearClip": 0.10000000149011612,
+                "Primary": true,
+                "Projection": "Perspective",
+                "Vertical FOV": 45.0
+            },
+            "Surge::IDComponent": {
+                "ID": 12027356869343910256
+            },
+            "Surge::NameComponent": {
+                "Name": "Camera"
+            },
+            "Surge::TransformComponent": {
+                "Position": {
+                    "X": 0.0,
+                    "Y": 2.6010189056396484,
+                    "Z": 15.0
+                },
+                "Rotation": {
+                    "X": 0.0,
+                    "Y": 0.0,
+                    "Z": 0.0
+                },
+                "Scale": {
+                    "X": 1.0,
+                    "Y": 1.0,
+                    "Z": 1.0
+                }
+            }
+        },
+        "Size": 4
     }
 }

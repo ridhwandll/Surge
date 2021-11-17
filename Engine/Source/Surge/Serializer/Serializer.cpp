@@ -147,18 +147,19 @@ namespace Surge
         }
     }
 
+    template <typename... Components>
+    FORCEINLINE void SerializeComponents(nlohmann::json& out, Entity& e)
+    {
+        (SerializeComponent<Components>(out, e), ...);
+    }
+
     // nlohmann::json& j is in "Scene" scope
     static void SerializeEntity(nlohmann::json& j, Entity& e, uint64_t index)
     {
         SG_ASSERT_NOMSG(e);
 
         nlohmann::json& out = j[fmt::format("Entity{0}", index)];
-        SerializeComponent<IDComponent>(out, e);
-        SerializeComponent<NameComponent>(out, e);
-        SerializeComponent<TransformComponent>(out, e);
-        SerializeComponent<CameraComponent>(out, e);
-        SerializeComponent<MeshComponent>(out, e);
-        SerializeComponent<PointLightComponent>(out, e);
+        SerializeComponents<ALL_MAJOR_COMPONENTS>(out, e);
     }
 
     template <>
@@ -276,17 +277,18 @@ namespace Surge
         }
     }
 
+    template <typename... Components>
+    FORCEINLINE void DeserializeComponents(nlohmann::json& json, Entity& e)
+    {
+        (DeserializeComponent<Components>(json, e), ...);
+    }
+
     static void DeserializeEntity(nlohmann::json& j, Entity& e, uint64_t index)
     {
         SG_ASSERT_NOMSG(e);
 
         nlohmann::json& inJson = j[fmt::format("Entity{0}", index)];
-        DeserializeComponent<IDComponent>(inJson, e);
-        DeserializeComponent<NameComponent>(inJson, e);
-        DeserializeComponent<TransformComponent>(inJson, e);
-        DeserializeComponent<MeshComponent>(inJson, e);
-        DeserializeComponent<CameraComponent>(inJson, e);
-        DeserializeComponent<PointLightComponent>(inJson, e);
+        DeserializeComponents<ALL_MAJOR_COMPONENTS>(inJson, e);
     }
 
     template <>

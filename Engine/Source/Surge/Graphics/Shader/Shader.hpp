@@ -75,7 +75,9 @@ namespace Surge
             case ShaderDataType::Mat3: return 4 * 3 * 3;
             case ShaderDataType::Mat4: return 4 * 4 * 4;
             case ShaderDataType::Int: return 4;
+            case ShaderDataType::UInt: return 4;
             case ShaderDataType::Bool: return 4;
+            case ShaderDataType::Struct: return -1;
             default: SG_ASSERT_INTERNAL("Invalid case!");
         }
 

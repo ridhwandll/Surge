@@ -15,6 +15,7 @@ namespace Surge
     class Editor : public Surge::Client
     {
     public:
+        Editor() = default;
         virtual ~Editor() = default;
 
         virtual void OnInitialize() override;

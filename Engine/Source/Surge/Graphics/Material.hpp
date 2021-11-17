@@ -20,15 +20,16 @@ namespace Surge
         const ShaderBuffer& GetShaderBuffer() const { return mShaderBuffer; }
 
         template <typename T>
-        void Set(const String& name, const T& data)
+        FORCEINLINE void Set(const String& name, const T& data)
         {
             const ShaderBufferMember* member = mShaderBuffer.GetMember(name);
             SG_ASSERT_NOMSG(member);
+            SG_ASSERT(sizeof(data) == member->Size, "The size of the shader member and the size of the input data doesn't match!");
             mBufferMemory.Write((Byte*)&data, sizeof(data), member->MemoryOffset);
         }
 
         template <typename T>
-        T& Get(const String& name)
+        FORCEINLINE T& Get(const String& name)
         {
             const ShaderBufferMember* member = mShaderBuffer.GetMember(name);
             SG_ASSERT_NOMSG(member);

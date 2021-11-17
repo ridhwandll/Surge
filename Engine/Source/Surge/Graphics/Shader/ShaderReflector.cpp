@@ -34,6 +34,7 @@ namespace Surge
             SG_ASSERT_INTERNAL("No spirv_cross::SPIRType matches Surge::ShaderDataType!");
             return ShaderDataType::None;
         }
+
     }; // namespace Utils
 
     ShaderReflectionData ShaderReflector::Reflect(const Vector<SPIRVHandle>& spirvHandles)
@@ -89,6 +90,7 @@ namespace Surge
                     bufferMember.Name = buffer.BufferName + '.' + compiler.get_member_name(bufferType.self, i);
                     bufferMember.MemoryOffset = compiler.type_struct_member_offset(bufferType, i); // In bytes
                     bufferMember.DataType = Utils::SPVTypeToShaderDataType(spvType);
+                    bufferMember.Size = ShaderDataTypeSize(bufferMember.DataType);
                     buffer.Members.emplace_back(bufferMember);
                 }
                 result.PushBuffer(buffer);
@@ -115,6 +117,7 @@ namespace Surge
                     bufferMember.Name = buffer.BufferName + '.' + compiler.get_member_name(bufferType.self, i);
                     bufferMember.MemoryOffset = compiler.type_struct_member_offset(bufferType, i); // In bytes
                     bufferMember.DataType = Utils::SPVTypeToShaderDataType(spvType);
+                    bufferMember.Size = ShaderDataTypeSize(bufferMember.DataType);
                     buffer.Members.emplace_back(bufferMember);
                 }
 

@@ -8,6 +8,7 @@
 #include "Surge/Platform/Windows/WindowsWindow.hpp"
 #include "Surge/Debug/Profiler.hpp"
 #include "SurgeReflect/SurgeReflect.hpp"
+#include "Thread/ThreadPool.hpp"
 
 namespace Surge::Core
 {
@@ -36,6 +37,8 @@ namespace Surge::Core
     void Initialize(Client* application)
     {
         SCOPED_TIMER("Core::Initialize");
+        SG_ASSERT(application, "Invalid Application!");
+
         Clock::Start();
         GCoreData.SurgeApplication = application;
         const ClientOptions& appOptions = GCoreData.SurgeApplication->GetAppOptions();

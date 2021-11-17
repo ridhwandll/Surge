@@ -33,13 +33,12 @@ namespace Surge
         const Vector<ShaderBuffer>& shaderBuffers = vulkanShader->GetReflectionData().GetBuffers();
         for (auto& shaderBuffer : shaderBuffers)
         {
-            if (shaderBuffer.Set == 0) // Descriptor set 0 is the material
+            if (shaderBuffer.Set == 0) // Descriptor set 0 is the material; TODO: Automate in some way in future!
             {
                 mBinding = shaderBuffer.Binding;
                 set = shaderBuffer.Set;
                 break;
             }
-            //SG_ASSERT_INTERNAL("Cannot find a suitable uniform buffer, on which Material should work on!")
         }
 
         mShaderBuffer = mShader->GetReflectionData().GetBuffer("Material");
@@ -54,6 +53,10 @@ namespace Surge
         mDescriptorSets.resize(FRAMES_IN_FLIGHT);
         for (Uint i = 0; i < mDescriptorSets.size(); i++)
             mDescriptorSets[i] = static_cast<VulkanRenderer*>(Core::GetRenderer())->AllocateDescriptorSet(allocInfo, false, i);
+
+        // TODO: Remove
+        Set<glm::vec3>("Material.Albedo", {1.0f, 1.0f, 1.0f});
+        Set<float>("Material.AO", 1.0f);
     }
 
     void VulkanMaterial::Bind(const Ref<RenderCommandBuffer>& cmdBuffer, const Ref<GraphicsPipeline>& gfxPipeline) const

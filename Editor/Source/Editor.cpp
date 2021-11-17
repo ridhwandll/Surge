@@ -18,6 +18,7 @@ namespace Surge
         mEditorScene = Ref<Scene>::Create(false);
         Serializer::Deserialize<Scene>("Engine/Assets/Scenes/Test.surge", mEditorScene);
 
+        // Configure panels
         mTitleBar = Titlebar();
         SceneHierarchyPanel* sceneHierarchy;
         sceneHierarchy = mPanelManager.PushPanel<SceneHierarchyPanel>();
