@@ -85,7 +85,7 @@ namespace Surge
         createInfo.imageExtent = swapChainExtent;
         createInfo.imageArrayLayers = 1;
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-        createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE; // TODO(AC3R): Shoud add support for `VK_SHARING_MODE_CONCURRENT` later
+        createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE; // TODO(AC3R): Should add support for `VK_SHARING_MODE_CONCURRENT` later
         createInfo.queueFamilyIndexCount = 0;
         createInfo.pQueueFamilyIndices = nullptr;
         createInfo.preTransform = surfaceCapabilities.currentTransform;
@@ -352,16 +352,15 @@ namespace Surge
 
     void VulkanSwapChain::EndFrame()
     {
-        VulkanRenderContext* vkContext = static_cast<VulkanRenderContext*>(SurgeCore::GetRenderContext());
+        VulkanRenderContext* vkContext = static_cast<VulkanRenderContext*>(Core::GetRenderContext());
         Uint frameIndex = vkContext->GetFrameIndex();
 
         vkResetCommandBuffer(mCommandBuffers[frameIndex], 0);
         VkCommandBufferBeginInfo cmdBufInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
         cmdBufInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-        VkCommandBuffer commandBuffer = mCommandBuffers[frameIndex];
 
         // Render the ImGui
-        VK_CALL(vkBeginCommandBuffer(commandBuffer, &cmdBufInfo));
+        VK_CALL(vkBeginCommandBuffer(mCommandBuffers[frameIndex], &cmdBufInfo));
         BeginRenderPass();
         vkContext->RenderImGui();
         EndRenderPass();

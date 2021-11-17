@@ -15,7 +15,7 @@ namespace Surge
     void Titlebar::OnInit()
     {
         mIcon = Texture2D::Create("Engine/Assets/Textures/Surge.png");
-        mEditor = SurgeCore::GetApplication<Editor>();
+        mEditor = static_cast<Editor*>(Core::GetClient());
     }
 
     void Titlebar::Render()
@@ -60,7 +60,7 @@ namespace Surge
                 ImGui::OpenPopup("ViewPopup");
             if (ImGui::BeginPopup("ViewPopup"))
             {
-                Editor* editor = SurgeCore::GetApplication<Editor>();
+                Editor* editor = static_cast<Editor*>(Core::GetClient());
                 PanelManager& panelManager = editor->GetPanelManager();
 
                 for (auto& [code, element] : panelManager.GetAllPanels())
@@ -94,7 +94,7 @@ namespace Surge
 
             // System buttons
             {
-                Window* window = SurgeCore::GetWindow();
+                Window* window = Core::GetWindow();
                 ImDrawList* drawList = ImGui::GetWindowDrawList();
                 const float buttonSize = ImGui::GetFrameHeight();
                 const float iconMargin = buttonSize * 0.33f;
@@ -126,7 +126,7 @@ namespace Surge
                     }
 
                     if (pressed)
-                        SurgeCore::Close();
+                        PlatformMisc::RequestExit();
 
                     buttonRect.Min.x -= buttonSize;
                     buttonRect.Max.x -= buttonSize;

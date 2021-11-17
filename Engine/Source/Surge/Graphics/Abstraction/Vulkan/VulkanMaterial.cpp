@@ -53,7 +53,7 @@ namespace Surge
 
         mDescriptorSets.resize(FRAMES_IN_FLIGHT);
         for (Uint i = 0; i < mDescriptorSets.size(); i++)
-            mDescriptorSets[i] = static_cast<VulkanRenderer*>(SurgeCore::GetRenderer())->AllocateDescriptorSet(allocInfo, false, i);
+            mDescriptorSets[i] = static_cast<VulkanRenderer*>(Core::GetRenderer())->AllocateDescriptorSet(allocInfo, false, i);
     }
 
     void VulkanMaterial::Bind(const Ref<RenderCommandBuffer>& cmdBuffer, const Ref<GraphicsPipeline>& gfxPipeline) const
@@ -61,7 +61,7 @@ namespace Surge
         VulkanRenderContext* renderContext;
         SURGE_GET_VULKAN_CONTEXT(renderContext);
 
-        Uint frameIndex = SurgeCore::GetRenderContext()->GetFrameIndex();
+        Uint frameIndex = Core::GetRenderContext()->GetFrameIndex();
         VkCommandBuffer vulkanCommandBuffer = cmdBuffer.As<VulkanRenderCommandBuffer>()->GetVulkanCommandBuffer(frameIndex);
         Ref<VulkanGraphicsPipeline> vulkanPipeline = gfxPipeline.As<VulkanGraphicsPipeline>();
 
@@ -86,7 +86,7 @@ namespace Surge
 
         for (Uint i = 0; i < mDescriptorSets.size(); i++)
         {
-            static_cast<VulkanRenderer*>(SurgeCore::GetRenderer())->FreeDescriptorSet(mDescriptorSets[i], false, i);
+            static_cast<VulkanRenderer*>(Core::GetRenderer())->FreeDescriptorSet(mDescriptorSets[i], false, i);
             mDescriptorSets[i] = nullptr;
         }
 

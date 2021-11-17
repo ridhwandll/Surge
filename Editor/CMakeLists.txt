@@ -13,7 +13,7 @@ add_custom_command(
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_SOURCE_DIR}/Engine/Vendor/shaderc/Binaries/shaderc_shared.dll
-        ${CMAKE_BINARY_DIR}/Sandbox/$<CONFIGURATION>
+        ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIGURATION>
     )
 add_custom_command(
     TARGET Editor

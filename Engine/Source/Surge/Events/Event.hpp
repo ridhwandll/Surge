@@ -10,6 +10,7 @@ namespace Surge
     enum class EventType
     {
         None = 0,
+        AppClose,
         WindowClose,
         WindowResize,
         WindowFocus,
@@ -205,6 +206,15 @@ namespace Surge
 
         virtual String ToString() const override { return "WindowCloseEvent"; }
         EVENT_CLASS_TYPE(WindowClose);
+    };
+
+    class AppClosedEvent : public Event
+    {
+    public:
+        AppClosedEvent() {}
+
+        virtual String ToString() const override { return "AppCloseEvent"; }
+        EVENT_CLASS_TYPE(AppClose);
     };
 
     class EventDispatcher

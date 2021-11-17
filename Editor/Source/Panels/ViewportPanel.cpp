@@ -17,7 +17,7 @@ namespace Surge
     void ViewportPanel::Init(void* panelInitArgs)
     {
         mCode = GetStaticCode();
-        mSceneHierarchy = SurgeCore::GetApplication<Editor>()->GetPanelManager().GetPanel<SceneHierarchyPanel>();
+        mSceneHierarchy = static_cast<Editor*>(Core::GetClient())->GetPanelManager().GetPanel<SceneHierarchyPanel>();
     }
 
     void ViewportPanel::OnEvent(Event& e)
@@ -67,7 +67,7 @@ namespace Surge
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
         if (ImGui::Begin(PanelCodeToString(mCode), show))
         {
-            const Ref<Image2D>& outputImage = SurgeCore::GetRenderer()->GetData()->OutputFrambuffer->GetColorAttachment(0);
+            const Ref<Image2D>& outputImage = Core::GetRenderer()->GetData()->OutputFrambuffer->GetColorAttachment(0);
             mViewportSize = {ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y};
             ImGuiAux::Image(outputImage, mViewportSize);
 
@@ -80,7 +80,7 @@ namespace Surge
                 ImGuizmo::SetRect(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y, mViewportSize.x, mViewportSize.y);
 
                 glm::mat4 cameraView, cameraProjection;
-                Editor* app = SurgeCore::GetApplication<Editor>();
+                Editor* app = static_cast<Editor*>(Core::GetClient());
                 if (app->GetSceneState() == SceneState::Edit)
                 {
                     EditorCamera& camera = app->GetCamera();

@@ -6,7 +6,6 @@ namespace Surge
 {
     Ref<Material> Material::Create(const String& shaderName)
     {
-        return Ref<VulkanMaterial>::Create(SurgeCore::GetRenderer()->GetShader(shaderName));
+        return Ref<VulkanMaterial>::Create(Core::GetRenderer()->GetShader(shaderName));
     }
-
 } // namespace Surge

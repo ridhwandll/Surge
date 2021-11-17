@@ -12,9 +12,11 @@ namespace Surge
         Play
     };
 
-    class Editor : public Application
+    class Editor : public Surge::Client
     {
     public:
+        virtual ~Editor() = default;
+
         virtual void OnInitialize() override;
         virtual void OnUpdate() override;
         virtual void OnImGuiRender() override;

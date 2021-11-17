@@ -8,7 +8,7 @@
 #include "Surge/Graphics/RenderContext.hpp"
 #include <volk.h>
 
-#define SURGE_GET_VULKAN_CONTEXT(renderContext) renderContext = static_cast<::Surge::VulkanRenderContext*>(::Surge::SurgeCore::GetRenderContext())
+#define SURGE_GET_VULKAN_CONTEXT(renderContext) renderContext = static_cast<::Surge::VulkanRenderContext*>(::Surge::Core::GetRenderContext())
 
 namespace Surge
 {
@@ -70,5 +70,4 @@ namespace Surge
 #else
 #define SET_VK_OBJECT_DEBUGNAME(handle, type, name)
 #endif
-
 } // namespace Surge

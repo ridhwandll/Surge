@@ -60,7 +60,7 @@ namespace Surge
         }
 
         // TODO: Come up with a better way of managing descriptor sets
-        Ref<VulkanShader> mainPBRShader = SurgeCore::GetRenderer()->GetShader("Simple").As<VulkanShader>();
+        Ref<VulkanShader> mainPBRShader = Core::GetRenderer()->GetShader("Simple").As<VulkanShader>();
         VkDescriptorSetAllocateInfo allocInfo {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
         allocInfo.descriptorSetCount = 1;
         allocInfo.pSetLayouts = &mainPBRShader->GetDescriptorSetLayouts().at(1);
@@ -79,7 +79,7 @@ namespace Surge
         pipelineSpec.UseStencil = false;
         pipelineSpec.DebugName = "MeshPipeline";
         pipelineSpec.LineWidth = 1.0f;
-        pipelineSpec.TargetFramebuffer = SurgeCore::GetRenderer()->GetFramebuffer();
+        pipelineSpec.TargetFramebuffer = Core::GetRenderer()->GetFramebuffer();
         mData->mGeometryPipeline = GraphicsPipeline::Create(pipelineSpec);
     }
 

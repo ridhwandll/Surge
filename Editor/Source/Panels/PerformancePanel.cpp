@@ -19,7 +19,7 @@ namespace Surge
 
         if (ImGui::Begin(PanelCodeToString(mCode), show))
         {
-            RenderContext* renderContext = SurgeCore::GetRenderContext();
+            RenderContext* renderContext = Core::GetRenderContext();
 
             ImGui::Text("Device: %s", renderContext->GetGPUInfo().Name.c_str());
             ImGui::Text("Frame Time: % .2f ms ", Clock::GetMilliseconds());
@@ -37,7 +37,7 @@ namespace Surge
 
             if (ImGui::CollapsingHeader("Shaders"))
             {
-                Vector<Ref<Shader>>& allAhaders = SurgeCore::GetRenderer()->GetData()->ShaderSet.GetAllShaders();
+                Vector<Ref<Shader>>& allAhaders = Core::GetRenderer()->GetData()->ShaderSet.GetAllShaders();
                 if (ImGui::BeginTable("ShaderTable", 2, ImGuiTableFlags_BordersOuter | ImGuiTableFlags_Resizable))
                 {
                     for (Ref<Shader>& shader : allAhaders)
@@ -60,5 +60,4 @@ namespace Surge
     void PerformancePanel::Shutdown()
     {
     }
-
 } // namespace Surge

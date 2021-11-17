@@ -23,7 +23,7 @@ namespace Surge
 
     void Scene::Update(const EditorCamera& camera)
     {
-        Renderer* renderer = SurgeCore::GetRenderer();
+        Renderer* renderer = Core::GetRenderer();
         renderer->BeginFrame(camera);
         {
             auto group = mRegistry.group<TransformComponent>(entt::get<MeshComponent>);
@@ -51,7 +51,7 @@ namespace Surge
 
         if (camera.Data1)
         {
-            Renderer* renderer = SurgeCore::GetRenderer();
+            Renderer* renderer = Core::GetRenderer();
             renderer->BeginFrame(*camera.Data1, camera.Data2);
             auto group = mRegistry.group<TransformComponent>(entt::get<MeshComponent>);
             for (auto& entity : group)

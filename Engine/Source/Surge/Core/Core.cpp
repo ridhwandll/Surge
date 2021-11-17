@@ -9,102 +9,108 @@
 #include "Surge/Debug/Profiler.hpp"
 #include "SurgeReflect/SurgeReflect.hpp"
 
-namespace Surge
+namespace Surge::Core
 {
-    Surge::CoreData SurgeCore::sCoreData;
+    struct CoreData
+    {
+        Client* SurgeApplication = nullptr; // Provided by the User
+
+        Window* SurgeWindow = nullptr;
+        RenderContext* SurgeRenderContext = nullptr;
+        Renderer* SurgeRenderer = nullptr;
+        bool Running = false;
+
+        Vector<std::function<void()>> FrameEndCallbacks;
+    };
+    static CoreData GCoreData;
 
     void OnEvent(Event& e)
     {
-        SurgeCore::GetData()->SurgeApplication->OnEvent(e);
+        GCoreData.SurgeApplication->OnEvent(e);
         Surge::EventDispatcher dispatcher(e);
-        dispatcher.Dispatch<Surge::WindowResizeEvent>([](Surge::WindowResizeEvent& e) {
-            if (SurgeCore::GetWindow()->GetWindowState() != WindowState::Minimized)
-                SurgeCore::GetData()->SurgeRenderContext->OnResize();
-        });
+        dispatcher.Dispatch<Surge::WindowResizeEvent>([](Surge::WindowResizeEvent& e) { if (GetWindow()->GetWindowState() != WindowState::Minimized) GCoreData.SurgeRenderContext->OnResize(); });
+        dispatcher.Dispatch<Surge::AppClosedEvent>([](Surge::AppClosedEvent& e) { GCoreData.Running = false; });
+        dispatcher.Dispatch<Surge::WindowClosedEvent>([](Surge::WindowClosedEvent& e) { GCoreData.Running = false; });
     }
 
-    void SurgeCore::Initialize(Application* application)
+    void Initialize(Client* application)
     {
-        SCOPED_TIMER("Initialization");
+        SCOPED_TIMER("Core::Initialize");
         Clock::Start();
-        sCoreData.SurgeApplication = application;
-        const ApplicationOptions& appOptions = sCoreData.SurgeApplication->GetAppOptions();
+        GCoreData.SurgeApplication = application;
+        const ClientOptions& appOptions = GCoreData.SurgeApplication->GetAppOptions();
 
         // Window
-        sCoreData.SurgeWindow = new WindowsWindow({1280, 720, "Surge", WindowFlags::CreateDefault});
-        sCoreData.SurgeWindow->RegisterEventCallback(OnEvent);
+        GCoreData.SurgeWindow = new WindowsWindow({1280, 720, "Surge", WindowFlags::CreateDefault});
+        GCoreData.SurgeWindow->RegisterEventCallback(OnEvent);
 
         // Render Context
-        sCoreData.SurgeRenderContext = new VulkanRenderContext();
-        sCoreData.SurgeRenderContext->Initialize(sCoreData.SurgeWindow, appOptions.EnableImGui);
+        GCoreData.SurgeRenderContext = new VulkanRenderContext();
+        GCoreData.SurgeRenderContext->Initialize(GCoreData.SurgeWindow, appOptions.EnableImGui);
 
         // Renderer
-        sCoreData.SurgeRenderer = new VulkanRenderer();
-        sCoreData.SurgeRenderer->Initialize();
+        GCoreData.SurgeRenderer = new VulkanRenderer();
+        GCoreData.SurgeRenderer->Initialize();
 
         // Reflection Engine
         SurgeReflect::Registry::Initialize();
 
-        sCoreData.mRunning = true;
-        sCoreData.SurgeApplication->OnInitialize();
+        GCoreData.Running = true;
+        GCoreData.SurgeApplication->OnInitialize();
     }
 
-    void SurgeCore::Run()
+    void Core::Run()
     {
-        while (sCoreData.mRunning)
+        while (GCoreData.Running)
         {
-            SURGE_PROFILE_FRAME("Frame");
+            SURGE_PROFILE_FRAME("Core::Frame");
             Clock::Update();
-            sCoreData.SurgeWindow->Update();
+            GCoreData.SurgeWindow->Update();
 
-            if (sCoreData.SurgeWindow->GetWindowState() != WindowState::Minimized)
+            if (GCoreData.SurgeWindow->GetWindowState() != WindowState::Minimized)
             {
-                sCoreData.SurgeRenderContext->BeginFrame();
-                sCoreData.SurgeApplication->OnUpdate();
-                if (sCoreData.SurgeApplication->GetAppOptions().EnableImGui)
-                    sCoreData.SurgeApplication->OnImGuiRender();
-                sCoreData.SurgeRenderContext->EndFrame();
+                GCoreData.SurgeRenderContext->BeginFrame();
+                GCoreData.SurgeApplication->OnUpdate();
+                if (GCoreData.SurgeApplication->GetAppOptions().EnableImGui)
+                    GCoreData.SurgeApplication->OnImGuiRender();
+                GCoreData.SurgeRenderContext->EndFrame();
 
-                if (!sCoreData.FrameEndCallbacks.empty())
+                if (!GCoreData.FrameEndCallbacks.empty())
                 {
-                    for (std::function<void()>& function : sCoreData.FrameEndCallbacks)
+                    for (std::function<void()>& function : GCoreData.FrameEndCallbacks)
                         function();
 
-                    sCoreData.FrameEndCallbacks.clear();
+                    GCoreData.FrameEndCallbacks.clear();
                 }
             }
         }
     }
 
-    void SurgeCore::Shutdown()
+    void Core::Shutdown()
     {
-        SCOPED_TIMER("Shutdown");
+        SCOPED_TIMER("Core::Shutdown");
 
+        // NOTE(Rid): Order Matters here
+        GCoreData.SurgeApplication->OnShutdown();
+        delete GCoreData.SurgeApplication;
+        GCoreData.SurgeApplication = nullptr;
+
+        GCoreData.SurgeRenderer->Shutdown();
+        delete GCoreData.SurgeRenderer;
+        delete GCoreData.SurgeWindow;
+        GCoreData.SurgeRenderContext->Shutdown();
+        delete GCoreData.SurgeRenderContext;
         SurgeReflect::Registry::Shutdown();
-
-        sCoreData.SurgeApplication->OnShutdown();
-        delete sCoreData.SurgeApplication;
-        sCoreData.SurgeApplication = nullptr;
-
-        sCoreData.SurgeRenderer->Shutdown();
-        delete sCoreData.SurgeRenderer;
-        delete sCoreData.SurgeWindow;
-        sCoreData.SurgeRenderContext->Shutdown();
-        delete sCoreData.SurgeRenderContext;
     }
 
-    void SurgeCore::Close()
+    void Core::AddFrameEndCallback(const std::function<void()>& func)
     {
-        sCoreData.mRunning = false;
+        GCoreData.FrameEndCallbacks.push_back(func);
     }
 
-    void SurgeCore::AddFrameEndCallback(const std::function<void()>& func)
-    {
-        sCoreData.FrameEndCallbacks.push_back(func);
-    }
-
-    Window* SurgeCore::GetWindow() { return sCoreData.SurgeWindow; }
-    RenderContext* SurgeCore::GetRenderContext() { return sCoreData.SurgeRenderContext; }
-    Renderer* SurgeCore::GetRenderer() { return sCoreData.SurgeRenderer; }
-    Surge::CoreData* SurgeCore::GetData() { return &sCoreData; }
-} // namespace Surge
+    Window* GetWindow() { return GCoreData.SurgeWindow; }
+    RenderContext* GetRenderContext() { return GCoreData.SurgeRenderContext; }
+    Renderer* GetRenderer() { return GCoreData.SurgeRenderer; }
+    CoreData* GetData() { return &GCoreData; }
+    Surge::Client* GetClient() { return GCoreData.SurgeApplication; }
+} // namespace Surge::Core

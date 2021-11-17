@@ -3,5 +3,6 @@
 
 namespace Surge::PlatformMisc
 {
+    void RequestExit();
     void ErrorMessageBox(const char* text);
 } // namespace Surge::PlatformMisc

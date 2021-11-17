@@ -11,7 +11,7 @@ namespace Surge
 {
     void Editor::OnInitialize()
     {
-        mRenderer = SurgeCore::GetRenderer();
+        mRenderer = Core::GetRenderer();
         mCamera = EditorCamera(45.0f, 1.778f, 0.1f, 1000.0f);
         mCamera.SetActive(true);
 
@@ -100,13 +100,13 @@ namespace Surge
 // Entry point
 int main()
 {
-    Surge::ApplicationOptions appOptions;
-    appOptions.EnableImGui = true;
+    Surge::ClientOptions clientOptions;
+    clientOptions.EnableImGui = true;
 
-    Surge::Editor* app = new Surge::Editor();
-    app->SetAppOptions(appOptions);
+    Surge::Editor* app = Surge::MakeClient<Surge::Editor>();
+    app->SetOptions(clientOptions);
 
-    Surge::SurgeCore::Initialize(app);
-    Surge::SurgeCore::Run();
-    Surge::SurgeCore::Shutdown();
+    Surge::Core::Initialize(app);
+    Surge::Core::Run();
+    Surge::Core::Shutdown();
 }

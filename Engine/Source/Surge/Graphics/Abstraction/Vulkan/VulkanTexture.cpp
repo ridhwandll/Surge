@@ -63,7 +63,7 @@ namespace Surge
     void VulkanTexture2D::Invalidate()
     {
         mImage->Release();
-        VulkanRenderContext* renderContext = static_cast<VulkanRenderContext*>(SurgeCore::GetRenderContext());
+        VulkanRenderContext* renderContext = static_cast<VulkanRenderContext*>(Core::GetRenderContext());
         VulkanMemoryAllocator* allocator = static_cast<VulkanMemoryAllocator*>(renderContext->GetMemoryAllocator());
         VulkanDevice* device = renderContext->GetDevice();
 

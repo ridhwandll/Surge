@@ -17,7 +17,7 @@ namespace Surge
         WNDCLASSEX wc = {};
         wc.cbSize = sizeof(WNDCLASSEX);
 
-        if (SurgeCore::GetApplication<Application>()->GetAppOptions().EnableImGui)
+        if (Core::GetClient()->GetAppOptions().EnableImGui)
             wc.lpfnWndProc = WindowProcWithImgui;
         else
             wc.lpfnWndProc = WindowProcWithoutImGui;
@@ -46,6 +46,7 @@ namespace Surge
         ShadowMargins = {1, 1, 1, 1};
         DwmExtendFrameIntoClientArea(mWin32Window, &ShadowMargins);
         SURGE_GET_WIN32_LAST_ERROR
+        PostQuitMessage(0);
     }
 
     WindowsWindow::~WindowsWindow()
@@ -66,7 +67,7 @@ namespace Surge
 
     void WindowsWindow::Minimize()
     {
-        SurgeCore::AddFrameEndCallback([this]() {
+        Core::AddFrameEndCallback([this]() {
             ShowWindow(mWin32Window, SW_MINIMIZE);
             mWindowState = WindowState::Minimized;
         });
@@ -74,12 +75,12 @@ namespace Surge
 
     void WindowsWindow::Maximize()
     {
-        SurgeCore::AddFrameEndCallback([this]() { ShowWindow(mWin32Window, SW_MAXIMIZE); });
+        Core::AddFrameEndCallback([this]() { ShowWindow(mWin32Window, SW_MAXIMIZE); });
     }
 
     void WindowsWindow::RestoreFromMaximize()
     {
-        SurgeCore::AddFrameEndCallback([this]() { ShowWindow(mWin32Window, SW_SHOWNORMAL); });
+        Core::AddFrameEndCallback([this]() { ShowWindow(mWin32Window, SW_SHOWNORMAL); });
     }
 
     void WindowsWindow::SetTitle(const String& name)
@@ -145,7 +146,6 @@ namespace Surge
             {
                 LPCREATESTRUCT const params = reinterpret_cast<LPCREATESTRUCT>(lParam);
                 WindowsWindow* const wnd = reinterpret_cast<WindowsWindow* const>(params->lpCreateParams);
-                wnd->mIsOpen = true;
 
                 SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(wnd));
                 break;
@@ -155,9 +155,13 @@ namespace Surge
                 WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
                 WindowClosedEvent event;
                 data->mEventCallback(event);
-                data->mIsOpen = false;
-                SurgeCore::Close();
-                PostQuitMessage(0);
+                break;
+            }
+            case WM_QUIT:
+            {
+                WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+                AppClosedEvent event;
+                data->mEventCallback(event);
                 break;
             }
             case WM_SIZE:

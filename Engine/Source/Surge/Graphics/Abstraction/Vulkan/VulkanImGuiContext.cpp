@@ -62,7 +62,7 @@ namespace Surge
         }
 
         // Setup Platform/Renderer backends
-        ImGui_ImplWin32_Init(SurgeCore::GetWindow()->GetNativeWindowHandle());
+        ImGui_ImplWin32_Init(Core::GetWindow()->GetNativeWindowHandle());
         ImGui_ImplVulkan_InitInfo initInfo {};
         initInfo.Instance = renderContext->mVulkanInstance;
         initInfo.PhysicalDevice = vulkanDevice->GetPhysicalDevice();
@@ -122,7 +122,7 @@ namespace Surge
 
     void* VulkanImGuiContext::AddImage(const Ref<Image2D>& image2d) const
     {
-        VulkanRenderer* renderer = static_cast<VulkanRenderer*>(SurgeCore::GetRenderer());
+        VulkanRenderer* renderer = static_cast<VulkanRenderer*>(Core::GetRenderer());
         VkDescriptorSetLayout descriptorSetLayout = ImGui_ImplVulkan_GetDescriptorSetLayout();
         VkDescriptorSet descriptorSet;
 

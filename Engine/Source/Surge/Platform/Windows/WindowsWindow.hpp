@@ -11,7 +11,6 @@ namespace Surge
         WindowsWindow(const WindowData& windowData);
         virtual ~WindowsWindow() override;
 
-        virtual bool IsOpen() const override { return mIsOpen; };
         virtual void Update() override;
         virtual void Minimize() override;
         virtual void Maximize() override;
@@ -41,7 +40,6 @@ namespace Surge
     private:
         std::function<void(Event&)> mEventCallback;
         WindowState mWindowState;
-        bool mIsOpen = false;
         HWND mWin32Window;
     };
 } // namespace Surge

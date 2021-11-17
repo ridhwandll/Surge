@@ -1,6 +1,6 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
-#include "Surge/Core/Application.hpp"
+#include "Surge/Core/Client.hpp"
 #include "Surge/Core/Defines.hpp"
 #include <functional>
 #include <glm/glm.hpp>
@@ -39,7 +39,6 @@ namespace Surge
     public:
         virtual ~Window() = default;
 
-        virtual bool IsOpen() const = 0;
         virtual void Update() = 0;
         virtual void Minimize() = 0;
         virtual void Maximize() = 0;
@@ -70,5 +69,4 @@ namespace Surge
     protected:
         WindowData mWindowData;
     };
-
 } // namespace Surge

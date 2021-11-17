@@ -64,7 +64,7 @@ namespace Surge
             mImGuiContext.BeginFrame();
 
         // Reset the renderer descriptor pool
-        VkDescriptorPool descriptorPool = static_cast<VulkanRenderer*>(SurgeCore::GetRenderer())->GetDescriptorPools()[mSwapChain.GetCurrentFrameIndex()];
+        VkDescriptorPool descriptorPool = static_cast<VulkanRenderer*>(Core::GetRenderer())->GetDescriptorPools()[mSwapChain.GetCurrentFrameIndex()];
         VK_CALL(vkResetDescriptorPool(mDevice.GetLogicalDevice(), descriptorPool, 0));
     }
 
@@ -129,5 +129,4 @@ namespace Surge
         ENABLE_IF_VK_VALIDATION(mVulkanDiagnostics.AddValidationLayers(instanceLayers));
         return instanceLayers;
     }
-
 } // namespace Surge

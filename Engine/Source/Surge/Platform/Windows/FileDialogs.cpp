@@ -11,7 +11,7 @@ namespace Surge
         CHAR currentDir[256] = {0};
         ZeroMemory(&ofn, sizeof(OPENFILENAME));
         ofn.lStructSize = sizeof(OPENFILENAME);
-        ofn.hwndOwner = static_cast<HWND>(SurgeCore::GetWindow()->GetNativeWindowHandle());
+        ofn.hwndOwner = static_cast<HWND>(Core::GetWindow()->GetNativeWindowHandle());
         ofn.lpstrFile = szFile;
         ofn.nMaxFile = sizeof(szFile);
         if (GetCurrentDirectoryA(256, currentDir))
@@ -33,7 +33,7 @@ namespace Surge
         CHAR currentDir[256] = {0};
         ZeroMemory(&ofn, sizeof(OPENFILENAME));
         ofn.lStructSize = sizeof(OPENFILENAME);
-        ofn.hwndOwner = static_cast<HWND>(SurgeCore::GetWindow()->GetNativeWindowHandle());
+        ofn.hwndOwner = static_cast<HWND>(Core::GetWindow()->GetNativeWindowHandle());
         ofn.lpstrFile = szFile;
         ofn.nMaxFile = sizeof(szFile);
         if (GetCurrentDirectoryA(256, currentDir))
@@ -50,5 +50,4 @@ namespace Surge
 
         return String();
     }
-
 } // namespace Surge

@@ -17,7 +17,7 @@ namespace Surge
 
     void ImGuiAux::Image(const Ref<Image2D>& image, const glm::vec2& size)
     {
-        void* imguiTextureId = SurgeCore::GetRenderContext()->GetImGuiTextureID(image);
+        void* imguiTextureId = Core::GetRenderContext()->GetImGuiTextureID(image);
         ImGui::Image(imguiTextureId, {size.x, size.y});
     }
 
@@ -34,7 +34,7 @@ namespace Surge
         constexpr ImGuiWindowFlags windowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
         ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImGui::SetNextWindowPos({viewport->Pos.x, viewport->Pos.y + ((SurgeCore::GetApplication<Editor>()->GetTitlebar().GetHeight()) - 20.0f)});
+        ImGui::SetNextWindowPos({viewport->Pos.x, viewport->Pos.y + ((static_cast<Editor*>(Core::GetClient())->GetTitlebar().GetHeight()) - 20.0f)});
         ImGui::SetNextWindowSize({viewport->Size.x, viewport->Size.y});
         ImGui::SetNextWindowViewport(viewport->ID);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
