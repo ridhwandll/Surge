@@ -94,7 +94,7 @@ namespace Surge
             return GetComponent<IDComponent>().ID;
         }
 
-        UUID GetParentUUID()
+        UUID GetParent()
         {
             return GetComponent<ParentChildComponent>().ParentID;
         }
@@ -129,6 +129,11 @@ namespace Surge
         bool IsChildOf(Entity entity)
         {
             return entity.IsAncesterOf(*this);
+        }
+
+        Vector<UUID> GetChildren()
+        {
+            return GetComponent<ParentChildComponent>().ChildIDs;
         }
 
         operator bool() const { return mEnttHandle != entt::null; }

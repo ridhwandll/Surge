@@ -5,7 +5,7 @@
 #include "Utility/ImGUIAux.hpp"
 #include <imgui.h>
 #include <imgui_stdlib.h>
-#include "imgui_internal.h"
+#include <imgui_internal.h>
 
 namespace Surge
 {
@@ -62,7 +62,7 @@ namespace Surge
                 Entity ent = Entity(e, mSceneContext);
 
                 // Only draw the entities which are not parented at top level
-                if (ent.GetParentUUID() == 0)
+                if (ent.GetParent() == 0)
                 {
                     // NOTE(Rid): DrawEntityNode is a recursive function, that is DrawEntityNode(child) is called
                     // inside DrawEntityNode, to draw the children
@@ -167,7 +167,7 @@ namespace Surge
                 // Only execute when the frame ends, else it will give crash on "Entity not found"
                 Surge::Core::AddFrameEndCallback([=]() { mSceneContext->DestroyEntity(e); });
             }
-            if (e.GetParentUUID() != 0)
+            if (e.GetParent() != 0)
             {
                 if (ImGui::MenuItem("UnParent"))
                 {

@@ -160,10 +160,10 @@ namespace Surge
         // Case where the entity to be parented is the child of something else
         if (parent.IsChildOf(entity))
         {
-            // Unparent the parent first
+            // Un-parent the parent first
             UnparentEntity(parent);
 
-            Entity newParent = FindEntityByUUID(entity.GetParentUUID());
+            Entity newParent = FindEntityByUUID(entity.GetParent());
             if (newParent)
             {
                 UnparentEntity(entity);
@@ -173,7 +173,7 @@ namespace Surge
         else
         {
             // Unparent if 'entity' was parented to something else before
-            Entity previousParent = FindEntityByUUID(entity.GetParentUUID());
+            Entity previousParent = FindEntityByUUID(entity.GetParent());
             if (previousParent)
                 UnparentEntity(entity);
         }
@@ -187,7 +187,7 @@ namespace Surge
     {
         glm::mat4 transform(1.0f);
 
-        Entity parent = FindEntityByUUID(entity.GetParentUUID());
+        Entity parent = FindEntityByUUID(entity.GetParent());
         if (parent)
             transform = GetWorldSpaceTransformMatrix(parent);
 
@@ -196,7 +196,7 @@ namespace Surge
 
     void Scene::ConvertToLocalSpace(Entity entity)
     {
-        Entity parent = FindEntityByUUID(entity.GetParentUUID());
+        Entity parent = FindEntityByUUID(entity.GetParent());
 
         if (!parent)
             return;
@@ -211,7 +211,7 @@ namespace Surge
     void Scene::UnparentEntity(Entity& child)
     {
         // Check if the entity has a valid parent
-        Entity parent = FindEntityByUUID(child.GetParentUUID());
+        Entity parent = FindEntityByUUID(child.GetParent());
         if (!parent)
             return;
 
@@ -230,7 +230,7 @@ namespace Surge
     void Scene::ConvertToWorldSpace(Entity entity)
     {
         // Get the parent
-        Entity parent = FindEntityByUUID(entity.GetParentUUID());
+        Entity parent = FindEntityByUUID(entity.GetParent());
         if (!parent)
             return;
 
@@ -245,14 +245,23 @@ namespace Surge
     {
         ParentChildComponent& pcc = entity.GetComponent<ParentChildComponent>();
 
-        // Destroy all the child entities, if any
-        for (UUID childID : pcc.ChildIDs)
+        // Remove the current entity from the parent
+        if (pcc.ParentID)
+        {
+            Entity parent = FindEntityByUUID(pcc.ParentID);
+            Vector<UUID>& children = parent.GetComponent<ParentChildComponent>().ChildIDs;
+            children.erase(std::remove(children.begin(), children.end(), entity.GetUUID()), children.end());
+        }
+
+        // Destroy all the child entities of the current entity, which will get destroyed
+        Vector<UUID> children = pcc.ChildIDs;
+        for (UUID childID : children)
         {
             Entity child = FindEntityByUUID(childID);
             if (child)
             {
                 String childName = child.GetComponent<NameComponent>().Name;
-                Log<Severity::Debug>("Destroyed Child->({0})", childName);
+                pcc.ChildIDs.erase(std::remove(pcc.ChildIDs.begin(), pcc.ChildIDs.end(), child.GetUUID()), pcc.ChildIDs.end());
                 DestroyEntity(child); // Destroy the childs recursively
             }
         }

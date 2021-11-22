@@ -90,8 +90,7 @@ namespace Surge
                 }
 
                 TransformComponent& transformComponent = selectedEntity.GetComponent<TransformComponent>();
-                Scene* scene = mSceneHierarchy->GetSceneContext();
-                glm::mat4 transform = scene->GetWorldSpaceTransformMatrix(selectedEntity);
+                glm::mat4 transform = transformComponent.GetTransform();
 
                 // Snapping
                 const bool snap = Input::IsKeyPressed(Key::LeftControl);
@@ -108,31 +107,13 @@ namespace Surge
                 if (ImGuizmo::IsUsing())
                 {
                     mGizmoInUse = true;
-                    Entity parent = scene->FindEntityByUUID(selectedEntity.GetParentUUID());
+                    glm::vec3 translation, rotation, scale;
+                    Math::DecomposeTransform(transform, translation, rotation, scale);
 
-                    if (parent)
-                    {
-                        glm::mat4 parentTransform = scene->GetWorldSpaceTransformMatrix(parent);
-                        transform = glm::inverse(parentTransform) * transform;
-
-                        glm::vec3 translation, rotation, scale;
-                        Math::DecomposeTransform(transform, translation, rotation, scale);
-
-                        glm::vec3 deltaRotation = rotation - transformComponent.Rotation;
-                        transformComponent.Position = translation;
-                        transformComponent.Rotation += deltaRotation;
-                        transformComponent.Scale = scale;
-                    }
-                    else
-                    {
-                        glm::vec3 translation, rotation, scale;
-                        Math::DecomposeTransform(transform, translation, rotation, scale);
-
-                        glm::vec3 deltaRotation = rotation - transformComponent.Rotation;
-                        transformComponent.Position = translation;
-                        transformComponent.Rotation += deltaRotation;
-                        transformComponent.Scale = scale;
-                    }
+                    const glm::vec3 deltaRotation = glm::degrees(rotation) - transformComponent.Rotation;
+                    transformComponent.Position = translation;
+                    transformComponent.Rotation += deltaRotation;
+                    transformComponent.Scale = scale;
                 }
                 else
                     mGizmoInUse = false;

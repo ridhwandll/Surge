@@ -96,6 +96,16 @@ namespace Surge
                     offset += size;
                     continue;
                 }
+                else if (type.EqualTo<Vector<UUID>>())
+                {
+                    Vector<uint64_t> destination;
+                    const Vector<UUID>* src = reinterpret_cast<const Vector<UUID>*>(source);
+                    destination.resize(src->size());
+                    size = src->size() * sizeof(uint64_t);
+                    std::memcpy(destination.data(), src->data(), size);
+                    out[name] = destination;
+                    continue;
+                }
                 else if (type.EqualTo<String>())
                 {
                     // Get the string size; (we cannot use var.GetSize() as that uses sizeof())
@@ -233,6 +243,14 @@ namespace Surge
                 const uint64_t source = inJson[name];
                 uint64_t* dst = reinterpret_cast<uint64_t*>(destination);
                 std::memcpy(dst, &source, size);
+            }
+            else if (type.EqualTo<Vector<UUID>>())
+            {
+                const Vector<uint64_t> source = inJson[name];
+                size = source.size();
+                Vector<UUID>* dst = reinterpret_cast<Vector<UUID>*>(destination);
+                dst->resize(source.size());
+                std::memcpy(dst->data(), source.data(), (size * sizeof(UUID)));
             }
             else if (type.EqualTo<String>())
             {

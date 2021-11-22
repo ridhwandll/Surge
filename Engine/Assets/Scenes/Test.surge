@@ -2,10 +2,14 @@
     "Scene": {
         "Entity0": {
             "Surge::IDComponent": {
-                "ID": 7852242705985457357
+                "ID": 13893737091389564674
             },
             "Surge::NameComponent": {
                 "Name": "Point Light"
+            },
+            "Surge::ParentChildComponent": {
+                "ChildrenIDs": [],
+                "ParentID": 0
             },
             "Surge::PointLightComponent": {
                 "Color": {
@@ -18,53 +22,25 @@
             },
             "Surge::TransformComponent": {
                 "Position": {
-                    "X": -0.2319439947605133,
-                    "Y": 0.6929843425750732,
-                    "Z": 0.0964798629283905
+                    "X": 0.0,
+                    "Y": 1.9611499309539795,
+                    "Z": 0.0
                 },
                 "Rotation": {
                     "X": 0.0,
-                    "Y": -0.0,
+                    "Y": 0.0,
                     "Z": 0.0
                 },
                 "Scale": {
-                    "X": 0.9381742477416992,
-                    "Y": 0.9381742477416992,
-                    "Z": 0.9381742477416992
+                    "X": 1.0,
+                    "Y": 1.0,
+                    "Z": 1.0
                 }
             }
         },
         "Entity1": {
             "Surge::IDComponent": {
-                "ID": 11126483209389630280
-            },
-            "Surge::MeshComponent": {
-                "Mesh": "Engine\\Assets\\Mesh\\Torus.fbx"
-            },
-            "Surge::NameComponent": {
-                "Name": "TorusChild"
-            },
-            "Surge::TransformComponent": {
-                "Position": {
-                    "X": 0.0,
-                    "Y": -0.5155097246170044,
-                    "Z": 0.0
-                },
-                "Rotation": {
-                    "X": 0.0,
-                    "Y": -0.0,
-                    "Z": 0.0
-                },
-                "Scale": {
-                    "X": 0.7509146332740784,
-                    "Y": 0.7509146332740784,
-                    "Z": 0.7509146332740784
-                }
-            }
-        },
-        "Entity2": {
-            "Surge::IDComponent": {
-                "ID": 6232693413178324775
+                "ID": 9289595325264172271
             },
             "Surge::MeshComponent": {
                 "Mesh": "Engine\\Assets\\Mesh\\Torus.fbx"
@@ -72,6 +48,44 @@
             "Surge::NameComponent": {
                 "Name": "Torus"
             },
+            "Surge::ParentChildComponent": {
+                "ChildrenIDs": [
+                    4001870082552664453
+                ],
+                "ParentID": 0
+            },
+            "Surge::TransformComponent": {
+                "Position": {
+                    "X": 0.0,
+                    "Y": 0.0,
+                    "Z": -0.07777011394500732
+                },
+                "Rotation": {
+                    "X": -10.46186351776123,
+                    "Y": 2.1987555953728588e-07,
+                    "Z": -0.438305139541626
+                },
+                "Scale": {
+                    "X": 5.547302722930908,
+                    "Y": 5.547303199768066,
+                    "Z": 5.547303199768066
+                }
+            }
+        },
+        "Entity2": {
+            "Surge::IDComponent": {
+                "ID": 4001870082552664453
+            },
+            "Surge::MeshComponent": {
+                "Mesh": "Engine\\Assets\\Mesh\\Torus.fbx"
+            },
+            "Surge::NameComponent": {
+                "Name": "TorusChild"
+            },
+            "Surge::ParentChildComponent": {
+                "ChildrenIDs": [],
+                "ParentID": 9289595325264172271
+            },
             "Surge::TransformComponent": {
                 "Position": {
                     "X": 0.0,
@@ -79,17 +93,57 @@
                     "Z": 0.0
                 },
                 "Rotation": {
+                    "X": -49.275821685791016,
+                    "Y": -0.278861939907074,
+                    "Z": -7.24825382232666
+                },
+                "Scale": {
+                    "X": 0.3924620449542999,
+                    "Y": 0.39246201515197754,
+                    "Z": 0.3924610912799835
+                }
+            }
+        },
+        "Entity3": {
+            "Surge::CameraComponent": {
+                "FixedAspectRatio": false,
+                "Orthographic FarClip": 1.0,
+                "Orthographic NearClip": -1.0,
+                "Orthographic Size": 10.0,
+                "Perspective FarClip": 1024.0,
+                "Perspective NearClip": 0.10000000149011612,
+                "Primary": true,
+                "Projection": "Perspective",
+                "Vertical FOV": 45.0
+            },
+            "Surge::IDComponent": {
+                "ID": 14874401922983181055
+            },
+            "Surge::NameComponent": {
+                "Name": "Camera"
+            },
+            "Surge::ParentChildComponent": {
+                "ChildrenIDs": [],
+                "ParentID": 0
+            },
+            "Surge::TransformComponent": {
+                "Position": {
                     "X": 0.0,
+                    "Y": 8.769248962402344,
+                    "Z": 28.699134826660156
+                },
+                "Rotation": {
+                    "X": -3.4898575358253385e-25,
                     "Y": 0.0,
                     "Z": 0.0
                 },
                 "Scale": {
-                    "X": 1.0659000873565674,
-                    "Y": 1.0659000873565674,
-                    "Z": 1.0659000873565674
+                    "X": 1.0,
+                    "Y": 1.0,
+                    "Z": 1.0
                 }
             }
         },
-        "Size": 3
+        "Size": 4
     }
 }

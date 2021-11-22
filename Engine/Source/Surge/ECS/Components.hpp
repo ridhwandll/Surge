@@ -107,6 +107,6 @@ namespace Surge
 
 //! NOTE: ALL THE MAJOR COMPONENTS MUST BE REGISTERED HERE, ADD BY SEPARATING VIA A COMMA (',')
 #define ALL_MAJOR_COMPONENTS ::Surge::IDComponent, ::Surge::NameComponent, ::Surge::TransformComponent, \
-                             ::Surge::MeshComponent, ::Surge::CameraComponent, ::Surge::PointLightComponent
+                             ::Surge::MeshComponent, ::Surge::CameraComponent, ::Surge::PointLightComponent, ::Surge::ParentChildComponent
 
 } // namespace Surge
