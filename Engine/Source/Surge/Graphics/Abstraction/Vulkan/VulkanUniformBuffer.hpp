@@ -15,7 +15,6 @@ namespace Surge
 
         virtual void SetData(const void* data, Uint offset = 0) const override;
         virtual void SetData(const Buffer& data, Uint offset = 0) const override;
-        virtual const Buffer& GetData() const { return mDataBuffer; }
         virtual Uint GetSize() const override { return mSize; }
 
         const VkBuffer& GetVulkanBuffer() const { return mVulkanBuffer; }
@@ -27,7 +26,6 @@ namespace Surge
 
     private:
         Uint mSize;
-        Buffer mDataBuffer;
 
         VkBuffer mVulkanBuffer = VK_NULL_HANDLE;
         VmaAllocation mAllocation = VK_NULL_HANDLE;

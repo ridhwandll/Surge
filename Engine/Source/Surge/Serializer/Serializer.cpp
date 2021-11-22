@@ -142,7 +142,7 @@ namespace Surge
                     offset += size;
                     continue;
                 }
-                SG_ASSERT_INTERNAL("Unhandled Variable Type!");
+                Log<Severity::Warn>("Unhandled Variable of type: '{0}' while serializing!", type.GetFullName());
             }
         }
     }
@@ -269,9 +269,7 @@ namespace Surge
                 path.empty() ? src = nullptr : src = Ref<Mesh>::Create(path);
             }
             else
-            {
-                SG_ASSERT_INTERNAL("Unhandled Variable Type!");
-            }
+                Log<Severity::Warn>("Unhandled Variable of type: '{0}' while deserializing!", type.GetFullName());
 
             offset += size;
         }

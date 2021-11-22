@@ -68,4 +68,5 @@ namespace Surge
     private:
         HashMap<PanelCode, PanelData> mPanels;
     };
+
 } // namespace Surge

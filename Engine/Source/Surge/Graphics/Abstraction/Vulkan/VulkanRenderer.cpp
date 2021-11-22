@@ -5,6 +5,8 @@
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanShader.hpp"
 #include "VulkanUniformBuffer.hpp"
 #include "VulkanGraphicsPipeline.hpp"
+#include "VulkanVertexBuffer.hpp"
+#include "VulkanIndexBuffer.hpp"
 
 namespace Surge
 {
@@ -108,6 +110,7 @@ namespace Surge
         SURGE_GET_VULKAN_CONTEXT(renderContext);
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
         Uint frameIndex = renderContext->GetFrameIndex();
+        VkCommandBuffer vulkanCmdBuffer = mData->RenderCmdBuffer.As<VulkanRenderCommandBuffer>()->GetVulkanCommandBuffer(frameIndex);
 
         mData->RenderCmdBuffer->BeginRecording();
 
@@ -129,15 +132,23 @@ namespace Surge
 
         mLightUniformBuffer->SetData(&mData->LightData);
         vkUpdateDescriptorSets(renderContext->GetDevice()->GetLogicalDevice(), 1, &writeDescriptorSet, 0, nullptr);
-        vkCmdBindDescriptorSets(mData->RenderCmdBuffer.As<VulkanRenderCommandBuffer>()->GetVulkanCommandBuffer(frameIndex), VK_PIPELINE_BIND_POINT_GRAPHICS, mData->mGeometryPipeline.As<VulkanGraphicsPipeline>()->GetPipelineLayout(), 1, 1, &mLightsDescriptorSets[frameIndex], 0, nullptr);
+        vkCmdBindDescriptorSets(vulkanCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mData->mGeometryPipeline.As<VulkanGraphicsPipeline>()->GetPipelineLayout(), 1, 1, &mLightsDescriptorSets[frameIndex], 0, nullptr);
 
-        BeginRenderPass(mData->RenderCmdBuffer, mData->OutputFrambuffer);
+        BeginRenderPass(vulkanCmdBuffer, mData->OutputFrambuffer);
         for (const DrawCommand& object : mData->DrawList)
         {
             const Ref<Mesh>& mesh = object.MeshComp->Mesh;
             mData->mGeometryPipeline->Bind(mData->RenderCmdBuffer);
-            mesh->GetVertexBuffer()->Bind(mData->RenderCmdBuffer);
-            mesh->GetIndexBuffer()->Bind(mData->RenderCmdBuffer);
+
+            // Bind vertex buffer
+            VkDeviceSize offset = 0;
+            VkBuffer vertexBuffer = mesh->GetVertexBuffer().As<VulkanVertexBuffer>()->GetVulkanBuffer();
+            vkCmdBindVertexBuffers(vulkanCmdBuffer, 0, 1, &vertexBuffer, &offset);
+
+            // Bind index buffer
+            VkBuffer indexBuffer = mesh->GetIndexBuffer().As<VulkanIndexBuffer>()->GetVulkanBuffer();
+            vkCmdBindIndexBuffer(vulkanCmdBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
             object.MeshComp->Material->Bind(mData->RenderCmdBuffer, mData->mGeometryPipeline);
 
             const Submesh* submeshes = mesh->GetSubmeshes().data();
@@ -149,21 +160,17 @@ namespace Surge
                 mData->mGeometryPipeline->DrawIndexed(mData->RenderCmdBuffer, submesh.IndexCount, submesh.BaseIndex, submesh.BaseVertex);
             }
         }
-        EndRenderPass(mData->RenderCmdBuffer);
+        EndRenderPass(vulkanCmdBuffer);
 
         mData->RenderCmdBuffer->EndRecording();
         mData->RenderCmdBuffer->Submit();
+
         mData->DrawList.clear();
         mData->PointLights.clear();
     }
 
-    void VulkanRenderer::BeginRenderPass(const Ref<RenderCommandBuffer>& cmdBuffer, const Ref<Framebuffer>& framebuffer)
+    void VulkanRenderer::BeginRenderPass(VkCommandBuffer& cmdBuffer, const Ref<Framebuffer>& framebuffer)
     {
-        SURGE_PROFILE_FUNC("VulkanRenderer::BeginRenderPass()");
-        VulkanRenderContext* renderContext;
-        SURGE_GET_VULKAN_CONTEXT(renderContext);
-        Uint frameIndex = renderContext->GetFrameIndex();
-        VkCommandBuffer vulkanCmdBuffer = cmdBuffer.As<VulkanRenderCommandBuffer>()->GetVulkanCommandBuffer(frameIndex);
         const FramebufferSpecification& framebufferSpec = framebuffer->GetSpecification();
 
         std::array<VkClearValue, 2> clearValues;
@@ -188,18 +195,14 @@ namespace Surge
         renderPassBeginInfo.clearValueCount = Uint(clearValues.size());
         renderPassBeginInfo.pClearValues = clearValues.data();
 
-        vkCmdSetViewport(vulkanCmdBuffer, 0, 1, &viewport);
-        vkCmdSetScissor(vulkanCmdBuffer, 0, 1, &scissor);
-        vkCmdBeginRenderPass(vulkanCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
+        vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
+        vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
     }
 
-    void VulkanRenderer::EndRenderPass(const Ref<RenderCommandBuffer>& cmdBuffer)
+    void VulkanRenderer::EndRenderPass(VkCommandBuffer& cmdBuffer)
     {
-        SURGE_PROFILE_FUNC("VulkanRenderer::EndRenderPass()");
-        VulkanRenderContext* renderContext;
-        SURGE_GET_VULKAN_CONTEXT(renderContext);
-        Uint frameIndex = renderContext->GetFrameIndex();
-        vkCmdEndRenderPass(cmdBuffer.As<VulkanRenderCommandBuffer>()->GetVulkanCommandBuffer(frameIndex));
+        vkCmdEndRenderPass(cmdBuffer);
     }
 
     VkDescriptorSet VulkanRenderer::AllocateDescriptorSet(VkDescriptorSetAllocateInfo allocInfo, bool resetEveryFrame, int index)

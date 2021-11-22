@@ -5,6 +5,8 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
 
+#define HIERARCHY_ENTITY_DND "HiEnT!"
+
 namespace Surge::ImGuiAux
 {
     enum class CustomProprtyFlag

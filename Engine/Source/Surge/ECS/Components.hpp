@@ -22,6 +22,18 @@ namespace Surge
         SURGE_REFLECTION_ENABLE;
     };
 
+    struct ParentChildComponent
+    {
+        ParentChildComponent() = default;
+        ParentChildComponent(const UUID& parentID)
+            : ParentID(parentID), ChildIDs({}) {}
+
+        UUID ParentID = 0;
+        Vector<UUID> ChildIDs;
+
+        SURGE_REFLECTION_ENABLE;
+    };
+
     struct NameComponent
     {
         NameComponent() = default;

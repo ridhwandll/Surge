@@ -16,7 +16,6 @@ namespace Surge
         virtual void OnEvent(Event& e) override;
         virtual void Render(bool* show) override;
         virtual void Shutdown() override;
-        virtual PanelCode GetCode() const override { return GetStaticCode(); }
 
         const glm::vec2& GetViewportSize() const { return mViewportSize; }
 

@@ -33,4 +33,5 @@ namespace Surge
         virtual const Ref<Image2D> GetImage2D() const = 0;
         static Ref<Texture2D> Create(const String& filepath, TextureSpecification specification = {});
     };
+
 } // namespace Surge

@@ -39,7 +39,7 @@ namespace Surge
         if (ImGui::Begin(PanelCodeToString(mCode), show))
         {
             Entity& entity = mHierarchy->GetSelectedEntity();
-            if (mHierarchy->GetSceneContext()->IsValid(entity.Raw()))
+            if (entity)
             {
                 DrawComponents(entity);
 
@@ -102,7 +102,7 @@ namespace Surge
                         if (member.DataType == ShaderDataType::Int)
                             ImGui::DragInt(member.Name.c_str(), &material->Get<int>(member.Name));
                         if (member.DataType == ShaderDataType::Float)
-                            ImGui::DragFloat(member.Name.c_str(), &material->Get<float>(member.Name));
+                            ImGui::SliderFloat(member.Name.c_str(), &material->Get<float>(member.Name), 0.0f, 1.0f);
                         if (member.DataType == ShaderDataType::Float2)
                             ImGui::DragFloat2(member.Name.c_str(), glm::value_ptr(material->Get<glm::vec2>(member.Name)));
                         if (member.DataType == ShaderDataType::Float3)
@@ -186,6 +186,21 @@ namespace Surge
                 ImGuiAux::Property<glm::vec3, ImGuiAux::CustomProprtyFlag::Color3>("Color", component.Color);
                 ImGuiAux::Property<float>("Intensity", component.Intensity);
                 ImGuiAux::Property<float>("Radius", component.Radius);
+            });
+        }
+
+        if (entity.HasComponent<ParentChildComponent>())
+        {
+            ParentChildComponent& component = entity.GetComponent<ParentChildComponent>();
+            DrawComponent<ParentChildComponent>("ParentChildComponent", [this, &component]() {
+                ImGui::TableNextColumn();
+                ImGui::TextUnformatted("Parent");
+                ImGui::TableNextColumn();
+                Entity parent = mHierarchy->GetSceneContext()->FindEntityByUUID(component.ParentID);
+                parent ? ImGui::TextUnformatted(parent.GetComponent<NameComponent>().Name.c_str()) : ImGui::TextUnformatted("None");
+
+                ImGui::TableNextColumn();
+                ImGui::Text("ChildCount: %i", component.ChildIDs.size());
             });
         }
     }

@@ -14,7 +14,6 @@ namespace Surge
         virtual ~VulkanIndexBuffer() override;
 
         virtual Uint GetSize() const override { return mSize; }
-        virtual void Bind(const Ref<RenderCommandBuffer>& cmdBuffer) const override;
 
     public:
         const VkBuffer GetVulkanBuffer() const { return mVulkanBuffer; }

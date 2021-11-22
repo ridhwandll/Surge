@@ -7,9 +7,6 @@ namespace Surge
     VulkanUniformBuffer::VulkanUniformBuffer(Uint size)
         : mSize(size)
     {
-        mDataBuffer.Allocate(size);
-        mDataBuffer.ZeroInitialize();
-
         Invalidate();
     }
 
@@ -76,7 +73,6 @@ namespace Surge
         vkDeviceWaitIdle(renderContext->GetDevice()->GetLogicalDevice());
         renderContext->GetMemoryAllocator()->DestroyBuffer(mVulkanBuffer, mAllocation);
 
-        mDataBuffer.Release();
         mVulkanBuffer = VK_NULL_HANDLE;
         mAllocation = VK_NULL_HANDLE;
     }

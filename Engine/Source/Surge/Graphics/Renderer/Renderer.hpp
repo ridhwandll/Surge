@@ -66,9 +66,6 @@ namespace Surge
             mData->PointLights.push_back(light);
         }
 
-        virtual void BeginRenderPass(const Ref<RenderCommandBuffer>& cmdBuffer, const Ref<Framebuffer>& framebuffer) = 0;
-        virtual void EndRenderPass(const Ref<RenderCommandBuffer>& cmdBuffer) = 0;
-
         RendererData* GetData() { return mData.get(); }
         Ref<Shader>& GetShader(const String& name);
         Ref<Framebuffer>& GetFramebuffer(); //TODO REMOVE: Have something like FramebufferSet(similar to ShaderSet)

@@ -15,7 +15,6 @@ namespace Surge
         virtual void OnEvent(Event& e) override {};
         virtual void Render(bool* show);
         virtual void Shutdown();
-        virtual PanelCode GetCode() const { return GetStaticCode(); }
 
         static PanelCode GetStaticCode() { return PanelCode::SceneHierarchy; }
 

@@ -2,81 +2,75 @@
     "Scene": {
         "Entity0": {
             "Surge::IDComponent": {
-                "ID": 9517561151805697306
+                "ID": 7852242705985457357
             },
             "Surge::NameComponent": {
-                "Name": "Point Light2"
+                "Name": "Point Light"
             },
             "Surge::PointLightComponent": {
                 "Color": {
-                    "X": 0.8465116024017334,
-                    "Y": 0.5433423519134521,
-                    "Z": 0.5433423519134521
-                },
-                "Intensity": 1.0,
-                "Radius": 5.0
-            },
-            "Surge::TransformComponent": {
-                "Position": {
-                    "X": -3.401956796646118,
-                    "Y": 2.630078077316284,
-                    "Z": 3.199159622192383
-                },
-                "Rotation": {
-                    "X": 0.0,
-                    "Y": 0.0,
-                    "Z": 0.0
-                },
-                "Scale": {
                     "X": 1.0,
                     "Y": 1.0,
                     "Z": 1.0
+                },
+                "Intensity": 1.0,
+                "Radius": 3.0
+            },
+            "Surge::TransformComponent": {
+                "Position": {
+                    "X": -0.2319439947605133,
+                    "Y": 0.6929843425750732,
+                    "Z": 0.0964798629283905
+                },
+                "Rotation": {
+                    "X": 0.0,
+                    "Y": -0.0,
+                    "Z": 0.0
+                },
+                "Scale": {
+                    "X": 0.9381742477416992,
+                    "Y": 0.9381742477416992,
+                    "Z": 0.9381742477416992
                 }
             }
         },
         "Entity1": {
             "Surge::IDComponent": {
-                "ID": 9875666104701052868
+                "ID": 11126483209389630280
+            },
+            "Surge::MeshComponent": {
+                "Mesh": "Engine\\Assets\\Mesh\\Torus.fbx"
             },
             "Surge::NameComponent": {
-                "Name": "PointLight"
-            },
-            "Surge::PointLightComponent": {
-                "Color": {
-                    "X": 0.48597079515457153,
-                    "Y": 0.6895047426223755,
-                    "Z": 0.8930232524871826
-                },
-                "Intensity": 4.0,
-                "Radius": 10.0
+                "Name": "TorusChild"
             },
             "Surge::TransformComponent": {
                 "Position": {
-                    "X": 0.06859958171844482,
-                    "Y": 8.0,
+                    "X": 0.0,
+                    "Y": -0.5155097246170044,
                     "Z": 0.0
                 },
                 "Rotation": {
                     "X": 0.0,
-                    "Y": 0.0,
+                    "Y": -0.0,
                     "Z": 0.0
                 },
                 "Scale": {
-                    "X": 1.0,
-                    "Y": 1.0,
-                    "Z": 1.0
+                    "X": 0.7509146332740784,
+                    "Y": 0.7509146332740784,
+                    "Z": 0.7509146332740784
                 }
             }
         },
         "Entity2": {
             "Surge::IDComponent": {
-                "ID": 15706910303489017503
+                "ID": 6232693413178324775
             },
             "Surge::MeshComponent": {
-                "Mesh": "Engine\\Assets\\Mesh\\Vulkan.obj"
+                "Mesh": "Engine\\Assets\\Mesh\\Torus.fbx"
             },
             "Surge::NameComponent": {
-                "Name": "KekwVulkan"
+                "Name": "Torus"
             },
             "Surge::TransformComponent": {
                 "Position": {
@@ -90,48 +84,12 @@
                     "Z": 0.0
                 },
                 "Scale": {
-                    "X": 1.0,
-                    "Y": 1.0,
-                    "Z": 1.0
+                    "X": 1.0659000873565674,
+                    "Y": 1.0659000873565674,
+                    "Z": 1.0659000873565674
                 }
             }
         },
-        "Entity3": {
-            "Surge::CameraComponent": {
-                "FixedAspectRatio": false,
-                "Orthographic FarClip": 1.0,
-                "Orthographic NearClip": -1.0,
-                "Orthographic Size": 10.0,
-                "Perspective FarClip": 1024.0,
-                "Perspective NearClip": 0.10000000149011612,
-                "Primary": true,
-                "Projection": "Perspective",
-                "Vertical FOV": 45.0
-            },
-            "Surge::IDComponent": {
-                "ID": 12027356869343910256
-            },
-            "Surge::NameComponent": {
-                "Name": "Camera"
-            },
-            "Surge::TransformComponent": {
-                "Position": {
-                    "X": 0.0,
-                    "Y": 2.6010189056396484,
-                    "Z": 15.0
-                },
-                "Rotation": {
-                    "X": 0.0,
-                    "Y": 0.0,
-                    "Z": 0.0
-                },
-                "Scale": {
-                    "X": 1.0,
-                    "Y": 1.0,
-                    "Z": 1.0
-                }
-            }
-        },
-        "Size": 4
+        "Size": 3
     }
 }

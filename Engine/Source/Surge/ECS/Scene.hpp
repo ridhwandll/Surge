@@ -23,19 +23,33 @@ namespace Surge
         void Update(const EditorCamera& camera);
         void OnRuntimeEnd();
         void CopyTo(Scene* other);
+        Entity FindEntityByUUID(UUID id);
+
+        // Entity manipulation
         void CreateEntity(Entity& outEntity, const String& name = "New Entity");
         void CreateEntityWithID(Entity& outEntity, const UUID& id, const String& name = "New Entity");
-        void DestroyEntity(Entity& entity);
-        void OnResize(float width, float height);
-        bool IsValid(const entt::entity& e) { return mRegistry.valid(e); }
-        entt::registry& GetRegistry() { return mRegistry; }
+        void ParentEntity(Entity& entity, Entity& parent);
+        void UnparentEntity(Entity& entity);
+        void DestroyEntity(Entity entity);
 
+        void OnResize(float width, float height);
+
+        entt::registry& GetRegistry() { return mRegistry; }
         const entt::registry& GetRegistry() const { return mRegistry; }
         Pair<RuntimeCamera*, glm::mat4> GetMainCameraEntity(); // Camera - CameraTransform(view = glm::inverse(CameraTransform))
+        glm::mat4 GetWorldSpaceTransformMatrix(Entity entity);
+
+    private:
+        void ConvertToLocalSpace(Entity entity);
+        void ConvertToWorldSpace(Entity entity);
 
     private:
         entt::registry mRegistry;
     };
+
+    //
+    // Entity
+    //
 
     class Entity
     {
@@ -75,9 +89,46 @@ namespace Surge
             return mEnttHandle;
         }
 
+        UUID GetUUID()
+        {
+            return GetComponent<IDComponent>().ID;
+        }
+
+        UUID GetParentUUID()
+        {
+            return GetComponent<ParentChildComponent>().ParentID;
+        }
+
         Scene* GetScene() const
         {
             return mScene;
+        }
+
+        bool IsAncesterOf(Entity entity)
+        {
+            const auto& children = GetComponent<ParentChildComponent>().ChildIDs;
+
+            if (children.empty())
+                return false;
+
+            for (UUID child : children)
+            {
+                if (child == entity.GetUUID())
+                    return true;
+            }
+
+            for (UUID child : children)
+            {
+                if (mScene->FindEntityByUUID(child).IsAncesterOf(entity))
+                    return true;
+            }
+
+            return false;
+        }
+
+        bool IsChildOf(Entity entity)
+        {
+            return entity.IsAncesterOf(*this);
         }
 
         operator bool() const { return mEnttHandle != entt::null; }

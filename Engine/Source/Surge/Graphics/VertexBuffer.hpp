@@ -13,7 +13,6 @@ namespace Surge
         virtual ~VertexBuffer() = default;
 
         virtual Uint GetSize() = 0;
-        virtual void Bind(const Ref<RenderCommandBuffer>& cmdBuffer) const = 0;
 
         static Ref<VertexBuffer> Create(const void* data, const Uint& size);
     };

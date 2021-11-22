@@ -5,6 +5,7 @@
 #include "Utility/ImGUIAux.hpp"
 #include <imgui.h>
 #include <imgui_stdlib.h>
+#include "imgui_internal.h"
 
 namespace Surge
 {
@@ -59,7 +60,15 @@ namespace Surge
             mSceneContext->GetRegistry().each([&](entt::entity e) {
                 ImGui::PushID(idCounter);
                 Entity ent = Entity(e, mSceneContext);
-                DrawEntityNode(ent);
+
+                // Only draw the entities which are not parented at top level
+                if (ent.GetParentUUID() == 0)
+                {
+                    // NOTE(Rid): DrawEntityNode is a recursive function, that is DrawEntityNode(child) is called
+                    // inside DrawEntityNode, to draw the children
+                    DrawEntityNode(ent);
+                }
+
                 ImGui::PopID();
                 idCounter++;
             });
@@ -72,7 +81,7 @@ namespace Surge
     {
         String& name = e.GetComponent<NameComponent>().Name;
         ImGuiTreeNodeFlags flags = ((mSelectedEntity == e) ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow;
-        flags |= ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_AllowItemOverlap;
+        flags |= ImGuiTreeNodeFlags_AllowItemOverlap;
 
         bool isSelectedEntity = false;
         if (mSelectedEntity == e)
@@ -83,6 +92,24 @@ namespace Surge
 
         bool opened = false;
         opened = ImGui::TreeNodeEx(reinterpret_cast<void*>(static_cast<uint64_t>(static_cast<Uint>(e.Raw()))), flags, name.c_str());
+
+        // Drag and drop
+        if (ImGui::BeginDragDropSource())
+        {
+            ImGui::Text(e.GetComponent<NameComponent>().Name.c_str());
+            ImGui::SetDragDropPayload(HIERARCHY_ENTITY_DND, &e, sizeof(Entity));
+            ImGui::EndDragDropSource();
+        }
+        if (ImGui::BeginDragDropTarget())
+        {
+            const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(HIERARCHY_ENTITY_DND);
+            if (payload)
+            {
+                Entity& droppedEntity = *(Entity*)payload->Data;
+                mSceneContext->ParentEntity(droppedEntity, e);
+            }
+            ImGui::EndDragDropTarget();
+        }
 
         if (ImGui::IsItemClicked() && !mRenaming)
             mSelectedEntity = e;
@@ -137,16 +164,32 @@ namespace Surge
                 if (mSelectedEntity == e)
                     mSelectedEntity = {};
 
-                mSceneContext->DestroyEntity(e);
+                // Only execute when the frame ends, else it will give crash on "Entity not found"
+                Surge::Core::AddFrameEndCallback([=]() { mSceneContext->DestroyEntity(e); });
             }
-
+            if (e.GetParentUUID() != 0)
+            {
+                if (ImGui::MenuItem("UnParent"))
+                {
+                    mSceneContext->UnparentEntity(e);
+                }
+            }
             ImGui::EndPopup();
         }
 
         if (opened)
-            ImGui::TreePop();
+        {
+            // Draw children, via recursive function call
+            auto& k = e.GetComponent<ParentChildComponent>().ChildIDs;
+            for (auto child : k)
+            {
+                Entity e = mSceneContext->FindEntityByUUID(child);
+                if (e)
+                    DrawEntityNode(e);
+            }
 
-        ImGui::SetCursorPos({ImGui::GetCursorPos().x, ImGui::GetCursorPos().y - 3});
+            ImGui::TreePop();
+        }
     }
 
     void SceneHierarchyPanel::Shutdown()

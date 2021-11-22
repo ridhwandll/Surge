@@ -12,16 +12,14 @@ namespace Surge
         virtual ~VulkanRenderer() = default;
         virtual void Initialize() override;
         virtual void Shutdown() override;
-
         virtual void EndFrame() override;
 
-        virtual void BeginRenderPass(const Ref<RenderCommandBuffer>& cmdBuffer, const Ref<Framebuffer>& framebuffer) override;
-        virtual void EndRenderPass(const Ref<RenderCommandBuffer>& cmdBuffer) override;
-
         // Vulkan Specific
+        void BeginRenderPass(VkCommandBuffer& cmdBuffer, const Ref<Framebuffer>& framebuffer);
+        void EndRenderPass(VkCommandBuffer& cmdBuffer);
+
         VkDescriptorSet AllocateDescriptorSet(VkDescriptorSetAllocateInfo allocInfo, bool resetEveryFrame, int index = -1);
         void FreeDescriptorSet(VkDescriptorSet& set, bool resetEveryFrame, int index = -1);
-
         Vector<VkDescriptorPool> GetDescriptorPools() { return mDescriptorPools; }
 
     private:

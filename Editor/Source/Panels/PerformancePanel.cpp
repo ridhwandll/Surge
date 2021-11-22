@@ -4,6 +4,9 @@
 #include "Surge/Graphics/RenderContext.hpp"
 #include "Surge/Utility/Filesystem.hpp"
 #include <imgui.h>
+#include "Editor.hpp"
+#include "SceneHierarchyPanel.hpp"
+#include "Surge/ECS/Components.hpp"
 
 namespace Surge
 {
@@ -52,6 +55,17 @@ namespace Surge
                     }
                     ImGui::EndTable();
                 }
+            }
+            if (ImGui::CollapsingHeader("All Entities"))
+            {
+                SceneHierarchyPanel* hierarchy = static_cast<Editor*>(Core::GetClient())->GetPanelManager().GetPanel<SceneHierarchyPanel>();
+                Scene* scene = hierarchy->GetSceneContext();
+                scene->GetRegistry().each([&scene](entt::entity e) {
+                    Entity ent = Entity(e, scene);
+                    ImGui::Text("%i -", e);
+                    ImGui::SameLine();
+                    ImGui::Text(ent.GetComponent<NameComponent>().Name.c_str());
+                });
             }
         }
         ImGui::End();
