@@ -95,4 +95,5 @@ namespace Surge
 
         mBufferMemory.Release();
     }
+
 } // namespace Surge

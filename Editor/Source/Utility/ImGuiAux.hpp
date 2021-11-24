@@ -13,8 +13,56 @@ namespace Surge::ImGuiAux
     {
         None,
         Color3,
-        Color4
+        Color4,
     };
+
+    struct ScopedStyle
+    {
+        int Size;
+        ScopedStyle(const ScopedStyle&) = delete;
+        ScopedStyle operator=(const ScopedStyle&) = delete;
+
+        ScopedStyle(const std::initializer_list<ImGuiStyleVar>& ids, float style)
+            : Size(static_cast<int>(ids.size()))
+        {
+            for (auto& id : ids)
+                ImGui::PushStyleVar(id, style);
+        }
+
+        ScopedStyle(const std::initializer_list<ImGuiStyleVar>& ids, const ImVec2& style)
+            : Size(static_cast<int>(ids.size()))
+        {
+
+            for (auto& id : ids)
+                ImGui::PushStyleVar(id, style);
+        }
+
+        ~ScopedStyle()
+        {
+            ImGui::PopStyleVar(Size);
+        }
+    };
+
+    struct ScopedColor
+    {
+        int Size;
+        ScopedColor(const ScopedColor&) = delete;
+        ScopedColor operator=(const ScopedColor&) = delete;
+        ScopedColor(const std::initializer_list<ImGuiCol>& ids, const ImVec4& col)
+            : Size(static_cast<int>(ids.size()))
+        {
+
+            for (auto& id : ids)
+                ImGui::PushStyleColor(id, col);
+        }
+
+        ~ScopedColor()
+        {
+            ImGui::PopStyleColor(Size);
+        }
+    };
+
+    bool PropertyGridHeader(const String& name, bool openByDefault = true);
 
     void DrawRectAroundWidget(const glm::vec4& color, float thickness, float rounding);
     void DockSpace();
@@ -23,7 +71,7 @@ namespace Surge::ImGuiAux
     void Image(const Ref<Image2D>& image, const glm::vec2& size);
 
     template <typename T, CustomProprtyFlag F = CustomProprtyFlag::None>
-    FORCEINLINE bool Property(const char* title, T& value)
+    constexpr FORCEINLINE bool Property(const char* title, T& value)
     {
         ImGui::PushID(title);
         bool result = false;
@@ -66,6 +114,10 @@ namespace Surge::ImGuiAux
         ImGui::TextUnformatted(title);
         ImGui::TableNextColumn();
 
+        auto& style = ImGui::GetStyle();
+        ImVec4 buttonCol = style.Colors[ImGuiCol_Button];
+
+        ImGuiAux::ScopedColor color({ImGuiCol_ButtonHovered}, buttonCol);
         result = ImGui::Button(buttonText);
 
         if (ImGui::IsItemHovered() || ImGui::IsItemActive())

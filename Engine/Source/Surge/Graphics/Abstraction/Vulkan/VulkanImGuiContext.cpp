@@ -44,13 +44,15 @@ namespace Surge
         ImGuiIO& io = ImGui::GetIO();
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;   // Enable Docking
         io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows
-        io.FontDefault = io.Fonts->AddFontFromFileTTF("Engine/Assets/Fonts/OpenSans-Regular.ttf", 14.0f);
+        constexpr float fontSize = 14.0f;
+        io.Fonts->AddFontFromFileTTF("Engine/Assets/Fonts/OpenSans-Bold.ttf", fontSize);
+        io.FontDefault = io.Fonts->AddFontFromFileTTF("Engine/Assets/Fonts/OpenSans-Regular.ttf", fontSize);
 
         // Merge Icons
         static const ImWchar iconsRanges[] = {ICON_MIN_FK, ICON_MAX_FK, 0};
         ImFontConfig iconsConfig {};
         iconsConfig.MergeMode = true;
-        io.Fonts->AddFontFromFileTTF("Engine/Assets/Fonts/fontawesome-webfont.ttf", 14.0f, &iconsConfig, iconsRanges);
+        io.Fonts->AddFontFromFileTTF("Engine/Assets/Fonts/fontawesome-webfont.ttf", fontSize, &iconsConfig, iconsRanges);
 
         ImGui::StyleColorsDark();
 
@@ -148,7 +150,7 @@ namespace Surge
         ImVec4* colors = style.Colors;
 
         style.TabRounding = 3.5f;
-        style.FrameRounding = 3.5f;
+        style.FrameRounding = 1.5f;
         //style.FrameBorderSize = 1.0f;
         style.PopupRounding = 3.5f;
         style.ScrollbarRounding = 3.5f;

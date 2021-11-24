@@ -56,22 +56,34 @@ namespace Surge
                 ImGui::EndPopup();
             }
 
-            Uint idCounter = 0;
-            mSceneContext->GetRegistry().each([&](entt::entity e) {
-                ImGui::PushID(idCounter);
-                Entity ent = Entity(e, mSceneContext);
+            constexpr ImGuiTableFlags flags = ImGuiTableFlags_Resizable;
+            ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, {0.0f, 2.8f});
+            if (ImGui::BeginTable("HierarchyTable", 2, flags))
+            {
+                ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_NoHide);
+                ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("A").x * 12.0f);
+                ImGui::TableHeadersRow();
 
-                // Only draw the entities which are not parented at top level
-                if (ent.GetParent() == 0)
-                {
-                    // NOTE(Rid): DrawEntityNode is a recursive function, that is DrawEntityNode(child) is called
-                    // inside DrawEntityNode, to draw the children
-                    DrawEntityNode(ent);
-                }
+                Uint idCounter = 0;
+                mSceneContext->GetRegistry().each([&](entt::entity e) {
+                    ImGui::PushID(idCounter);
+                    Entity ent = Entity(e, mSceneContext);
 
-                ImGui::PopID();
-                idCounter++;
-            });
+                    // Only draw the entities which are not parented, i.e. at top level
+                    if (ent.GetParent() == 0)
+                    {
+                        ImGui::TableNextColumn();
+
+                        // NOTE(Rid): DrawEntityNode is a recursive function, that is DrawEntityNode(child) is called inside DrawEntityNode, to draw the children
+                        DrawEntityNode(ent);
+                    }
+
+                    ImGui::PopID();
+                    idCounter++;
+                });
+                ImGui::EndTable();
+            }
+            ImGui::PopStyleVar();
         }
         ImGui::PopStyleColor(2);
         ImGui::End();
@@ -81,7 +93,7 @@ namespace Surge
     {
         String& name = e.GetComponent<NameComponent>().Name;
         ImGuiTreeNodeFlags flags = ((mSelectedEntity == e) ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow;
-        flags |= ImGuiTreeNodeFlags_AllowItemOverlap;
+        flags |= ImGuiTreeNodeFlags_SpanFullWidth;
 
         bool isSelectedEntity = false;
         if (mSelectedEntity == e)
@@ -91,7 +103,10 @@ namespace Surge
         }
 
         bool opened = false;
-        opened = ImGui::TreeNodeEx(reinterpret_cast<void*>(static_cast<uint64_t>(static_cast<Uint>(e.Raw()))), flags, name.c_str());
+        {
+            ImGuiAux::ScopedColor style({ImGuiCol_Header, ImGuiCol_HeaderHovered, ImGuiCol_HeaderActive}, {0.0, 0.0, 0.0, 0.0});
+            opened = ImGui::TreeNodeEx(reinterpret_cast<void*>(static_cast<uint64_t>(static_cast<Uint>(e.Raw()))), flags, name.c_str());
+        }
 
         // Drag and drop
         if (ImGui::BeginDragDropSource())
@@ -117,7 +132,7 @@ namespace Surge
         if (isSelectedEntity)
         {
             if (!mRenaming && mSelectedEntity)
-                ImGuiAux::DrawRectAroundWidget({1.0f, 0.5f, 0.1f, 1.0f}, 1.5f, 1.0f);
+                ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32({0.1f, 0.1f, 0.1f, 1.0f}));
 
             // Start renaming
             if (ImGui::IsWindowHovered() && Input::IsKeyPressed(Key::F2))
@@ -181,18 +196,25 @@ namespace Surge
         {
             // Draw children, via recursive function call
             auto& k = e.GetComponent<ParentChildComponent>().ChildIDs;
-            for (auto child : k)
+            for (auto& child : k)
             {
                 Entity e = mSceneContext->FindEntityByUUID(child);
                 if (e)
+                {
                     DrawEntityNode(e);
+                }
             }
-
             ImGui::TreePop();
+        }
+        if (!e.GetComponent<ParentChildComponent>().ParentID)
+        {
+            ImGui::TableNextColumn();
+            ImGui::TextUnformatted("Entity");
         }
     }
 
     void SceneHierarchyPanel::Shutdown()
     {
     }
+
 } // namespace Surge

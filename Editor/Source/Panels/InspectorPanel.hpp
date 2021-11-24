@@ -14,7 +14,7 @@ namespace Surge
         virtual void Init(void* panelInitArgs);
         virtual void OnEvent(Event& e) override {};
         virtual void Render(bool* show);
-        virtual void Shutdown();
+        virtual void Shutdown() {};
 
         static PanelCode GetStaticCode() { return PanelCode::Inspector; }
         void SetHierarchy(SceneHierarchyPanel* hierarchy) { mHierarchy = hierarchy; }

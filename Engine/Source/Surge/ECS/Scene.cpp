@@ -32,11 +32,10 @@ namespace Surge
             auto group = mRegistry.group<MeshComponent>(entt::get<TransformComponent>);
             for (auto& entity : group)
             {
-                glm::mat4 transform = GetWorldSpaceTransformMatrix(Entity {entity, this});
                 auto [mesh, transformComponent] = group.get<MeshComponent, TransformComponent>(entity);
                 if (mesh.Mesh)
                 {
-                    glm::mat4 transform = GetWorldSpaceTransformMatrix(Entity {entity, this});
+                    glm::mat4 transform = GetWorldSpaceTransformMatrix(Entity(entity, this));
                     renderer->SubmitMesh(mesh, transform);
                 }
             }
@@ -46,7 +45,7 @@ namespace Surge
             for (auto& entity : view)
             {
                 auto light = view.get<PointLightComponent>(entity);
-                glm::mat4 transformMatrix = GetWorldSpaceTransformMatrix(Entity {entity, this});
+                glm::mat4 transformMatrix = GetWorldSpaceTransformMatrix(Entity(entity, this));
                 glm::vec3 position, rotation, scale;
                 Math::DecomposeTransform(transformMatrix, position, rotation, scale);
                 renderer->SubmitPointLight(light, position);
@@ -64,12 +63,15 @@ namespace Surge
             Renderer* renderer = Core::GetRenderer();
             renderer->BeginFrame(*camera.Data1, camera.Data2);
             {
-                auto group = mRegistry.group<TransformComponent>(entt::get<MeshComponent>);
+                auto group = mRegistry.group<MeshComponent>(entt::get<TransformComponent>);
                 for (auto& entity : group)
                 {
-                    auto [transform, mesh] = group.get<TransformComponent, MeshComponent>(entity);
+                    auto [mesh, transformComponent] = group.get<MeshComponent, TransformComponent>(entity);
                     if (mesh.Mesh)
-                        renderer->SubmitMesh(mesh, transform.GetTransform());
+                    {
+                        glm::mat4 transform = GetWorldSpaceTransformMatrix(Entity(entity, this));
+                        renderer->SubmitMesh(mesh, transform);
+                    }
                 }
             }
             {
@@ -77,7 +79,7 @@ namespace Surge
                 for (auto& entity : view)
                 {
                     auto light = view.get<PointLightComponent>(entity);
-                    glm::mat4 transformMatrix = GetWorldSpaceTransformMatrix(Entity {entity, this});
+                    glm::mat4 transformMatrix = GetWorldSpaceTransformMatrix(Entity(entity, this));
                     glm::vec3 position, rotation, scale;
                     Math::DecomposeTransform(transformMatrix, position, rotation, scale);
                     renderer->SubmitPointLight(light, position);

@@ -62,8 +62,7 @@ namespace Surge
                 mYawDelta += glm::clamp(yawSign * delta.x, -maxRate, maxRate);
                 mPitchDelta += glm::clamp(delta.y, -maxRate, maxRate);
                 mRightDirection = glm::cross(mWorldRotation, glm::vec3 {0.f, yawSign, 0.f});
-                mWorldRotation = glm::rotate(glm::normalize(glm::cross(glm::angleAxis(-mPitchDelta, mRightDirection), glm::angleAxis(-mYawDelta, glm::vec3 {0.f, yawSign, 0.f}))),
-                                             mWorldRotation);
+                mWorldRotation = glm::rotate(glm::normalize(glm::cross(glm::angleAxis(-mPitchDelta, mRightDirection), glm::angleAxis(-mYawDelta, glm::vec3 {0.f, yawSign, 0.f}))), mWorldRotation);
             }
             else if (Input::IsKeyPressed(Key::LeftAlt))
             {
@@ -242,4 +241,5 @@ namespace Surge
     glm::vec3 EditorCamera::CalculatePosition() const { return mFocalPoint - GetForwardDirection() * mDistance + mPositionDelta; }
 
     glm::quat EditorCamera::GetOrientation() const { return glm::quat(glm::vec3(-mPitch - mPitchDelta, -mYaw - mYawDelta, 0.0f)); }
+
 } // namespace Surge

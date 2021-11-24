@@ -75,11 +75,11 @@ namespace Surge
         template <typename T>
         void RemoveComponent()
         {
-            mScene->GetRegistry().remove_if_exists<T>(mEnttHandle);
+            mScene->GetRegistry().remove<T>(mEnttHandle);
         }
 
         template <typename T>
-        bool HasComponent() const
+        bool HasComponent()
         {
             return mScene->GetRegistry().any_of<T>(mEnttHandle);
         }

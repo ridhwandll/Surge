@@ -7,6 +7,7 @@
 #include "Editor.hpp"
 #include "SceneHierarchyPanel.hpp"
 #include "Surge/ECS/Components.hpp"
+#include "Utility/ImGuiAux.hpp"
 
 namespace Surge
 {
@@ -28,7 +29,7 @@ namespace Surge
             ImGui::Text("Frame Time: % .2f ms ", Clock::GetMilliseconds());
             ImGui::Text("FPS: % .2f", ImGui::GetIO().Framerate);
 
-            if (ImGui::CollapsingHeader("GPU Memory Status"))
+            if (ImGuiAux::PropertyGridHeader("GPU Memory Status", false))
             {
                 Surge::GPUMemoryStats memoryStatus = renderContext->GetMemoryStatus();
                 float used = memoryStatus.Used / 1000000.0f;
@@ -36,27 +37,27 @@ namespace Surge
                 ImGui::Text("Used: %f Mb", used);
                 ImGui::Text("Local-Free: %f Mb", free);
                 ImGui::Text("Total Allocated: %f Mb", used + free);
+                ImGui::TreePop();
             }
 
-            if (ImGui::CollapsingHeader("Shaders"))
+            if (ImGuiAux::PropertyGridHeader("Shaders", false))
             {
                 Vector<Ref<Shader>>& allAhaders = Core::GetRenderer()->GetData()->ShaderSet.GetAllShaders();
-                if (ImGui::BeginTable("ShaderTable", 2, ImGuiTableFlags_BordersOuter | ImGuiTableFlags_Resizable))
+                if (ImGui::BeginTable("ShaderTable", 2, ImGuiTableFlags_Resizable))
                 {
                     for (Ref<Shader>& shader : allAhaders)
                     {
                         ImGui::PushID(shader->GetPath().c_str());
-                        ImGui::TableNextColumn();
-                        ImGui::TextUnformatted(Filesystem::GetNameWithExtension(shader->GetPath()).c_str());
-                        ImGui::TableNextColumn();
-                        if (ImGui::Button("Reload"))
+                        if (ImGuiAux::Button(Filesystem::GetNameWithExtension(shader->GetPath()).c_str(), "Reload"))
                             shader->Reload();
                         ImGui::PopID();
                     }
                     ImGui::EndTable();
                 }
+                ImGui::TreePop();
             }
-            if (ImGui::CollapsingHeader("All Entities"))
+#ifdef SURGE_DEBUG
+            if (ImGuiAux::PropertyGridHeader("All Entities (Debug Only)", false))
             {
                 SceneHierarchyPanel* hierarchy = static_cast<Editor*>(Core::GetClient())->GetPanelManager().GetPanel<SceneHierarchyPanel>();
                 Scene* scene = hierarchy->GetSceneContext();
@@ -66,7 +67,9 @@ namespace Surge
                     ImGui::SameLine();
                     ImGui::Text(ent.GetComponent<NameComponent>().Name.c_str());
                 });
+                ImGui::TreePop();
             }
+#endif
         }
         ImGui::End();
     }

@@ -3,24 +3,43 @@
 #include "Surge/ECS/Components.hpp"
 #include "Utility/ImGuiAux.hpp"
 #include "Surge/Utility/FileDialogs.hpp"
+
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <imgui_stdlib.h>
 #include <IconsFontAwesome.hpp>
 
 namespace Surge
 {
     template <typename XComponent, typename Func>
-    static void DrawComponent(const String& name, Func& function)
+    static void DrawComponent(Entity& entity, const String& name, Func& function, bool isRemoveable = true)
     {
-        int64_t hash = SurgeReflect::GetReflection<XComponent>()->GetHash();
+        const int64_t& hash = SurgeReflect::GetReflection<XComponent>()->GetHash();
         ImGui::PushID(static_cast<int>(hash));
-        if (ImGui::CollapsingHeader(name.c_str(), ImGuiTreeNodeFlags_DefaultOpen))
+
+        // Push the bold font
+        ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
+        bool open = ImGuiAux::PropertyGridHeader(name.c_str());
+        ImGui::PopFont();
+
+        if (open)
         {
+            const ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+            const float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y;
+
+            if (isRemoveable)
+            {
+                ImGui::SameLine();
+                ImGui::SetCursorPosX(contentRegionAvailable.x + 13.0f);
+                if (ImGui::Button(ICON_SURGE_TRASH_O))
+                    entity.RemoveComponent<XComponent>();
+            }
             if (ImGui::BeginTable("##ComponentTable", 2, ImGuiTableFlags_Resizable))
             {
                 function();
                 ImGui::EndTable();
             }
+            ImGui::TreePop();
         }
         ImGui::PopID();
     }
@@ -74,18 +93,20 @@ namespace Surge
         if (entity.HasComponent<TransformComponent>())
         {
             TransformComponent& component = entity.GetComponent<TransformComponent>();
-            DrawComponent<TransformComponent>("Transform", [&component]() {
-                ImGuiAux::Property<glm::vec3>("Position", component.Position);
-                ImGuiAux::Property<glm::vec3>("Rotation", component.Rotation);
-                ImGuiAux::Property<glm::vec3>("Scale", component.Scale);
-            });
+            DrawComponent<TransformComponent>(
+                entity, "Transform", [&component]() {
+                    ImGuiAux::Property<glm::vec3>("Position", component.Position);
+                    ImGuiAux::Property<glm::vec3>("Rotation", component.Rotation);
+                    ImGuiAux::Property<glm::vec3>("Scale", component.Scale);
+                },
+                false);
         }
 
         if (entity.HasComponent<MeshComponent>())
         {
             MeshComponent& component = entity.GetComponent<MeshComponent>();
-            DrawComponent<MeshComponent>("Mesh", [&component]() {
-                const String& meshPath = component.Mesh ? component.Mesh->GetPath() : "";
+            DrawComponent<MeshComponent>(entity, "Mesh", [&component]() {
+                const String meshPath = component.Mesh ? component.Mesh->GetPath() : "";
                 if (ImGuiAux::Button("Path", meshPath.empty() ? "Open..." : meshPath.c_str()))
                 {
                     String path = FileDialog::OpenFile("");
@@ -117,7 +138,7 @@ namespace Surge
         if (entity.HasComponent<CameraComponent>())
         {
             CameraComponent& component = entity.GetComponent<CameraComponent>();
-            DrawComponent<CameraComponent>("Camera", [&component]() {
+            DrawComponent<CameraComponent>(entity, "Camera", [&component]() {
                 RuntimeCamera& camera = component.Camera;
                 ImGuiAux::Property<bool>("Primary", component.Primary);
 
@@ -182,30 +203,30 @@ namespace Surge
         if (entity.HasComponent<PointLightComponent>())
         {
             PointLightComponent& component = entity.GetComponent<PointLightComponent>();
-            DrawComponent<PointLightComponent>(ICON_SURGE_LIGHTBULB_O " PointLight", [&component]() {
+            DrawComponent<PointLightComponent>(entity, "PointLight", [&component]() {
                 ImGuiAux::Property<glm::vec3, ImGuiAux::CustomProprtyFlag::Color3>("Color", component.Color);
                 ImGuiAux::Property<float>("Intensity", component.Intensity);
                 ImGuiAux::Property<float>("Radius", component.Radius);
             });
         }
 
+        // Debug Only
         if (entity.HasComponent<ParentChildComponent>())
         {
             ParentChildComponent& component = entity.GetComponent<ParentChildComponent>();
-            DrawComponent<ParentChildComponent>("ParentChildComponent", [this, &component]() {
-                ImGui::TableNextColumn();
-                ImGui::TextUnformatted("Parent");
-                ImGui::TableNextColumn();
-                Entity parent = mHierarchy->GetSceneContext()->FindEntityByUUID(component.ParentID);
-                parent ? ImGui::TextUnformatted(parent.GetComponent<NameComponent>().Name.c_str()) : ImGui::TextUnformatted("None");
+            DrawComponent<ParentChildComponent>(
+                entity, "ParentChildComponent", [this, &component]() {
+                    ImGui::TableNextColumn();
+                    ImGui::TextUnformatted("Parent:");
+                    ImGui::TableNextColumn();
+                    Entity parent = mHierarchy->GetSceneContext()->FindEntityByUUID(component.ParentID);
+                    parent ? ImGui::TextUnformatted(parent.GetComponent<NameComponent>().Name.c_str()) : ImGui::TextUnformatted("None");
 
-                ImGui::TableNextColumn();
-                ImGui::Text("ChildCount: %i", component.ChildIDs.size());
-            });
+                    ImGui::TableNextColumn();
+                    ImGui::Text("ChildCount: %i", component.ChildIDs.size());
+                },
+                false);
         }
     }
 
-    void InspectorPanel::Shutdown()
-    {
-    }
 } // namespace Surge

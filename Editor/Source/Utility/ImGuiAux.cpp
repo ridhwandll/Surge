@@ -9,7 +9,6 @@ namespace Surge
     void ImGuiAux::DrawRectAroundWidget(const glm::vec4& color, float thickness, float rounding)
     {
         ImGuiContext& g = *GImGui;
-        ImGuiWindow* window = g.CurrentWindow;
         const ImRect& rect = (g.LastItemData.StatusFlags & ImGuiItemStatusFlags_HasDisplayRect) ? g.LastItemData.DisplayRect : g.LastItemData.Rect;
         ImDrawList* drawList = ImGui::GetWindowDrawList();
         drawList->AddRect(rect.Min, rect.Max, ImGui::ColorConvertFloat4ToU32(ImVec4(color.x, color.y, color.z, color.w)), rounding, ImDrawCornerFlags_All, thickness);
@@ -53,4 +52,31 @@ namespace Surge
         style.WindowMinSize.x = minWinSizeX;
         ImGui::End();
     }
+
+    bool ImGuiAux::PropertyGridHeader(const String& name, bool openByDefault)
+    {
+        ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_FramePadding;
+
+        if (openByDefault)
+            treeNodeFlags |= ImGuiTreeNodeFlags_DefaultOpen;
+
+        bool open = false;
+        const float framePaddingX = 3.5f;
+        const float framePaddingY = 3.5f;
+
+        ImGuiAux::ScopedStyle headerRounding({ImGuiStyleVar_FrameRounding}, 0.0f);
+        ImGuiAux::ScopedStyle headerPaddingAndHeight({ImGuiStyleVar_FramePadding}, ImVec2 {framePaddingX, framePaddingY});
+
+        ImGui::PushID(name.c_str());
+        open = ImGui::TreeNodeEx("##dummyId", treeNodeFlags, name.c_str());
+        ImGui::PopID();
+
+        ImGuiContext& g = *GImGui;
+        const ImRect& rect = (g.LastItemData.StatusFlags & ImGuiItemStatusFlags_HasDisplayRect) ? g.LastItemData.DisplayRect : g.LastItemData.Rect;
+        ImDrawList* drawList = ImGui::GetForegroundDrawList(); //Foreground draw-list, draw on top of everything
+        drawList->AddRect(rect.Min, rect.Max, ImGui::ColorConvertFloat4ToU32({0.4f, 0.4f, 0.4f, 1.0f}), 0.0f, ImDrawCornerFlags_All, 1.5f);
+
+        return open;
+    }
+
 } // namespace Surge

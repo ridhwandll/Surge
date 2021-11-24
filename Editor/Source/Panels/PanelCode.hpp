@@ -11,7 +11,7 @@ namespace Surge
         Performance,
     };
 
-    inline const char* PanelCodeToString(PanelCode code)
+    constexpr inline const char* PanelCodeToString(PanelCode code)
     {
         switch (code)
         {

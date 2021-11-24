@@ -26,7 +26,7 @@ layout(push_constant) uniform PushConstants
 void main()
 {
     vOutput.TexCoord = aTexCoord;
-    vOutput.Normal = normalize(aNormal);
+    vOutput.Normal = normalize(aNormal) * mat3(uFrameData.Transform);
     vOutput.WorldPos = vec3(uFrameData.Transform * vec4(aPosition, 1.0f));
     gl_Position = uFrameData.ViewProjection * vec4(vOutput.WorldPos, 1.0f);
 }

@@ -6,14 +6,22 @@ namespace Surge
 {
     bool Input::IsKeyPressed(KeyCode key)
     {
-        SHORT state = GetAsyncKeyState(static_cast<int>(key));
-        return (state & 0x8000);
+        if (GetActiveWindow() == Surge::Core::GetWindow()->GetNativeWindowHandle())
+        {
+            SHORT state = GetAsyncKeyState(static_cast<int>(key));
+            return (state & 0x8000);
+        }
+        return false;
     }
 
     bool Input::IsMouseButtonPressed(const MouseCode button)
     {
-        SHORT state = GetAsyncKeyState(static_cast<int>(button));
-        return (state & 0x8000);
+        if (GetActiveWindow() == Surge::Core::GetWindow()->GetNativeWindowHandle())
+        {
+            SHORT state = GetAsyncKeyState(static_cast<int>(button));
+            return (state & 0x8000);
+        }
+        return false;
     }
 
     Pair<float, float> Input::GetMousePosition()

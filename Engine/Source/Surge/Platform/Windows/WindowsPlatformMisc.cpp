@@ -5,11 +5,12 @@ namespace Surge
 {
     void PlatformMisc::RequestExit()
     {
-        SendMessage((HWND)Core::GetWindow()->GetNativeWindowHandle(), WM_QUIT, 0, 0);
+        SendMessage(static_cast<HWND>(Core::GetWindow()->GetNativeWindowHandle()), WM_QUIT, 0, 0);
     }
 
     void PlatformMisc::ErrorMessageBox(const char* text)
     {
-        MessageBox(NULL, text, "Error!", MB_ICONEXCLAMATION | MB_OK);
+        MessageBox(NULL, text, "Error!", MB_ICONERROR | MB_OK);
     }
+
 } // namespace Surge
