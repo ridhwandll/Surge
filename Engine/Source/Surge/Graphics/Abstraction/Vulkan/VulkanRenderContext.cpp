@@ -1,7 +1,6 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderContext.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDiagnostics.hpp"
-#include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderer.hpp"
 
 namespace Surge
 {
@@ -51,6 +50,8 @@ namespace Surge
         if (mImGuiEnabled)
             mImGuiContext.Initialize(this);
 
+        CreateDescriptorPools();
+
         // Fill In GPUInfo
         mGPUInfo.Name = mDevice.GetProperties().vk10Properties.properties.deviceName;
         mGPUInfo.DeviceScore = mDevice.GetDeviceScore();
@@ -63,9 +64,8 @@ namespace Surge
         if (mImGuiEnabled)
             mImGuiContext.BeginFrame();
 
-        // Reset the renderer descriptor pool
-        VkDescriptorPool descriptorPool = static_cast<VulkanRenderer*>(Core::GetRenderer())->GetDescriptorPools()[mSwapChain.GetCurrentFrameIndex()];
-        VK_CALL(vkResetDescriptorPool(mDevice.GetLogicalDevice(), descriptorPool, 0));
+        // Reset the descriptor pool
+        VK_CALL(vkResetDescriptorPool(mDevice.GetLogicalDevice(), mDescriptorPools[mSwapChain.GetCurrentFrameIndex()], 0));
     }
 
     void VulkanRenderContext::EndFrame()
@@ -79,9 +79,17 @@ namespace Surge
     void VulkanRenderContext::Shutdown()
     {
         SURGE_PROFILE_FUNC("VulkanRenderContext::Shutdown()");
+        VkDevice device = mDevice.GetLogicalDevice();
+        vkDeviceWaitIdle(device);
 
         if (mImGuiEnabled)
             mImGuiContext.Destroy();
+
+        // Destroy the descriptor pools
+        for (VkDescriptorPool& pool : mDescriptorPools)
+            vkDestroyDescriptorPool(device, pool, nullptr);
+        for (VkDescriptorPool& pool : mNonResetableDescriptorPools)
+            vkDestroyDescriptorPool(device, pool, nullptr);
 
         mMemoryAllocator.Destroy();
         mSwapChain.Destroy();
@@ -129,4 +137,41 @@ namespace Surge
         ENABLE_IF_VK_VALIDATION(mVulkanDiagnostics.AddValidationLayers(instanceLayers));
         return instanceLayers;
     }
+
+    void VulkanRenderContext::CreateDescriptorPools()
+    {
+        VkDescriptorPoolSize poolSizes[] =
+            {{VK_DESCRIPTOR_TYPE_SAMPLER, 10000},
+             {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 10000},
+             {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 10000},
+             {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 10000},
+             {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 10000},
+             {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 10000},
+             {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10000},
+             {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 10000},
+             {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 10000},
+             {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 10000},
+             {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 10000}};
+
+        VkDescriptorPoolCreateInfo poolInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
+        poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+        poolInfo.maxSets = 100 * (sizeof(poolSizes) / sizeof(VkDescriptorPoolSize));
+        poolInfo.poolSizeCount = (Uint)(sizeof(poolSizes) / sizeof(VkDescriptorPoolSize));
+        poolInfo.pPoolSizes = poolSizes;
+
+        mDescriptorPools.resize(FRAMES_IN_FLIGHT);
+        for (auto& descriptorPool : mDescriptorPools)
+        {
+            VK_CALL(vkCreateDescriptorPool(mDevice.GetLogicalDevice(), &poolInfo, nullptr, &descriptorPool));
+            SET_VK_OBJECT_DEBUGNAME(descriptorPool, VK_OBJECT_TYPE_DESCRIPTOR_POOL, "DescriptorPool");
+        }
+
+        mNonResetableDescriptorPools.resize(FRAMES_IN_FLIGHT);
+        for (auto& descriptorPool : mNonResetableDescriptorPools)
+        {
+            VK_CALL(vkCreateDescriptorPool(mDevice.GetLogicalDevice(), &poolInfo, nullptr, &descriptorPool));
+            SET_VK_OBJECT_DEBUGNAME(descriptorPool, VK_OBJECT_TYPE_DESCRIPTOR_POOL, "NonResetable DescriptorPool");
+        }
+    }
+
 } // namespace Surge

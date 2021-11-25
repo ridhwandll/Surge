@@ -2,7 +2,7 @@
 #pragma once
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDevice.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderContext.hpp"
-#include "Surge/Graphics/RenderCommandBuffer.hpp"
+#include "Surge/Graphics/Interface/RenderCommandBuffer.hpp"
 #include <volk.h>
 
 namespace Surge

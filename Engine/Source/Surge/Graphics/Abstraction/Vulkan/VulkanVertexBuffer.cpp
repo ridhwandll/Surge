@@ -22,6 +22,15 @@ namespace Surge
         allocator->DestroyBuffer(mVulkanBuffer, mAllocation);
     }
 
+    void VulkanVertexBuffer::Bind(const Ref<RenderCommandBuffer>& cmdBuffer) const
+    {
+        VulkanRenderContext* renderContext = nullptr;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
+        VkCommandBuffer vulkanCmdBuffer = cmdBuffer.As<VulkanRenderCommandBuffer>()->GetVulkanCommandBuffer(renderContext->GetFrameIndex());
+        VkDeviceSize offset = 0;
+        vkCmdBindVertexBuffers(vulkanCmdBuffer, 0, 1, &mVulkanBuffer, &offset);
+    }
+
     void VulkanVertexBuffer::CreateVertexBuffer(const void* data)
     {
         VulkanRenderContext* renderContext = nullptr;

@@ -1,0 +1,69 @@
+// Copyright (c) - SurgeTechnologies - All rights reserved
+#include "VulkanDescriptorSet.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanDescriptorSet.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderContext.hpp"
+#include "VulkanShader.hpp"
+#include "VulkanUniformBuffer.hpp"
+#include "VulkanRenderCommandBuffer.hpp"
+#include "VulkanGraphicsPipeline.hpp"
+
+namespace Surge
+{
+    VulkanDescriptorSet::VulkanDescriptorSet(const Ref<Shader>& shader, bool resetEveryFrame, int index)
+    {
+        VulkanRenderContext* renderContext = nullptr;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
+
+        VkDescriptorSetAllocateInfo allocInfo {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
+        allocInfo.descriptorSetCount = 1;
+        allocInfo.pSetLayouts = &shader.As<VulkanShader>()->GetDescriptorSetLayouts().at(1);
+        VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
+
+        mDescriptorSets.resize(FRAMES_IN_FLIGHT);
+        for (int index = 0; index < FRAMES_IN_FLIGHT; index++)
+        {
+            allocInfo.descriptorPool = renderContext->GetNonResetableDescriptorPools()[index];
+            VK_CALL(vkAllocateDescriptorSets(device, &allocInfo, &mDescriptorSets[index]));
+        }
+    }
+
+    VulkanDescriptorSet::~VulkanDescriptorSet()
+    {
+        VulkanRenderContext* renderContext = nullptr;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
+        VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
+
+        for (int index = 0; index < mDescriptorSets.size(); index++)
+        {
+            VkDescriptorPool pool = renderContext->GetNonResetableDescriptorPools()[index];
+            vkFreeDescriptorSets(device, pool, 1, &mDescriptorSets[index]);
+            mDescriptorSets[index] = VK_NULL_HANDLE;
+        }
+    }
+
+    void VulkanDescriptorSet::Bind(const Ref<RenderCommandBuffer>& commandBuffer, const Ref<GraphicsPipeline>& pipeline)
+    {
+        VulkanRenderContext* renderContext;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
+        Uint frameIndex = renderContext->GetFrameIndex();
+        VkCommandBuffer vulkanCmdBuffer = commandBuffer.As<VulkanRenderCommandBuffer>()->GetVulkanCommandBuffer(frameIndex);
+        vkCmdBindDescriptorSets(vulkanCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.As<VulkanGraphicsPipeline>()->GetPipelineLayout(), 1, 1, &mDescriptorSets[frameIndex], 0, nullptr);
+    }
+
+    void VulkanDescriptorSet::Update(const Ref<UniformBuffer>& dataBuffer)
+    {
+        VulkanRenderContext* renderContext;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
+        VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
+        Uint frameIndex = renderContext->GetFrameIndex();
+
+        VkWriteDescriptorSet writeDescriptorSet {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+        writeDescriptorSet.dstBinding = 0;
+        writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        writeDescriptorSet.pBufferInfo = &dataBuffer.As<VulkanUniformBuffer>()->GetDescriptorBufferInfo();
+        writeDescriptorSet.descriptorCount = 1;
+        writeDescriptorSet.dstSet = mDescriptorSets[frameIndex];
+        vkUpdateDescriptorSets(renderContext->GetDevice()->GetLogicalDevice(), 1, &writeDescriptorSet, 0, nullptr);
+    }
+
+} // namespace Surge

@@ -1,6 +1,6 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
-#include "Surge/Graphics/UniformBuffer.hpp"
+#include "Surge/Graphics/Interface/UniformBuffer.hpp"
 #include "Surge/Core/Buffer.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanMemoryAllocator.hpp"
 #include <volk/volk.h>

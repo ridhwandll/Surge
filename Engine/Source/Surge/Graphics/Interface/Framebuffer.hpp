@@ -1,8 +1,8 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "Surge/Core/Defines.hpp"
-#include "Surge/Graphics/Image.hpp"
-#include "Surge/Graphics/RenderCommandBuffer.hpp"
+#include "Surge/Graphics/Interface/Image.hpp"
+#include "Surge/Graphics/Interface/RenderCommandBuffer.hpp"
 
 namespace Surge
 {
@@ -19,9 +19,13 @@ namespace Surge
         virtual ~Framebuffer() = default;
 
         virtual void Resize(Uint width, Uint height) = 0;
+
+        virtual void BeginRenderPass(const Ref<RenderCommandBuffer>& cmdBuffer) const = 0;
+        virtual void EndRenderPass(const Ref<RenderCommandBuffer>& cmdBuffer) const = 0;
+
         virtual const FramebufferSpecification& GetSpecification() const = 0;
-        virtual FramebufferSpecification& GetSpecification() = 0;
         virtual const Ref<Image2D>& GetColorAttachment(Uint index) const = 0;
+
         static Ref<Framebuffer> Create(const FramebufferSpecification& spec);
     };
 } // namespace Surge

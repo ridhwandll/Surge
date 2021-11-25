@@ -1,6 +1,6 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Panels/ViewportPanel.hpp"
-#include "Surge/Graphics/Image.hpp"
+#include "Surge/Graphics/Interface/Image.hpp"
 #include "Surge/Core/Core.hpp"
 #include "Surge/Core/Hash.hpp"
 #include "Surge/ECS/Components.hpp"

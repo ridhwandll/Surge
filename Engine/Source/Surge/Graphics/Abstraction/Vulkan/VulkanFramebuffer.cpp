@@ -25,6 +25,47 @@ namespace Surge
         Invalidate();
     }
 
+    void VulkanFramebuffer::BeginRenderPass(const Ref<RenderCommandBuffer>& cmdBuffer) const
+    {
+        VulkanRenderContext* renderContext;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
+        VkCommandBuffer vulkanCmdBuffer = cmdBuffer.As<VulkanRenderCommandBuffer>()->GetVulkanCommandBuffer(renderContext->GetFrameIndex());
+
+        std::array<VkClearValue, 2> clearValues;
+        clearValues[0].color = {mSpecification.ClearColor.r, mSpecification.ClearColor.g, mSpecification.ClearColor.b, mSpecification.ClearColor.a};
+        clearValues[1].depthStencil = {1.0f, 0};
+
+        VkViewport viewport = {};
+        viewport.width = float(mSpecification.Width);
+        viewport.height = float(mSpecification.Height);
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+
+        VkRect2D scissor = {};
+        scissor.extent = {mSpecification.Width, mSpecification.Height};
+        scissor.offset = {0, 0};
+
+        VkRenderPassBeginInfo renderPassBeginInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
+        renderPassBeginInfo.renderPass = mRenderPass;
+        renderPassBeginInfo.renderArea.offset = {0, 0};
+        renderPassBeginInfo.renderArea.extent = {mSpecification.Width, mSpecification.Height};
+        renderPassBeginInfo.framebuffer = mFramebuffer;
+        renderPassBeginInfo.clearValueCount = Uint(clearValues.size());
+        renderPassBeginInfo.pClearValues = clearValues.data();
+
+        vkCmdSetViewport(vulkanCmdBuffer, 0, 1, &viewport);
+        vkCmdSetScissor(vulkanCmdBuffer, 0, 1, &scissor);
+        vkCmdBeginRenderPass(vulkanCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+    }
+
+    void VulkanFramebuffer::EndRenderPass(const Ref<RenderCommandBuffer>& cmdBuffer) const
+    {
+        VulkanRenderContext* renderContext;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
+        VkCommandBuffer vulkanCmdBuffer = cmdBuffer.As<VulkanRenderCommandBuffer>()->GetVulkanCommandBuffer(renderContext->GetFrameIndex());
+        vkCmdEndRenderPass(vulkanCmdBuffer);
+    }
+
     void VulkanFramebuffer::Invalidate()
     {
         Clear();

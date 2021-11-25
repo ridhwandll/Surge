@@ -1,11 +1,13 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "Surge/Events/Event.hpp"
+#include "Surge/Core/Window/Window.hpp"
 
 namespace Surge
 {
     struct ClientOptions
     {
+        WindowDesc WindowDescription;
         bool EnableImGui = true;
     };
 
@@ -22,14 +24,14 @@ namespace Surge
         virtual void OnShutdown() {};
 
         void SetOptions(const ClientOptions& appCreateInfo) { mClientOptions = appCreateInfo; }
-        const ClientOptions& GetAppOptions() const { return mClientOptions; }
+        const ClientOptions& GeClientOptions() const { return mClientOptions; }
 
     private:
         ClientOptions mClientOptions;
     };
 
     template <typename T>
-    inline T* MakeClient()
+    FORCEINLINE T* MakeClient()
     {
         static_assert(std::is_base_of_v<Client, T>, "Class MUST derive from Surge::Client");
         T* client = new T();

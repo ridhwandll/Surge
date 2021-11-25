@@ -1,6 +1,5 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanMaterial.hpp"
-#include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderer.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanShader.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanUniformBuffer.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderCommandBuffer.hpp"
@@ -28,6 +27,7 @@ namespace Surge
         VulkanRenderContext* renderContext;
         SURGE_GET_VULKAN_CONTEXT(renderContext);
         Ref<VulkanShader> vulkanShader = mShader.As<VulkanShader>();
+        VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
 
         Uint set;
         const Vector<ShaderBuffer>& shaderBuffers = vulkanShader->GetReflectionData().GetBuffers();
@@ -52,7 +52,10 @@ namespace Surge
 
         mDescriptorSets.resize(FRAMES_IN_FLIGHT);
         for (Uint i = 0; i < mDescriptorSets.size(); i++)
-            mDescriptorSets[i] = static_cast<VulkanRenderer*>(Core::GetRenderer())->AllocateDescriptorSet(allocInfo, false, i);
+        {
+            allocInfo.descriptorPool = renderContext->GetNonResetableDescriptorPools()[i];
+            VK_CALL(vkAllocateDescriptorSets(device, &allocInfo, &mDescriptorSets[i]));
+        }
 
         // TODO: Remove
         Set<glm::vec3>("Material.Albedo", {1.0f, 1.0f, 1.0f});
@@ -89,8 +92,8 @@ namespace Surge
 
         for (Uint i = 0; i < mDescriptorSets.size(); i++)
         {
-            static_cast<VulkanRenderer*>(Core::GetRenderer())->FreeDescriptorSet(mDescriptorSets[i], false, i);
-            mDescriptorSets[i] = nullptr;
+            vkFreeDescriptorSets(logicalDevice, renderContext->GetNonResetableDescriptorPools()[i], 1, &mDescriptorSets[i]);
+            mDescriptorSets[i] = VK_NULL_HANDLE;
         }
 
         mBufferMemory.Release();

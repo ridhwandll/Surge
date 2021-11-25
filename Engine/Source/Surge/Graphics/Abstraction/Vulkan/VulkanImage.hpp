@@ -2,7 +2,7 @@
 #pragma once
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanMemoryAllocator.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanUtils.hpp"
-#include "Surge/Graphics/Image.hpp"
+#include "Surge/Graphics/Interface/Image.hpp"
 
 namespace Surge
 {

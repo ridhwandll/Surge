@@ -1,6 +1,6 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
-#include "Surge/Graphics/Texture.hpp"
+#include "Surge/Graphics/Interface/Texture.hpp"
 
 namespace Surge
 {

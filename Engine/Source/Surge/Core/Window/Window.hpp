@@ -9,10 +9,11 @@ namespace Surge
 {
     enum class WindowFlags
     {
-        // TODO: Add more falgs
+        // TODO: Add more flags
         Minimized = BIT(1),
         Maximized = BIT(2),
-        CreateDefault = BIT(3)
+        CreateDefault = BIT(3),
+        EditorAcceleration = BIT(4) //- Enables custom titlebar for the editor
     };
     MAKE_BIT_ENUM(WindowFlags);
 
@@ -22,11 +23,11 @@ namespace Surge
         Minimized
     };
 
-    struct WindowData
+    struct WindowDesc
     {
-        WindowData(Uint width, Uint height, const String& title, WindowFlags flags = WindowFlags::CreateDefault) : Width(width), Height(height), Title(title), Flags(flags) {}
-        WindowData() : Width(1280), Height(720), Title("Surge Window"), Flags(WindowFlags::CreateDefault) {}
-        ~WindowData() = default;
+        WindowDesc(Uint width, Uint height, const String& title, WindowFlags flags = WindowFlags::CreateDefault) : Width(width), Height(height), Title(title), Flags(flags) {}
+        WindowDesc() : Width(1280), Height(720), Title("Surge Window"), Flags(WindowFlags::CreateDefault) {}
+        ~WindowDesc() = default;
 
         Uint Width;
         Uint Height;
@@ -64,9 +65,9 @@ namespace Surge
         virtual void ShowConsole(bool show) const = 0;
         virtual void* GetNativeWindowHandle() = 0;
 
-        const WindowData& GetData() const { return mWindowData; }
+        const WindowDesc& GetData() const { return mWindowData; }
 
     protected:
-        WindowData mWindowData;
+        WindowDesc mWindowData;
     };
 } // namespace Surge

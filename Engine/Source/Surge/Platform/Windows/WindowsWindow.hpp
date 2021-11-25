@@ -8,7 +8,7 @@ namespace Surge
     class WindowsWindow : public Window
     {
     public:
-        WindowsWindow(const WindowData& windowData);
+        WindowsWindow(const WindowDesc& windowData);
         virtual ~WindowsWindow() override;
 
         virtual void Update() override;

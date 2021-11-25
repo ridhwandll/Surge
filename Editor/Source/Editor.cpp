@@ -103,6 +103,7 @@ int main()
 {
     Surge::ClientOptions clientOptions;
     clientOptions.EnableImGui = true;
+    clientOptions.WindowDescription = {1280, 720, "Surge Editor", Surge::WindowFlags::CreateDefault | Surge::WindowFlags::EditorAcceleration};
 
     Surge::Editor* app = Surge::MakeClient<Surge::Editor>();
     app->SetOptions(clientOptions);

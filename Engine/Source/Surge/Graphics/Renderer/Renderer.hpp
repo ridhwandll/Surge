@@ -3,11 +3,12 @@
 #include "Surge/Core/Memory.hpp"
 #include "Surge/Graphics/Camera/EditorCamera.hpp"
 #include "Surge/Graphics/Mesh.hpp"
-#include "Surge/Graphics/RenderCommandBuffer.hpp"
+#include "Surge/Graphics/Interface/RenderCommandBuffer.hpp"
 #include "Surge/Graphics/Shader/Shader.hpp"
 #include "Surge/Graphics/Shader/ShaderSet.hpp"
-#include "Surge/Graphics/Texture.hpp"
+#include "Surge/Graphics/Interface/Texture.hpp"
 #include "Surge/Graphics/Renderer/Lights.hpp"
+#include "Surge/Graphics/Interface/DescriptorSet.hpp"
 #include "Surge/ECS/Components.hpp"
 
 #define FRAMES_IN_FLIGHT 3
@@ -33,6 +34,8 @@ namespace Surge
 
         //Lights
         LightUniformBufferData LightData;
+        Ref<UniformBuffer> LightUniformBuffer;
+        Ref<DescriptorSet> LightDescriptorSet;
         Vector<PointLight> PointLights;
 
         // Camera
@@ -48,12 +51,12 @@ namespace Surge
         Renderer() = default;
         virtual ~Renderer() = default;
 
-        virtual void Initialize() = 0;
-        virtual void Shutdown() = 0;
+        void Initialize();
+        void Shutdown();
 
         void BeginFrame(const Camera& camera, const glm::mat4& transform);
         void BeginFrame(const EditorCamera& camera);
-        virtual void EndFrame() = 0;
+        void EndFrame();
 
         FORCEINLINE void SubmitMesh(MeshComponent& meshComp, const glm::mat4& transform) { mData->DrawList.push_back(DrawCommand(&meshComp, transform)); }
         FORCEINLINE void SubmitPointLight(const PointLightComponent& pointLight, glm::vec3 position)

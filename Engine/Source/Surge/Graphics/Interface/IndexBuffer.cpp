@@ -1,6 +1,5 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
-#include "Surge/Graphics/IndexBuffer.hpp"
-#include "Pch.hpp"
+#include "Surge/Graphics/Interface/IndexBuffer.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanIndexBuffer.hpp"
 
 namespace Surge

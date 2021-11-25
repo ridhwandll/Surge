@@ -31,11 +31,15 @@ namespace Surge
         VulkanSwapChain* GetSwapChain() { return &mSwapChain; }
         VulkanMemoryAllocator* GetMemoryAllocator() { return &mMemoryAllocator; }
 
+        const Vector<VkDescriptorPool>& GetDescriptorPools() const { return mDescriptorPools; }
+        const Vector<VkDescriptorPool>& GetNonResetableDescriptorPools() const { return mNonResetableDescriptorPools; }
+
         virtual void* GetImGuiTextureID(const Ref<Image2D>& image) const;
 
     private:
         Vector<const char*> GetRequiredInstanceExtensions();
         Vector<const char*> GetRequiredInstanceLayers();
+        void CreateDescriptorPools();
 
     private:
         VkInstance mVulkanInstance = VK_NULL_HANDLE;
@@ -45,6 +49,10 @@ namespace Surge
         VulkanMemoryAllocator mMemoryAllocator {};
         VulkanImGuiContext mImGuiContext;
         bool mImGuiEnabled;
+
+        // Descriptor Pools
+        Vector<VkDescriptorPool> mDescriptorPools;
+        Vector<VkDescriptorPool> mNonResetableDescriptorPools;
 
         GPUInfo mGPUInfo;
         friend class VulkanImGuiContext;

@@ -1,6 +1,6 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
-#include "Surge/Graphics/VertexBuffer.hpp"
+#include "Surge/Graphics/Interface/VertexBuffer.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanMemoryAllocator.hpp"
 #include <volk.h>
 
@@ -14,7 +14,9 @@ namespace Surge
         virtual ~VulkanVertexBuffer() override;
 
         virtual Uint GetSize() override { return mSize; }
+        virtual void Bind(const Ref<RenderCommandBuffer>& cmdBuffer) const override;
 
+    public:
         const VkBuffer GetVulkanBuffer() const { return mVulkanBuffer; }
         VmaAllocation GetAllocation() { return mAllocation; }
 

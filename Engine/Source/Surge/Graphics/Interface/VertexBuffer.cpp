@@ -1,5 +1,5 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
-#include "Surge/Graphics/VertexBuffer.hpp"
+#include "Surge/Graphics/Interface/VertexBuffer.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanVertexBuffer.hpp"
 
 namespace Surge

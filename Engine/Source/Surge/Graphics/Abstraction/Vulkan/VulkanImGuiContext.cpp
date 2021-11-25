@@ -1,6 +1,5 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanImGuiContext.hpp"
-#include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderer.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanImage.hpp"
 #include <ImGui/Backends/imgui_impl_vulkan.h>
 #include <ImGui/Backends/imgui_impl_win32.h>
@@ -124,15 +123,19 @@ namespace Surge
 
     void* VulkanImGuiContext::AddImage(const Ref<Image2D>& image2d) const
     {
-        VulkanRenderer* renderer = static_cast<VulkanRenderer*>(Core::GetRenderer());
+        VulkanRenderContext* renderContext = nullptr;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
+
+        VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
         VkDescriptorSetLayout descriptorSetLayout = ImGui_ImplVulkan_GetDescriptorSetLayout();
-        VkDescriptorSet descriptorSet;
 
         // Allocate the descriptor set (for the texture)
         VkDescriptorSetAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
         allocInfo.descriptorSetCount = 1;
         allocInfo.pSetLayouts = &descriptorSetLayout;
-        descriptorSet = renderer->AllocateDescriptorSet(allocInfo, true);
+        allocInfo.descriptorPool = renderContext->GetDescriptorPools()[renderContext->GetFrameIndex()];
+        VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+        VK_CALL(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
         // Add the texture
         Ref<VulkanImage2D> vulkanImage2d = image2d.As<VulkanImage2D>();

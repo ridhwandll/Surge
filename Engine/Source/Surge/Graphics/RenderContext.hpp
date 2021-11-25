@@ -1,7 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "Surge/Core/Window/Window.hpp"
-#include "Surge/Graphics/Image.hpp"
+#include "Surge/Graphics/Interface/Image.hpp"
 
 namespace Surge
 {
@@ -39,6 +39,7 @@ namespace Surge
         virtual void OnResize() = 0;
         virtual Uint GetFrameIndex() const = 0;
 
+        // Maybe move ImGui stuff somwhere else?
         virtual void RenderImGui() = 0;
         virtual void* GetImGuiTextureID(const Ref<Image2D>& image) const = 0;
 

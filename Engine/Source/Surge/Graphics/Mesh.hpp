@@ -1,9 +1,9 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
-#include "Surge/Graphics/AABB.hpp"
-#include "Surge/Graphics/GraphicsPipeline.hpp"
-#include "Surge/Graphics/IndexBuffer.hpp"
-#include "Surge/Graphics/VertexBuffer.hpp"
+#include "SurgeMath/AABB.hpp"
+#include "Surge/Graphics/Interface/GraphicsPipeline.hpp"
+#include "Surge/Graphics/Interface/IndexBuffer.hpp"
+#include "Surge/Graphics/Interface/VertexBuffer.hpp"
 #include <glm/glm.hpp>
 
 struct aiMesh;
@@ -46,16 +46,16 @@ namespace Surge
         Mesh(const Path& filepath);
 
         // Returns the path from which the Mesh was loaded
-        const Path& GetPath() const { return mPath; }
+        FORCEINLINE const Path& GetPath() const { return mPath; }
 
         // Returns the vertex buffer of the mesh
-        const Ref<VertexBuffer>& GetVertexBuffer() const { return mVertexBuffer; }
+        FORCEINLINE const Ref<VertexBuffer>& GetVertexBuffer() const { return mVertexBuffer; }
 
         // Returns the index buffer of the mesh
-        const Ref<IndexBuffer>& GetIndexBuffer() const { return mIndexBuffer; }
+        FORCEINLINE const Ref<IndexBuffer>& GetIndexBuffer() const { return mIndexBuffer; }
 
         // Returns the submeshes of the mesh/model
-        const Vector<Submesh>& GetSubmeshes() const { return mSubmeshes; }
+        FORCEINLINE const Vector<Submesh>& GetSubmeshes() const { return mSubmeshes; }
 
     private:
         void GetVertexData(const aiMesh* mesh, AABB& outAABB);

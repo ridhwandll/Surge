@@ -3,7 +3,7 @@
 #include "Surge/Core/Buffer.hpp"
 #include "Surge/Graphics/Shader/Shader.hpp"
 #include "Surge/Graphics/Shader/ReflectionData.hpp"
-#include "Surge/Graphics/UniformBuffer.hpp"
+#include "Surge/Graphics/Interface/UniformBuffer.hpp"
 
 namespace Surge
 {

@@ -78,4 +78,5 @@ namespace Surge
 
         return GPUMemoryStats(usedMemory, freeMemory);
     }
+
 } // namespace Surge

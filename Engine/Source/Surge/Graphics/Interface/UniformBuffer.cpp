@@ -1,5 +1,5 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
-#include "Surge/Graphics/UniformBuffer.hpp"
+#include "Surge/Graphics/Interface/UniformBuffer.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanUniformBuffer.hpp"
 
 namespace Surge

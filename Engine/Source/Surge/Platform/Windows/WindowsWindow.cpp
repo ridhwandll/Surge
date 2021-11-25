@@ -9,7 +9,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace Surge
 {
-    WindowsWindow::WindowsWindow(const WindowData& windowData)
+    WindowsWindow::WindowsWindow(const WindowDesc& windowData)
     {
         mWindowData = windowData;
         HINSTANCE hInstance = GetModuleHandle(nullptr);
@@ -17,7 +17,8 @@ namespace Surge
         WNDCLASSEX wc = {};
         wc.cbSize = sizeof(WNDCLASSEX);
 
-        if (Core::GetClient()->GetAppOptions().EnableImGui)
+        const ClientOptions& options = Surge::Core::GetClient()->GeClientOptions();
+        if (options.WindowDescription.Flags & WindowFlags::EditorAcceleration)
             wc.lpfnWndProc = WindowProcWithImgui;
         else
             wc.lpfnWndProc = WindowProcWithoutImGui;
@@ -140,6 +141,9 @@ namespace Surge
 
     LRESULT WindowsWindow::WindowProcWithoutImGui(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     {
+        if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
+            return true;
+
         switch (msg)
         {
             case WM_CREATE:
@@ -363,9 +367,6 @@ namespace Surge
                     break;
                 }
             }
-
-            if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
-                return true;
         }
 
         return WindowProcWithoutImGui(hWnd, msg, wParam, lParam);

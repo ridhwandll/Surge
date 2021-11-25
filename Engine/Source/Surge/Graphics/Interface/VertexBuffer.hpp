@@ -2,7 +2,7 @@
 #pragma once
 #include "Surge/Core/Defines.hpp"
 #include "Surge/Core/Memory.hpp"
-#include "Surge/Graphics/RenderCommandBuffer.hpp"
+#include "Surge/Graphics/Interface/RenderCommandBuffer.hpp"
 
 namespace Surge
 {
@@ -13,7 +13,9 @@ namespace Surge
         virtual ~VertexBuffer() = default;
 
         virtual Uint GetSize() = 0;
+        virtual void Bind(const Ref<RenderCommandBuffer>& cmdBuffer) const = 0;
 
         static Ref<VertexBuffer> Create(const void* data, const Uint& size);
     };
+
 } // namespace Surge

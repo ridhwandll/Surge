@@ -1,7 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderContext.hpp"
-#include "Surge/Graphics/GraphicsPipeline.hpp"
+#include "Surge/Graphics/Interface/GraphicsPipeline.hpp"
 #include <volk.h>
 
 namespace Surge

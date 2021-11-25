@@ -1,6 +1,6 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
-#include "Surge/Graphics/Framebuffer.hpp"
+#include "Surge/Graphics/Interface/Framebuffer.hpp"
 #include <volk.h>
 
 namespace Surge
@@ -12,8 +12,11 @@ namespace Surge
         virtual ~VulkanFramebuffer() override;
 
         virtual void Resize(Uint width, Uint height) override;
+
+        virtual void BeginRenderPass(const Ref<RenderCommandBuffer>& cmdBuffer) const override;
+        virtual void EndRenderPass(const Ref<RenderCommandBuffer>& cmdBuffer) const override;
+
         virtual const FramebufferSpecification& GetSpecification() const override { return mSpecification; }
-        virtual FramebufferSpecification& GetSpecification() override { return mSpecification; }
         virtual const Ref<Image2D>& GetColorAttachment(Uint index) const override { return mColorAttachmentImages[index]; }
 
         VkFramebuffer& GetVulkanFramebuffer() { return mFramebuffer; }

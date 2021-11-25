@@ -18,6 +18,14 @@ namespace Surge
         allocator->DestroyBuffer(mVulkanBuffer, mAllocation);
     }
 
+    void VulkanIndexBuffer::Bind(const Ref<RenderCommandBuffer>& cmdBuffer) const
+    {
+        VulkanRenderContext* renderContext = nullptr;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
+        VkCommandBuffer vulkanCmdBuffer = cmdBuffer.As<VulkanRenderCommandBuffer>()->GetVulkanCommandBuffer(renderContext->GetFrameIndex());
+        vkCmdBindIndexBuffer(vulkanCmdBuffer, mVulkanBuffer, 0, VK_INDEX_TYPE_UINT32);
+    }
+
     void VulkanIndexBuffer::CreateIndexBuffer(const void* data)
     {
         VulkanRenderContext* renderContext = nullptr;
