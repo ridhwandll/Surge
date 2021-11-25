@@ -9,10 +9,11 @@
 #include "Surge/Graphics/Interface/Texture.hpp"
 #include "Surge/Graphics/Renderer/Lights.hpp"
 #include "Surge/Graphics/Interface/DescriptorSet.hpp"
+#include "Surge/Graphics/RenderProcedure/RenderProcedureManager.hpp"
 #include "Surge/ECS/Components.hpp"
 
 #define FRAMES_IN_FLIGHT 3
-#define BASE_SHADER_PATH "Engine/Assets/Shaders"
+#define BASE_SHADER_PATH "Engine/Assets/Shaders" //Sadkek, we don't have an asset manager yet
 
 namespace Surge
 {
@@ -26,10 +27,8 @@ namespace Surge
 
     struct RendererData
     {
-        Ref<Framebuffer> OutputFrambuffer;
         Ref<RenderCommandBuffer> RenderCmdBuffer;
         Vector<DrawCommand> DrawList;
-        Ref<GraphicsPipeline> mGeometryPipeline;
         Surge::ShaderSet ShaderSet;
 
         //Lights
@@ -69,11 +68,13 @@ namespace Surge
             mData->PointLights.push_back(light);
         }
 
+        RenderProcedureManager* GetRenderProcManager() { return &mProcManager; }
         RendererData* GetData() { return mData.get(); }
         Ref<Shader>& GetShader(const String& name);
-        Ref<Framebuffer>& GetFramebuffer(); //TODO REMOVE: Have something like FramebufferSet(similar to ShaderSet)
+        Ref<Framebuffer>& GetFinalPassFramebuffer(); //TODO REMOVE: Have something like FramebufferSet(similar to ShaderSet)
 
-    protected:
+    private:
+        RenderProcedureManager mProcManager;
         Scope<RendererData> mData;
     };
 } // namespace Surge
