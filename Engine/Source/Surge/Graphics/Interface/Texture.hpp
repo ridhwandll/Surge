@@ -32,6 +32,7 @@ namespace Surge
     public:
         virtual const Ref<Image2D> GetImage2D() const = 0;
         static Ref<Texture2D> Create(const String& filepath, TextureSpecification specification = {});
+        static Ref<Texture2D> Create(ImageFormat format, Uint width, Uint height, void* data = nullptr, TextureSpecification specification = {});
     };
 
 } // namespace Surge

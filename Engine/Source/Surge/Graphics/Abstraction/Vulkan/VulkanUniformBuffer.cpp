@@ -59,7 +59,7 @@ namespace Surge
 
         // Update Descriptor info
         mDescriptorInfo.buffer = mVulkanBuffer;
-        mDescriptorInfo.range = VK_WHOLE_SIZE;
+        mDescriptorInfo.range = mSize;
         mDescriptorInfo.offset = 0;
     }
 

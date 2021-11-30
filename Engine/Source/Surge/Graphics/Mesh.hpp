@@ -4,6 +4,7 @@
 #include "Surge/Graphics/Interface/GraphicsPipeline.hpp"
 #include "Surge/Graphics/Interface/IndexBuffer.hpp"
 #include "Surge/Graphics/Interface/VertexBuffer.hpp"
+#include "Surge/Graphics/Material.hpp"
 #include <glm/glm.hpp>
 
 struct aiMesh;
@@ -57,6 +58,8 @@ namespace Surge
         // Returns the submeshes of the mesh/model
         FORCEINLINE const Vector<Submesh>& GetSubmeshes() const { return mSubmeshes; }
 
+        FORCEINLINE Vector<Ref<Material>>& GetMaterials() { return mMaterials; }
+
     private:
         void GetVertexData(const aiMesh* mesh, AABB& outAABB);
         void GetIndexData(const aiMesh* mesh);
@@ -68,6 +71,7 @@ namespace Surge
 
         Ref<VertexBuffer> mVertexBuffer;
         Ref<IndexBuffer> mIndexBuffer;
+        Vector<Ref<Material>> mMaterials;
 
         Vector<Vertex> mVertices;
         Vector<Index> mIndices;

@@ -20,6 +20,9 @@ namespace Surge
         mData->LightDescriptorSet = DescriptorSet::Create(mainPBRShader, false);
         mData->LightUniformBuffer = UniformBuffer::Create(sizeof(LightUniformBufferData));
 
+        Uint whiteTextureData = 0xffffffff;
+        mData->WhiteTexture = Texture2D::Create(ImageFormat::RGBA8, 1, 1, &whiteTextureData);
+
         mProcManager.Init(mData);
         mProcManager.AddProcedure<GeometryProcedure>();
     }

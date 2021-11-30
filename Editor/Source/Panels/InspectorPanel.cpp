@@ -78,6 +78,116 @@ namespace Surge
             }
         }
         ImGui::End();
+
+        // Material Panel; TODO: Merge with inspector later
+        ImGui::Begin("Material Editor");
+        Entity selectedEntity = mHierarchy->GetSelectedEntity();
+        if (selectedEntity && selectedEntity.HasComponent<MeshComponent>())
+        {
+            static Uint selectedMatIndex = 0;
+            Ref<Mesh>& mesh = selectedEntity.GetComponent<MeshComponent>().Mesh;
+            if (mesh)
+            {
+                Vector<Ref<Material>>& materials = mesh->GetMaterials();
+                for (Uint i = 0; i < materials.size(); i++)
+                {
+                    if (ImGuiAux::PropertyGridHeader("MATERIALS"))
+                    {
+                        if (ImGui::Selectable(materials[i]->GetName().c_str()))
+                            selectedMatIndex = i;
+
+                        ImGui::TreePop();
+                    }
+                }
+
+                Ref<Material>& material = materials[selectedMatIndex];
+                const ShaderBuffer& shaderBuffer = material->GetShaderBuffer();
+                for (const ShaderBufferMember& member : shaderBuffer.Members)
+                {
+                    if (member.Name.find("Padding") != String::npos)
+                        continue;
+
+                    if (member.DataType == ShaderDataType::Int)
+                    {
+                        bool& mem = reinterpret_cast<bool&>(material->Get<int>(member.Name));
+                        ImGui::Checkbox(member.Name.c_str(), &mem);
+                    }
+                    if (member.DataType == ShaderDataType::Float)
+                    {
+                        ImGui::SliderFloat(member.Name.c_str(), &material->Get<float>(member.Name), 0.0f, 1.0f);
+                        if (ImGui::IsItemActive())
+                            ImGuiAux::DrawRectAroundWidget({0.9, 0.5, 0.1, 1.0}, 1, 1);
+                    }
+                    if (member.DataType == ShaderDataType::Float2)
+                        ImGui::DragFloat2(member.Name.c_str(), glm::value_ptr(material->Get<glm::vec2>(member.Name)));
+                    if (member.DataType == ShaderDataType::Float3)
+                        ImGui::ColorEdit3(member.Name.c_str(), glm::value_ptr(material->Get<glm::vec3>(member.Name)));
+                    if (member.DataType == ShaderDataType::Float4)
+                        ImGui::DragFloat4(member.Name.c_str(), glm::value_ptr(material->Get<glm::vec4>(member.Name)));
+                }
+                if (ImGui::Button("AlbedoMap"))
+                {
+                    String path = FileDialog::OpenFile("");
+                    if (!path.empty())
+                    {
+                        Ref<Texture2D> tex = Texture2D::Create(path, {});
+                        material->Set<Ref<Texture2D>>("AlbedoMap", tex);
+                    }
+                }
+                if (material->Get<Ref<Texture2D>>("AlbedoMap").Raw() != Core::GetRenderer()->GetData()->WhiteTexture.Raw())
+                {
+                    ImGui::SameLine();
+                    ImGui::TextUnformatted(ICON_SURGE_CHECK_CIRCLE_O);
+                }
+
+                if (ImGui::Button("NormalMap"))
+                {
+                    String path = FileDialog::OpenFile("");
+                    if (!path.empty())
+                    {
+                        Ref<Texture2D> tex = Texture2D::Create(path, {});
+                        material->Set<Ref<Texture2D>>("NormalMap", tex);
+                    }
+                }
+                if (material->Get<Ref<Texture2D>>("NormalMap").Raw() != Core::GetRenderer()->GetData()->WhiteTexture.Raw())
+                {
+                    ImGui::SameLine();
+                    ImGui::TextUnformatted(ICON_SURGE_CHECK_CIRCLE_O);
+                }
+
+                if (ImGui::Button("MetalnessMap"))
+                {
+                    String path = FileDialog::OpenFile("");
+                    if (!path.empty())
+                    {
+                        Ref<Texture2D> tex = Texture2D::Create(path, {});
+                        material->Set<Ref<Texture2D>>("MetalnessMap", tex);
+                    }
+                }
+                if (material->Get<Ref<Texture2D>>("MetalnessMap").Raw() != Core::GetRenderer()->GetData()->WhiteTexture.Raw())
+                {
+                    ImGui::SameLine();
+                    ImGui::TextUnformatted(ICON_SURGE_CHECK_CIRCLE_O);
+                }
+
+                if (ImGui::Button("RoughnessMap"))
+                {
+                    String path = FileDialog::OpenFile("");
+                    if (!path.empty())
+                    {
+                        Ref<Texture2D> tex = Texture2D::Create(path, {});
+                        material->Set<Ref<Texture2D>>("RoughnessMap", tex);
+                    }
+                }
+                if (material->Get<Ref<Texture2D>>("RoughnessMap").Raw() != Core::GetRenderer()->GetData()->WhiteTexture.Raw())
+                {
+                    ImGui::SameLine();
+                    ImGui::TextUnformatted(ICON_SURGE_CHECK_CIRCLE_O);
+                }
+            }
+        }
+
+        ImGui::End();
     }
 
     void InspectorPanel::DrawComponents(Entity& entity)
@@ -112,25 +222,6 @@ namespace Surge
                     String path = FileDialog::OpenFile("");
                     if (!path.empty())
                         component.Mesh = Ref<Mesh>::Create(path);
-                }
-
-                if (component.Mesh)
-                {
-                    Ref<Material>& material = component.Material;
-                    const ShaderBuffer& shaderBuffer = material->GetShaderBuffer();
-                    for (const ShaderBufferMember& member : shaderBuffer.Members)
-                    {
-                        if (member.DataType == ShaderDataType::Int)
-                            ImGui::DragInt(member.Name.c_str(), &material->Get<int>(member.Name));
-                        if (member.DataType == ShaderDataType::Float)
-                            ImGui::SliderFloat(member.Name.c_str(), &material->Get<float>(member.Name), 0.0f, 1.0f);
-                        if (member.DataType == ShaderDataType::Float2)
-                            ImGui::DragFloat2(member.Name.c_str(), glm::value_ptr(material->Get<glm::vec2>(member.Name)));
-                        if (member.DataType == ShaderDataType::Float3)
-                            ImGui::ColorEdit3(member.Name.c_str(), glm::value_ptr(material->Get<glm::vec3>(member.Name)));
-                        if (member.DataType == ShaderDataType::Float4)
-                            ImGui::DragFloat4(member.Name.c_str(), glm::value_ptr(material->Get<glm::vec4>(member.Name)));
-                    }
                 }
             });
         }
@@ -207,6 +298,7 @@ namespace Surge
                 ImGuiAux::Property<glm::vec3, ImGuiAux::CustomProprtyFlag::Color3>("Color", component.Color);
                 ImGuiAux::Property<float>("Intensity", component.Intensity);
                 ImGuiAux::Property<float>("Radius", component.Radius);
+                ImGuiAux::Property<float>("Falloff", component.Falloff, 0.0f, 1.0f);
             });
         }
 

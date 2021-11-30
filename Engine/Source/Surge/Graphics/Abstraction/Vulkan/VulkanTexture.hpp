@@ -7,7 +7,9 @@ namespace Surge
     class VulkanTexture2D : public Texture2D
     {
     public:
-        VulkanTexture2D(const String& filepath, TextureSpecification specification);
+        VulkanTexture2D(const String& filepath, TextureSpecification specification = {});
+        VulkanTexture2D(ImageFormat format, Uint width, Uint height, void* data = nullptr, TextureSpecification specification = {});
+
         virtual ~VulkanTexture2D() override;
 
         virtual Uint GetWidth() const override { return mWidth; }

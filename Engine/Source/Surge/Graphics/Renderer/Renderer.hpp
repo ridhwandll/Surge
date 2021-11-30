@@ -31,6 +31,8 @@ namespace Surge
         Vector<DrawCommand> DrawList;
         Surge::ShaderSet ShaderSet;
 
+        Ref<Texture2D> WhiteTexture;
+
         //Lights
         LightUniformBufferData LightData;
         Ref<UniformBuffer> LightUniformBuffer;
@@ -58,13 +60,14 @@ namespace Surge
         void EndFrame();
 
         FORCEINLINE void SubmitMesh(MeshComponent& meshComp, const glm::mat4& transform) { mData->DrawList.push_back(DrawCommand(&meshComp, transform)); }
-        FORCEINLINE void SubmitPointLight(const PointLightComponent& pointLight, glm::vec3 position)
+        FORCEINLINE void SubmitPointLight(const PointLightComponent& pointLight, const glm::vec3& position)
         {
             PointLight light;
             light.Position = position;
             light.Intensity = pointLight.Intensity;
             light.Radius = pointLight.Radius;
             light.Color = pointLight.Color;
+            light.Falloff = pointLight.Falloff;
             mData->PointLights.push_back(light);
         }
 

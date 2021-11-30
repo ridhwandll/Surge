@@ -234,9 +234,12 @@ namespace Surge
             }
             else if (type.EqualTo<float>())
             {
-                const float source = inJson[name];
-                float* dst = reinterpret_cast<float*>(destination);
-                std::memcpy(dst, &source, size);
+                if (inJson.contains(name))
+                {
+                    const float source = inJson[name];
+                    float* dst = reinterpret_cast<float*>(destination);
+                    std::memcpy(dst, &source, size);
+                }
             }
             else if (type.EqualTo<UUID>())
             {

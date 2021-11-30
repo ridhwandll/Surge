@@ -8,15 +8,18 @@ namespace Surge
     class VulkanMaterial : public Material
     {
     public:
-        VulkanMaterial(const Ref<Shader>& shader);
+        VulkanMaterial(const Ref<Shader>& shader, const String& materialName);
         ~VulkanMaterial();
 
+        virtual void UpdateForRendering() override;
         virtual void Bind(const Ref<RenderCommandBuffer>& cmdBuffer, const Ref<GraphicsPipeline>& gfxPipeline) const override;
         virtual void Load() override;
         virtual void Release() override;
 
     private:
         Vector<VkDescriptorSet> mDescriptorSets;
+        Vector<VkDescriptorSet> mTextureDescriptorSets;
+        Uint mBinding;
     };
 
 } // namespace Surge

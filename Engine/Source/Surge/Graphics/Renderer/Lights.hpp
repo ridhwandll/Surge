@@ -12,6 +12,9 @@ namespace Surge
         float Intensity = 1.0f;
         glm::vec3 Color = glm::vec3(1.0f, 1.0f, 1.0f);
         float Radius = 3.0f;
+        float Falloff = 0.0f;
+
+        glm::vec3 _Padding_ = {};
     };
     static_assert(sizeof(PointLight) % 16 == 0, "Size of 'PointLight' struct must be 16 bytes aligned!");
 
@@ -23,4 +26,5 @@ namespace Surge
         PointLight PointLights[100] = {};
     };
     static_assert(sizeof(LightUniformBufferData) % 16 == 0, "Size of 'Lights' struct must be 16 bytes aligned!");
+
 } // namespace Surge

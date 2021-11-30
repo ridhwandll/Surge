@@ -4,6 +4,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
+#include <imgui_internal.h>
 
 #define HIERARCHY_ENTITY_DND "HiEnT!"
 
@@ -62,7 +63,31 @@ namespace Surge::ImGuiAux
         }
     };
 
-    bool PropertyGridHeader(const String& name, bool openByDefault = true);
+    FORCEINLINE bool PropertyGridHeader(const String& name, bool openByDefault = true)
+    {
+        ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_FramePadding;
+
+        if (openByDefault)
+            treeNodeFlags |= ImGuiTreeNodeFlags_DefaultOpen;
+
+        bool open = false;
+        const float framePaddingX = 3.5f;
+        const float framePaddingY = 3.5f;
+
+        ImGuiAux::ScopedStyle headerRounding({ImGuiStyleVar_FrameRounding}, 0.0f);
+        ImGuiAux::ScopedStyle headerPaddingAndHeight({ImGuiStyleVar_FramePadding}, ImVec2 {framePaddingX, framePaddingY});
+
+        ImGui::PushID(name.c_str());
+        open = ImGui::TreeNodeEx("##dummyId", treeNodeFlags, name.c_str());
+        ImGui::PopID();
+
+        ImGuiContext& g = *GImGui;
+        const ImRect& rect = (g.LastItemData.StatusFlags & ImGuiItemStatusFlags_HasDisplayRect) ? g.LastItemData.DisplayRect : g.LastItemData.Rect;
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
+        drawList->AddRect(rect.Min, rect.Max, ImGui::ColorConvertFloat4ToU32({0.4f, 0.4f, 0.4f, 1.0f}), 0.0f, ImDrawCornerFlags_All, 1.5f);
+
+        return open;
+    }
 
     void DrawRectAroundWidget(const glm::vec4& color, float thickness, float rounding);
     void DockSpace();
@@ -71,7 +96,7 @@ namespace Surge::ImGuiAux
     void Image(const Ref<Image2D>& image, const glm::vec2& size);
 
     template <typename T, CustomProprtyFlag F = CustomProprtyFlag::None>
-    constexpr FORCEINLINE bool Property(const char* title, T& value)
+    constexpr FORCEINLINE bool Property(const char* title, T& value, float dragMin = 0.0f, float dragMax = 0.0f)
     {
         ImGui::PushID(title);
         bool result = false;
@@ -82,13 +107,13 @@ namespace Surge::ImGuiAux
         if constexpr (F == CustomProprtyFlag::None)
         {
             if constexpr (std::is_same_v<T, float>)
-                result = ImGui::DragFloat("##v", &value);
+                result = ImGui::DragFloat("##v", &value, 0.01, dragMin, dragMax);
             else if constexpr (std::is_same_v<T, glm::vec2>)
-                result = ImGui::DragFloat2("##v", glm::value_ptr(value), 0.1f, 0.0f, 0.0f, "%.2f");
+                result = ImGui::DragFloat2("##v", glm::value_ptr(value), 0.01f, dragMin, dragMax, "%.2f");
             else if constexpr (std::is_same_v<T, glm::vec3>)
-                result = ImGui::DragFloat3("##v", glm::value_ptr(value), 0.1f, 0.0f, 0.0f, "%.2f");
+                result = ImGui::DragFloat3("##v", glm::value_ptr(value), 0.01f, dragMin, dragMax, "%.2f");
             else if constexpr (std::is_same_v<T, glm::vec4>)
-                result = ImGui::DragFloat4("##v", glm::value_ptr(value), 0.1f, 0.0f, 0.0f, "%.2f");
+                result = ImGui::DragFloat4("##v", glm::value_ptr(value), 0.01f, dragMin, dragMax, "%.2f");
             else if constexpr (std::is_same_v<T, bool>)
                 result = ImGui::Checkbox("##v", &value);
         }

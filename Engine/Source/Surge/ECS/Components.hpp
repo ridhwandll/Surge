@@ -73,9 +73,6 @@ namespace Surge
 
         Ref<Surge::Mesh> Mesh;
 
-        // TODO: Make sure that material works for all types of shader
-        Ref<Surge::Material> Material = Surge::Material::Create("Simple");
-
         SURGE_REFLECTION_ENABLE;
     };
 
@@ -101,7 +98,7 @@ namespace Surge
         glm::vec3 Color = {1.0f, 1.0f, 1.0f};
         float Intensity = 1.0f;
         float Radius = 3.0f;
-
+        float Falloff = 0.0f;
         SURGE_REFLECTION_ENABLE;
     };
 

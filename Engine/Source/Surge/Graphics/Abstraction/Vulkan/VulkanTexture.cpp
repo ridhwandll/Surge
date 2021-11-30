@@ -35,8 +35,6 @@ namespace Surge
         mWidth = width;
         mHeight = height;
         mPixelDataSize = VulkanUtils::GetMemorySize(imageFormat, width, height);
-
-        // Getting the mip levels
         Uint mipChainLevels = CalculateMipChainLevels(width, height);
 
         // Creating the image
@@ -52,6 +50,27 @@ namespace Surge
 
         Invalidate();
         stbi_image_free(mPixelData);
+    }
+
+    VulkanTexture2D::VulkanTexture2D(ImageFormat format, Uint width, Uint height, void* data, TextureSpecification specification)
+    {
+        mWidth = width;
+        mHeight = height;
+        mPixelData = data;
+        mPixelDataSize = VulkanUtils::GetMemorySize(format, width, height);
+
+        // Creating the image
+        ImageSpecification imageSpec {};
+        imageSpec.Format = format;
+        imageSpec.Width = mWidth;
+        imageSpec.Height = mHeight;
+        imageSpec.Mips = 1;
+        imageSpec.Usage = specification.Usage;
+        imageSpec.Sampler = specification.Sampler;
+        mImage = Image2D::Create(imageSpec);
+        mSpecification.Format = format;
+
+        Invalidate();
     }
 
     VulkanTexture2D::~VulkanTexture2D()

@@ -65,7 +65,17 @@ namespace Surge
 
         TraverseNodes(scene->mRootNode);
 
-        // TODO: Material data here
+        if (scene->HasMaterials())
+        {
+            mMaterials.resize(scene->mNumMaterials);
+            for (Uint i = 0; i < scene->mNumMaterials; i++)
+            {
+                aiMaterial* assimpMaterial = scene->mMaterials[i];
+                mMaterials[i] = Material::Create("Simple", assimpMaterial->GetName().C_Str());
+                Ref<Material>& material = mMaterials[i];
+                // TODO: Load textures here
+            }
+        }
 
         mVertexBuffer = VertexBuffer::Create(mVertices.data(), static_cast<Uint>(mVertices.size()) * sizeof(Vertex));
         mIndexBuffer = IndexBuffer::Create(mIndices.data(), static_cast<Uint>(mIndices.size() * sizeof(Index)));

@@ -60,6 +60,7 @@ namespace Surge
     void VulkanRenderContext::BeginFrame()
     {
         SURGE_PROFILE_FUNC("VulkanRenderContext::BeginFrame()");
+
         mSwapChain.BeginFrame();
         if (mImGuiEnabled)
             mImGuiContext.BeginFrame();
