@@ -101,23 +101,20 @@ namespace Surge
             // Texture
             for (auto& [binding, texture] : mUpdatePendingTextures)
             {
-                if (!texture)
-                    continue;
-
-                VkWriteDescriptorSet& textureWriteDescriptorSet = writeDescriptorSets.emplace_back();
-                textureWriteDescriptorSet = {};
-                textureWriteDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                textureWriteDescriptorSet.dstBinding = binding;
-                textureWriteDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                textureWriteDescriptorSet.pImageInfo = &texture->GetImage2D().As<VulkanImage2D>()->GetVulkanDescriptorInfo();
-                textureWriteDescriptorSet.descriptorCount = 1;
-                textureWriteDescriptorSet.dstSet = mTextureDescriptorSets[frameIndex];
+                for (Uint fidx = 0; fidx < FRAMES_IN_FLIGHT; ++fidx)
+                {
+                    VkWriteDescriptorSet& textureWriteDescriptorSet = writeDescriptorSets.emplace_back();
+                    textureWriteDescriptorSet = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+                    textureWriteDescriptorSet.dstBinding = binding;
+                    textureWriteDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                    textureWriteDescriptorSet.pImageInfo = &texture->GetImage2D().As<VulkanImage2D>()->GetVulkanDescriptorInfo();
+                    textureWriteDescriptorSet.descriptorCount = 1;
+                    textureWriteDescriptorSet.dstSet = mTextureDescriptorSets[fidx];
+                }
             }
             Uint size = static_cast<Uint>(writeDescriptorSets.size());
             vkUpdateDescriptorSets(logicalDevice, size, writeDescriptorSets.data(), 0, nullptr);
-
-            if (frameIndex == (FRAMES_IN_FLIGHT - 1))
-                mUpdatePendingTextures.clear();
+            mUpdatePendingTextures.clear();
         }
 
         // Buffers

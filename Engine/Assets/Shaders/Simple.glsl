@@ -27,9 +27,10 @@ layout(push_constant) uniform PushConstants
 void main()
 {
     vOutput.TexCoord = aTexCoord;
-    vOutput.Tangent = aTangent;
-    vOutput.BiTangent = aBiTangent;
-    vOutput.Normal = normalize(aNormal) * mat3(uFrameData.Transform);
+    vOutput.Tangent   = normalize(aTangent) * mat3(uFrameData.Transform);
+    vOutput.BiTangent = normalize(aBiTangent) * mat3(uFrameData.Transform);
+    vOutput.Normal    = normalize(aNormal) * mat3(uFrameData.Transform);
+
     vOutput.WorldPos = vec3(uFrameData.Transform * vec4(aPosition, 1.0f));
     gl_Position = uFrameData.ViewProjection * vec4(vOutput.WorldPos, 1.0f);
 }
@@ -174,6 +175,7 @@ vec3 CalculateNormal()
         vec3 normal = normalize(vInput.Normal);
         vec3 tangent = normalize(vInput.Tangent);
         vec3 bitangent = normalize(vInput.BiTangent);
+
         vec3 bumpMapNormal = texture(NormalMap, vInput.TexCoord).xyz;
         bumpMapNormal = 2.0 * bumpMapNormal - vec3(1.0);
         

@@ -71,9 +71,8 @@ namespace Surge
             for (Uint i = 0; i < scene->mNumMaterials; i++)
             {
                 aiMaterial* assimpMaterial = scene->mMaterials[i];
-                mMaterials[i] = Material::Create("Simple", assimpMaterial->GetName().C_Str());
-                Ref<Material>& material = mMaterials[i];
-                // TODO: Load textures here
+                Ref<Material> material = Material::Create("Simple", assimpMaterial->GetName().C_Str());
+                mMaterials[i] = material;
             }
         }
 

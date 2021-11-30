@@ -89,15 +89,22 @@ namespace Surge
             if (mesh)
             {
                 Vector<Ref<Material>>& materials = mesh->GetMaterials();
-                for (Uint i = 0; i < materials.size(); i++)
+                if (ImGui::BeginTable("MatTable", 1))
                 {
-                    if (ImGuiAux::PropertyGridHeader("MATERIALS"))
+                    for (Uint i = 0; i < materials.size(); i++)
                     {
-                        if (ImGui::Selectable(materials[i]->GetName().c_str()))
-                            selectedMatIndex = i;
+                        ImGuiTreeNodeFlags flags = ((i == selectedMatIndex) ? ImGuiTreeNodeFlags_Selected : 0);
+                        flags |= ImGuiTreeNodeFlags_SpanFullWidth;
 
-                        ImGui::TreePop();
+                        bool open = ImGuiAux::Selectable(materials[i]->GetName().c_str());
+
+                        if (selectedMatIndex == i)
+                            ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32({0.1f, 0.1f, 0.1f, 1.0f}));
+
+                        if (open)
+                            selectedMatIndex = i;
                     }
+                    ImGui::EndTable();
                 }
 
                 Ref<Material>& material = materials[selectedMatIndex];

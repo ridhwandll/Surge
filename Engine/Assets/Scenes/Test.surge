@@ -2,23 +2,30 @@
     "Scene": {
         "Entity0": {
             "Surge::IDComponent": {
-                "ID": 10923249670934038030
-            },
-            "Surge::MeshComponent": {
-                "Mesh": ""
+                "ID": 13893737091389564674
             },
             "Surge::NameComponent": {
-                "Name": "Container"
+                "Name": "Point Light"
             },
             "Surge::ParentChildComponent": {
                 "ChildrenIDs": [],
                 "ParentID": 0
             },
+            "Surge::PointLightComponent": {
+                "Color": {
+                    "X": 0.9999899864196777,
+                    "Y": 0.9999909400939941,
+                    "Z": 1.0
+                },
+                "Falloff": 0.0,
+                "Intensity": 1.0,
+                "Radius": 5.179999828338623
+            },
             "Surge::TransformComponent": {
                 "Position": {
-                    "X": 0.0,
-                    "Y": 0.5,
-                    "Z": 0.5967279672622681
+                    "X": 1.1412885189056396,
+                    "Y": 1.4981858730316162,
+                    "Z": 1.116363286972046
                 },
                 "Rotation": {
                     "X": 0.0,
@@ -26,157 +33,13 @@
                     "Z": 0.0
                 },
                 "Scale": {
-                    "X": 0.010000050067901611,
-                    "Y": 0.010000050067901611,
-                    "Z": 0.010000050067901611
+                    "X": 1.0,
+                    "Y": 1.0,
+                    "Z": 1.0
                 }
             }
         },
         "Entity1": {
-            "Surge::IDComponent": {
-                "ID": 10746743545613439362
-            },
-            "Surge::NameComponent": {
-                "Name": "Point Light3"
-            },
-            "Surge::ParentChildComponent": {
-                "ChildrenIDs": [],
-                "ParentID": 0
-            },
-            "Surge::PointLightComponent": {
-                "Color": {
-                    "X": 0.8558139801025391,
-                    "Y": 0.18310439586639404,
-                    "Z": 0.18310439586639404
-                },
-                "Falloff": 0.0,
-                "Intensity": 1.4500000476837158,
-                "Radius": 2.819999933242798
-            },
-            "Surge::TransformComponent": {
-                "Position": {
-                    "X": 1.7851579189300537,
-                    "Y": 2.005070686340332,
-                    "Z": 1.72471022605896
-                },
-                "Rotation": {
-                    "X": 0.0,
-                    "Y": 0.0,
-                    "Z": 0.0
-                },
-                "Scale": {
-                    "X": 1.0,
-                    "Y": 1.0,
-                    "Z": 1.0
-                }
-            }
-        },
-        "Entity2": {
-            "Surge::IDComponent": {
-                "ID": 13893737091389564674
-            },
-            "Surge::NameComponent": {
-                "Name": "Point Light - Blue"
-            },
-            "Surge::ParentChildComponent": {
-                "ChildrenIDs": [],
-                "ParentID": 0
-            },
-            "Surge::PointLightComponent": {
-                "Color": {
-                    "X": 0.01479717530310154,
-                    "Y": 0.08915320038795471,
-                    "Z": 0.7953488230705261
-                },
-                "Falloff": 0.0,
-                "Intensity": 5.510000228881836,
-                "Radius": 3.0
-            },
-            "Surge::TransformComponent": {
-                "Position": {
-                    "X": 0.0,
-                    "Y": 1.9611499309539795,
-                    "Z": -1.0041234493255615
-                },
-                "Rotation": {
-                    "X": 0.0,
-                    "Y": 0.0,
-                    "Z": 0.0
-                },
-                "Scale": {
-                    "X": 1.0,
-                    "Y": 1.0,
-                    "Z": 1.0
-                }
-            }
-        },
-        "Entity3": {
-            "Surge::IDComponent": {
-                "ID": 9289595325264172271
-            },
-            "Surge::MeshComponent": {
-                "Mesh": "Engine\\Assets\\Mesh\\Torus.fbx"
-            },
-            "Surge::NameComponent": {
-                "Name": "Torus"
-            },
-            "Surge::ParentChildComponent": {
-                "ChildrenIDs": [
-                    4001870082552664453
-                ],
-                "ParentID": 0
-            },
-            "Surge::TransformComponent": {
-                "Position": {
-                    "X": 1.3185302019119263,
-                    "Y": 1.7357944250106812,
-                    "Z": -0.4927206039428711
-                },
-                "Rotation": {
-                    "X": -10.461836814880371,
-                    "Y": 4.035414349345956e-07,
-                    "Z": -0.43830642104148865
-                },
-                "Scale": {
-                    "X": 1.3313525915145874,
-                    "Y": 1.331352710723877,
-                    "Z": 1.3313528299331665
-                }
-            }
-        },
-        "Entity4": {
-            "Surge::IDComponent": {
-                "ID": 4001870082552664453
-            },
-            "Surge::MeshComponent": {
-                "Mesh": "Engine\\Assets\\Mesh\\Torus.fbx"
-            },
-            "Surge::NameComponent": {
-                "Name": "TorusChild"
-            },
-            "Surge::ParentChildComponent": {
-                "ChildrenIDs": [],
-                "ParentID": 9289595325264172271
-            },
-            "Surge::TransformComponent": {
-                "Position": {
-                    "X": 0.0,
-                    "Y": 0.07611039280891418,
-                    "Z": -0.01688145101070404
-                },
-                "Rotation": {
-                    "X": -26.9379940032959,
-                    "Y": -60.865440368652344,
-                    "Z": -148.0668487548828
-                },
-                "Scale": {
-                    "X": 0.3924616873264313,
-                    "Y": 0.3924640417098999,
-                    "Z": 0.39246106147766113
-                }
-            }
-        },
-        "Entity5": {
             "Surge::CameraComponent": {
                 "FixedAspectRatio": false,
                 "Orthographic FarClip": 1.0,
@@ -216,32 +79,25 @@
                 }
             }
         },
-        "Entity6": {
+        "Entity2": {
             "Surge::IDComponent": {
-                "ID": 9525695890429883206
+                "ID": 9246137249160569812
+            },
+            "Surge::MeshComponent": {
+                "Mesh": "Engine\\Assets\\Mesh\\Backpack\\backpack.obj"
             },
             "Surge::NameComponent": {
-                "Name": "Point Light - Green"
+                "Name": "Backpack"
             },
             "Surge::ParentChildComponent": {
                 "ChildrenIDs": [],
                 "ParentID": 0
             },
-            "Surge::PointLightComponent": {
-                "Color": {
-                    "X": 0.0,
-                    "Y": 1.0,
-                    "Z": 0.20238089561462402
-                },
-                "Falloff": 0.9100000262260437,
-                "Intensity": 1.0,
-                "Radius": 3.0
-            },
             "Surge::TransformComponent": {
                 "Position": {
-                    "X": -2.0144996643066406,
-                    "Y": 2.874650239944458,
-                    "Z": 1.6742942333221436
+                    "X": -0.32640916109085083,
+                    "Y": 1.6350620985031128,
+                    "Z": -0.6011896133422852
                 },
                 "Rotation": {
                     "X": 0.0,
@@ -255,38 +111,6 @@
                 }
             }
         },
-        "Entity7": {
-            "Surge::IDComponent": {
-                "ID": 4311819333621550307
-            },
-            "Surge::MeshComponent": {
-                "Mesh": "Engine\\Assets\\Mesh\\Cube.fbx"
-            },
-            "Surge::NameComponent": {
-                "Name": "Ground"
-            },
-            "Surge::ParentChildComponent": {
-                "ChildrenIDs": [],
-                "ParentID": 0
-            },
-            "Surge::TransformComponent": {
-                "Position": {
-                    "X": 0.0,
-                    "Y": 0.0,
-                    "Z": 0.0
-                },
-                "Rotation": {
-                    "X": 0.0,
-                    "Y": 0.0,
-                    "Z": 0.0
-                },
-                "Scale": {
-                    "X": 20.0,
-                    "Y": 1.0,
-                    "Z": 20.0
-                }
-            }
-        },
-        "Size": 8
+        "Size": 3
     }
 }

@@ -152,7 +152,7 @@ namespace Surge
         auto& style = ImGui::GetStyle();
         ImVec4* colors = style.Colors;
 
-        style.TabRounding = 3.5f;
+        style.TabRounding = 1.5f;
         style.FrameRounding = 1.5f;
         //style.FrameBorderSize = 1.0f;
         style.PopupRounding = 3.5f;
@@ -162,11 +162,14 @@ namespace Surge
         style.DisplaySafeAreaPadding = ImVec2(0, 0);
 
         // Headers
-        colors[ImGuiCol_Header] = colorFromBytes(62, 62, 62);
-        colors[ImGuiCol_HeaderHovered] = colorFromBytes(56, 56, 56);
+        colors[ImGuiCol_Header] = {0.0f, 0.0f, 0.0f, 0.0f};
+        colors[ImGuiCol_HeaderHovered] = {0.3f, 0.3f, 0.3f, 0.3f};
+        colors[ImGuiCol_HeaderHovered] = {0.1f, 0.1f, 0.1f, 0.1f};
+
+        colors[ImGuiCol_HeaderActive] = colorFromBytes(22, 22, 22);
 
         // Checbox
-        colors[ImGuiCol_CheckMark] = colorFromBytes(255, 255, 255);
+        colors[ImGuiCol_CheckMark] = colorFromBytes(10, 200, 10); // Green
 
         // Buttons
         colors[ImGuiCol_Button] = colorFromBytes(25, 25, 25);

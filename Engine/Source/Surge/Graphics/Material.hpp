@@ -29,9 +29,7 @@ namespace Surge
                     if (res.Name == name)
                     {
                         mTextures[res.Binding] = data;
-                        //Surge::Core::AddFrameEndCallback([&]() {
                         mUpdatePendingTextures.push_back({res.Binding, mTextures.at(res.Binding).Raw()});
-                        //});
                     }
                 }
             }
@@ -82,6 +80,7 @@ namespace Surge
         //   Binding - Res
         HashMap<Uint, ShaderResource> mShaderResources;
         HashMap<Uint, Ref<Texture2D>> mTextures;
+
         Vector<Pair<Uint, Texture2D*>> mUpdatePendingTextures;
 
         CallbackID mShaderReloadID;

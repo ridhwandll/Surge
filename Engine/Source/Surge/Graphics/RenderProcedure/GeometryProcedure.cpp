@@ -53,13 +53,14 @@ namespace Surge
             mesh->GetIndexBuffer()->Bind(mRendererData->RenderCmdBuffer);
 
             Vector<Ref<Material>>& materials = object.MeshComp->Mesh->GetMaterials();
+            for (auto& mat : materials)
+                mat->UpdateForRendering();
+
             const Submesh* submeshes = mesh->GetSubmeshes().data();
             for (Uint i = 0; i < mesh->GetSubmeshes().size(); i++)
             {
                 const Submesh& submesh = submeshes[i];
                 pushConstantData[1] = object.Transform * submesh.Transform;
-
-                materials[submesh.MaterialIndex]->UpdateForRendering();
                 materials[submesh.MaterialIndex]->Bind(mRendererData->RenderCmdBuffer, mProcData.GeometryPipeline);
 
                 mProcData.GeometryPipeline->SetPushConstantData(mRendererData->RenderCmdBuffer, "uFrameData", &pushConstantData);

@@ -131,6 +131,15 @@ namespace Surge::ImGuiAux
         return result;
     }
 
+    FORCEINLINE bool Selectable(const char* title)
+    {
+        ImGui::TableNextColumn();
+        bool isSlected = ImGui::Selectable(title);
+        if (ImGui::IsItemFocused())
+            DrawRectAroundWidget({1.0f, 0.5f, 0.1f, 1.0f}, 1.5f, 1.0f);
+        return isSlected;
+    }
+
     FORCEINLINE bool Button(const char* title, const char* buttonText)
     {
         ImGui::PushID(title);
