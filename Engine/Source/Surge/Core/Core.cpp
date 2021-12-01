@@ -12,17 +12,6 @@
 
 namespace Surge::Core
 {
-    struct CoreData
-    {
-        Client* SurgeClient = nullptr; // Provided by the User
-
-        Window* SurgeWindow = nullptr;
-        RenderContext* SurgeRenderContext = nullptr;
-        Renderer* SurgeRenderer = nullptr;
-        bool Running = false;
-
-        Vector<std::function<void()>> FrameEndCallbacks;
-    };
     static CoreData GCoreData;
 
     void OnEvent(Event& e)

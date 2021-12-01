@@ -27,4 +27,5 @@ namespace Surge
         bool mLogOnDestructor;
         std::chrono::time_point<std::chrono::high_resolution_clock> mStart;
     };
+
 } // namespace Surge

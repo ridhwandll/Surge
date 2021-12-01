@@ -71,12 +71,23 @@ struct PointLight
     int _Padding_1;
     int _Padding_2;
 };
+struct DirectionalLight
+{
+    vec3 Direction;
+    float Intensity;
+
+    vec3 Color;
+    float _Padding_;
+};
+
+// Move to a Storage buffer later
 layout(binding = 0, set = 1) uniform Lights
 {
     vec3 CameraPosition;
     int PointLightCount;
 
     PointLight PointLights[100];
+    DirectionalLight DirLight;
 
 } uLights;
 
@@ -225,6 +236,35 @@ vec3 CalculatePointLights(vec3 F0)
 	return result;
 }
 
+vec3 CalculateDirectionaLight(vec3 F0)
+{
+	vec3 result = vec3(0.0);
+	DirectionalLight light = uLights.DirLight;
+
+
+	vec3 Li = light.Direction;
+	vec3 Lradiance = light.Color * light.Intensity;
+	vec3 Lh = normalize(Li + gPBRParams.View);
+
+	// Calculate angles between surface normal and various light vectors.
+	float cosLi = max(0.0, dot(gPBRParams.Normal, Li));
+	float cosLh = max(0.0, dot(gPBRParams.Normal, Lh));
+
+	vec3 F = fresnelSchlickRoughness(F0, max(0.0, dot(Lh, gPBRParams.View)), gPBRParams.Roughness);
+	float D = NdfGGX(cosLh, gPBRParams.Roughness);
+	float G = gaSchlickGGX(cosLi, gPBRParams.NdotV, gPBRParams.Roughness);
+
+	vec3 kd = (1.0 - F) * (1.0 - gPBRParams.Metalness);
+	vec3 diffuseBRDF = kd * gPBRParams.Albedo;
+
+	// Cook-Torrance
+	vec3 specularBRDF = (F * D * G) / max(Epsilon, 4.0 * cosLi * gPBRParams.NdotV);
+	specularBRDF = clamp(specularBRDF, vec3(0.0), vec3(10.0));
+	result += (diffuseBRDF + specularBRDF) * Lradiance * cosLi;
+
+	return result;
+}
+
 void main()
 {
     gPBRParams.Normal = CalculateNormal();
@@ -237,9 +277,10 @@ void main()
     // Fresnel reflectance at normal incidence (for metals use albedo color)
     vec3 F0 = mix(Fdielectric, gPBRParams.Albedo, gPBRParams.Metalness);
 
-    // Direct lighting calculation for analytical lights.
+    // Direct lighting calculation for analytical lights
     vec3 directLighting = vec3(0.0);
     directLighting += CalculatePointLights(F0);
+    directLighting += CalculateDirectionaLight(F0);
 
     // TODO: GI
     vec3 ambient = vec3(0.0);

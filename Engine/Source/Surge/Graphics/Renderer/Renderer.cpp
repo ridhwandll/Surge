@@ -3,6 +3,7 @@
 #include "Surge/Utility/Filesystem.hpp"
 #include "SurgeMath/Math.hpp"
 #include "Surge/Graphics/RenderProcedure/GeometryProcedure.hpp"
+#include "Surge/Graphics/RenderProcedure/ShadowMapProcedure.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace Surge
@@ -24,7 +25,9 @@ namespace Surge
         mData->WhiteTexture = Texture2D::Create(ImageFormat::RGBA8, 1, 1, &whiteTextureData);
 
         mProcManager.Init(mData);
+        mProcManager.AddProcedure<ShadowMapProcedure>();
         mProcManager.AddProcedure<GeometryProcedure>();
+        mProcManager.Sort<ShadowMapProcedure, GeometryProcedure>();
     }
 
     void Renderer::Shutdown()

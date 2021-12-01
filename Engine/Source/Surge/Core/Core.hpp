@@ -8,7 +8,17 @@
 
 namespace Surge::Core
 {
-    struct CoreData;
+    struct CoreData
+    {
+        Client* SurgeClient = nullptr; // Provided by the User
+
+        Window* SurgeWindow = nullptr;
+        RenderContext* SurgeRenderContext = nullptr;
+        Renderer* SurgeRenderer = nullptr;
+        bool Running = false;
+
+        Vector<std::function<void()>> FrameEndCallbacks;
+    };
 
     void Initialize(Client* application);
     void Run();
@@ -21,4 +31,5 @@ namespace Surge::Core
     Renderer* GetRenderer();
     CoreData* GetData();
     Client* GetClient();
+
 } // namespace Surge::Core

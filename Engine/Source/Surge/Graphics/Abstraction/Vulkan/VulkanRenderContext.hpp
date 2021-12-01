@@ -74,7 +74,7 @@ namespace Surge
     }
 
 #if SURGE_DEBUG
-#define SET_VK_OBJECT_DEBUGNAME(handle, type, name) SetDebugVkResourceName(handle, type, fmt::format("{0}", name).c_str())
+#define SET_VK_OBJECT_DEBUGNAME(handle, type, name) SetDebugVkResourceName(handle, type, name)
 #else
 #define SET_VK_OBJECT_DEBUGNAME(handle, type, name)
 #endif

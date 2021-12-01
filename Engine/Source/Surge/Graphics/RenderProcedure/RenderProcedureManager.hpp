@@ -2,6 +2,7 @@
 #pragma once
 #include "Surge/Graphics/RenderProcedure/RenderProcedure.hpp"
 #include "SurgeReflect/SurgeReflect.hpp"
+#include "Surge/Debug/Profiler.hpp"
 
 namespace Surge
 {
@@ -15,6 +16,12 @@ namespace Surge
         {
             SG_ASSERT_NOMSG(data);
             mRendererData = data.get();
+        }
+
+        template <typename... Procedures>
+        FORCEINLINE void Sort()
+        {
+            (mProcOrder.push_back(SurgeReflect::GetReflection<Procedures>()->GetHash()), ...);
         }
 
         template <typename T> // TODO: Use C++20 "concept"s when we switch
@@ -50,8 +57,14 @@ namespace Surge
 
         FORCEINLINE void UpdateAll()
         {
-            for (auto& [hash, proc] : mProcedures)
-                proc->Update();
+            SURGE_PROFILE_FUNC("RenderProcedureManager::UpdateAll");
+            SG_ASSERT(!mProcOrder.empty(), "Empty ProcOrder! Have you forgot to call Sort()?");
+
+            for (const SurgeReflect::ClassHash& hash : mProcOrder)
+            {
+                RenderProcedure* procedure = mProcedures.at(hash);
+                procedure->Update();
+            }
         }
 
         template <typename T>
@@ -71,17 +84,20 @@ namespace Surge
 
         FORCEINLINE void Shutdown()
         {
-            for (auto& [hash, proc] : mProcedures)
+            for (const SurgeReflect::ClassHash& hash : mProcOrder)
             {
-                proc->Shutdown();
-                delete proc;
+                RenderProcedure* procedure = mProcedures.at(hash);
+                procedure->Shutdown();
+                delete procedure;
             }
 
+            mProcOrder.clear();
             mProcedures.clear();
         }
 
     private:
         RendererData* mRendererData;
+        Vector<SurgeReflect::ClassHash> mProcOrder;
         HashMap<SurgeReflect::ClassHash, RenderProcedure*> mProcedures;
     };
 

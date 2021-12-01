@@ -91,8 +91,10 @@ namespace Surge
 
             if (VulkanUtils::IsDepthFormat(format))
             {
+                SG_ASSERT(!mDepthAttachmentImage, "Depth Attachment already exists!");
                 mDepthAttachmentImage = image;
                 VkAttachmentDescription& depthAttachment = attachmentDescriptions.emplace_back();
+                depthAttachment = {};
                 depthAttachment.format = VulkanUtils::GetImageFormat(format);
                 depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
                 depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -101,17 +103,19 @@ namespace Surge
                 depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
                 depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
                 depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-                depthAttachmentReference = {attachmentIndex, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+                depthAttachmentReference.attachment = attachmentIndex;
+                depthAttachmentReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
             }
             else
             {
                 mColorAttachmentImages.push_back(image);
                 VkAttachmentDescription& colorAttachment = attachmentDescriptions.emplace_back();
+                colorAttachment = {};
                 colorAttachment.format = VulkanUtils::GetImageFormat(format);
                 colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
                 colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
                 colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-                colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;   // For now, we don't care about stencil
+                colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;   // We don't care about stencil
                 colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE; // ^^
                 colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;         // We don't care what previous layout the image was in
                 colorAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -119,31 +123,32 @@ namespace Surge
                 VkAttachmentReference colorAttachmentReference {};
                 colorAttachmentReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
                 colorAttachmentReference.attachment = attachmentIndex; // Specifies which attachment to reference by it's index in the attachment descriptions array
-                colorAttachmentReferences.emplace_back(colorAttachmentReference);
+                colorAttachmentReferences.push_back(colorAttachmentReference);
             }
             attachmentIndex++;
         }
 
         VkSubpassDescription subpassDescription = {};
         subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpassDescription.colorAttachmentCount = Uint(colorAttachmentReferences.size());
+        subpassDescription.colorAttachmentCount = static_cast<Uint>(colorAttachmentReferences.size());
         subpassDescription.pColorAttachments = colorAttachmentReferences.data();
         if (mDepthAttachmentImage)
             subpassDescription.pDepthStencilAttachment = &depthAttachmentReference;
 
         // Create the Framebuffer
         VkRenderPassCreateInfo renderPassInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
-        renderPassInfo.attachmentCount = Uint(attachmentDescriptions.size());
+        renderPassInfo.attachmentCount = static_cast<Uint>(attachmentDescriptions.size());
         renderPassInfo.pAttachments = attachmentDescriptions.data();
         renderPassInfo.subpassCount = 1;
         renderPassInfo.pSubpasses = &subpassDescription;
         renderPassInfo.dependencyCount = 0;     // https://stackoverflow.com/a/53005446/14349078
         renderPassInfo.pDependencies = nullptr; // ^^ Says there is an implicit one provided, still should we add one explicitly?
         VK_CALL(vkCreateRenderPass(logicalDevice, &renderPassInfo, nullptr, &mRenderPass));
-        SET_VK_OBJECT_DEBUGNAME(mRenderPass, VK_OBJECT_TYPE_RENDER_PASS, "Render Pass");
+        SET_VK_OBJECT_DEBUGNAME(mRenderPass, VK_OBJECT_TYPE_RENDER_PASS, "RenderPass");
 
         Uint colorAttachmentImagesSize = static_cast<Uint>(mColorAttachmentImages.size());
         Vector<VkImageView> attachments(colorAttachmentImagesSize);
+
         for (Uint i = 0; i < colorAttachmentImagesSize; i++)
         {
             Ref<VulkanImage2D> image = mColorAttachmentImages[i].As<VulkanImage2D>();
@@ -177,7 +182,9 @@ namespace Surge
         mColorAttachmentImages.clear();
 
         if (mDepthAttachmentImage)
+        {
             mDepthAttachmentImage = nullptr;
+        }
 
         if (mRenderPass)
         {
@@ -190,4 +197,5 @@ namespace Surge
             mFramebuffer = VK_NULL_HANDLE;
         }
     }
+
 } // namespace Surge

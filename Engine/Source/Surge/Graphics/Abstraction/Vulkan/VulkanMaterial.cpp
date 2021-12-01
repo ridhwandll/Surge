@@ -82,9 +82,7 @@ namespace Surge
             allocInfo.descriptorPool = renderContext->GetNonResetableDescriptorPools()[i];
             VK_CALL(vkAllocateDescriptorSets(device, &allocInfo, &mTextureDescriptorSets[i]));
         }
-
-        // TODO: Remove
-        Set<glm::vec3>("Material.Albedo", {1.0f, 1.0f, 1.0f});
+        UpdateForRendering();
     }
 
     void VulkanMaterial::UpdateForRendering()
@@ -111,9 +109,10 @@ namespace Surge
                     textureWriteDescriptorSet.descriptorCount = 1;
                     textureWriteDescriptorSet.dstSet = mTextureDescriptorSets[fidx];
                 }
+                Uint size = static_cast<Uint>(writeDescriptorSets.size());
+                vkUpdateDescriptorSets(logicalDevice, size, writeDescriptorSets.data(), 0, nullptr);
+                writeDescriptorSets.clear();
             }
-            Uint size = static_cast<Uint>(writeDescriptorSets.size());
-            vkUpdateDescriptorSets(logicalDevice, size, writeDescriptorSets.data(), 0, nullptr);
             mUpdatePendingTextures.clear();
         }
 

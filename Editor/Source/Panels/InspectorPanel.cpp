@@ -44,6 +44,32 @@ namespace Surge
         ImGui::PopID();
     }
 
+    static void DrawMatTexControl(const char* mapName, Ref<Material>& material)
+    {
+        ImGui::PushID(mapName);
+        Ref<Texture2D>& texture = material->Get<Ref<Texture2D>>(mapName);
+        if (ImGuiAux::TButton(mapName, "Open"))
+        {
+            String path = FileDialog::OpenFile("");
+            if (!path.empty())
+            {
+                TextureSpecification spec;
+                spec.UseMips = true;
+                Ref<Texture2D> tex = Texture2D::Create(path, spec);
+                material->Set<Ref<Texture2D>>(mapName, tex);
+            }
+        }
+
+        ImGui::SameLine();
+        if (ImGuiAux::Button("Remove"))
+            material->RemoveTexture(mapName);
+
+        ImGui::SameLine();
+        float fontSize = ImGui::GetIO().FontDefault->FontSize + 6;
+        ImGuiAux::Image(texture->GetImage2D(), {fontSize, fontSize});
+        ImGui::PopID();
+    }
+
     void InspectorPanel::Init(void* panelInitArgs)
     {
         mCode = GetStaticCode();
@@ -73,6 +99,8 @@ namespace Surge
                         entity.AddComponent<MeshComponent>();
                     if (ImGui::MenuItem("Point Light"))
                         entity.AddComponent<PointLightComponent>();
+                    if (ImGui::MenuItem("Directional Light"))
+                        entity.AddComponent<DirectionalLightComponent>();
                     ImGui::EndPopup();
                 }
             }
@@ -106,90 +134,22 @@ namespace Surge
                     }
                     ImGui::EndTable();
                 }
+                if (materials.size() <= selectedMatIndex)
+                    selectedMatIndex = 0;
 
                 Ref<Material>& material = materials[selectedMatIndex];
-                const ShaderBuffer& shaderBuffer = material->GetShaderBuffer();
-                for (const ShaderBufferMember& member : shaderBuffer.Members)
+                if (ImGui::BeginTable("MatEditTable", 2, ImGuiTableFlags_Resizable))
                 {
-                    if (member.Name.find("Padding") != String::npos)
-                        continue;
-
-                    if (member.DataType == ShaderDataType::Int)
-                    {
-                        bool& mem = reinterpret_cast<bool&>(material->Get<int>(member.Name));
-                        ImGui::Checkbox(member.Name.c_str(), &mem);
-                    }
-                    if (member.DataType == ShaderDataType::Float)
-                    {
-                        ImGui::SliderFloat(member.Name.c_str(), &material->Get<float>(member.Name), 0.0f, 1.0f);
-                        if (ImGui::IsItemActive())
-                            ImGuiAux::DrawRectAroundWidget({0.9, 0.5, 0.1, 1.0}, 1, 1);
-                    }
-                    if (member.DataType == ShaderDataType::Float2)
-                        ImGui::DragFloat2(member.Name.c_str(), glm::value_ptr(material->Get<glm::vec2>(member.Name)));
-                    if (member.DataType == ShaderDataType::Float3)
-                        ImGui::ColorEdit3(member.Name.c_str(), glm::value_ptr(material->Get<glm::vec3>(member.Name)));
-                    if (member.DataType == ShaderDataType::Float4)
-                        ImGui::DragFloat4(member.Name.c_str(), glm::value_ptr(material->Get<glm::vec4>(member.Name)));
-                }
-                if (ImGui::Button("AlbedoMap"))
-                {
-                    String path = FileDialog::OpenFile("");
-                    if (!path.empty())
-                    {
-                        Ref<Texture2D> tex = Texture2D::Create(path, {});
-                        material->Set<Ref<Texture2D>>("AlbedoMap", tex);
-                    }
-                }
-                if (material->Get<Ref<Texture2D>>("AlbedoMap").Raw() != Core::GetRenderer()->GetData()->WhiteTexture.Raw())
-                {
-                    ImGui::SameLine();
-                    ImGui::TextUnformatted(ICON_SURGE_CHECK_CIRCLE_O);
-                }
-
-                if (ImGui::Button("NormalMap"))
-                {
-                    String path = FileDialog::OpenFile("");
-                    if (!path.empty())
-                    {
-                        Ref<Texture2D> tex = Texture2D::Create(path, {});
-                        material->Set<Ref<Texture2D>>("NormalMap", tex);
-                    }
-                }
-                if (material->Get<Ref<Texture2D>>("NormalMap").Raw() != Core::GetRenderer()->GetData()->WhiteTexture.Raw())
-                {
-                    ImGui::SameLine();
-                    ImGui::TextUnformatted(ICON_SURGE_CHECK_CIRCLE_O);
-                }
-
-                if (ImGui::Button("MetalnessMap"))
-                {
-                    String path = FileDialog::OpenFile("");
-                    if (!path.empty())
-                    {
-                        Ref<Texture2D> tex = Texture2D::Create(path, {});
-                        material->Set<Ref<Texture2D>>("MetalnessMap", tex);
-                    }
-                }
-                if (material->Get<Ref<Texture2D>>("MetalnessMap").Raw() != Core::GetRenderer()->GetData()->WhiteTexture.Raw())
-                {
-                    ImGui::SameLine();
-                    ImGui::TextUnformatted(ICON_SURGE_CHECK_CIRCLE_O);
-                }
-
-                if (ImGui::Button("RoughnessMap"))
-                {
-                    String path = FileDialog::OpenFile("");
-                    if (!path.empty())
-                    {
-                        Ref<Texture2D> tex = Texture2D::Create(path, {});
-                        material->Set<Ref<Texture2D>>("RoughnessMap", tex);
-                    }
-                }
-                if (material->Get<Ref<Texture2D>>("RoughnessMap").Raw() != Core::GetRenderer()->GetData()->WhiteTexture.Raw())
-                {
-                    ImGui::SameLine();
-                    ImGui::TextUnformatted(ICON_SURGE_CHECK_CIRCLE_O);
+                    ImGuiAux::TProperty<glm::vec3, ImGuiAux::CustomProprtyFlag::Color3>("Albedo", material->Get<glm::vec3>("Material.Albedo"));
+                    ImGuiAux::TProperty<float>("Metalness", material->Get<float>("Material.Metalness"), 0.0f, 1.0f);
+                    ImGuiAux::TProperty<float>("Roughness", material->Get<float>("Material.Roughness"), 0.0f, 1.0f);
+                    ImGuiAux::TProperty<bool>("UseNormalMap", material->Get<bool>("Material.UseNormalMap"));
+                    ImGui::Separator();
+                    DrawMatTexControl("AlbedoMap", material);
+                    DrawMatTexControl("NormalMap", material);
+                    DrawMatTexControl("MetalnessMap", material);
+                    DrawMatTexControl("RoughnessMap", material);
+                    ImGui::EndTable();
                 }
             }
         }
@@ -212,9 +172,9 @@ namespace Surge
             TransformComponent& component = entity.GetComponent<TransformComponent>();
             DrawComponent<TransformComponent>(
                 entity, "Transform", [&component]() {
-                    ImGuiAux::Property<glm::vec3>("Position", component.Position);
-                    ImGuiAux::Property<glm::vec3>("Rotation", component.Rotation);
-                    ImGuiAux::Property<glm::vec3>("Scale", component.Scale);
+                    ImGuiAux::TProperty<glm::vec3>("Position", component.Position);
+                    ImGuiAux::TProperty<glm::vec3>("Rotation", component.Rotation);
+                    ImGuiAux::TProperty<glm::vec3>("Scale", component.Scale);
                 },
                 false);
         }
@@ -224,7 +184,7 @@ namespace Surge
             MeshComponent& component = entity.GetComponent<MeshComponent>();
             DrawComponent<MeshComponent>(entity, "Mesh", [&component]() {
                 const String meshPath = component.Mesh ? component.Mesh->GetPath() : "";
-                if (ImGuiAux::Button("Path", meshPath.empty() ? "Open..." : meshPath.c_str()))
+                if (ImGuiAux::TButton("Path", meshPath.empty() ? "Open..." : meshPath.c_str()))
                 {
                     String path = FileDialog::OpenFile("");
                     if (!path.empty())
@@ -238,7 +198,7 @@ namespace Surge
             CameraComponent& component = entity.GetComponent<CameraComponent>();
             DrawComponent<CameraComponent>(entity, "Camera", [&component]() {
                 RuntimeCamera& camera = component.Camera;
-                ImGuiAux::Property<bool>("Primary", component.Primary);
+                ImGuiAux::TProperty<bool>("Primary", component.Primary);
 
                 const char* projectionTypeStrings[] = {"Perspective", "Orthographic"};
                 const char* currentProjectionTypeString = projectionTypeStrings[static_cast<int>(camera.GetProjectionType())];
@@ -267,33 +227,33 @@ namespace Surge
                 if (camera.GetProjectionType() == RuntimeCamera::ProjectionType::Perspective)
                 {
                     float verticalFOV = camera.GetPerspectiveVerticalFOV();
-                    if (ImGuiAux::Property<float>("Vertical FOV", verticalFOV)) // In degree
+                    if (ImGuiAux::TProperty<float>("Vertical FOV", verticalFOV)) // In degree
                         camera.SetPerspectiveVerticalFOV(verticalFOV);
 
                     float nearClip = camera.GetPerspectiveNearClip();
-                    if (ImGuiAux::Property<float>("Near Clip", nearClip))
+                    if (ImGuiAux::TProperty<float>("Near Clip", nearClip))
                         camera.SetPerspectiveNearClip(nearClip);
 
                     float farClip = camera.GetPerspectiveFarClip();
-                    if (ImGuiAux::Property<float>("Far Clip", farClip))
+                    if (ImGuiAux::TProperty<float>("Far Clip", farClip))
                         camera.SetPerspectiveFarClip(farClip);
                 }
 
                 if (camera.GetProjectionType() == RuntimeCamera::ProjectionType::Orthographic)
                 {
                     float orthoSize = camera.GetOrthographicSize();
-                    if (ImGuiAux::Property<float>("Size", orthoSize))
+                    if (ImGuiAux::TProperty<float>("Size", orthoSize))
                         camera.SetOrthographicSize(orthoSize);
 
                     float nearClip = camera.GetOrthographicNearClip();
-                    if (ImGuiAux::Property<float>("Near Clip", nearClip))
+                    if (ImGuiAux::TProperty<float>("Near Clip", nearClip))
                         camera.SetOrthographicNearClip(nearClip);
 
                     float farClip = camera.GetOrthographicFarClip();
-                    if (ImGuiAux::Property<float>("Far Clip", farClip))
+                    if (ImGuiAux::TProperty<float>("Far Clip", farClip))
                         camera.SetOrthographicFarClip(farClip);
 
-                    ImGuiAux::Property<bool>("Fixed Aspect Ratio", component.FixedAspectRatio);
+                    ImGuiAux::TProperty<bool>("Fixed Aspect Ratio", component.FixedAspectRatio);
                 }
             });
         }
@@ -301,11 +261,20 @@ namespace Surge
         if (entity.HasComponent<PointLightComponent>())
         {
             PointLightComponent& component = entity.GetComponent<PointLightComponent>();
-            DrawComponent<PointLightComponent>(entity, "PointLight", [&component]() {
-                ImGuiAux::Property<glm::vec3, ImGuiAux::CustomProprtyFlag::Color3>("Color", component.Color);
-                ImGuiAux::Property<float>("Intensity", component.Intensity);
-                ImGuiAux::Property<float>("Radius", component.Radius);
-                ImGuiAux::Property<float>("Falloff", component.Falloff, 0.0f, 1.0f);
+            DrawComponent<PointLightComponent>(entity, "Point Light", [&component]() {
+                ImGuiAux::TProperty<glm::vec3, ImGuiAux::CustomProprtyFlag::Color3>("Color", component.Color);
+                ImGuiAux::TProperty<float>("Intensity", component.Intensity);
+                ImGuiAux::TProperty<float>("Radius", component.Radius);
+                ImGuiAux::TProperty<float>("Falloff", component.Falloff, 0.0f, 1.0f);
+            });
+        }
+
+        if (entity.HasComponent<DirectionalLightComponent>())
+        {
+            DirectionalLightComponent& component = entity.GetComponent<DirectionalLightComponent>();
+            DrawComponent<DirectionalLightComponent>(entity, "Directional Light", [&component]() {
+                ImGuiAux::TProperty<glm::vec3, ImGuiAux::CustomProprtyFlag::Color3>("Color", component.Color);
+                ImGuiAux::TProperty<float>("Intensity", component.Intensity);
             });
         }
 
@@ -314,7 +283,7 @@ namespace Surge
         {
             ParentChildComponent& component = entity.GetComponent<ParentChildComponent>();
             DrawComponent<ParentChildComponent>(
-                entity, "ParentChildComponent", [this, &component]() {
+                entity, "Parent Child", [this, &component]() {
                     ImGui::TableNextColumn();
                     ImGui::TextUnformatted("Parent:");
                     ImGui::TableNextColumn();

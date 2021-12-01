@@ -149,6 +149,8 @@ namespace Surge
             return ImVec4(static_cast<float>(r) / 255.0f, static_cast<float>(g) / 255.0f, static_cast<float>(b) / 255.0f, 1.0f);
         };
 
+        ImVec4 themeColor = colorFromBytes(32, 32, 32);
+
         auto& style = ImGui::GetStyle();
         ImVec4* colors = style.Colors;
 
@@ -162,22 +164,19 @@ namespace Surge
         style.DisplaySafeAreaPadding = ImVec2(0, 0);
 
         // Headers
-        colors[ImGuiCol_Header] = {0.0f, 0.0f, 0.0f, 0.0f};
+        colors[ImGuiCol_Header] = colorFromBytes(51, 51, 51);
         colors[ImGuiCol_HeaderHovered] = {0.3f, 0.3f, 0.3f, 0.3f};
-        colors[ImGuiCol_HeaderHovered] = {0.1f, 0.1f, 0.1f, 0.1f};
-
         colors[ImGuiCol_HeaderActive] = colorFromBytes(22, 22, 22);
-
-        // Checbox
         colors[ImGuiCol_CheckMark] = colorFromBytes(10, 200, 10); // Green
 
-        // Buttons
-        colors[ImGuiCol_Button] = colorFromBytes(25, 25, 25);
-        colors[ImGuiCol_ButtonHovered] = colorFromBytes(110, 110, 110);
+        colors[ImGuiCol_Button] = themeColor;
+        colors[ImGuiCol_ButtonHovered] = colorFromBytes(66, 66, 66);
         colors[ImGuiCol_ButtonActive] = colorFromBytes(120, 120, 120);
+        colors[ImGuiCol_SeparatorHovered] = {0.8f, 0.4f, 0.1f, 1.0f};
+        colors[ImGuiCol_SeparatorActive] = {1.0f, 0.5f, 0.1f, 1.0f};
 
         // Frame
-        colors[ImGuiCol_FrameBg] = colorFromBytes(25, 25, 25);
+        colors[ImGuiCol_FrameBg] = colorFromBytes(51, 51, 51);
         colors[ImGuiCol_FrameBgHovered] = colorFromBytes(55, 55, 55);
         colors[ImGuiCol_FrameBgActive] = colorFromBytes(110, 110, 110);
 
@@ -193,7 +192,7 @@ namespace Surge
         colors[ImGuiCol_TitleBgActive] = colorFromBytes(40, 40, 40);
 
         // Others
-        colors[ImGuiCol_WindowBg] = colorFromBytes(45, 45, 45);
+        colors[ImGuiCol_WindowBg] = themeColor;
         colors[ImGuiCol_PopupBg] = colorFromBytes(45, 45, 45);
         colors[ImGuiCol_DockingPreview] = colorFromBytes(26, 26, 26);
         colors[ImGuiCol_TitleBg] = {0.12, 0.12, 0.12, 1.0};

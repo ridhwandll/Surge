@@ -289,9 +289,11 @@ namespace Surge
         {
             case ImageFormat::RGBA8:
             case ImageFormat::RGBA16F:
-            case ImageFormat::RGBA32F: return false;
+            case ImageFormat::RGBA32F:
+                return false;
             case ImageFormat::Depth32:
-            case ImageFormat::Depth24Stencil8: return true;
+            case ImageFormat::Depth24Stencil8:
+                return true;
             case ImageFormat::None: SG_ASSERT_INTERNAL("ImageFormat::None is invalid in this case!"); break;
         }
         SG_ASSERT_INTERNAL("ImageFormat is invalid!");

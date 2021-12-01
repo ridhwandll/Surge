@@ -81,6 +81,12 @@ namespace Surge
         return name;
     }
 
+    Path Filesystem::GetParentPath(const Path& path)
+    {
+        std::filesystem::path p = path;
+        return p.parent_path().string();
+    }
+
     bool Filesystem::Exists(const Path& path)
     {
         std::ifstream exists(path);

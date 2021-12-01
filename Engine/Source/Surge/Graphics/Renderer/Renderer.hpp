@@ -38,6 +38,7 @@ namespace Surge
         Ref<UniformBuffer> LightUniformBuffer;
         Ref<DescriptorSet> LightDescriptorSet;
         Vector<PointLight> PointLights;
+        DirectionalLight DirLight;
 
         // Camera
         glm::vec3 CameraPosition;
@@ -69,6 +70,14 @@ namespace Surge
             light.Color = pointLight.Color;
             light.Falloff = pointLight.Falloff;
             mData->PointLights.push_back(light);
+        }
+        FORCEINLINE void SubmitDirectionalLight(const DirectionalLightComponent& dirLight, const glm::vec3& direction)
+        {
+            DirectionalLight light;
+            light.Direction = direction;
+            light.Intensity = dirLight.Intensity;
+            light.Color = dirLight.Color;
+            mData->DirLight = light;
         }
 
         RenderProcedureManager* GetRenderProcManager() { return &mProcManager; }

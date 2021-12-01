@@ -1,12 +1,14 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Mesh.hpp"
+#include "Surge/Utility/Filesystem.hpp"
+
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
 namespace Surge
 {
-    glm::mat4 AssimpMat4ToGlmMat4(const aiMatrix4x4& matrix)
+    static glm::mat4 AssimpMat4ToGlmMat4(const aiMatrix4x4& matrix)
     {
         glm::mat4 result;
         result[0][0] = matrix.a1;
@@ -30,6 +32,49 @@ namespace Surge
 
     static const Uint sMeshImportFlags = aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_GenUVCoords | aiProcess_OptimizeMeshes | aiProcess_ValidateDataStructure |
                                          aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace;
+    template <aiTextureType texType>
+    static void LoadTexture(const Path& meshPath, aiMaterial* aiMat, Ref<Material>& material, const String& texName)
+    {
+        aiString aiTexPath;
+        if (aiMat->GetTexture(texType, 0, &aiTexPath) == aiReturn_SUCCESS)
+        {
+            String texturePath = Filesystem::GetParentPath(meshPath) + "/" + String(aiTexPath.data);
+            Log<Severity::Trace>("{0} path: {1}", texName, texturePath);
+
+            TextureSpecification spec;
+            spec.UseMips = true;
+            Ref<Texture2D> texture = Texture2D::Create(texturePath, spec);
+            material->Set<Ref<Texture2D>>(texName, texture);
+        }
+        if constexpr (texType == aiTextureType_DIFFUSE)
+            material->Set("Material.Albedo", glm::vec3(1.0f));
+        else if constexpr (texType == aiTextureType_SHININESS)
+            material->Set("Material.Roughness", 1.0f);
+        else if constexpr (texType == aiTextureType_SPECULAR)
+            material->Set("Material.Metalness", 1.0f);
+    }
+
+    static void SetValues(aiMaterial* aiMaterial, Ref<Material>& material)
+    {
+        //Color
+        glm::vec3 albedoColor = {1.0f, 1.0f, 1.0f};
+        aiColor3D aiColor;
+        if (aiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, aiColor) == AI_SUCCESS)
+            albedoColor = {aiColor.r, aiColor.g, aiColor.b};
+        material->Set("Material.Albedo", albedoColor);
+
+        //Roughness
+        float shininess;
+        if (aiMaterial->Get(AI_MATKEY_SHININESS, shininess) != aiReturn_SUCCESS)
+            shininess = 50.0f;
+        float roughness = 1.0f - glm::sqrt(shininess / 100.0f);
+        material->Set<float>("Material.Roughness", roughness);
+
+        //Metalness
+        float metalness = 0.0f;
+        aiMaterial->Get(AI_MATKEY_REFLECTIVITY, metalness);
+        material->Set<float>("Material.Metalness", metalness);
+    }
 
     Mesh::Mesh(const Path& filepath) : mPath(filepath)
     {
@@ -73,6 +118,12 @@ namespace Surge
                 aiMaterial* assimpMaterial = scene->mMaterials[i];
                 Ref<Material> material = Material::Create("Simple", assimpMaterial->GetName().C_Str());
                 mMaterials[i] = material;
+
+                SetValues(assimpMaterial, material);
+                LoadTexture<aiTextureType_DIFFUSE>(mPath, assimpMaterial, mMaterials[i], "AlbedoMap");
+                LoadTexture<aiTextureType_HEIGHT>(mPath, assimpMaterial, mMaterials[i], "NormalMap");
+                LoadTexture<aiTextureType_SHININESS>(mPath, assimpMaterial, mMaterials[i], "RoughnessMap");
+                LoadTexture<aiTextureType_SPECULAR>(mPath, assimpMaterial, mMaterials[i], "MetalnessMap");
             }
         }
 

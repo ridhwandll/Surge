@@ -48,7 +48,7 @@ namespace Surge
                     for (Ref<Shader>& shader : allAhaders)
                     {
                         ImGui::PushID(shader->GetPath().c_str());
-                        if (ImGuiAux::Button(Filesystem::GetNameWithExtension(shader->GetPath()).c_str(), "Reload"))
+                        if (ImGuiAux::TButton(Filesystem::GetNameWithExtension(shader->GetPath()).c_str(), "Reload"))
                             shader->Reload();
                         ImGui::PopID();
                     }

@@ -92,8 +92,8 @@ namespace Surge
     struct PointLightComponent
     {
         PointLightComponent() = default;
-        PointLightComponent(glm::vec3 color, float intensity, float radius)
-            : Color(color), Intensity(intensity), Radius(radius) {}
+        PointLightComponent(glm::vec3 color, float intensity, float radius, float falloff)
+            : Color(color), Intensity(intensity), Radius(radius), Falloff(falloff) {}
 
         glm::vec3 Color = {1.0f, 1.0f, 1.0f};
         float Intensity = 1.0f;
@@ -102,8 +102,22 @@ namespace Surge
         SURGE_REFLECTION_ENABLE;
     };
 
-//! NOTE: ALL THE MAJOR COMPONENTS MUST BE REGISTERED HERE, ADD BY SEPARATING VIA A COMMA (',')
-#define ALL_MAJOR_COMPONENTS ::Surge::IDComponent, ::Surge::NameComponent, ::Surge::TransformComponent, \
-                             ::Surge::MeshComponent, ::Surge::CameraComponent, ::Surge::PointLightComponent, ::Surge::ParentChildComponent
+    struct DirectionalLightComponent
+    {
+        DirectionalLightComponent() = default;
+        DirectionalLightComponent(glm::vec3 direction, glm::vec3 color, float intensity)
+            : Direction(Direction), Color(color), Intensity(intensity) {}
+
+        glm::vec3 Direction = {1.0f, 1.0f, 1.0f};
+        glm::vec3 Color = {1.0f, 1.0f, 1.0f};
+        float Intensity = 1.0f;
+
+        SURGE_REFLECTION_ENABLE;
+    };
+
+//! NOTE: ALL THE MAJOR COMPONENTS MUST BE REGISTERED HERE, ADD BY SEPARATING VIA A COMMA (',') WHEN YOU ADD A NEW COMPONENT
+#define ALL_MAJOR_COMPONENTS ::Surge::IDComponent, ::Surge::NameComponent, ::Surge::TransformComponent,      \
+                             ::Surge::MeshComponent, ::Surge::CameraComponent, ::Surge::PointLightComponent, \
+                             ::Surge::DirectionalLightComponent, ::Surge::ParentChildComponent
 
 } // namespace Surge

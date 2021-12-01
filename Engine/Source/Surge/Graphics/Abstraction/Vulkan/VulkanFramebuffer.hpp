@@ -18,7 +18,9 @@ namespace Surge
 
         virtual const FramebufferSpecification& GetSpecification() const override { return mSpecification; }
         virtual const Ref<Image2D>& GetColorAttachment(Uint index) const override { return mColorAttachmentImages[index]; }
+        virtual const Ref<Image2D>& GetDepthAttachment() const override { return mDepthAttachmentImage; }
 
+        // VulkanSpecific
         VkFramebuffer& GetVulkanFramebuffer() { return mFramebuffer; }
         VkRenderPass& GetVulkanRenderPass() { return mRenderPass; }
 

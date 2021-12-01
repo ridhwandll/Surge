@@ -1,6 +1,48 @@
 {
     "Scene": {
         "Entity0": {
+            "Surge::DirectionalLightComponent": {
+                "Color": {
+                    "X": 0.9674321413040161,
+                    "Y": 0.9674321413040161,
+                    "Z": 0.10000000149011612
+                },
+                "Direction": {
+                    "X": 1.0,
+                    "Y": 1.0,
+                    "Z": 1.0
+                },
+                "Intensity": 0.9674418568611145
+            },
+            "Surge::IDComponent": {
+                "ID": 502616793687864411
+            },
+            "Surge::NameComponent": {
+                "Name": "Directional Light"
+            },
+            "Surge::ParentChildComponent": {
+                "ChildrenIDs": [],
+                "ParentID": 0
+            },
+            "Surge::TransformComponent": {
+                "Position": {
+                    "X": 0.0,
+                    "Y": 0.0,
+                    "Z": 0.0
+                },
+                "Rotation": {
+                    "X": -125.03645324707031,
+                    "Y": -4.719985008239746,
+                    "Z": -0.1399850994348526
+                },
+                "Scale": {
+                    "X": 1.0,
+                    "Y": 0.9999724626541138,
+                    "Z": 0.9999721646308899
+                }
+            }
+        },
+        "Entity1": {
             "Surge::IDComponent": {
                 "ID": 13893737091389564674
             },
@@ -39,7 +81,7 @@
                 }
             }
         },
-        "Entity1": {
+        "Entity2": {
             "Surge::CameraComponent": {
                 "FixedAspectRatio": false,
                 "Orthographic FarClip": 1.0,
@@ -64,8 +106,8 @@
             "Surge::TransformComponent": {
                 "Position": {
                     "X": 0.0,
-                    "Y": 8.769248962402344,
-                    "Z": 28.699134826660156
+                    "Y": 2.9834980964660645,
+                    "Z": 11.372053146362305
                 },
                 "Rotation": {
                     "X": -3.4898575358253385e-25,
@@ -79,7 +121,7 @@
                 }
             }
         },
-        "Entity2": {
+        "Entity3": {
             "Surge::IDComponent": {
                 "ID": 9246137249160569812
             },
@@ -96,8 +138,8 @@
             "Surge::TransformComponent": {
                 "Position": {
                     "X": -0.32640916109085083,
-                    "Y": 1.6350620985031128,
-                    "Z": -0.6011896133422852
+                    "Y": 3.138974189758301,
+                    "Z": -2.0135810375213623
                 },
                 "Rotation": {
                     "X": 0.0,
@@ -111,6 +153,38 @@
                 }
             }
         },
-        "Size": 3
+        "Entity4": {
+            "Surge::IDComponent": {
+                "ID": 2540231206157608240
+            },
+            "Surge::MeshComponent": {
+                "Mesh": "Engine\\Assets\\Mesh\\Cube.fbx"
+            },
+            "Surge::NameComponent": {
+                "Name": "Ground"
+            },
+            "Surge::ParentChildComponent": {
+                "ChildrenIDs": [],
+                "ParentID": 0
+            },
+            "Surge::TransformComponent": {
+                "Position": {
+                    "X": 0.0,
+                    "Y": 0.0,
+                    "Z": 0.0
+                },
+                "Rotation": {
+                    "X": 0.0,
+                    "Y": 0.0,
+                    "Z": 0.0
+                },
+                "Scale": {
+                    "X": 20.0,
+                    "Y": 1.0,
+                    "Z": 20.0
+                }
+            }
+        },
+        "Size": 5
     }
 }

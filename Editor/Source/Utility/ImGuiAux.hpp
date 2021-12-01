@@ -7,7 +7,7 @@
 #include <imgui_internal.h>
 
 #define HIERARCHY_ENTITY_DND "HiEnT!"
-
+// Function name prefixed with T means it is used inside ImGui::BeginTable
 namespace Surge::ImGuiAux
 {
     enum class CustomProprtyFlag
@@ -96,14 +96,14 @@ namespace Surge::ImGuiAux
     void Image(const Ref<Image2D>& image, const glm::vec2& size);
 
     template <typename T, CustomProprtyFlag F = CustomProprtyFlag::None>
-    constexpr FORCEINLINE bool Property(const char* title, T& value, float dragMin = 0.0f, float dragMax = 0.0f)
+    constexpr FORCEINLINE bool TProperty(const char* title, T& value, float dragMin = 0.0f, float dragMax = 0.0f)
     {
         ImGui::PushID(title);
         bool result = false;
         ImGui::TableNextColumn();
         ImGui::TextUnformatted(title);
         ImGui::TableNextColumn();
-
+        ImGui::PushItemWidth(-1);
         if constexpr (F == CustomProprtyFlag::None)
         {
             if constexpr (std::is_same_v<T, float>)
@@ -123,7 +123,7 @@ namespace Surge::ImGuiAux
             result = ImGui::ColorEdit4("##v", glm::value_ptr(value));
         else
             static_assert(false, "Invalid case! Maybe you used wrong CustomProprtyFlag with wrong type? For example: Using glm::vec3 with CustomProprtyFlag::Color4");
-
+        ImGui::PopItemWidth();
         if (ImGui::IsItemHovered() || ImGui::IsItemActive())
             DrawRectAroundWidget({1.0f, 0.5f, 0.1f, 1.0f}, 1.5f, 1.0f);
         ImGui::PopID();
@@ -140,7 +140,7 @@ namespace Surge::ImGuiAux
         return isSlected;
     }
 
-    FORCEINLINE bool Button(const char* title, const char* buttonText)
+    FORCEINLINE bool TButton(const char* title, const char* buttonText)
     {
         ImGui::PushID(title);
         bool result = false;
@@ -160,4 +160,32 @@ namespace Surge::ImGuiAux
 
         return result;
     }
+
+    FORCEINLINE bool Button(const char* buttonText)
+    {
+        bool result = false;
+        result = ImGui::Button(buttonText);
+
+        if (ImGui::IsItemHovered() || ImGui::IsItemActive())
+            DrawRectAroundWidget({1.0f, 0.5f, 0.1f, 1.0f}, 1.5f, 1.0f);
+
+        return result;
+    }
+
+    FORCEINLINE bool Slider(const char* label, float& value, float min, float max)
+    {
+        bool modified = false;
+        ImGui::PushID(label);
+        ImGui::Text(label);
+        ImGui::SameLine();
+        ImGui::PushItemWidth(-1);
+
+        if (ImGui::SliderFloat("##label", &value, min, max))
+            modified = true;
+
+        ImGui::PopItemWidth();
+        ImGui::PopID();
+        return modified;
+    }
+
 } // namespace Surge::ImGuiAux

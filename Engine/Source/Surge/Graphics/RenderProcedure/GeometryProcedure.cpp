@@ -9,7 +9,7 @@ namespace Surge
         mRendererData = rendererData;
 
         FramebufferSpecification spec = {};
-        spec.Formats = {ImageFormat::RGBA8, ImageFormat::Depth32};
+        spec.Formats = {ImageFormat::RGBA16F, ImageFormat::Depth32};
         spec.Width = 1280;
         spec.Height = 720;
         mProcData.OutputFrambuffer = Framebuffer::Create(spec);
@@ -29,6 +29,8 @@ namespace Surge
 
     void GeometryProcedure::Update()
     {
+        SURGE_PROFILE_FUNC("GeometryProcedure::Update");
+
         // ViewProjection and Transform
         glm::mat4 pushConstantData[2] = {};
         pushConstantData[0] = mRendererData->ViewProjection;
@@ -38,7 +40,7 @@ namespace Surge
         mRendererData->LightData.PointLightCount = Uint(mRendererData->PointLights.size());
         for (Uint i = 0; i < mRendererData->LightData.PointLightCount; i++)
             mRendererData->LightData.PointLights[i] = mRendererData->PointLights[i];
-
+        mRendererData->LightData.DirLight = mRendererData->DirLight;
         mRendererData->LightUniformBuffer->SetData(&mRendererData->LightData);
         mRendererData->LightDescriptorSet->Update(mRendererData->LightUniformBuffer);
         mRendererData->LightDescriptorSet->Bind(mRendererData->RenderCmdBuffer, mProcData.GeometryPipeline);
@@ -53,6 +55,7 @@ namespace Surge
             mesh->GetIndexBuffer()->Bind(mRendererData->RenderCmdBuffer);
 
             Vector<Ref<Material>>& materials = object.MeshComp->Mesh->GetMaterials();
+
             for (auto& mat : materials)
                 mat->UpdateForRendering();
 

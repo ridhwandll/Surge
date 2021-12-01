@@ -1,14 +1,13 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
-#include "Surge/Graphics/RenderProcedure/RenderProcedure.hpp"
 
 namespace Surge
 {
-    class GeometryProcedure : public RenderProcedure
+    class ShadowMapProcedure : public RenderProcedure
     {
     public:
-        GeometryProcedure() = default;
-        virtual ~GeometryProcedure() = default;
+        ShadowMapProcedure() = default;
+        virtual ~ShadowMapProcedure() = default;
 
         virtual void Init(RendererData* rendererData) override;
         virtual void Update() override;
@@ -17,7 +16,7 @@ namespace Surge
     public:
         struct InternalData
         {
-            Ref<GraphicsPipeline> GeometryPipeline;
+            Ref<GraphicsPipeline> ShadowMapPipeline;
             Ref<Framebuffer> OutputFrambuffer;
         };
 

@@ -18,12 +18,23 @@ namespace Surge
     };
     static_assert(sizeof(PointLight) % 16 == 0, "Size of 'PointLight' struct must be 16 bytes aligned!");
 
+    struct DirectionalLight
+    {
+        glm::vec3 Direction;
+        float Intensity;
+
+        glm::vec3 Color;
+        float _Padding_;
+    };
+    static_assert(sizeof(DirectionalLight) % 16 == 0, "Size of 'DirectionalLight' struct must be 16 bytes aligned!");
+
     struct LightUniformBufferData
     {
-        glm::vec3 CameraPosition;
+        glm::vec3 CameraPosition = {};
         Uint PointLightCount = 0;
 
         PointLight PointLights[100] = {};
+        DirectionalLight DirLight = {};
     };
     static_assert(sizeof(LightUniformBufferData) % 16 == 0, "Size of 'Lights' struct must be 16 bytes aligned!");
 

@@ -30,6 +30,7 @@ namespace Surge
                     {
                         mTextures[res.Binding] = data;
                         mUpdatePendingTextures.push_back({res.Binding, mTextures.at(res.Binding).Raw()});
+                        break;
                     }
                 }
             }
@@ -62,6 +63,8 @@ namespace Surge
                 return mBufferMemory.Read<T>(member->MemoryOffset);
             }
         }
+
+        void RemoveTexture(const String& name);
 
         const String& GetName() const { return mName; }
         const ShaderBuffer& GetShaderBuffer() const { return mShaderBuffer; }
