@@ -52,4 +52,32 @@ namespace Surge
         ImGui::End();
     }
 
+    bool ImGuiAux::PropertyGridHeader(const String& name, bool openByDefault, const glm::vec2& size, bool spacing)
+    {
+        ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_FramePadding;
+
+        if (openByDefault)
+            treeNodeFlags |= ImGuiTreeNodeFlags_DefaultOpen;
+
+        bool open = false;
+        float framePaddingX = size.x;
+        float framePaddingY = size.y;
+
+        ImGuiAux::ScopedStyle headerRounding({ImGuiStyleVar_FrameRounding}, 0.0f);
+        ImGuiAux::ScopedStyle headerPaddingAndHeight({ImGuiStyleVar_FramePadding}, ImVec2 {framePaddingX, framePaddingY});
+
+        ImGui::PushID(name.c_str());
+        open = ImGui::TreeNodeEx("##dummyId", treeNodeFlags, name.c_str());
+        ImGui::PopID();
+        DrawRectAroundWidget({0.3f, 0.3f, 0.3f, 1.0f}, 0.2f, 0.1f);
+        const float headerSpacingOffset = -(ImGui::GetStyle().ItemSpacing.y + 1.0f);
+        if (!spacing)
+        {
+            if (!open)
+                ImGui::SetCursorPosY(ImGui::GetCursorPosY() + headerSpacingOffset);
+        }
+
+        return open;
+    }
+
 } // namespace Surge

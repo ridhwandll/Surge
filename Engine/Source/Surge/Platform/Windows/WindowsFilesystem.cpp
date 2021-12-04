@@ -42,23 +42,21 @@ namespace Surge
     template <>
     Vector<Uint> Filesystem::ReadFile(const Path& path)
     {
-        HANDLE hFile = ::CreateFile(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-        SURGE_GET_WIN32_LAST_ERROR
         Vector<Uint> result;
-        if (hFile != INVALID_HANDLE_VALUE)
+        FILE* f;
+        errno_t err = fopen_s(&f, path.c_str(), "rb");
+        if (!err)
         {
-            DWORD size;
-            size = ::GetFileSize(hFile, NULL);
-            SURGE_GET_WIN32_LAST_ERROR
-            result.resize(static_cast<size_t>(size));
-            if (::ReadFile(hFile, result.data(), static_cast<DWORD>(result.size()), NULL, NULL) == FALSE)
-                return {};
-            SURGE_GET_WIN32_LAST_ERROR
-            ::CloseHandle(hFile);
-            return result;
+            fseek(f, 0, SEEK_END);
+            uint64_t size = ftell(f);
+            fseek(f, 0, SEEK_SET);
+            result = Vector<Uint>(size / sizeof(Uint));
+            fread(result.data(), sizeof(Uint), result.size(), f);
+            fclose(f);
         }
-
-        return {};
+        else
+            Log<Severity::Error>("[Filesystem::ReadFile] Cannot open path({0}) for reading!", path);
+        return result;
     }
 
     String Filesystem::RemoveExtension(const Path& path)

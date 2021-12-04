@@ -50,7 +50,7 @@ namespace Surge
 
             auto itr = mProcedures.find(hash);
             if (itr != mProcedures.end())
-                return itr->second;
+                return static_cast<T*>(itr->second);
 
             return nullptr;
         }

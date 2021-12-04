@@ -1,5 +1,6 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Surge/Graphics/RenderProcedure/GeometryProcedure.hpp"
+#include "ShadowMapProcedure.hpp"
 
 namespace Surge
 {
@@ -14,7 +15,7 @@ namespace Surge
         spec.Height = 720;
         mProcData.OutputFrambuffer = Framebuffer::Create(spec);
 
-        Ref<Shader> mainPBRShader = mRendererData->ShaderSet.GetShader("Simple");
+        Ref<Shader> mainPBRShader = mRendererData->ShaderSet.GetShader("PBR");
         GraphicsPipelineSpecification pipelineSpec {};
         pipelineSpec.Shader = mainPBRShader;
         pipelineSpec.Topology = PrimitiveTopology::TriangleList;
@@ -31,10 +32,6 @@ namespace Surge
     {
         SURGE_PROFILE_FUNC("GeometryProcedure::Update");
 
-        // ViewProjection and Transform
-        glm::mat4 pushConstantData[2] = {};
-        pushConstantData[0] = mRendererData->ViewProjection;
-
         // Light UBO data
         mRendererData->LightData.CameraPosition = mRendererData->CameraPosition;
         mRendererData->LightData.PointLightCount = Uint(mRendererData->PointLights.size());
@@ -42,14 +39,28 @@ namespace Surge
             mRendererData->LightData.PointLights[i] = mRendererData->PointLights[i];
         mRendererData->LightData.DirLight = mRendererData->DirLight;
         mRendererData->LightUniformBuffer->SetData(&mRendererData->LightData);
-        mRendererData->LightDescriptorSet->Update(mRendererData->LightUniformBuffer);
+
+        mRendererData->LightDescriptorSet->SetBuffer(mRendererData->LightUniformBuffer, 0);
+        mRendererData->LightDescriptorSet->UpdateForRendering();
         mRendererData->LightDescriptorSet->Bind(mRendererData->RenderCmdBuffer, mProcData.GeometryPipeline);
 
+        // Camera
+        glm::mat4 cameraData[3] = {mRendererData->ViewMatrix, mRendererData->ProjectionMatrix};
+        mRendererData->CameraUniformBuffer->SetData(cameraData);
+        mRendererData->CameraDescriptorSet->SetBuffer(mRendererData->CameraUniformBuffer, 0);
+        mRendererData->CameraDescriptorSet->UpdateForRendering();
+        mRendererData->CameraDescriptorSet->Bind(mRendererData->RenderCmdBuffer, mProcData.GeometryPipeline);
+
+        ShadowMapProcedure::InternalData* shadowProcData = Core::GetRenderer()->GetRenderProcManager()->GetRenderProcData<ShadowMapProcedure>();
+        shadowProcData->ShadowDesciptorSet->SetBuffer(shadowProcData->ShadowUniformBuffer, 0);
+        shadowProcData->ShadowDesciptorSet->UpdateForRendering();
+        shadowProcData->ShadowDesciptorSet->Bind(mRendererData->RenderCmdBuffer, mProcData.GeometryPipeline);
+
         mProcData.OutputFrambuffer->BeginRenderPass(mRendererData->RenderCmdBuffer);
+        mProcData.GeometryPipeline->Bind(mRendererData->RenderCmdBuffer);
         for (const DrawCommand& object : mRendererData->DrawList)
         {
             const Ref<Mesh>& mesh = object.MeshComp->Mesh;
-            mProcData.GeometryPipeline->Bind(mRendererData->RenderCmdBuffer);
 
             mesh->GetVertexBuffer()->Bind(mRendererData->RenderCmdBuffer);
             mesh->GetIndexBuffer()->Bind(mRendererData->RenderCmdBuffer);
@@ -63,10 +74,10 @@ namespace Surge
             for (Uint i = 0; i < mesh->GetSubmeshes().size(); i++)
             {
                 const Submesh& submesh = submeshes[i];
-                pushConstantData[1] = object.Transform * submesh.Transform;
+                glm::mat4 meshData[2] = {object.Transform * submesh.Transform, mRendererData->ViewProjection};
                 materials[submesh.MaterialIndex]->Bind(mRendererData->RenderCmdBuffer, mProcData.GeometryPipeline);
 
-                mProcData.GeometryPipeline->SetPushConstantData(mRendererData->RenderCmdBuffer, "uFrameData", &pushConstantData);
+                mProcData.GeometryPipeline->SetPushConstantData(mRendererData->RenderCmdBuffer, "uMesh", meshData);
                 mProcData.GeometryPipeline->DrawIndexed(mRendererData->RenderCmdBuffer, submesh.IndexCount, submesh.BaseIndex, submesh.BaseVertex);
             }
         }

@@ -19,6 +19,9 @@ namespace Surge
 
     void VulkanFramebuffer::Resize(Uint width, Uint height)
     {
+        if (mSpecification.NoResize)
+            return;
+
         SG_ASSERT(width != 0 && height != 0, "Invalid size!");
         mSpecification.Width = width;
         mSpecification.Height = height;
@@ -31,9 +34,19 @@ namespace Surge
         SURGE_GET_VULKAN_CONTEXT(renderContext);
         VkCommandBuffer vulkanCmdBuffer = cmdBuffer.As<VulkanRenderCommandBuffer>()->GetVulkanCommandBuffer(renderContext->GetFrameIndex());
 
-        std::array<VkClearValue, 2> clearValues;
-        clearValues[0].color = {mSpecification.ClearColor.r, mSpecification.ClearColor.g, mSpecification.ClearColor.b, mSpecification.ClearColor.a};
-        clearValues[1].depthStencil = {1.0f, 0};
+        // HACK; TODO: FIX
+        Vector<VkClearValue> clearValues;
+        if (mSpecification.Formats.size() == 1 && VulkanUtils::IsDepthFormat(mSpecification.Formats[0]))
+        {
+            clearValues.resize(1);
+            clearValues[0].depthStencil = {1.0f, 0};
+        }
+        else
+        {
+            clearValues.resize(2);
+            clearValues[0].color = {mSpecification.ClearColor.r, mSpecification.ClearColor.g, mSpecification.ClearColor.b, mSpecification.ClearColor.a};
+            clearValues[1].depthStencil = {1.0f, 0};
+        }
 
         VkViewport viewport = {};
         viewport.width = float(mSpecification.Width);
@@ -52,10 +65,10 @@ namespace Surge
         renderPassBeginInfo.framebuffer = mFramebuffer;
         renderPassBeginInfo.clearValueCount = Uint(clearValues.size());
         renderPassBeginInfo.pClearValues = clearValues.data();
+        vkCmdBeginRenderPass(vulkanCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         vkCmdSetViewport(vulkanCmdBuffer, 0, 1, &viewport);
         vkCmdSetScissor(vulkanCmdBuffer, 0, 1, &scissor);
-        vkCmdBeginRenderPass(vulkanCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
     }
 
     void VulkanFramebuffer::EndRenderPass(const Ref<RenderCommandBuffer>& cmdBuffer) const

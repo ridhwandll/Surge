@@ -1,7 +1,6 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Mesh.hpp"
 #include "Surge/Utility/Filesystem.hpp"
-
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
@@ -116,7 +115,9 @@ namespace Surge
             for (Uint i = 0; i < scene->mNumMaterials; i++)
             {
                 aiMaterial* assimpMaterial = scene->mMaterials[i];
-                Ref<Material> material = Material::Create("Simple", assimpMaterial->GetName().C_Str());
+                String materialName = assimpMaterial->GetName().C_Str();
+
+                Ref<Material> material = Material::Create("PBR", materialName.empty() ? "NoName" : materialName);
                 mMaterials[i] = material;
 
                 SetValues(assimpMaterial, material);
@@ -189,4 +190,5 @@ namespace Surge
         for (Uint i = 0; i < node->mNumChildren; i++)
             TraverseNodes(node->mChildren[i], transform, level + 1);
     }
+
 } // namespace Surge

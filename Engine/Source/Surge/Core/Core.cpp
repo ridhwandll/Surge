@@ -48,6 +48,7 @@ namespace Surge::Core
         SurgeReflect::Registry::Initialize();
 
         GCoreData.Running = true;
+
         GCoreData.SurgeClient->OnInitialize();
     }
 
@@ -105,4 +106,5 @@ namespace Surge::Core
     Renderer* GetRenderer() { return GCoreData.SurgeRenderer; }
     CoreData* GetData() { return &GCoreData; }
     Surge::Client* GetClient() { return GCoreData.SurgeClient; }
+
 } // namespace Surge::Core

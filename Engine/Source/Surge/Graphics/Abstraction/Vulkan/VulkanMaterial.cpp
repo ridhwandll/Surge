@@ -5,7 +5,7 @@
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderCommandBuffer.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanGraphicsPipeline.hpp"
 #include "VulkanImage.hpp"
-#define MATERIAL_SET 0
+#define MATERIAL_SET 1
 
 namespace Surge
 {
@@ -36,15 +36,15 @@ namespace Surge
         const Vector<ShaderBuffer>& shaderBuffers = vulkanShader->GetReflectionData().GetBuffers();
         for (auto& shaderBuffer : shaderBuffers)
         {
-            if (shaderBuffer.Set == MATERIAL_SET) // Descriptor set MATERIAL_SET(0) is the material; TODO: Automate in some way in future!
+            if (shaderBuffer.Set == MATERIAL_SET) // Descriptor set MATERIAL_SET is the material; TODO: Automate in some way in future!
             {
                 mBinding = shaderBuffer.Binding;
                 set = shaderBuffer.Set;
                 break;
             }
         }
-
         const ShaderReflectionData& reflectionData = mShader->GetReflectionData();
+
         // Buffer
         mShaderBuffer = reflectionData.GetBuffer("Material");
         mBufferMemory.Allocate(mShaderBuffer.Size);
@@ -105,7 +105,7 @@ namespace Surge
                     textureWriteDescriptorSet = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
                     textureWriteDescriptorSet.dstBinding = binding;
                     textureWriteDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                    textureWriteDescriptorSet.pImageInfo = &texture->GetImage2D().As<VulkanImage2D>()->GetVulkanDescriptorInfo();
+                    textureWriteDescriptorSet.pImageInfo = &texture->GetImage2D().As<VulkanImage2D>()->GetVulkanDescriptorImageInfo();
                     textureWriteDescriptorSet.descriptorCount = 1;
                     textureWriteDescriptorSet.dstSet = mTextureDescriptorSets[fidx];
                 }
@@ -121,7 +121,7 @@ namespace Surge
         bufferWriteDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         bufferWriteDescriptorSet.dstBinding = mBinding;
         bufferWriteDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        bufferWriteDescriptorSet.pBufferInfo = &mUniformBuffer.As<VulkanUniformBuffer>()->GetDescriptorBufferInfo();
+        bufferWriteDescriptorSet.pBufferInfo = &mUniformBuffer.As<VulkanUniformBuffer>()->GetVulkanDescriptorBufferInfo();
         bufferWriteDescriptorSet.descriptorCount = 1;
         bufferWriteDescriptorSet.dstSet = mDescriptorSets[frameIndex];
         mUniformBuffer->SetData(mBufferMemory);
@@ -136,8 +136,8 @@ namespace Surge
         VkCommandBuffer vulkanCommandBuffer = cmdBuffer.As<VulkanRenderCommandBuffer>()->GetVulkanCommandBuffer(frameIndex);
         Ref<VulkanGraphicsPipeline> vulkanPipeline = gfxPipeline.As<VulkanGraphicsPipeline>();
         VkPipelineLayout pipelineLayout = vulkanPipeline->GetPipelineLayout();
+        vkCmdBindDescriptorSets(vulkanCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1, &mDescriptorSets[frameIndex], 0, nullptr);
         vkCmdBindDescriptorSets(vulkanCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 2, 1, &mTextureDescriptorSets[frameIndex], 0, nullptr);
-        vkCmdBindDescriptorSets(vulkanCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &mDescriptorSets[frameIndex], 0, nullptr);
     }
 
     void VulkanMaterial::Release()

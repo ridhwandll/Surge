@@ -25,7 +25,7 @@ namespace Surge
 
         // Vulkan Specific (Used by different Pipelines)
         const HashMap<ShaderType, VkShaderModule>& GetVulkanShaderModules() const { return mVkShaderModules; }
-        const HashMap<Uint, VkDescriptorSetLayout>& GetDescriptorSetLayouts() const { return mDescriptorSetLayouts; }
+        const Vector<VkDescriptorSetLayout>& GetDescriptorSetLayouts() const { return mDescriptorSetLayouts; }
         const HashMap<String, VkPushConstantRange>& GetPushConstantRanges() const { return mPushConstants; }
 
         void ParseShader();
@@ -42,7 +42,7 @@ namespace Surge
         Vector<SPIRVHandle> mShaderSPIRVs {};
 
         HashMap<ShaderType, VkShaderModule> mVkShaderModules;
-        HashMap<Uint, VkDescriptorSetLayout> mDescriptorSetLayouts;
+        Vector<VkDescriptorSetLayout> mDescriptorSetLayouts;
         HashMap<String, VkPushConstantRange> mPushConstants;
 
         ShaderReflectionData mReflectionData;

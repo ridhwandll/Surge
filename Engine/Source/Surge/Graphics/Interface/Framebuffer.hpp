@@ -11,6 +11,7 @@ namespace Surge
         Uint Width = 0, Height = 0;
         Vector<ImageFormat> Formats;
         glm::vec4 ClearColor = {0.1f, 0.1f, 0.1f, 1.0f};
+        bool NoResize = false;
     };
 
     class Framebuffer : public RefCounted

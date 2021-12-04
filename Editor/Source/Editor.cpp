@@ -27,6 +27,8 @@ namespace Surge
         mPanelManager.PushPanel<PerformancePanel>();
         mPanelManager.PushPanel<ViewportPanel>();
         mTitleBar.OnInit();
+
+        mRenderer->SetSceneContext(mEditorScene);
     }
 
     void Editor::OnUpdate()
@@ -61,6 +63,7 @@ namespace Surge
         mRuntimeScene->OnRuntimeStart();
         mPanelManager.GetPanel<SceneHierarchyPanel>()->SetSceneContext(mRuntimeScene.Raw());
         mSceneState = SceneState::Play;
+        mRenderer->SetSceneContext(mRuntimeScene);
     }
 
     void Editor::OnRuntimeEnd()
@@ -70,6 +73,7 @@ namespace Surge
         mRuntimeScene.Reset();
         mPanelManager.GetPanel<SceneHierarchyPanel>()->SetSceneContext(mEditorScene.Raw());
         mSceneState = SceneState::Edit;
+        mRenderer->SetSceneContext(mEditorScene);
     }
 
     void Editor::Resize()

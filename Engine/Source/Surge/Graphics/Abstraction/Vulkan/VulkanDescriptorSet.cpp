@@ -6,17 +6,19 @@
 #include "VulkanUniformBuffer.hpp"
 #include "VulkanRenderCommandBuffer.hpp"
 #include "VulkanGraphicsPipeline.hpp"
+#include "VulkanImage.hpp"
 
 namespace Surge
 {
-    VulkanDescriptorSet::VulkanDescriptorSet(const Ref<Shader>& shader, bool resetEveryFrame, int index)
+    VulkanDescriptorSet::VulkanDescriptorSet(const Ref<Shader>& shader, Uint setNumber, bool resetEveryFrame, int index)
+        : mSetNumber(setNumber)
     {
         VulkanRenderContext* renderContext = nullptr;
         SURGE_GET_VULKAN_CONTEXT(renderContext);
 
         VkDescriptorSetAllocateInfo allocInfo {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
         allocInfo.descriptorSetCount = 1;
-        allocInfo.pSetLayouts = &shader.As<VulkanShader>()->GetDescriptorSetLayouts().at(1);
+        allocInfo.pSetLayouts = &shader.As<VulkanShader>()->GetDescriptorSetLayouts()[setNumber];
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
 
         mDescriptorSets.resize(FRAMES_IN_FLIGHT);
@@ -47,23 +49,45 @@ namespace Surge
         SURGE_GET_VULKAN_CONTEXT(renderContext);
         Uint frameIndex = renderContext->GetFrameIndex();
         VkCommandBuffer vulkanCmdBuffer = commandBuffer.As<VulkanRenderCommandBuffer>()->GetVulkanCommandBuffer(frameIndex);
-        vkCmdBindDescriptorSets(vulkanCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.As<VulkanGraphicsPipeline>()->GetPipelineLayout(), 1, 1, &mDescriptorSets[frameIndex], 0, nullptr);
+        vkCmdBindDescriptorSets(vulkanCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.As<VulkanGraphicsPipeline>()->GetPipelineLayout(), mSetNumber, 1, &mDescriptorSets[frameIndex], 0, nullptr);
     }
 
-    void VulkanDescriptorSet::Update(const Ref<UniformBuffer>& dataBuffer)
+    void VulkanDescriptorSet::UpdateForRendering()
     {
         VulkanRenderContext* renderContext;
         SURGE_GET_VULKAN_CONTEXT(renderContext);
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
         Uint frameIndex = renderContext->GetFrameIndex();
 
-        VkWriteDescriptorSet writeDescriptorSet {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-        writeDescriptorSet.dstBinding = 0;
-        writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        writeDescriptorSet.pBufferInfo = &dataBuffer.As<VulkanUniformBuffer>()->GetDescriptorBufferInfo();
-        writeDescriptorSet.descriptorCount = 1;
-        writeDescriptorSet.dstSet = mDescriptorSets[frameIndex];
-        vkUpdateDescriptorSets(renderContext->GetDevice()->GetLogicalDevice(), 1, &writeDescriptorSet, 0, nullptr);
+        // TODO: Check for previous resources
+        if (!mPendingBuffers.empty() || !mPendingImages.empty())
+        {
+            for (auto& [binding, buffer] : mPendingBuffers)
+            {
+                VkWriteDescriptorSet writeDescriptorSet;
+                writeDescriptorSet = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+                writeDescriptorSet.dstBinding = binding;
+                writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                writeDescriptorSet.pBufferInfo = &buffer.As<VulkanUniformBuffer>()->GetVulkanDescriptorBufferInfo();
+                writeDescriptorSet.descriptorCount = 1;
+                writeDescriptorSet.dstSet = mDescriptorSets[frameIndex];
+                vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
+            }
+            for (auto& [binding, image] : mPendingImages)
+            {
+                VkWriteDescriptorSet writeDescriptorSet;
+                writeDescriptorSet = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+                writeDescriptorSet.dstBinding = binding;
+                writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                writeDescriptorSet.pImageInfo = &image.As<VulkanImage2D>()->GetVulkanDescriptorImageInfo();
+                writeDescriptorSet.descriptorCount = 1;
+                writeDescriptorSet.dstSet = mDescriptorSets[frameIndex];
+                vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
+            }
+
+            mPendingBuffers.clear();
+            mPendingImages.clear();
+        }
     }
 
 } // namespace Surge

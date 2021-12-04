@@ -8,6 +8,7 @@
 #include "SceneHierarchyPanel.hpp"
 #include "Surge/ECS/Components.hpp"
 #include "Utility/ImGuiAux.hpp"
+#include "Surge/Graphics/RenderProcedure/ShadowMapProcedure.hpp"
 
 namespace Surge
 {
@@ -24,6 +25,7 @@ namespace Surge
         if (ImGui::Begin(PanelCodeToString(mCode), show))
         {
             RenderContext* renderContext = Core::GetRenderContext();
+            const float headerSpacingOffset = -(ImGui::GetStyle().ItemSpacing.y + 1.0f);
 
             ImGui::Text("Device: %s", renderContext->GetGPUInfo().Name.c_str());
             ImGui::Text("Frame Time: % .2f ms ", Clock::GetMilliseconds());
@@ -56,6 +58,33 @@ namespace Surge
                 }
                 ImGui::TreePop();
             }
+
+            ShadowMapProcedure::InternalData* shadowProcInternalData = Core::GetRenderer()->GetRenderProcManager()->GetRenderProcData<ShadowMapProcedure>();
+            static Uint selectedCascadeIndex = 0;
+            if (ImGuiAux::PropertyGridHeader("Shadows", false))
+            {
+                if (ImGui::BeginTable("ShaderTable", 2, ImGuiTableFlags_Resizable))
+                {
+                    ImGuiAux::TProperty<bool>("Visualize Cascades", shadowProcInternalData->VisualizeCascades);
+                    ImGuiAux::TProperty<float>("Cascade Split Lambda", shadowProcInternalData->CascadeSplitLambda);
+                    int shadowMapResolution = (int)shadowProcInternalData->ShadowMapResolution;
+                    if (ImGuiAux::TProperty<int>("Shadow Map Resolution", shadowMapResolution, 1024, 8192))
+                    {
+                        ShadowMapProcedure* shadowProc = Core::GetRenderer()->GetRenderProcManager()->GetProcedure<ShadowMapProcedure>();
+                        shadowProc->ResizeShadowMaps(shadowMapResolution);
+                    }
+                    ImGui::EndTable();
+                }
+
+                if (ImGuiAux::PropertyGridHeader("Shadows", false, glm::vec2(1.0f, 1.0f), true))
+                {
+                    ImGui::SliderInt("##CascadeIndex", reinterpret_cast<int*>(&selectedCascadeIndex), 0, shadowProcInternalData->CascadeCount - 1);
+                    ImGuiAux::Image(shadowProcInternalData->ShadowMapFramebuffers[selectedCascadeIndex]->GetDepthAttachment(), {200, 200});
+                    ImGui::TreePop();
+                }
+                ImGui::TreePop();
+            }
+
 #ifdef SURGE_DEBUG
             if (ImGuiAux::PropertyGridHeader("All Entities (Debug Only)", false))
             {

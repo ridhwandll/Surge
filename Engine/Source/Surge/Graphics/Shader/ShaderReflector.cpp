@@ -140,11 +140,16 @@ namespace Surge
             }
 
             // Calculating the offsets after the locations are sorted
+
             Uint elementOffset = 0;
-            for (auto& [location, stageInput] : result.mStageInputs.at(handle.Type))
+            auto itr = result.mStageInputs.find(handle.Type);
+            if (itr != result.mStageInputs.end())
             {
-                stageInput.Offset = elementOffset;
-                elementOffset += stageInput.Size;
+                for (auto& [location, stageInput] : result.mStageInputs.at(handle.Type))
+                {
+                    stageInput.Offset = elementOffset;
+                    elementOffset += stageInput.Size;
+                }
             }
 
             // Fetch Push Constants

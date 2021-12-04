@@ -25,13 +25,17 @@ namespace Surge
         glm::mat4 Transform;
     };
 
+    class Scene;
     struct RendererData
     {
         Ref<RenderCommandBuffer> RenderCmdBuffer;
         Vector<DrawCommand> DrawList;
         Surge::ShaderSet ShaderSet;
 
+        Ref<UniformBuffer> CameraUniformBuffer;
+        Ref<DescriptorSet> CameraDescriptorSet;
         Ref<Texture2D> WhiteTexture;
+        Scene* SceneContext;
 
         //Lights
         LightUniformBufferData LightData;
@@ -84,6 +88,7 @@ namespace Surge
         RendererData* GetData() { return mData.get(); }
         Ref<Shader>& GetShader(const String& name);
         Ref<Framebuffer>& GetFinalPassFramebuffer(); //TODO REMOVE: Have something like FramebufferSet(similar to ShaderSet)
+        void SetSceneContext(Ref<Scene>& scene) { mData->SceneContext = scene.Raw(); }
 
     private:
         RenderProcedureManager mProcManager;

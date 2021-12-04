@@ -18,7 +18,7 @@ namespace Surge
         virtual Uint GetSize() const override { return mSize; }
 
         const VkBuffer& GetVulkanBuffer() const { return mVulkanBuffer; }
-        const VkDescriptorBufferInfo& GetDescriptorBufferInfo() const { return mDescriptorInfo; }
+        const VkDescriptorBufferInfo& GetVulkanDescriptorBufferInfo() const { return mDescriptorInfo; }
 
     private:
         void Invalidate();

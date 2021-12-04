@@ -72,14 +72,6 @@ namespace Surge
         return VK_FORMAT_UNDEFINED;
     }
 
-    Vector<VkDescriptorSetLayout> VulkanUtils::GetDescriptorSetLayoutVectorFromHashMap(const HashMap<Uint, VkDescriptorSetLayout>& descriptorSetLayouts)
-    {
-        Vector<VkDescriptorSetLayout> descriptorSetLayout;
-        for (auto& layout : descriptorSetLayouts)
-            descriptorSetLayout.push_back(layout.second);
-        return descriptorSetLayout;
-    }
-
     Vector<VkPushConstantRange> VulkanUtils::GetPushConstantRangesVectorFromHashMap(const HashMap<String, VkPushConstantRange>& pushConstants)
     {
         Vector<VkPushConstantRange> pushConstantsVector;

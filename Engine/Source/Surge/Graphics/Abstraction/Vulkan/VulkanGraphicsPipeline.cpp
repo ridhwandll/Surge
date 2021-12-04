@@ -129,7 +129,8 @@ namespace Surge
 
         // Setting up the pipeline layout
         Ref<VulkanShader> vulkanShader = mSpecification.Shader.As<VulkanShader>();
-        Vector<VkDescriptorSetLayout> descriptorSetLayouts = VulkanUtils::GetDescriptorSetLayoutVectorFromHashMap(vulkanShader->GetDescriptorSetLayouts());
+        //Vector<VkDescriptorSetLayout> descriptorSetLayouts = VulkanUtils::GetDescriptorSetLayoutVectorFromHashMap(vulkanShader->GetDescriptorSetLayouts());
+        const Vector<VkDescriptorSetLayout>& descriptorSetLayouts = vulkanShader->GetDescriptorSetLayouts();
         Vector<VkPushConstantRange> pushConstants = VulkanUtils::GetPushConstantRangesVectorFromHashMap(vulkanShader->GetPushConstantRanges());
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
@@ -232,4 +233,5 @@ namespace Surge
             mPipelineLayout = VK_NULL_HANDLE;
         }
     }
+
 } // namespace Surge

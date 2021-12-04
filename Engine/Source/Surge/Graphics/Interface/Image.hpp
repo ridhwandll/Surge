@@ -42,7 +42,7 @@ namespace Surge
 
     struct SamplerProperties
     {
-        TextureAddressMode SamplerAddressMode = TextureAddressMode::Repeat;
+        TextureAddressMode SamplerAddressMode = TextureAddressMode::ClampToEdge;
         TextureFilter SamplerFilter = TextureFilter::Linear;
     };
 

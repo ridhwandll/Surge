@@ -23,7 +23,7 @@ namespace Surge
         VkImageView& GetVulkanImageView() { return mImageView; }
         VkSampler& GetVulkanSampler() { return mImageSampler; }
         VkImageLayout GetVulkanImageLayout() { return mDescriptorInfo.imageLayout; }
-        VkDescriptorImageInfo GetVulkanDescriptorInfo() const { return mDescriptorInfo; }
+        VkDescriptorImageInfo GetVulkanDescriptorImageInfo() const { return mDescriptorInfo; }
 
     private:
         void Invalidate();

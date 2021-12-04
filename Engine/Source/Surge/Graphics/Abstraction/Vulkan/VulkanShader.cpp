@@ -17,6 +17,7 @@ namespace Surge
     VulkanShader::VulkanShader(const Path& path)
         : mPath(path), mCreatedDescriptorSetLayouts(false)
     {
+        ParseShader();
     }
 
     VulkanShader::~VulkanShader()
@@ -30,8 +31,8 @@ namespace Surge
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
         for (auto& descriptorSetLayout : mDescriptorSetLayouts)
         {
-            if (descriptorSetLayout.second)
-                vkDestroyDescriptorSetLayout(device, descriptorSetLayout.second, nullptr);
+            if (descriptorSetLayout)
+                vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
         }
         mDescriptorSetLayouts.clear();
         mPushConstants.clear();
@@ -168,9 +169,8 @@ namespace Surge
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
 
         // Iterate through all the sets and creating the layouts
-        // (descriptor layouts use HashMap<Uint, VkDescriptorSetLayout> because the Uint specifies at which set number
-        // the layout is going to be used
         const Vector<Uint>& descriptorSetCount = mReflectionData.GetDescriptorSetCount();
+        mDescriptorSetLayouts.resize(descriptorSetCount.size());
         for (const Uint& descriptorSet : descriptorSetCount)
         {
             Vector<VkDescriptorSetLayoutBinding> layoutBindings;

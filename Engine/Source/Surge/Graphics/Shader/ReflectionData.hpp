@@ -21,7 +21,7 @@ namespace Surge
         Uint Binding = 0;
         String Name;
         ShaderResource::Usage ShaderUsage;
-        ShaderType ShaderStages {}; // Specify what shader stages the buffer is being used for
+        ShaderType ShaderStages {}; // Specify what shader stages the resource is being used for
     };
 
     struct ShaderStageInput

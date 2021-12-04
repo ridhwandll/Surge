@@ -4,6 +4,7 @@
 #include "SurgeMath/Math.hpp"
 #include "Surge/Graphics/RenderProcedure/GeometryProcedure.hpp"
 #include "Surge/Graphics/RenderProcedure/ShadowMapProcedure.hpp"
+#include "Surge/ECS/Scene.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace Surge
@@ -14,12 +15,16 @@ namespace Surge
         mData = CreateScope<RendererData>();
         mData->RenderCmdBuffer = RenderCommandBuffer::Create(false);
         mData->ShaderSet.Initialize(BASE_SHADER_PATH);
-        mData->ShaderSet.AddShader("Simple.glsl");
+        mData->ShaderSet.AddShader("PBR.glsl");
+        mData->ShaderSet.AddShader("ShadowMap.glsl");
         mData->ShaderSet.LoadAll();
 
-        Ref<Shader> mainPBRShader = Core::GetRenderer()->GetShader("Simple");
-        mData->LightDescriptorSet = DescriptorSet::Create(mainPBRShader, false);
+        Ref<Shader> mainPBRShader = Core::GetRenderer()->GetShader("PBR");
+        mData->LightDescriptorSet = DescriptorSet::Create(mainPBRShader, 4, false);
         mData->LightUniformBuffer = UniformBuffer::Create(sizeof(LightUniformBufferData));
+
+        mData->CameraUniformBuffer = UniformBuffer::Create(sizeof(glm::mat4) * 3);
+        mData->CameraDescriptorSet = DescriptorSet::Create(mainPBRShader, 0, false);
 
         Uint whiteTextureData = 0xffffffff;
         mData->WhiteTexture = Texture2D::Create(ImageFormat::RGBA8, 1, 1, &whiteTextureData);

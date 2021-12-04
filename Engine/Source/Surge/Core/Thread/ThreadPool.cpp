@@ -4,7 +4,8 @@
 
 namespace Surge
 {
-    ThreadPool::ThreadPool(Uint threadCount) : mThreadCount(std::max<Uint>(threadCount, 1)), mThreads(new std::thread[std::max<Uint>(threadCount, 1)])
+    ThreadPool::ThreadPool(Uint threadCount)
+        : mThreadCount(std::max<Uint>(threadCount, 1)), mThreads(new std::thread[std::max<Uint>(threadCount, 1)])
     {
         Log<Severity::Info>("Creating ThreadPool with {0} threads...", threadCount);
         CreateThreads();

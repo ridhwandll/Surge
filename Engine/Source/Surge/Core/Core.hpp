@@ -16,7 +16,6 @@ namespace Surge::Core
         RenderContext* SurgeRenderContext = nullptr;
         Renderer* SurgeRenderer = nullptr;
         bool Running = false;
-
         Vector<std::function<void()>> FrameEndCallbacks;
     };
 

@@ -5,5 +5,9 @@
 
 namespace Surge
 {
-    Ref<GraphicsPipeline> GraphicsPipeline::Create(const GraphicsPipelineSpecification& pipelineSpec) { return Ref<VulkanGraphicsPipeline>::Create(pipelineSpec); }
+    Ref<GraphicsPipeline> GraphicsPipeline::Create(const GraphicsPipelineSpecification& pipelineSpec)
+    {
+        return Ref<VulkanGraphicsPipeline>::Create(pipelineSpec);
+    }
+
 } // namespace Surge

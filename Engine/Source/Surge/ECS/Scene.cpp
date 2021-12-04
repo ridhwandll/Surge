@@ -128,6 +128,7 @@ namespace Surge
         CopyComponent<MeshComponent>(other->mRegistry, mRegistry, enttMap);
         CopyComponent<CameraComponent>(other->mRegistry, mRegistry, enttMap);
         CopyComponent<PointLightComponent>(other->mRegistry, mRegistry, enttMap);
+        CopyComponent<DirectionalLightComponent>(other->mRegistry, mRegistry, enttMap);
     }
 
     Surge::Entity Scene::FindEntityByUUID(UUID id)

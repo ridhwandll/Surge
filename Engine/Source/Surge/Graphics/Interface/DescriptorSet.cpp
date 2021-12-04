@@ -4,9 +4,9 @@
 
 namespace Surge
 {
-    Ref<DescriptorSet> DescriptorSet::Create(const Ref<Shader>& shader, bool resetEveryFrame, int index)
+    Ref<DescriptorSet> DescriptorSet::Create(const Ref<Shader>& shader, Uint setNumber, bool resetEveryFrame, int index)
     {
-        return Ref<VulkanDescriptorSet>::Create(shader, resetEveryFrame, index);
+        return Ref<VulkanDescriptorSet>::Create(shader, setNumber, resetEveryFrame, index);
     }
 
 } // namespace Surge
