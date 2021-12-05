@@ -62,13 +62,20 @@ namespace Surge
         mData->ProjectionMatrix = camera.GetProjectionMatrix();
         mData->ViewProjection = mData->ProjectionMatrix * mData->ViewMatrix;
         mData->CameraPosition = camera.GetPosition();
+        mData->RenderCmdBuffer->BeginRecording();
+
+        GeometryProcedure::InternalData* geometryProcData = Core::GetRenderer()->GetRenderProcManager()->GetRenderProcData<GeometryProcedure>();
+        glm::mat4 cameraData[2] = {mData->ViewMatrix, mData->ProjectionMatrix};
+        mData->CameraUniformBuffer->SetData(cameraData);
+        mData->CameraDescriptorSet->SetBuffer(mData->CameraUniformBuffer, 0);
+        mData->CameraDescriptorSet->UpdateForRendering();
+        mData->CameraDescriptorSet->Bind(mData->RenderCmdBuffer, geometryProcData->GeometryPipeline);
     }
 
     void Renderer::EndFrame()
     {
         SURGE_PROFILE_FUNC("Renderer::EndFrame()");
 
-        mData->RenderCmdBuffer->BeginRecording();
         mProcManager.UpdateAll();
         mData->RenderCmdBuffer->EndRecording();
 

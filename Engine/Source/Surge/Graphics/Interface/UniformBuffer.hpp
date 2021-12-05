@@ -16,4 +16,5 @@ namespace Surge
 
         static Ref<UniformBuffer> Create(Uint size);
     };
+
 } // namespace Surge

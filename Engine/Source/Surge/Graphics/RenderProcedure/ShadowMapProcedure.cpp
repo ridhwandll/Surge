@@ -14,27 +14,28 @@ namespace Surge
         glm::vec3 _Padding_;
     };
 
+    ShadowMapProcedure::ShadowMapProcedure()
+    {
+        //TODO: Choose depending on hardware
+        mTotalCascades = CascadeCount::FOUR;
+        mProcData.ShadowMapResolution = 4096;
+    }
+
     void ShadowMapProcedure::Init(RendererData* rendererData)
     {
         mRendererData = rendererData;
 
-        //TODO: Choose depending on hardware
-        mProcData.CascadeCount = 4;
-        mProcData.ShadowMapResolution = 4096;
-        mProcData.LightViewProjections.resize(mProcData.CascadeCount);
-        mCascadeSplits.resize(mProcData.CascadeCount);
-        mProcData.CascadeSplitDepths.resize(mProcData.CascadeCount);
+        Uint totalCascades = CascadeCountToUInt(mTotalCascades);
 
-        Ref<Shader> mainPBRshader = mRendererData->ShaderSet.GetShader("PBR");
-        Ref<Shader> shadowMapShader = mRendererData->ShaderSet.GetShader("ShadowMap");
+        const Ref<Shader>& mainPBRshader = mRendererData->ShaderSet.GetShader("PBR");
+        const Ref<Shader>& shadowMapShader = mRendererData->ShaderSet.GetShader("ShadowMap");
 
         // Framebuffers
         FramebufferSpecification spec = {};
         spec.Formats = {ImageFormat::Depth32};
         spec.Width = mProcData.ShadowMapResolution;
         spec.Height = mProcData.ShadowMapResolution;
-        mProcData.ShadowMapFramebuffers.resize(mProcData.CascadeCount);
-        for (Uint i = 0; i < mProcData.ShadowMapFramebuffers.size(); i++)
+        for (Uint i = 0; i < totalCascades; i++)
             mProcData.ShadowMapFramebuffers[i] = Framebuffer::Create(spec);
 
         // Pipelines
@@ -46,8 +47,7 @@ namespace Surge
         pipelineSpec.UseStencil = false;
         pipelineSpec.DebugName = "ShadowMapPipeline";
         pipelineSpec.LineWidth = 1.0f;
-        mProcData.ShadowMapPipelines.resize(mProcData.CascadeCount);
-        for (Uint i = 0; i < mProcData.ShadowMapPipelines.size(); i++)
+        for (Uint i = 0; i < totalCascades; i++)
         {
             pipelineSpec.TargetFramebuffer = mProcData.ShadowMapFramebuffers[i];
             mProcData.ShadowMapPipelines[i] = GraphicsPipeline::Create(pipelineSpec);
@@ -57,7 +57,75 @@ namespace Surge
         mProcData.ShadowUniformBuffer = UniformBuffer::Create(sizeof(ShadowParams));
     }
 
-    void ShadowMapProcedure::CalculateMatricesAndUpdateCBuffer(const glm::mat4& viewProjection, const glm::vec3& normalizedDirection)
+    void ShadowMapProcedure::Update()
+    {
+        SURGE_PROFILE_FUNC("ShadowMapProcedure::Update");
+
+        glm::vec3 direction;
+        if (mRendererData->SceneContext)
+        {
+            auto view = mRendererData->SceneContext->GetRegistry().view<TransformComponent, DirectionalLightComponent>();
+            for (const entt::entity& entity : view)
+            {
+                auto [transform, light] = view.get<TransformComponent, DirectionalLightComponent>(entity);
+                direction = transform.GetTransform()[2];
+            }
+        }
+
+        CalculateCascades(mRendererData->ViewProjection, glm::normalize(direction));
+
+        // Loop over all the shadow maps and bind and render the whole scene to each of them
+        for (Uint j = 0; j < CascadeCountToUInt(mTotalCascades); j++)
+        {
+            const Ref<Framebuffer>& shadowMapBuffer = mProcData.ShadowMapFramebuffers[j];
+            const Ref<GraphicsPipeline>& shadowPipeline = mProcData.ShadowMapPipelines[j];
+
+            shadowMapBuffer->BeginRenderPass(mRendererData->RenderCmdBuffer);
+            shadowPipeline->Bind(mRendererData->RenderCmdBuffer);
+
+            for (const DrawCommand& drawCmd : mRendererData->DrawList)
+            {
+                const Ref<Mesh>& mesh = drawCmd.MeshComp->Mesh;
+
+                mesh->GetVertexBuffer()->Bind(mRendererData->RenderCmdBuffer);
+                mesh->GetIndexBuffer()->Bind(mRendererData->RenderCmdBuffer);
+
+                const Vector<Submesh>& submeshes = mesh->GetSubmeshes();
+                for (const Submesh& submesh : submeshes)
+                {
+                    glm::mat4 meshData[2] = {drawCmd.Transform * submesh.Transform, mProcData.LightViewProjections[j]};
+                    shadowPipeline->SetPushConstantData(mRendererData->RenderCmdBuffer, "uMesh", meshData);
+                    shadowPipeline->DrawIndexed(mRendererData->RenderCmdBuffer, submesh.IndexCount, submesh.BaseIndex, submesh.BaseVertex);
+                }
+            }
+            shadowMapBuffer->EndRenderPass(mRendererData->RenderCmdBuffer);
+        }
+
+        UpdateShadowMapDescriptorSet();
+    }
+
+    void ShadowMapProcedure::Shutdown()
+    {
+        for (Uint i = 0; i < mProcData.ShadowMapFramebuffers.size(); i++)
+            mProcData.ShadowMapPipelines[i].Reset();
+
+        for (Uint i = 0; i < mProcData.ShadowMapFramebuffers.size(); i++)
+            mProcData.ShadowMapFramebuffers[i].Reset();
+
+        mProcData.ShadowUniformBuffer.Reset();
+        mProcData.ShadowDesciptorSet.Reset();
+    }
+
+    void ShadowMapProcedure::SetCascadeCount(CascadeCount count)
+    {
+        mTotalCascades = count;
+        Surge::Core::AddFrameEndCallback([&]() {
+            Shutdown();
+            Init(mRendererData);
+        });
+    }
+
+    void ShadowMapProcedure::CalculateCascades(const glm::mat4& viewProjection, const glm::vec3& normalizedDirection)
     {
         glm::mat4 inverseViewProjection = glm::inverse(viewProjection);
 
@@ -71,9 +139,9 @@ namespace Surge
         const float maxZ = nearClip + clipRange;
         const float range = maxZ - minZ;
         const float ratio = maxZ / minZ;
-        for (Uint i = 0; i < mProcData.CascadeCount; i++)
+        for (Uint i = 0; i < CascadeCountToUInt(mTotalCascades); i++)
         {
-            const float p = (i + 1) / static_cast<float>(mProcData.CascadeCount);
+            const float p = (i + 1) / static_cast<float>(CascadeCountToUInt(mTotalCascades));
             const float log = minZ * glm::pow(ratio, p);
             const float uniform = minZ + range * p;
             const float d = mProcData.CascadeSplitLambda * (log - uniform) + uniform;
@@ -82,7 +150,7 @@ namespace Surge
 
         float lastSplitDist = 0.0f;
         // Calculate Orthographic Projection matrix for each cascade
-        for (Uint cascade = 0; cascade < mProcData.CascadeCount; cascade++)
+        for (Uint cascade = 0; cascade < CascadeCountToUInt(mTotalCascades); cascade++)
         {
             float splitDist = mCascadeSplits[cascade];
             glm::vec4 frustumCorners[NUM_FRUSTUM_CORNERS] =
@@ -159,73 +227,35 @@ namespace Surge
         }
     }
 
-    void ShadowMapProcedure::Update()
+    void ShadowMapProcedure::UpdateShadowMapDescriptorSet()
     {
-        SURGE_PROFILE_FUNC("ShadowMapProcedure::Update");
-
-        glm::vec3 direction;
-        if (mRendererData->SceneContext)
+        ShadowParams params;
+        for (Uint j = 0; j < CascadeCountToUInt(mTotalCascades); j++)
         {
-            auto view = mRendererData->SceneContext->GetRegistry().view<TransformComponent, DirectionalLightComponent>();
-            for (const entt::entity& entity : view)
-            {
-                auto [transform, light] = view.get<TransformComponent, DirectionalLightComponent>(entity);
-                direction = transform.GetTransform()[2];
-            }
+            params.CascadeEnds[j] = mProcData.CascadeSplitDepths[j];
+            params.LightSpaceMatrix[j] = mProcData.LightViewProjections[j];
+            mProcData.ShadowDesciptorSet->SetImage2D(mProcData.ShadowMapFramebuffers[j]->GetDepthAttachment(), j + 1);
         }
 
-        GeometryProcedure::InternalData* geometryProcData = Core::GetRenderer()->GetRenderProcManager()->GetRenderProcData<GeometryProcedure>();
-        glm::mat4 cameraData[3] = {mRendererData->ViewMatrix, mRendererData->ProjectionMatrix};
-        mRendererData->CameraUniformBuffer->SetData(cameraData);
-        mRendererData->CameraDescriptorSet->SetBuffer(mRendererData->CameraUniformBuffer, 0);
-        mRendererData->CameraDescriptorSet->UpdateForRendering();
-        mRendererData->CameraDescriptorSet->Bind(mRendererData->RenderCmdBuffer, geometryProcData->GeometryPipeline);
-
-        ShadowParams settings;
-
-        // Calculate the ViewProjection matrices
-        CalculateMatricesAndUpdateCBuffer(mRendererData->ViewProjection, glm::normalize(direction));
-        // Loop over all the shadow maps and bind and render the whole scene to each of them
-        for (Uint j = 0; j < mProcData.CascadeCount; j++)
+        if (mTotalCascades != CascadeCount::FOUR)
         {
-            const Ref<Framebuffer>& shadowMapBuffer = mProcData.ShadowMapFramebuffers[j];
-            const Ref<GraphicsPipeline>& shadowPipeline = mProcData.ShadowMapPipelines[j];
-
-            shadowMapBuffer->BeginRenderPass(mRendererData->RenderCmdBuffer);
-            shadowPipeline->Bind(mRendererData->RenderCmdBuffer);
-            settings.LightSpaceMatrix[j] = mProcData.LightViewProjections[j];
-
-            for (const DrawCommand& drawCmd : mRendererData->DrawList)
+            const Ref<Image2D>& whiteImage = Core::GetRenderer()->GetData()->WhiteTexture->GetImage2D();
+            if (mTotalCascades == CascadeCount::TWO)
             {
-                const Ref<Mesh>& mesh = drawCmd.MeshComp->Mesh;
-                const Submesh* submeshes = mesh->GetSubmeshes().data();
 
-                mesh->GetVertexBuffer()->Bind(mRendererData->RenderCmdBuffer);
-                mesh->GetIndexBuffer()->Bind(mRendererData->RenderCmdBuffer);
-
-                for (Uint i = 0; i < mesh->GetSubmeshes().size(); i++)
-                {
-                    const Submesh& submesh = submeshes[i];
-
-                    glm::mat4 meshData[2] = {drawCmd.Transform * submesh.Transform, mProcData.LightViewProjections[j]};
-                    shadowPipeline->SetPushConstantData(mRendererData->RenderCmdBuffer, "uMesh", meshData);
-                    shadowPipeline->DrawIndexed(mRendererData->RenderCmdBuffer, submesh.IndexCount, submesh.BaseIndex, submesh.BaseVertex);
-                }
+                mProcData.ShadowDesciptorSet->SetImage2D(whiteImage, 3);
+                mProcData.ShadowDesciptorSet->SetImage2D(whiteImage, 4);
             }
-            shadowMapBuffer->EndRenderPass(mRendererData->RenderCmdBuffer);
-            mProcData.ShadowDesciptorSet->SetImage2D(mProcData.ShadowMapFramebuffers[j]->GetDepthAttachment(), j + 1);
+            else if (mTotalCascades == CascadeCount::THREE)
+            {
+                mProcData.ShadowDesciptorSet->SetImage2D(whiteImage, 4);
+            }
         }
         mProcData.ShadowDesciptorSet->SetBuffer(mProcData.ShadowUniformBuffer, 0);
 
         // Update the shadow params buffer
-        for (Uint i = 0; i < mProcData.CascadeCount; i++)
-            settings.CascadeEnds[i] = mProcData.CascadeSplitDepths[i];
-        settings.ShowCascades = mProcData.VisualizeCascades;
-        mProcData.ShadowUniformBuffer->SetData(&settings);
-    }
-
-    void ShadowMapProcedure::Shutdown()
-    {
+        params.ShowCascades = mProcData.VisualizeCascades;
+        mProcData.ShadowUniformBuffer->SetData(&params);
     }
 
 } // namespace Surge

@@ -44,13 +44,6 @@ namespace Surge
         mRendererData->LightDescriptorSet->UpdateForRendering();
         mRendererData->LightDescriptorSet->Bind(mRendererData->RenderCmdBuffer, mProcData.GeometryPipeline);
 
-        // Camera
-        glm::mat4 cameraData[3] = {mRendererData->ViewMatrix, mRendererData->ProjectionMatrix};
-        mRendererData->CameraUniformBuffer->SetData(cameraData);
-        mRendererData->CameraDescriptorSet->SetBuffer(mRendererData->CameraUniformBuffer, 0);
-        mRendererData->CameraDescriptorSet->UpdateForRendering();
-        mRendererData->CameraDescriptorSet->Bind(mRendererData->RenderCmdBuffer, mProcData.GeometryPipeline);
-
         ShadowMapProcedure::InternalData* shadowProcData = Core::GetRenderer()->GetRenderProcManager()->GetRenderProcData<ShadowMapProcedure>();
         shadowProcData->ShadowDesciptorSet->SetBuffer(shadowProcData->ShadowUniformBuffer, 0);
         shadowProcData->ShadowDesciptorSet->UpdateForRendering();

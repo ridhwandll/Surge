@@ -82,7 +82,20 @@ namespace Surge
             return nullptr;
         }
 
-        FORCEINLINE void Shutdown()
+        template <typename T>
+        void RestartProcedure()
+        {
+            Surge::Core::AddFrameEndCallback([this]() {
+                T* proc = GetProcedure<T>();
+                SG_ASSERT(proc, "Attempted to restart invalid Procedure!");
+
+                proc->Shutdown();
+                proc->Init(mRendererData);
+            });
+        }
+
+        FORCEINLINE void
+        Shutdown()
         {
             for (const SurgeReflect::ClassHash& hash : mProcOrder)
             {

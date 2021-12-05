@@ -72,7 +72,7 @@ namespace Surge::ImGuiAux
     void Image(const Ref<Image2D>& image, const glm::vec2& size);
 
     template <typename T, CustomProprtyFlag F = CustomProprtyFlag::None>
-    constexpr FORCEINLINE bool TProperty(const char* title, T& value, float dragMin = 0.0f, float dragMax = 0.0f)
+    constexpr FORCEINLINE bool TProperty(const char* title, T* value, float dragMin = 0.0f, float dragMax = 0.0f)
     {
         ImGui::PushID(title);
         bool result = false;
@@ -83,24 +83,24 @@ namespace Surge::ImGuiAux
         if constexpr (F == CustomProprtyFlag::None)
         {
             if constexpr (std::is_same_v<T, int>)
-                result = ImGui::DragInt("##v", &value, 1, (int)dragMin, (int)dragMax);
+                result = ImGui::DragInt("##v", value, 1, static_cast<int>(dragMin), static_cast<int>(dragMax));
             else if constexpr (std::is_same_v<T, float>)
-                result = ImGui::DragFloat("##v", &value, 0.01, dragMin, dragMax);
+                result = ImGui::DragFloat("##v", value, 0.01, dragMin, dragMax);
             else if constexpr (std::is_same_v<T, glm::vec2>)
-                result = ImGui::DragFloat2("##v", glm::value_ptr(value), 0.01f, dragMin, dragMax, "%.2f");
+                result = ImGui::DragFloat2("##v", glm::value_ptr(*value), 0.01f, dragMin, dragMax, "%.2f");
             else if constexpr (std::is_same_v<T, glm::vec3>)
-                result = ImGui::DragFloat3("##v", glm::value_ptr(value), 0.01f, dragMin, dragMax, "%.2f");
+                result = ImGui::DragFloat3("##v", glm::value_ptr(*value), 0.01f, dragMin, dragMax, "%.2f");
             else if constexpr (std::is_same_v<T, glm::vec4>)
-                result = ImGui::DragFloat4("##v", glm::value_ptr(value), 0.01f, dragMin, dragMax, "%.2f");
+                result = ImGui::DragFloat4("##v", glm::value_ptr(*value), 0.01f, dragMin, dragMax, "%.2f");
             else if constexpr (std::is_same_v<T, bool>)
-                result = ImGui::Checkbox("##v", &value);
+                result = ImGui::Checkbox("##v", value);
             else
                 static_assert(false);
         }
         else if constexpr (F == CustomProprtyFlag::Color3 && std::is_same_v<T, glm::vec3>)
-            result = ImGui::ColorEdit3("##v", glm::value_ptr(value));
+            result = ImGui::ColorEdit3("##v", glm::value_ptr(*value));
         else if constexpr (F == CustomProprtyFlag::Color4 && std::is_same_v<T, glm::vec4>)
-            result = ImGui::ColorEdit4("##v", glm::value_ptr(value));
+            result = ImGui::ColorEdit4("##v", glm::value_ptr(*value));
         else
             static_assert(false, "Invalid case! Maybe you used wrong CustomProprtyFlag with wrong type? For example: Using glm::vec3 with CustomProprtyFlag::Color4");
         ImGui::PopItemWidth();

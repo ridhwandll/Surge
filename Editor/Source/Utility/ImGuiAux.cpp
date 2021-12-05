@@ -67,8 +67,14 @@ namespace Surge
         ImGuiAux::ScopedStyle headerPaddingAndHeight({ImGuiStyleVar_FramePadding}, ImVec2 {framePaddingX, framePaddingY});
 
         ImGui::PushID(name.c_str());
-        open = ImGui::TreeNodeEx("##dummyId", treeNodeFlags, name.c_str());
+        ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
+        String uppercaseName = name;
+        for (char& n : uppercaseName)
+            n = toupper(n);
+        open = ImGui::TreeNodeEx("##dummyId", treeNodeFlags, uppercaseName.c_str());
+        ImGui::PopFont();
         ImGui::PopID();
+
         DrawRectAroundWidget({0.3f, 0.3f, 0.3f, 1.0f}, 0.2f, 0.1f);
         const float headerSpacingOffset = -(ImGui::GetStyle().ItemSpacing.y + 1.0f);
         if (!spacing)

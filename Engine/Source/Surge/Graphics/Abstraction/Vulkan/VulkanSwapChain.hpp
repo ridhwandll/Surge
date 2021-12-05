@@ -75,4 +75,5 @@ namespace Surge
 
         bool mVsync = true;
     };
+
 } // namespace Surge

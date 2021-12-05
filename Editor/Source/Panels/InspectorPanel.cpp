@@ -17,10 +17,7 @@ namespace Surge
         const int64_t& hash = SurgeReflect::GetReflection<XComponent>()->GetHash();
         ImGui::PushID(static_cast<int>(hash));
 
-        // Push the bold font
-        ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
         bool open = ImGuiAux::PropertyGridHeader(name.c_str());
-        ImGui::PopFont();
 
         if (open)
         {
@@ -140,10 +137,10 @@ namespace Surge
                 Ref<Material>& material = materials[selectedMatIndex];
                 if (ImGui::BeginTable("MatEditTable", 2, ImGuiTableFlags_Resizable))
                 {
-                    ImGuiAux::TProperty<glm::vec3, ImGuiAux::CustomProprtyFlag::Color3>("Albedo", material->Get<glm::vec3>("Material.Albedo"));
-                    ImGuiAux::TProperty<float>("Metalness", material->Get<float>("Material.Metalness"), 0.0f, 1.0f);
-                    ImGuiAux::TProperty<float>("Roughness", material->Get<float>("Material.Roughness"), 0.0f, 1.0f);
-                    ImGuiAux::TProperty<bool>("UseNormalMap", material->Get<bool>("Material.UseNormalMap"));
+                    ImGuiAux::TProperty<glm::vec3, ImGuiAux::CustomProprtyFlag::Color3>("Albedo", &material->Get<glm::vec3>("Material.Albedo"));
+                    ImGuiAux::TProperty<float>("Metalness", &material->Get<float>("Material.Metalness"), 0.0f, 1.0f);
+                    ImGuiAux::TProperty<float>("Roughness", &material->Get<float>("Material.Roughness"), 0.0f, 1.0f);
+                    ImGuiAux::TProperty<bool>("UseNormalMap", &material->Get<bool>("Material.UseNormalMap"));
                     ImGui::Separator();
                     DrawMatTexControl("AlbedoMap", material);
                     DrawMatTexControl("NormalMap", material);
@@ -172,9 +169,9 @@ namespace Surge
             TransformComponent& component = entity.GetComponent<TransformComponent>();
             DrawComponent<TransformComponent>(
                 entity, "Transform", [&component]() {
-                    ImGuiAux::TProperty<glm::vec3>("Position", component.Position);
-                    ImGuiAux::TProperty<glm::vec3>("Rotation", component.Rotation);
-                    ImGuiAux::TProperty<glm::vec3>("Scale", component.Scale);
+                    ImGuiAux::TProperty<glm::vec3>("Position", &component.Position);
+                    ImGuiAux::TProperty<glm::vec3>("Rotation", &component.Rotation);
+                    ImGuiAux::TProperty<glm::vec3>("Scale", &component.Scale);
                 },
                 false);
         }
@@ -198,7 +195,7 @@ namespace Surge
             CameraComponent& component = entity.GetComponent<CameraComponent>();
             DrawComponent<CameraComponent>(entity, "Camera", [&component]() {
                 RuntimeCamera& camera = component.Camera;
-                ImGuiAux::TProperty<bool>("Primary", component.Primary);
+                ImGuiAux::TProperty<bool>("Primary", &component.Primary);
 
                 const char* projectionTypeStrings[] = {"Perspective", "Orthographic"};
                 const char* currentProjectionTypeString = projectionTypeStrings[static_cast<int>(camera.GetProjectionType())];
@@ -227,33 +224,33 @@ namespace Surge
                 if (camera.GetProjectionType() == RuntimeCamera::ProjectionType::Perspective)
                 {
                     float verticalFOV = camera.GetPerspectiveVerticalFOV();
-                    if (ImGuiAux::TProperty<float>("Vertical FOV", verticalFOV)) // In degree
+                    if (ImGuiAux::TProperty<float>("Vertical FOV", &verticalFOV)) // In degree
                         camera.SetPerspectiveVerticalFOV(verticalFOV);
 
                     float nearClip = camera.GetPerspectiveNearClip();
-                    if (ImGuiAux::TProperty<float>("Near Clip", nearClip))
+                    if (ImGuiAux::TProperty<float>("Near Clip", &nearClip))
                         camera.SetPerspectiveNearClip(nearClip);
 
                     float farClip = camera.GetPerspectiveFarClip();
-                    if (ImGuiAux::TProperty<float>("Far Clip", farClip))
+                    if (ImGuiAux::TProperty<float>("Far Clip", &farClip))
                         camera.SetPerspectiveFarClip(farClip);
                 }
 
                 if (camera.GetProjectionType() == RuntimeCamera::ProjectionType::Orthographic)
                 {
                     float orthoSize = camera.GetOrthographicSize();
-                    if (ImGuiAux::TProperty<float>("Size", orthoSize))
+                    if (ImGuiAux::TProperty<float>("Size", &orthoSize))
                         camera.SetOrthographicSize(orthoSize);
 
                     float nearClip = camera.GetOrthographicNearClip();
-                    if (ImGuiAux::TProperty<float>("Near Clip", nearClip))
+                    if (ImGuiAux::TProperty<float>("Near Clip", &nearClip))
                         camera.SetOrthographicNearClip(nearClip);
 
                     float farClip = camera.GetOrthographicFarClip();
-                    if (ImGuiAux::TProperty<float>("Far Clip", farClip))
+                    if (ImGuiAux::TProperty<float>("Far Clip", &farClip))
                         camera.SetOrthographicFarClip(farClip);
 
-                    ImGuiAux::TProperty<bool>("Fixed Aspect Ratio", component.FixedAspectRatio);
+                    ImGuiAux::TProperty<bool>("Fixed Aspect Ratio", &component.FixedAspectRatio);
                 }
             });
         }
@@ -262,10 +259,10 @@ namespace Surge
         {
             PointLightComponent& component = entity.GetComponent<PointLightComponent>();
             DrawComponent<PointLightComponent>(entity, "Point Light", [&component]() {
-                ImGuiAux::TProperty<glm::vec3, ImGuiAux::CustomProprtyFlag::Color3>("Color", component.Color);
-                ImGuiAux::TProperty<float>("Intensity", component.Intensity);
-                ImGuiAux::TProperty<float>("Radius", component.Radius);
-                ImGuiAux::TProperty<float>("Falloff", component.Falloff, 0.0f, 1.0f);
+                ImGuiAux::TProperty<glm::vec3, ImGuiAux::CustomProprtyFlag::Color3>("Color", &component.Color);
+                ImGuiAux::TProperty<float>("Intensity", &component.Intensity);
+                ImGuiAux::TProperty<float>("Radius", &component.Radius);
+                ImGuiAux::TProperty<float>("Falloff", &component.Falloff, 0.0f, 1.0f);
             });
         }
 
@@ -273,8 +270,8 @@ namespace Surge
         {
             DirectionalLightComponent& component = entity.GetComponent<DirectionalLightComponent>();
             DrawComponent<DirectionalLightComponent>(entity, "Directional Light", [&component]() {
-                ImGuiAux::TProperty<glm::vec3, ImGuiAux::CustomProprtyFlag::Color3>("Color", component.Color);
-                ImGuiAux::TProperty<float>("Intensity", component.Intensity);
+                ImGuiAux::TProperty<glm::vec3, ImGuiAux::CustomProprtyFlag::Color3>("Color", &component.Color);
+                ImGuiAux::TProperty<float>("Intensity", &component.Intensity);
             });
         }
 
