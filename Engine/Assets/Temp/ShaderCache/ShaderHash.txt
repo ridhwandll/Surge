@@ -1,6 +1,10 @@
 {
+    "DepthDebug.glsl.Pixel.spv": 662732738,
+    "DepthDebug.glsl.Vertex.spv": -957311201,
     "PBR.glsl.Pixel.spv": 161054132,
     "PBR.glsl.Vertex.spv": -412015496,
+    "PreDepth.glsl.Pixel.spv": 662732738,
+    "PreDepth.glsl.Vertex.spv": -957311201,
     "ShadowMap.glsl.Pixel.spv": 133726416,
     "ShadowMap.glsl.Vertex.spv": -631709618
 }

@@ -4,6 +4,7 @@
 #include "Surge/Graphics/RenderProcedure/GeometryProcedure.hpp"
 #include "Surge/Graphics/RenderProcedure/ShadowMapProcedure.hpp"
 #include "Utility/ImGuiAux.hpp"
+#include "Surge/Graphics/RenderProcedure/PreDepthProcedure.hpp"
 
 namespace Surge
 {
@@ -16,6 +17,7 @@ namespace Surge
             {
                 RenderProcedureManager* renderProcManager = Core::GetRenderer()->GetRenderProcManager();
                 T* proc = renderProcManager->GetProcedure<T>();
+                T::InternalData* internaldata = renderProcManager->GetRenderProcData<T>();
 
                 bool isProcActive = renderProcManager->IsProcecureActive<T>();
                 if (ImGuiAux::TProperty<bool>("Active", &isProcActive))
@@ -25,7 +27,7 @@ namespace Surge
                 {
                     if (ImGuiAux::TButton("Restart Procedure", "Restart"))
                         renderProcManager->RestartProcedure<ShadowMapProcedure>();
-                    uiFunction(renderProcManager, proc);
+                    uiFunction(proc, internaldata);
                 }
 
                 ImGui::EndTable();
@@ -47,12 +49,11 @@ namespace Surge
 
         if (ImGui::Begin(PanelCodeToString(mCode), show))
         {
-            PropertyRenderProcedure<GeometryProcedure>("Geometry Procedure", [](RenderProcedureManager* renderProcManager, GeometryProcedure* proc) {
+            PropertyRenderProcedure<PreDepthProcedure>("Pre Depth Procedure", [](PreDepthProcedure* proc, PreDepthProcedure::InternalData* internalData) {
             });
 
-            PropertyRenderProcedure<ShadowMapProcedure>("Shadow Map Procedure", [](RenderProcedureManager* renderProcManager, ShadowMapProcedure* proc) {
+            PropertyRenderProcedure<ShadowMapProcedure>("Shadow Map Procedure", [](ShadowMapProcedure* proc, ShadowMapProcedure::InternalData* internalData) {
                 static Uint selectedCascadeIndex = 0;
-                ShadowMapProcedure::InternalData* shadowProcInternalData = renderProcManager->GetRenderProcData<ShadowMapProcedure>();
 
                 const char* cascadeCountStrings[] = {"2", "3", "4"};
                 ImGuiAux::TComboBox("Cascade Count", cascadeCountStrings, 3, static_cast<int>(proc->GetCascadeCount()) - 2, [&](int i) {
@@ -64,15 +65,17 @@ namespace Surge
                     proc->SetShadowQuality(static_cast<ShadowQuality>(i));
                 });
 
-                ImGuiAux::TProperty<bool>("Visualize Cascades", &shadowProcInternalData->VisualizeCascades);
-                ImGuiAux::TProperty<float>("Cascade Split Lambda", &shadowProcInternalData->CascadeSplitLambda);
+                ImGuiAux::TProperty<bool>("Visualize Cascades", &internalData->VisualizeCascades);
+                ImGuiAux::TProperty<float>("Cascade Split Lambda", &internalData->CascadeSplitLambda);
                 int shadowMapResolution = static_cast<int>(proc->GetShadowMapsResolution());
                 if (ImGuiAux::TProperty<int>("Shadow Map Resolution", &shadowMapResolution, 1024, 8192))
                     proc->SetShadowMapsResolution(shadowMapResolution);
+            });
 
-                ImGui::TreePop();
+            PropertyRenderProcedure<GeometryProcedure>("Geometry Procedure", [](GeometryProcedure* proc, GeometryProcedure::InternalData* internalData) {
             });
         }
+        ImGui::End();
     }
 
     void RenderProcedurePanel::Shutdown()

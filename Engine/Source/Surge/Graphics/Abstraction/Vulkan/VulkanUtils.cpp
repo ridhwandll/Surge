@@ -144,11 +144,12 @@ namespace Surge
     {
         switch (format)
         {
-            case ImageFormat::RGBA8: return VK_FORMAT_R8G8B8A8_UNORM;
-            case ImageFormat::RGBA16F: return VK_FORMAT_R16G16B16A16_SFLOAT;
             case ImageFormat::RGBA32F: return VK_FORMAT_R32G32B32A32_SFLOAT;
             case ImageFormat::Depth32: return VK_FORMAT_D32_SFLOAT;
+            case ImageFormat::RGBA8: return VK_FORMAT_R8G8B8A8_UNORM;
+            case ImageFormat::RGBA16F: return VK_FORMAT_R16G16B16A16_SFLOAT;
             case ImageFormat::Depth24Stencil8: return VK_FORMAT_D24_UNORM_S8_UINT;
+            case ImageFormat::RED32F: return VK_FORMAT_R32_SFLOAT;
             case ImageFormat::None: SG_ASSERT_INTERNAL("ImageFormat::None is invalid!");
         }
         SG_ASSERT_INTERNAL("Invalid ImageFormat!");
@@ -279,6 +280,7 @@ namespace Surge
     {
         switch (imageFormat)
         {
+            case ImageFormat::RED32F:
             case ImageFormat::RGBA8:
             case ImageFormat::RGBA16F:
             case ImageFormat::RGBA32F:

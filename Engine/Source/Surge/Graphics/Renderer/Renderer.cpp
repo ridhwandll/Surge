@@ -2,9 +2,10 @@
 #include "Surge/Graphics/Renderer/Renderer.hpp"
 #include "Surge/Utility/Filesystem.hpp"
 #include "SurgeMath/Math.hpp"
-#include "Surge/Graphics/RenderProcedure/GeometryProcedure.hpp"
-#include "Surge/Graphics/RenderProcedure/ShadowMapProcedure.hpp"
 #include "Surge/ECS/Scene.hpp"
+#include "Surge/Graphics/RenderProcedure/PreDepthProcedure.hpp"
+#include "Surge/Graphics/RenderProcedure/ShadowMapProcedure.hpp"
+#include "Surge/Graphics/RenderProcedure/GeometryProcedure.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace Surge
@@ -17,6 +18,7 @@ namespace Surge
         mData->ShaderSet.Initialize(BASE_SHADER_PATH);
         mData->ShaderSet.AddShader("PBR.glsl");
         mData->ShaderSet.AddShader("ShadowMap.glsl");
+        mData->ShaderSet.AddShader("PreDepth.glsl");
         mData->ShaderSet.LoadAll();
 
         Ref<Shader> mainPBRShader = Core::GetRenderer()->GetShader("PBR");
@@ -30,9 +32,10 @@ namespace Surge
         mData->WhiteTexture = Texture2D::Create(ImageFormat::RGBA8, 1, 1, &whiteTextureData);
 
         mProcManager.Init(mData);
+        mProcManager.AddProcedure<PreDepthProcedure>();
         mProcManager.AddProcedure<ShadowMapProcedure>();
         mProcManager.AddProcedure<GeometryProcedure>();
-        mProcManager.Sort<ShadowMapProcedure, GeometryProcedure>();
+        mProcManager.Sort<PreDepthProcedure, ShadowMapProcedure, GeometryProcedure>();
     }
 
     void Renderer::Shutdown()

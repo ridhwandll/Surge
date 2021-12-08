@@ -8,6 +8,7 @@ namespace Surge
     {
         None = 0,
 
+        RED32F,
         // Color
         RGBA8,
         RGBA16F,
