@@ -79,6 +79,8 @@ namespace Surge
 
     void GeometryProcedure::Shutdown()
     {
+        mProcData.OutputFrambuffer.Reset();
+        mProcData.GeometryPipeline.Reset();
     }
 
 } // namespace Surge

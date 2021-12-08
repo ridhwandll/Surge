@@ -81,6 +81,7 @@ namespace Surge
             light.Direction = direction;
             light.Intensity = dirLight.Intensity;
             light.Color = dirLight.Color;
+            light.Size = dirLight.Size;
             mData->DirLight = light;
         }
 

@@ -3,6 +3,7 @@
 #include "Surge/Core/Defines.hpp"
 #include "Surge/Graphics/Interface/Image.hpp"
 #include "Surge/Graphics/Interface/RenderCommandBuffer.hpp"
+#include <glm/glm.hpp>
 
 namespace Surge
 {

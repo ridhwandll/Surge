@@ -1,6 +1,8 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "Surge/Graphics/Interface/DescriptorSet.hpp"
+#include <array>
+#include <glm/glm.hpp>
 #define MAX_CASCADE_COUNT 4
 
 namespace Surge
@@ -11,6 +13,13 @@ namespace Surge
         THREE = 3,
         FOUR = 4
     };
+    enum class ShadowQuality
+    {
+        Low = 0,
+        Medium = 1,
+        Ultra = 2
+    };
+
     FORCEINLINE Uint CascadeCountToUInt(CascadeCount c)
     {
         return static_cast<Uint>(c);
@@ -29,12 +38,17 @@ namespace Surge
         // ShadowProc functions
         const CascadeCount& GetCascadeCount() const { return mTotalCascades; };
         void SetCascadeCount(CascadeCount count);
-        FORCEINLINE void ResizeShadowMaps(Uint newSize)
+
+        FORCEINLINE const ShadowQuality& GetShadowQuality() const { return mProcData.ShadowQuality; }
+        FORCEINLINE void SetShadowQuality(ShadowQuality quality) { mProcData.ShadowQuality = quality; }
+
+        FORCEINLINE const Uint& GetShadowMapsResolution() const { return mShadowMapResolution; }
+        FORCEINLINE void SetShadowMapsResolution(Uint newSize)
         {
+            mShadowMapResolution = newSize;
             for (Ref<Framebuffer>& framebuffer : mProcData.ShadowMapFramebuffers)
             {
-                framebuffer->Resize(newSize, newSize);
-                mProcData.ShadowMapResolution = newSize;
+                framebuffer->Resize(mShadowMapResolution, mShadowMapResolution);
             }
         }
 
@@ -48,7 +62,7 @@ namespace Surge
 
             float CascadeSplitLambda = 0.91f;
             bool VisualizeCascades = false;
-            Uint ShadowMapResolution;
+            Surge::ShadowQuality ShadowQuality = ShadowQuality::Ultra;
 
             Ref<UniformBuffer> ShadowUniformBuffer;
             Ref<DescriptorSet> ShadowDesciptorSet;
@@ -65,7 +79,8 @@ namespace Surge
         InternalData mProcData;
         RendererData* mRendererData;
 
-        Surge::CascadeCount mTotalCascades;
+        CascadeCount mTotalCascades;
+        Uint mShadowMapResolution;
         std::array<float, MAX_CASCADE_COUNT> mCascadeSplits = {};
 
         SURGE_REFLECTION_ENABLE;

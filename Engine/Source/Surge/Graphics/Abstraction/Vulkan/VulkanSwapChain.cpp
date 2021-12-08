@@ -260,7 +260,6 @@ namespace Surge
 
     void VulkanSwapChain::Resize()
     {
-        mVsync = false;
         VulkanRenderContext* renderContext = nullptr;
         SURGE_GET_VULKAN_CONTEXT(renderContext);
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();

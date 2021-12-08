@@ -59,56 +59,6 @@ namespace Surge
                 ImGui::TreePop();
             }
 
-            if (ImGuiAux::PropertyGridHeader("Shadows", false))
-            {
-                static Uint selectedCascadeIndex = 0;
-                ShadowMapProcedure* shadowProc = Core::GetRenderer()->GetRenderProcManager()->GetProcedure<ShadowMapProcedure>();
-                ShadowMapProcedure::InternalData* shadowProcInternalData = Core::GetRenderer()->GetRenderProcManager()->GetRenderProcData<ShadowMapProcedure>();
-
-                if (ImGui::BeginTable("ShaderTable", 2, ImGuiTableFlags_Resizable))
-                {
-                    ImGui::TableNextColumn();
-                    ImGui::TextUnformatted("Cascade Count");
-                    ImGui::TableNextColumn();
-                    const char* cascadeCountStrings[] = {"2", "3", "4"};
-                    const char* currentCascadeCountString = cascadeCountStrings[static_cast<int>(shadowProc->GetCascadeCount()) - 2];
-                    if (ImGui::BeginCombo("##cascadeCount", currentCascadeCountString))
-                    {
-                        for (int i = 0; i < 3; i++)
-                        {
-                            const bool isSelected = currentCascadeCountString == cascadeCountStrings[i];
-                            if (ImGui::Selectable(cascadeCountStrings[i], isSelected))
-                            {
-                                currentCascadeCountString = cascadeCountStrings[i];
-                                shadowProc->SetCascadeCount(static_cast<CascadeCount>(i + 2));
-                            }
-                            if (isSelected)
-                                ImGui::SetItemDefaultFocus();
-                        }
-                        ImGui::EndCombo();
-                    }
-
-                    ImGuiAux::TProperty<bool>("Visualize Cascades", &shadowProcInternalData->VisualizeCascades);
-                    ImGuiAux::TProperty<float>("Cascade Split Lambda", &shadowProcInternalData->CascadeSplitLambda);
-                    int shadowMapResolution = static_cast<int>(shadowProcInternalData->ShadowMapResolution);
-                    if (ImGuiAux::TProperty<int>("Shadow Map Resolution", &shadowMapResolution, 1024, 8192))
-                        shadowProc->ResizeShadowMaps(shadowMapResolution);
-
-                    ImGui::EndTable();
-                }
-                if (ImGuiAux::PropertyGridHeader("Shadows", false, glm::vec2(1.0f, 1.0f), true))
-                {
-                    ImGui::SliderInt("##CascadeIndex", reinterpret_cast<int*>(&selectedCascadeIndex), 0, CascadeCountToUInt(shadowProc->GetCascadeCount()) - 1);
-                    ImGuiAux::Image(shadowProcInternalData->ShadowMapFramebuffers[selectedCascadeIndex]->GetDepthAttachment(), {200, 200});
-                    ImGui::TreePop();
-                }
-                if (ImGui::Button("Restart Proc"))
-                {
-                    Core::GetRenderer()->GetRenderProcManager()->RestartProcedure<ShadowMapProcedure>();
-                }
-                ImGui::TreePop();
-            }
-
 #ifdef SURGE_DEBUG
             if (ImGuiAux::PropertyGridHeader("All Entities (Debug Only)", false))
             {

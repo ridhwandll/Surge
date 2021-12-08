@@ -272,6 +272,7 @@ namespace Surge
             DrawComponent<DirectionalLightComponent>(entity, "Directional Light", [&component]() {
                 ImGuiAux::TProperty<glm::vec3, ImGuiAux::CustomProprtyFlag::Color3>("Color", &component.Color);
                 ImGuiAux::TProperty<float>("Intensity", &component.Intensity);
+                ImGuiAux::TProperty<float>("Size", &component.Size);
             });
         }
 

@@ -2,16 +2,21 @@
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderContext.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDiagnostics.hpp"
 
-namespace Surge
-{
-    // clang-format off
+// clang-format off
+#define FORCE_VALIDATION 0    
+#if FORCE_VALIDATION == 1
+#define ENABLE_IF_VK_VALIDATION(x) { x; }
+#else
 #ifdef SURGE_DEBUG
 #define ENABLE_IF_VK_VALIDATION(x) { x; }
 #else
 #define ENABLE_IF_VK_VALIDATION(x)
 #endif // SURGE_DEBUG
-    // clang-format on
+    #endif
+// clang-format on
 
+namespace Surge
+{
     void VulkanRenderContext::Initialize(Window* window, bool enableImGui)
     {
         SURGE_PROFILE_FUNC("VulkanRenderContext::Initialize()");

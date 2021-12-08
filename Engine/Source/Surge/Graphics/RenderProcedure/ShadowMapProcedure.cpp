@@ -11,14 +11,18 @@ namespace Surge
         glm::vec4 CascadeEnds;
         glm::mat4 LightSpaceMatrix[4];
         int ShowCascades;
-        glm::vec3 _Padding_;
+        Uint CascadeCount;
+
+        int ShadowQuality;
+        int _Padding_;
     };
+    static_assert(sizeof(ShadowParams) % 16 == 0, "Size of 'Lights' struct must be 16 bytes aligned!");
 
     ShadowMapProcedure::ShadowMapProcedure()
     {
         //TODO: Choose depending on hardware
         mTotalCascades = CascadeCount::FOUR;
-        mProcData.ShadowMapResolution = 4096;
+        mShadowMapResolution = 4096;
     }
 
     void ShadowMapProcedure::Init(RendererData* rendererData)
@@ -33,8 +37,8 @@ namespace Surge
         // Framebuffers
         FramebufferSpecification spec = {};
         spec.Formats = {ImageFormat::Depth32};
-        spec.Width = mProcData.ShadowMapResolution;
-        spec.Height = mProcData.ShadowMapResolution;
+        spec.Width = mShadowMapResolution;
+        spec.Height = mShadowMapResolution;
         for (Uint i = 0; i < totalCascades; i++)
             mProcData.ShadowMapFramebuffers[i] = Framebuffer::Create(spec);
 
@@ -42,7 +46,7 @@ namespace Surge
         GraphicsPipelineSpecification pipelineSpec {};
         pipelineSpec.Shader = shadowMapShader;
         pipelineSpec.Topology = PrimitiveTopology::TriangleList;
-        pipelineSpec.CullingMode = CullMode::Back;
+        pipelineSpec.CullingMode = CullMode::Front;
         pipelineSpec.UseDepth = true;
         pipelineSpec.UseStencil = false;
         pipelineSpec.DebugName = "ShadowMapPipeline";
@@ -209,10 +213,10 @@ namespace Surge
             glm::vec4 shadowOrigin = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
             shadowOrigin = shadowMatrix * shadowOrigin;
             float storedW = shadowOrigin.w;
-            shadowOrigin = shadowOrigin * static_cast<float>(mProcData.ShadowMapResolution) / 2.0f;
+            shadowOrigin = shadowOrigin * static_cast<float>(mShadowMapResolution) / 2.0f;
             glm::vec4 roundedOrigin = glm::round(shadowOrigin);
             glm::vec4 roundOffset = roundedOrigin - shadowOrigin;
-            roundOffset = roundOffset * 2.0f / static_cast<float>(mProcData.ShadowMapResolution);
+            roundOffset = roundOffset * 2.0f / static_cast<float>(mShadowMapResolution);
             roundOffset.z = 0.0f;
             roundOffset.w = 0.0f;
             glm::mat4 shadowProj = lightProjectionMatrix;
@@ -230,7 +234,9 @@ namespace Surge
     void ShadowMapProcedure::UpdateShadowMapDescriptorSet()
     {
         ShadowParams params;
-        for (Uint j = 0; j < CascadeCountToUInt(mTotalCascades); j++)
+        params.CascadeCount = CascadeCountToUInt(mTotalCascades);
+        params.ShadowQuality = static_cast<int>(mProcData.ShadowQuality);
+        for (Uint j = 0; j < params.CascadeCount; j++)
         {
             params.CascadeEnds[j] = mProcData.CascadeSplitDepths[j];
             params.LightSpaceMatrix[j] = mProcData.LightViewProjections[j];
@@ -242,12 +248,13 @@ namespace Surge
             const Ref<Image2D>& whiteImage = Core::GetRenderer()->GetData()->WhiteTexture->GetImage2D();
             if (mTotalCascades == CascadeCount::TWO)
             {
-
+                // Upload 2 empty white images when cascade count is 2
                 mProcData.ShadowDesciptorSet->SetImage2D(whiteImage, 3);
                 mProcData.ShadowDesciptorSet->SetImage2D(whiteImage, 4);
             }
             else if (mTotalCascades == CascadeCount::THREE)
             {
+                // Upload 1 empty white image when cascade count is 3
                 mProcData.ShadowDesciptorSet->SetImage2D(whiteImage, 4);
             }
         }

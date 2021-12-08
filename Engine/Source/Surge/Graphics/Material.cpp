@@ -5,6 +5,8 @@
 
 namespace Surge
 {
+    Ref<Texture2D> Material::mDummyTexture = nullptr;
+
     Ref<Material> Material::Create(const String& shaderName, const String& materialName)
     {
         return Ref<VulkanMaterial>::Create(Core::GetRenderer()->GetShader(shaderName), materialName);

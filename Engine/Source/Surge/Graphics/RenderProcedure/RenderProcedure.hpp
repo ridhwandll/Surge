@@ -1,5 +1,6 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
+#include "SurgeReflect/SurgeReflect.hpp" // Needed
 
 namespace Surge
 {

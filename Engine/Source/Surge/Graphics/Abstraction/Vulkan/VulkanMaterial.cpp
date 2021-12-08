@@ -14,6 +14,13 @@ namespace Surge
         mName = materialName;
         mShader = shader;
         mShaderReloadID = mShader->AddReloadCallback([&]() { Load(); });
+
+        const ShaderReflectionData& reflectionData = mShader->GetReflectionData();
+        mShaderBuffer = reflectionData.GetBuffer("Material");
+        mBufferMemory.Allocate(mShaderBuffer.Size);
+        mBufferMemory.ZeroInitialize();
+        mUniformBuffer = UniformBuffer::Create(mShaderBuffer.Size);
+
         Load();
     }
 
@@ -21,6 +28,7 @@ namespace Surge
     {
         Release();
         mShader->RemoveReloadCallback(mShaderReloadID);
+        mBufferMemory.Release();
     }
 
     void VulkanMaterial::Load()
@@ -44,12 +52,6 @@ namespace Surge
             }
         }
         const ShaderReflectionData& reflectionData = mShader->GetReflectionData();
-
-        // Buffer
-        mShaderBuffer = reflectionData.GetBuffer("Material");
-        mBufferMemory.Allocate(mShaderBuffer.Size);
-        mBufferMemory.ZeroInitialize();
-        mUniformBuffer = UniformBuffer::Create(mShaderBuffer.Size);
 
         // Texture
         const Vector<ShaderResource>& ress = reflectionData.GetResources();
@@ -157,8 +159,6 @@ namespace Surge
             vkFreeDescriptorSets(logicalDevice, renderContext->GetNonResetableDescriptorPools()[i], 1, &mTextureDescriptorSets[i]);
             mTextureDescriptorSets[i] = VK_NULL_HANDLE;
         }
-
-        mBufferMemory.Release();
     }
 
 } // namespace Surge

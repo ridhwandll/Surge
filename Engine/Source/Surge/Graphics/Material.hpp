@@ -44,7 +44,7 @@ namespace Surge
         }
 
         template <typename T>
-        FORCEINLINE T& Get(const String& name)
+        constexpr FORCEINLINE auto& Get(const String& name)
         {
             if constexpr (std::is_same_v<T, Ref<Texture2D>>)
             {
@@ -55,6 +55,7 @@ namespace Surge
                         return mTextures[res.Binding];
                     }
                 }
+                return mDummyTexture;
             }
             else
             {
@@ -69,6 +70,7 @@ namespace Surge
         const String& GetName() const { return mName; }
         const ShaderBuffer& GetShaderBuffer() const { return mShaderBuffer; }
         static Ref<Material> Create(const String& shaderName, const String& materialName);
+        static Ref<Texture2D> mDummyTexture;
 
     protected:
         Ref<Shader> mShader;

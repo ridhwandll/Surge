@@ -46,13 +46,21 @@ namespace Surge
     void Renderer::BeginFrame(const Camera& camera, const glm::mat4& transform)
     {
         SURGE_PROFILE_FUNC("Renderer::BeginFrame(Camera)");
+        glm::vec3 translation, rotation, scale;
+        Math::DecomposeTransform(transform, translation, rotation, scale);
+
         mData->ViewMatrix = glm::inverse(transform);
         mData->ProjectionMatrix = camera.GetProjectionMatrix();
         mData->ViewProjection = mData->ProjectionMatrix * mData->ViewMatrix;
-
-        glm::vec3 translation, rotation, scale;
-        Math::DecomposeTransform(transform, translation, rotation, scale);
         mData->CameraPosition = translation;
+        mData->RenderCmdBuffer->BeginRecording();
+
+        GeometryProcedure::InternalData* geometryProcData = Core::GetRenderer()->GetRenderProcManager()->GetRenderProcData<GeometryProcedure>();
+        glm::mat4 cameraData[2] = {mData->ViewMatrix, mData->ProjectionMatrix};
+        mData->CameraUniformBuffer->SetData(cameraData);
+        mData->CameraDescriptorSet->SetBuffer(mData->CameraUniformBuffer, 0);
+        mData->CameraDescriptorSet->UpdateForRendering();
+        mData->CameraDescriptorSet->Bind(mData->RenderCmdBuffer, geometryProcData->GeometryPipeline);
     }
 
     void Renderer::BeginFrame(const EditorCamera& camera)

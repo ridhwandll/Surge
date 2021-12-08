@@ -5,7 +5,7 @@
 #include "Panels/PerformancePanel.hpp"
 #include "Panels/SceneHierarchyPanel.hpp"
 #include "Panels/InspectorPanel.hpp"
-#include <imgui_internal.h>
+#include "Panels/RenderProcedurePanel.hpp"
 
 namespace Surge
 {
@@ -26,6 +26,7 @@ namespace Surge
         mPanelManager.PushPanel<InspectorPanel>()->SetHierarchy(sceneHierarchy);
         mPanelManager.PushPanel<PerformancePanel>();
         mPanelManager.PushPanel<ViewportPanel>();
+        mPanelManager.PushPanel<RenderProcedurePanel>();
         mTitleBar.OnInit();
 
         mRenderer->SetSceneContext(mEditorScene);

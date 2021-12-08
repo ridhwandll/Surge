@@ -24,7 +24,7 @@ namespace Surge
         float Intensity;
 
         glm::vec3 Color;
-        float _Padding_;
+        float Size;
     };
     static_assert(sizeof(DirectionalLight) % 16 == 0, "Size of 'DirectionalLight' struct must be 16 bytes aligned!");
 

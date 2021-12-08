@@ -9,6 +9,7 @@ namespace Surge
         SceneHierarchy,
         Inspector,
         Performance,
+        RenderProcedure
     };
 
     constexpr FORCEINLINE const char* PanelCodeToString(PanelCode code)
@@ -19,6 +20,7 @@ namespace Surge
             case PanelCode::SceneHierarchy: return "Hierarchy";
             case PanelCode::Inspector: return "Inspector";
             case PanelCode::Performance: return "Performance";
+            case PanelCode::RenderProcedure: return "RenderProcedure";
         }
         return nullptr;
     }

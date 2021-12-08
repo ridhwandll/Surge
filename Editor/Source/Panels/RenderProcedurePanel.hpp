@@ -4,11 +4,11 @@
 
 namespace Surge
 {
-    class PerformancePanel : public IPanel
+    class RenderProcedurePanel : public IPanel
     {
     public:
-        PerformancePanel() = default;
-        virtual ~PerformancePanel() override = default;
+        RenderProcedurePanel() = default;
+        virtual ~RenderProcedurePanel() override = default;
 
         virtual void Init(void* panelInitArgs) override;
         virtual void OnEvent(Event& e) override {};
@@ -16,7 +16,7 @@ namespace Surge
         virtual void Shutdown() override;
 
     public:
-        static PanelCode GetStaticCode() { return PanelCode::Performance; }
+        static PanelCode GetStaticCode() { return PanelCode::RenderProcedure; }
 
     private:
         PanelCode mCode;

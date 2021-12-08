@@ -71,6 +71,32 @@ namespace Surge::ImGuiAux
     void TextCentered(const char* text);
     void Image(const Ref<Image2D>& image, const glm::vec2& size);
 
+    template <typename T>
+    void TComboBox(const char* title, const char** stringArray, Uint stringArraySize, Uint currentStringIndexInArray, T callbackFunction)
+    {
+        ImGui::PushID(title);
+        ImGui::TableNextColumn();
+        ImGui::TextUnformatted(title);
+        ImGui::TableNextColumn();
+        const char* currentString = stringArray[currentStringIndexInArray];
+        if (ImGui::BeginCombo("##cbox", currentString))
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                const bool isSelected = currentString == stringArray[i];
+                if (ImGui::Selectable(stringArray[i], isSelected))
+                {
+                    currentString = stringArray[i];
+                    callbackFunction(i);
+                }
+                if (isSelected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::PopID();
+    }
+
     template <typename T, CustomProprtyFlag F = CustomProprtyFlag::None>
     constexpr FORCEINLINE bool TProperty(const char* title, T* value, float dragMin = 0.0f, float dragMax = 0.0f)
     {

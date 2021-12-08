@@ -73,7 +73,7 @@ namespace Surge
         VkSemaphore mImageAvailable = VK_NULL_HANDLE, mRenderAvailable = VK_NULL_HANDLE;
         Vector<VkFence> mWaitFences {};
 
-        bool mVsync = true;
+        bool mVsync = false;
     };
 
 } // namespace Surge
