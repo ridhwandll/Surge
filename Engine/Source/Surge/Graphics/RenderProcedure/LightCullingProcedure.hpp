@@ -20,8 +20,8 @@ namespace Surge
         struct InternalData
         {
             Ref<ComputePipeline> LightCullingPipeline;
+            Ref<DescriptorSet> LightListDescriptorSet;
             Ref<StorageBuffer> LightListStorageBuffer;
-            //Ref<DescriptorSet> LightListDescriptorSet;
         };
 
     protected:

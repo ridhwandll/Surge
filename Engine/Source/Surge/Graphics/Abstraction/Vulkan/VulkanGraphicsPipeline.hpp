@@ -28,6 +28,7 @@ namespace Surge
         GraphicsPipelineSpecification mSpecification;
         VkPipeline mPipeline = VK_NULL_HANDLE;
         VkPipelineLayout mPipelineLayout = VK_NULL_HANDLE;
+        VkDescriptorSetLayout mEmptyLayout;
         CallbackID mShaderReloadID;
     };
 

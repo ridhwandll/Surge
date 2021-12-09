@@ -54,6 +54,7 @@ namespace Surge
             });
 
             PropertyRenderProcedure<LightCullingProcedure>("Light Culling Procedure", [](LightCullingProcedure* proc, LightCullingProcedure::InternalData* internalData) {
+                //internalData->LightListStorageBuffer->Get
             });
 
             PropertyRenderProcedure<ShadowMapProcedure>("Shadow Map Procedure", [](ShadowMapProcedure* proc, ShadowMapProcedure::InternalData* internalData) {

@@ -27,7 +27,7 @@ namespace Surge
         SCOPED_TIMER("VulkanGraphicsPipeline::Reload ({0})", mSpecification.DebugName);
         VulkanRenderContext* renderContext = nullptr;
         SURGE_GET_VULKAN_CONTEXT(renderContext);
-        VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
+        VkDevice logicalDevice = renderContext->GetDevice()->GetLogicalDevice();
 
         // Setting up all the shaders into a create info class
         HashMap<ShaderType, VkShaderModule> shaderModules = mSpecification.Shader.As<VulkanShader>()->GetVulkanShaderModules();
@@ -129,15 +129,43 @@ namespace Surge
 
         // Setting up the pipeline layout
         Ref<VulkanShader> vulkanShader = mSpecification.Shader.As<VulkanShader>();
-        const Vector<VkDescriptorSetLayout> descriptorSetLayouts = VulkanUtils::GetDescriptorSetLayoutVectorFromMap(vulkanShader->GetDescriptorSetLayouts());
+        Vector<VkDescriptorSetLayout> descriptorSetLayouts(0);
         const Vector<VkPushConstantRange> pushConstants = VulkanUtils::GetPushConstantRangesVectorFromHashMap(vulkanShader->GetPushConstantRanges());
+
+        // (TODO: switch to bindless)
+        { // "Mess Scope" read the comments inside this scope for detail
+
+            // Create an empty layout
+            VkDescriptorSetLayoutCreateInfo layoutInfo {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
+            VK_CALL(vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &mEmptyLayout));
+            // We have to do this because:
+            // The descriptor set layouts for a pipeline layout always start from set 0, so if a
+            // shader only uses set 5, then you must create a pipeline layout with *5 descriptor sets*
+            // Then it becomes: 0- mEmptyLayout; 1- mEmptyLayout; 2- mEmptyLayout; 3- mEmptyLayout; 4- mEmptyLayout; 5- TheRealLayoutFromTheShader
+            const std::map<Uint, VkDescriptorSetLayout>& descriptorSetLayoutsMap = vulkanShader->GetDescriptorSetLayouts();
+            // We can get the maximum number of set used in shader like this because std::map is already sorted in order
+            if (!descriptorSetLayoutsMap.empty())
+            {
+                Uint lastKeyOfMap = (--descriptorSetLayoutsMap.end())->first;
+                for (Uint i = 0; i <= lastKeyOfMap; i++)
+                {
+                    auto itr = descriptorSetLayoutsMap.find(i);
+                    if (itr != descriptorSetLayoutsMap.end())
+                        descriptorSetLayouts.push_back(itr->second); // Push TheRealLayoutFromTheShader
+                    else
+                        descriptorSetLayouts.push_back(mEmptyLayout); // Push mEmptyLayout
+                }
+            }
+            // Social Credits 100+ for reading these comments
+
+        } // End of "Mess Scope"
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
         pipelineLayoutInfo.setLayoutCount = static_cast<Uint>(descriptorSetLayouts.size());
         pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
         pipelineLayoutInfo.pushConstantRangeCount = static_cast<Uint>(pushConstants.size());
         pipelineLayoutInfo.pPushConstantRanges = pushConstants.data();
-        VK_CALL(vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &mPipelineLayout));
+        VK_CALL(vkCreatePipelineLayout(logicalDevice, &pipelineLayoutInfo, nullptr, &mPipelineLayout));
         SET_VK_OBJECT_DEBUGNAME(mPipelineLayout, VK_OBJECT_TYPE_PIPELINE_LAYOUT, "Graphics PipelineLayout");
 
         // Using dynamic pipeline states to avoid pipeline recreation when resizing
@@ -168,7 +196,7 @@ namespace Surge
             pipelineInfo.renderPass = renderContext->GetSwapChain()->GetVulkanRenderPass();
 
         pipelineInfo.subpass = 0;
-        VK_CALL(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mPipeline));
+        VK_CALL(vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mPipeline));
         SET_VK_OBJECT_DEBUGNAME(mPipeline, VK_OBJECT_TYPE_PIPELINE, "Graphics Pipeline");
     }
 
@@ -217,20 +245,19 @@ namespace Surge
 
     void VulkanGraphicsPipeline::Clear()
     {
+        if (!mPipeline)
+            return;
+
         VulkanRenderContext* renderContext = nullptr;
         SURGE_GET_VULKAN_CONTEXT(renderContext);
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
         vkDeviceWaitIdle(device);
-        if (mPipeline)
-        {
-            vkDestroyPipeline(device, mPipeline, nullptr);
-            mPipeline = VK_NULL_HANDLE;
-        }
-        if (mPipelineLayout)
-        {
-            vkDestroyPipelineLayout(device, mPipelineLayout, nullptr);
-            mPipelineLayout = VK_NULL_HANDLE;
-        }
+        vkDestroyPipeline(device, mPipeline, nullptr);
+        mPipeline = VK_NULL_HANDLE;
+        vkDestroyPipelineLayout(device, mPipelineLayout, nullptr);
+        mPipelineLayout = VK_NULL_HANDLE;
+        vkDestroyDescriptorSetLayout(device, mEmptyLayout, nullptr);
+        mEmptyLayout = VK_NULL_HANDLE;
     }
 
 } // namespace Surge

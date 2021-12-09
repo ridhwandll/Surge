@@ -71,7 +71,7 @@ namespace Surge
         Uint frameIndex = renderContext->GetFrameIndex();
 
         // TODO: Check for previous resources
-        if (!mPendingBuffers.empty() || !mPendingImages.empty())
+        if (!mPendingBuffers.empty() || !mPendingImages.empty() || !mPendingStorageBuffers.empty())
         {
             for (auto& [binding, buffer] : mPendingBuffers)
             {

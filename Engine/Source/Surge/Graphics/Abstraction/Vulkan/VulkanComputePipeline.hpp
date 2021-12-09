@@ -26,6 +26,7 @@ namespace Surge
         Ref<VulkanShader> mShader;
         VkPipeline mPipeline;
         VkPipelineLayout mPipelineLayout;
+        VkDescriptorSetLayout mEmptyLayout;
         CallbackID mShaderReloadID;
     };
 

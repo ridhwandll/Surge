@@ -92,6 +92,12 @@ const float PI = 3.141592;
 const float Epsilon = 0.00001;
 const vec3 Fdielectric = vec3(0.04); // Constant normal incidence Fresnel factor for all dielectrics.
 
+layout(set = 5, binding = 0) readonly buffer VisibleLightIndicesBuffer
+{
+	int Indices[];
+
+} sVisibleLightIndicesBuffer;
+
 // ---------- Lights ----------
 struct PointLight
 {

@@ -198,8 +198,7 @@ namespace Surge
                 LayoutBinding.stageFlags = VulkanUtils::GetShaderStagesFlagsFromShaderTypes(texture.ShaderStages);
             }
 
-            VkDescriptorSetLayoutCreateInfo layoutInfo {};
-            layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+            VkDescriptorSetLayoutCreateInfo layoutInfo {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
             layoutInfo.flags = 0;
             layoutInfo.bindingCount = static_cast<Uint>(layoutBindings.size());
             layoutInfo.pBindings = layoutBindings.data();
