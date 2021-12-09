@@ -2,11 +2,13 @@
 #include "VulkanDescriptorSet.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDescriptorSet.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderContext.hpp"
-#include "VulkanShader.hpp"
-#include "VulkanUniformBuffer.hpp"
-#include "VulkanRenderCommandBuffer.hpp"
-#include "VulkanGraphicsPipeline.hpp"
-#include "VulkanImage.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanShader.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanUniformBuffer.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderCommandBuffer.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanGraphicsPipeline.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanImage.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanStorageBuffer.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanComputePipeline.hpp"
 
 namespace Surge
 {
@@ -18,7 +20,7 @@ namespace Surge
 
         VkDescriptorSetAllocateInfo allocInfo {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
         allocInfo.descriptorSetCount = 1;
-        allocInfo.pSetLayouts = &shader.As<VulkanShader>()->GetDescriptorSetLayouts()[setNumber];
+        allocInfo.pSetLayouts = &shader.As<VulkanShader>()->GetDescriptorSetLayouts().at(setNumber);
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
 
         mDescriptorSets.resize(FRAMES_IN_FLIGHT);
@@ -52,6 +54,15 @@ namespace Surge
         vkCmdBindDescriptorSets(vulkanCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.As<VulkanGraphicsPipeline>()->GetPipelineLayout(), mSetNumber, 1, &mDescriptorSets[frameIndex], 0, nullptr);
     }
 
+    void VulkanDescriptorSet::Bind(const Ref<RenderCommandBuffer>& commandBuffer, const Ref<ComputePipeline>& pipeline)
+    {
+        VulkanRenderContext* renderContext;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
+        Uint frameIndex = renderContext->GetFrameIndex();
+        VkCommandBuffer vulkanCmdBuffer = commandBuffer.As<VulkanRenderCommandBuffer>()->GetVulkanCommandBuffer(frameIndex);
+        vkCmdBindDescriptorSets(vulkanCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline.As<VulkanComputePipeline>()->GetPipelineLayout(), mSetNumber, 1, &mDescriptorSets[frameIndex], 0, nullptr);
+    }
+
     void VulkanDescriptorSet::UpdateForRendering()
     {
         VulkanRenderContext* renderContext;
@@ -73,6 +84,17 @@ namespace Surge
                 writeDescriptorSet.dstSet = mDescriptorSets[frameIndex];
                 vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
             }
+            for (auto& [binding, buffer] : mPendingStorageBuffers)
+            {
+                VkWriteDescriptorSet writeDescriptorSet;
+                writeDescriptorSet = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+                writeDescriptorSet.dstBinding = binding;
+                writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+                writeDescriptorSet.pBufferInfo = &buffer.As<VulkanStorageBuffer>()->GetVulkanDescriptorBufferInfo();
+                writeDescriptorSet.descriptorCount = 1;
+                writeDescriptorSet.dstSet = mDescriptorSets[frameIndex];
+                vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
+            }
             for (auto& [binding, image] : mPendingImages)
             {
                 VkWriteDescriptorSet writeDescriptorSet;
@@ -85,6 +107,7 @@ namespace Surge
                 vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
             }
 
+            mPendingStorageBuffers.clear();
             mPendingBuffers.clear();
             mPendingImages.clear();
         }

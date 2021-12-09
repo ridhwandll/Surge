@@ -3,8 +3,9 @@
 #include "Panels/RenderProcedurePanel.hpp"
 #include "Surge/Graphics/RenderProcedure/GeometryProcedure.hpp"
 #include "Surge/Graphics/RenderProcedure/ShadowMapProcedure.hpp"
-#include "Utility/ImGuiAux.hpp"
 #include "Surge/Graphics/RenderProcedure/PreDepthProcedure.hpp"
+#include "Surge/Graphics/RenderProcedure/LightCullingProcedure.hpp"
+#include "Utility/ImGuiAux.hpp"
 
 namespace Surge
 {
@@ -50,6 +51,9 @@ namespace Surge
         if (ImGui::Begin(PanelCodeToString(mCode), show))
         {
             PropertyRenderProcedure<PreDepthProcedure>("Pre Depth Procedure", [](PreDepthProcedure* proc, PreDepthProcedure::InternalData* internalData) {
+            });
+
+            PropertyRenderProcedure<LightCullingProcedure>("Light Culling Procedure", [](LightCullingProcedure* proc, LightCullingProcedure::InternalData* internalData) {
             });
 
             PropertyRenderProcedure<ShadowMapProcedure>("Shadow Map Procedure", [](ShadowMapProcedure* proc, ShadowMapProcedure::InternalData* internalData) {

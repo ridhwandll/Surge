@@ -102,15 +102,15 @@ namespace Surge
         for (const ShaderBuffer& buffer : mShaderBuffers)
         {
             // Check if the number of the set is already mentioned in the vector
-            if (std::find(mDescriptorSetsCount.begin(), mDescriptorSetsCount.end(), buffer.Set) == mDescriptorSetsCount.end())
-                mDescriptorSetsCount.push_back(buffer.Set);
+            if (std::find(mDescriptorSets.begin(), mDescriptorSets.end(), buffer.Set) == mDescriptorSets.end())
+                mDescriptorSets.push_back(buffer.Set);
         }
 
-        for (const ShaderResource& texture : mShaderResources)
+        for (const ShaderResource& res : mShaderResources)
         {
             // Check if the number of the set is already mentioned in the vector
-            if (std::find(mDescriptorSetsCount.begin(), mDescriptorSetsCount.end(), texture.Set) == mDescriptorSetsCount.end())
-                mDescriptorSetsCount.push_back(texture.Set);
+            if (std::find(mDescriptorSets.begin(), mDescriptorSets.end(), res.Set) == mDescriptorSets.end())
+                mDescriptorSets.push_back(res.Set);
         }
     }
 

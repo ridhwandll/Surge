@@ -31,8 +31,8 @@ namespace Surge
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
         for (auto& descriptorSetLayout : mDescriptorSetLayouts)
         {
-            if (descriptorSetLayout)
-                vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+            if (descriptorSetLayout.second)
+                vkDestroyDescriptorSetLayout(device, descriptorSetLayout.second, nullptr);
         }
         mDescriptorSetLayouts.clear();
         mPushConstants.clear();
@@ -169,8 +169,8 @@ namespace Surge
         VkDevice device = renderContext->GetDevice()->GetLogicalDevice();
 
         // Iterate through all the sets and creating the layouts
-        const Vector<Uint>& descriptorSetCount = mReflectionData.GetDescriptorSetCount();
-        mDescriptorSetLayouts.resize(descriptorSetCount.size());
+        const Vector<Uint>& descriptorSetCount = mReflectionData.GetDescriptorSets();
+
         for (const Uint& descriptorSet : descriptorSetCount)
         {
             Vector<VkDescriptorSetLayoutBinding> layoutBindings;
@@ -182,7 +182,7 @@ namespace Surge
                 VkDescriptorSetLayoutBinding& layoutBinding = layoutBindings.emplace_back();
                 layoutBinding.binding = buffer.Binding;
                 layoutBinding.descriptorCount = 1; // TODO: Need to add arrays
-                layoutBinding.descriptorType = VulkanUtils::ShaderBufferUsageToVulkan(buffer.ShaderUsage);
+                layoutBinding.descriptorType = VulkanUtils::ShaderBufferTypeToVulkan(buffer.ShaderUsage);
                 layoutBinding.stageFlags = VulkanUtils::GetShaderStagesFlagsFromShaderTypes(buffer.ShaderStages);
             }
 
@@ -239,6 +239,7 @@ namespace Surge
             pos = source.find(typeToken, nextLinePos);
             mShaderSources[shaderType] = (pos == std::string::npos) ? source.substr(nextLinePos) : source.substr(nextLinePos, pos - nextLinePos);
             mHashCodes[shaderType] = Hash().Generate<String>(mShaderSources.at(shaderType));
+            mTypesBit |= shaderType;
         }
     }
 } // namespace Surge

@@ -1,6 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "Surge/Graphics/Interface/ComputePipeline.hpp"
+#include "Surge/Graphics/Abstraction/Vulkan/VulkanShader.hpp"
 #include <volk/volk.h>
 
 namespace Surge
@@ -11,17 +12,18 @@ namespace Surge
         VulkanComputePipeline(Ref<Shader>& computeShader);
         virtual ~VulkanComputePipeline() override;
 
-        void Begin(const Ref<RenderCommandBuffer>& renderCmdBuffer) override;
+        void Bind(const Ref<RenderCommandBuffer>& renderCmdBuffer) override;
         void Dispatch(const Ref<RenderCommandBuffer>& renderCmdBuffer, Uint groupCountX, Uint groupCountY, Uint groupCountZ) override;
-        void End(const Ref<RenderCommandBuffer>& renderCmdBuffer) override;
         const Ref<Shader>& GetShader() const override { return mShader; }
+
+        VkPipelineLayout GetPipelineLayout() const { return mPipelineLayout; }
 
     private:
         void Reload();
         void Release();
 
     private:
-        Ref<Shader> mShader;
+        Ref<VulkanShader> mShader;
         VkPipeline mPipeline;
         VkPipelineLayout mPipelineLayout;
         CallbackID mShaderReloadID;

@@ -108,6 +108,7 @@ namespace Surge
         NODISCARD virtual const HashMap<ShaderType, String>& GetSources() const = 0;
         NODISCARD virtual const HashCode& GetHash(const ShaderType& type) const = 0;
         NODISCARD virtual const HashMap<ShaderType, HashCode>& GetHashCodes() const = 0;
+        NODISCARD virtual const ShaderType& GetTypes() const = 0;
 
         static Ref<Shader> Create(const Path& path);
     };

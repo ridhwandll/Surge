@@ -16,6 +16,7 @@ layout(push_constant) uniform PushConstants
 
 } uMesh;
 
+// Set 0 belongs to the renderer
 layout(set = 0, binding = 0) uniform Camera
 {
     mat4 ViewMatrix;

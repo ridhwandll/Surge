@@ -17,6 +17,21 @@ namespace Surge::ImGuiAux
         Color4,
     };
 
+    struct ScopedBoldFont
+    {
+        ScopedBoldFont(const ScopedBoldFont&) = delete;
+        ScopedBoldFont operator=(const ScopedBoldFont&) = delete;
+
+        ScopedBoldFont()
+        {
+            ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
+        }
+        ~ScopedBoldFont()
+        {
+            ImGui::PopFont();
+        }
+    };
+
     struct ScopedStyle
     {
         int Size;

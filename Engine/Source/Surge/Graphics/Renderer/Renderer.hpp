@@ -33,7 +33,7 @@ namespace Surge
         Surge::ShaderSet ShaderSet;
 
         Ref<UniformBuffer> CameraUniformBuffer;
-        Ref<DescriptorSet> CameraDescriptorSet;
+        Ref<DescriptorSet> RendererDescriptorSet;
         Ref<Texture2D> WhiteTexture;
         Scene* SceneContext;
 

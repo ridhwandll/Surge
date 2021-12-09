@@ -80,7 +80,7 @@ namespace Surge
         return pushConstantsVector;
     }
 
-    VkDescriptorType VulkanUtils::ShaderBufferUsageToVulkan(ShaderBuffer::Usage type)
+    VkDescriptorType VulkanUtils::ShaderBufferTypeToVulkan(ShaderBuffer::Usage type)
     {
         switch (type)
         {
@@ -305,4 +305,13 @@ namespace Surge
         SG_ASSERT_INTERNAL("Invalid ImageFormat!");
         return 0;
     }
+
+    Vector<VkDescriptorSetLayout> VulkanUtils::GetDescriptorSetLayoutVectorFromMap(const std::map<Uint, VkDescriptorSetLayout>& layouts)
+    {
+        Vector<VkDescriptorSetLayout> result;
+        for (auto& layout : layouts)
+            result.push_back(layout.second);
+        return result;
+    }
+
 } // namespace Surge

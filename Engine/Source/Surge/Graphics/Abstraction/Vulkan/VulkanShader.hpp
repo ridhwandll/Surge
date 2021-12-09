@@ -22,10 +22,11 @@ namespace Surge
         virtual const HashMap<ShaderType, String>& GetSources() const override { return mShaderSources; }
         virtual const HashCode& GetHash(const ShaderType& type) const override { return mHashCodes.at(type); }
         virtual const HashMap<ShaderType, HashCode>& GetHashCodes() const override { return mHashCodes; }
+        virtual const ShaderType& GetTypes() const override { return mTypesBit; };
 
         // Vulkan Specific (Used by different Pipelines)
         const HashMap<ShaderType, VkShaderModule>& GetVulkanShaderModules() const { return mVkShaderModules; }
-        const Vector<VkDescriptorSetLayout>& GetDescriptorSetLayouts() const { return mDescriptorSetLayouts; }
+        const std::map<Uint, VkDescriptorSetLayout>& GetDescriptorSetLayouts() const { return mDescriptorSetLayouts; }
         const HashMap<String, VkPushConstantRange>& GetPushConstantRanges() const { return mPushConstants; }
 
         void ParseShader();
@@ -42,8 +43,10 @@ namespace Surge
         Vector<SPIRVHandle> mShaderSPIRVs {};
 
         HashMap<ShaderType, VkShaderModule> mVkShaderModules;
-        Vector<VkDescriptorSetLayout> mDescriptorSetLayouts;
+        std::map<Uint, VkDescriptorSetLayout> mDescriptorSetLayouts;
+
         HashMap<String, VkPushConstantRange> mPushConstants;
+        ShaderType mTypesBit;
 
         ShaderReflectionData mReflectionData;
         HashMap<CallbackID, std::function<void()>> mCallbacks;

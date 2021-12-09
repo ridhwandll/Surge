@@ -6,6 +6,7 @@
 #include "Surge/Graphics/RenderProcedure/PreDepthProcedure.hpp"
 #include "Surge/Graphics/RenderProcedure/ShadowMapProcedure.hpp"
 #include "Surge/Graphics/RenderProcedure/GeometryProcedure.hpp"
+#include "Surge/Graphics/RenderProcedure/LightCullingProcedure.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace Surge
@@ -19,6 +20,7 @@ namespace Surge
         mData->ShaderSet.AddShader("PBR.glsl");
         mData->ShaderSet.AddShader("ShadowMap.glsl");
         mData->ShaderSet.AddShader("PreDepth.glsl");
+        mData->ShaderSet.AddShader("LightCulling.glsl");
         mData->ShaderSet.LoadAll();
 
         Ref<Shader> mainPBRShader = Core::GetRenderer()->GetShader("PBR");
@@ -26,16 +28,17 @@ namespace Surge
         mData->LightUniformBuffer = UniformBuffer::Create(sizeof(LightUniformBufferData));
 
         mData->CameraUniformBuffer = UniformBuffer::Create(sizeof(glm::mat4) * 3);
-        mData->CameraDescriptorSet = DescriptorSet::Create(mainPBRShader, 0, false);
+        mData->RendererDescriptorSet = DescriptorSet::Create(mainPBRShader, 0, false);
 
         Uint whiteTextureData = 0xffffffff;
         mData->WhiteTexture = Texture2D::Create(ImageFormat::RGBA8, 1, 1, &whiteTextureData);
 
         mProcManager.Init(mData);
         mProcManager.AddProcedure<PreDepthProcedure>();
+        mProcManager.AddProcedure<LightCullingProcedure>();
         mProcManager.AddProcedure<ShadowMapProcedure>();
         mProcManager.AddProcedure<GeometryProcedure>();
-        mProcManager.Sort<PreDepthProcedure, ShadowMapProcedure, GeometryProcedure>();
+        mProcManager.Sort<PreDepthProcedure, LightCullingProcedure, ShadowMapProcedure, GeometryProcedure>();
     }
 
     void Renderer::Shutdown()
@@ -61,9 +64,9 @@ namespace Surge
         GeometryProcedure::InternalData* geometryProcData = Core::GetRenderer()->GetRenderProcManager()->GetRenderProcData<GeometryProcedure>();
         glm::mat4 cameraData[2] = {mData->ViewMatrix, mData->ProjectionMatrix};
         mData->CameraUniformBuffer->SetData(cameraData);
-        mData->CameraDescriptorSet->SetBuffer(mData->CameraUniformBuffer, 0);
-        mData->CameraDescriptorSet->UpdateForRendering();
-        mData->CameraDescriptorSet->Bind(mData->RenderCmdBuffer, geometryProcData->GeometryPipeline);
+        mData->RendererDescriptorSet->SetBuffer(mData->CameraUniformBuffer, 0);
+        mData->RendererDescriptorSet->UpdateForRendering();
+        mData->RendererDescriptorSet->Bind(mData->RenderCmdBuffer, geometryProcData->GeometryPipeline);
     }
 
     void Renderer::BeginFrame(const EditorCamera& camera)
@@ -78,9 +81,9 @@ namespace Surge
         GeometryProcedure::InternalData* geometryProcData = Core::GetRenderer()->GetRenderProcManager()->GetRenderProcData<GeometryProcedure>();
         glm::mat4 cameraData[2] = {mData->ViewMatrix, mData->ProjectionMatrix};
         mData->CameraUniformBuffer->SetData(cameraData);
-        mData->CameraDescriptorSet->SetBuffer(mData->CameraUniformBuffer, 0);
-        mData->CameraDescriptorSet->UpdateForRendering();
-        mData->CameraDescriptorSet->Bind(mData->RenderCmdBuffer, geometryProcData->GeometryPipeline);
+        mData->RendererDescriptorSet->SetBuffer(mData->CameraUniformBuffer, 0);
+        mData->RendererDescriptorSet->UpdateForRendering();
+        mData->RendererDescriptorSet->Bind(mData->RenderCmdBuffer, geometryProcData->GeometryPipeline);
     }
 
     void Renderer::EndFrame()

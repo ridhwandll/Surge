@@ -97,7 +97,7 @@ namespace Surge
         const ShaderBufferMember& GetBufferMember(const ShaderBuffer& buffer, const String& memberName) const;
         const Vector<ShaderResource>& GetResources() const { return mShaderResources; }
         const HashMap<ShaderType, std::map<Uint, ShaderStageInput>>& GetStageInputs() const { return mStageInputs; }
-        const Vector<Uint> GetDescriptorSetCount() const { return mDescriptorSetsCount; }
+        const Vector<Uint> GetDescriptorSets() const { return mDescriptorSets; }
 
     private:
         void ClearRepeatedMembers();
@@ -109,7 +109,7 @@ namespace Surge
         Vector<ShaderPushConstant> mPushConstants;
 
         // NOTE(AC3R): Keeping track of how many descriptor set we will need for the descriptor layout
-        Vector<Uint> mDescriptorSetsCount;
+        Vector<Uint> mDescriptorSets;
 
         // Stage inputs, per shader stage
         HashMap<ShaderType, std::map<Uint /*location*/, ShaderStageInput /*Data*/>> mStageInputs {};

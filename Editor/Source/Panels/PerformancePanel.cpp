@@ -45,13 +45,41 @@ namespace Surge
             if (ImGuiAux::PropertyGridHeader("Shaders", false))
             {
                 Vector<Ref<Shader>>& allAhaders = Core::GetRenderer()->GetData()->ShaderSet.GetAllShaders();
-                if (ImGui::BeginTable("ShaderTable", 2, ImGuiTableFlags_Resizable))
+                if (ImGui::BeginTable("ShaderTable", 3, ImGuiTableFlags_Resizable))
                 {
+                    ImGui::TableSetupColumn("Name");
+                    ImGui::TableSetupColumn("Type");
+                    ImGui::TableSetupColumn("Action");
+                    ImGui::TableHeadersRow();
+
                     for (Ref<Shader>& shader : allAhaders)
                     {
                         ImGui::PushID(shader->GetPath().c_str());
-                        if (ImGuiAux::TButton(Filesystem::GetNameWithExtension(shader->GetPath()).c_str(), "Reload"))
-                            shader->Reload();
+                        String typeString;
+                        ShaderType types = shader->GetTypes();
+                        if (ShaderType::Vertex & types && ShaderType::Pixel & types)
+                            typeString.append("Vertex & Pixel");
+                        else if (ShaderType::Compute & types)
+                            typeString.append("Compute");
+
+                        {
+                            ImGuiAux::ScopedBoldFont bondFont;
+                            ImGui::TableNextColumn();
+                            ImGui::TextUnformatted(Filesystem::GetNameWithExtension(shader->GetPath()).c_str());
+                            ImGui::TableNextColumn();
+                            ImGui::TextUnformatted(typeString.c_str());
+                        }
+                        ImGui::TableNextColumn();
+                        {
+                            auto& style = ImGui::GetStyle();
+                            ImVec4 buttonCol = style.Colors[ImGuiCol_Button];
+                            ImGuiAux::ScopedColor color({ImGuiCol_ButtonHovered}, buttonCol);
+                            if (ImGui::Button("Reload"))
+                                shader->Reload();
+                            if (ImGui::IsItemHovered() || ImGui::IsItemActive())
+                                ImGuiAux::DrawRectAroundWidget({1.0f, 0.5f, 0.1f, 1.0f}, 1.5f, 1.0f);
+                        }
+
                         ImGui::PopID();
                     }
                     ImGui::EndTable();
