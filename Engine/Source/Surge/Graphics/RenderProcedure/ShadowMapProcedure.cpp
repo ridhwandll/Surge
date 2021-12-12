@@ -73,6 +73,7 @@ namespace Surge
             {
                 auto [transform, light] = view.get<TransformComponent, DirectionalLightComponent>(entity);
                 direction = transform.GetTransform()[2];
+                break;
             }
         }
 

@@ -77,6 +77,15 @@ namespace Surge
             });
         }
 
+        FORCEINLINE void ResizeAll(Uint newWidth, Uint newHeight)
+        {
+            for (const SurgeReflect::ClassHash& hash : mProcOrder)
+            {
+                auto& [isActive, procedure] = mProcedures.at(hash);
+                procedure->Resize(newWidth, newHeight);
+            }
+        }
+
         template <typename T>
         void SetProcecureActive(bool disable)
         {

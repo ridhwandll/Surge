@@ -25,11 +25,12 @@ namespace Surge
         sceneHierarchy->SetSceneContext(mEditorScene.Raw());
         mPanelManager.PushPanel<InspectorPanel>()->SetHierarchy(sceneHierarchy);
         mPanelManager.PushPanel<PerformancePanel>();
-        mPanelManager.PushPanel<ViewportPanel>();
+        ViewportPanel* viewport = mPanelManager.PushPanel<ViewportPanel>();
         mPanelManager.PushPanel<RenderProcedurePanel>();
         mTitleBar.OnInit();
 
         mRenderer->SetSceneContext(mEditorScene);
+        mRenderer->SetRenderArea(viewport->GetViewportSize().x, viewport->GetViewportSize().y);
     }
 
     void Editor::OnUpdate()
@@ -86,11 +87,9 @@ namespace Surge
         if (mSceneState == SceneState::Play && mRuntimeScene && mRuntimeScene->GetMainCameraEntity().Data1 && mRuntimeScene->GetMainCameraEntity().Data1->GetAspectRatio() != (viewportSize.x / viewportSize.y))
             mRuntimeScene->OnResize(viewportSize.x, viewportSize.y);
 
-        if (FramebufferSpecification spec = framebuffer->GetSpecification();
-            viewportSize.x > 0.0f && viewportSize.y > 0.0f &&
-            (spec.Width != viewportSize.x || spec.Height != viewportSize.y))
+        if (FramebufferSpecification spec = framebuffer->GetSpecification(); viewportSize.x > 0.0f && viewportSize.y > 0.0f && (spec.Width != viewportSize.x || spec.Height != viewportSize.y))
         {
-            framebuffer->Resize((Uint)viewportSize.x, (Uint)viewportSize.y);
+            mRenderer->SetRenderArea((Uint)viewportSize.x, (Uint)viewportSize.y);
             mCamera.SetViewportSize(viewportSize);
 
             if (mSceneState == SceneState::Edit)

@@ -33,11 +33,13 @@ namespace Surge
         Surge::ShaderSet ShaderSet;
 
         Ref<UniformBuffer> CameraUniformBuffer;
-        Ref<DescriptorSet> RendererDescriptorSet;
+        Ref<UniformBuffer> RendererDataUniformBuffer;
+        Ref<DescriptorSet> DescriptorSet0;
+
         Ref<Texture2D> WhiteTexture;
         Scene* SceneContext;
 
-        //Lights
+        // Lights
         LightUniformBufferData LightData;
         Ref<UniformBuffer> LightUniformBuffer;
         Ref<DescriptorSet> LightDescriptorSet;
@@ -55,7 +57,7 @@ namespace Surge
     {
     public:
         Renderer() = default;
-        virtual ~Renderer() = default;
+        ~Renderer() = default;
 
         void Initialize();
         void Shutdown();
@@ -63,6 +65,7 @@ namespace Surge
         void BeginFrame(const Camera& camera, const glm::mat4& transform);
         void BeginFrame(const EditorCamera& camera);
         void EndFrame();
+        void SetRenderArea(Uint width, Uint height);
 
         FORCEINLINE void SubmitMesh(MeshComponent& meshComp, const glm::mat4& transform) { mData->DrawList.push_back(DrawCommand(&meshComp, transform)); }
         FORCEINLINE void SubmitPointLight(const PointLightComponent& pointLight, const glm::vec3& position)

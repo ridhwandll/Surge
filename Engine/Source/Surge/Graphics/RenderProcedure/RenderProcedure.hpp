@@ -14,6 +14,7 @@ namespace Surge
         virtual void Init(RendererData* rendererData) = 0;
         virtual void Update() = 0;
         virtual void Shutdown() = 0;
+        virtual void Resize(Uint newWidth, Uint newHeight) = 0;
 
     protected:
         virtual void* GetInternalDataBlock() = 0;

@@ -97,10 +97,11 @@ namespace Surge
             }
             for (auto& [binding, image] : mPendingImages)
             {
+                const ImageSpecification& spec = image->GetSpecification();
                 VkWriteDescriptorSet writeDescriptorSet;
                 writeDescriptorSet = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
                 writeDescriptorSet.dstBinding = binding;
-                writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                writeDescriptorSet.descriptorType = spec.Usage == ImageUsage::Storage ? VK_DESCRIPTOR_TYPE_STORAGE_IMAGE : VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
                 writeDescriptorSet.pImageInfo = &image.As<VulkanImage2D>()->GetVulkanDescriptorImageInfo();
                 writeDescriptorSet.descriptorCount = 1;
                 writeDescriptorSet.dstSet = mDescriptorSets[frameIndex];

@@ -15,6 +15,7 @@ namespace Surge
         virtual void Init(RendererData* rendererData) override;
         virtual void Update() override;
         virtual void Shutdown() override;
+        virtual void Resize(Uint newWidth, Uint newHeight) override;
 
     public:
         struct InternalData

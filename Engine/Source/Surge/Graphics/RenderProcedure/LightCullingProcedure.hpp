@@ -15,10 +15,13 @@ namespace Surge
         virtual void Init(RendererData* rendererData) override;
         virtual void Update() override;
         virtual void Shutdown() override;
+        virtual void Resize(Uint newWidth, Uint newHeight) override;
 
     public:
         struct InternalData
         {
+            Uint TileCountX;
+            bool ShowLightComplexity = false; // Used by Renderer
             Ref<ComputePipeline> LightCullingPipeline;
             Ref<DescriptorSet> LightListDescriptorSet;
             Ref<StorageBuffer> LightListStorageBuffer;
@@ -30,6 +33,8 @@ namespace Surge
     private:
         InternalData mProcData;
         RendererData* mRendererData;
+        glm::ivec2 mScreenSize;
+        glm::ivec3 mLightCullingWorkGroups;
 
         SURGE_REFLECTION_ENABLE;
     };

@@ -59,7 +59,6 @@ target_compile_definitions(Surge
     PUBLIC
     "_CRT_SECURE_NO_WARNINGS"
     "GLM_FORCE_DEPTH_ZERO_TO_ONE"
-    "GLM_FORCE_RADIANS"
     
     ${PLATFORM_COMPILE_DEFS}
 

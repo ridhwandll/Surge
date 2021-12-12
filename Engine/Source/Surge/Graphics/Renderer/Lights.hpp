@@ -33,7 +33,7 @@ namespace Surge
         glm::vec3 CameraPosition = {};
         Uint PointLightCount = 0;
 
-        PointLight PointLights[100] = {};
+        PointLight PointLights[1024] = {};
         DirectionalLight DirLight = {};
     };
     static_assert(sizeof(LightUniformBufferData) % 16 == 0, "Size of 'Lights' struct must be 16 bytes aligned!");

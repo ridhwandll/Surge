@@ -21,8 +21,16 @@ layout(set = 0, binding = 0) uniform Camera
 {
     mat4 ViewMatrix;
     mat4 ProjectionMatrix;
+    mat4 ViewProjectionMatrix;
 
-} uFrameData;
+} uCameraData;
+layout(set = 0, binding = 1) uniform RendererData
+{
+    uint TilesCountX; // Forward+
+    int ShowLightComplexity;
+    float _Padding_1;
+    float _Padding_2;
+} uRendererData;
 
 struct VertexOutput
 {
@@ -57,7 +65,7 @@ void main()
     vOutput.Normal    = mat3(uMesh.Transform) * normalize(aNormal);
     
     vOutput.WorldPos = vec3(uMesh.Transform * vec4(aPosition, 1.0));
-    vOutput.ViewSpacePos = vec3(uFrameData.ViewMatrix * vec4(vOutput.WorldPos, 1.0));
+    vOutput.ViewSpacePos = vec3(uCameraData.ViewMatrix * vec4(vOutput.WorldPos, 1.0));
 
     for(uint i = 0; i < uShadowParams.CascadeCount; i++)
         vOutput.LightSpaceVector[i] = uShadowParams.LightSpaceMatrix[i] * vec4(vOutput.WorldPos, 1.0);
@@ -92,11 +100,13 @@ const float PI = 3.141592;
 const float Epsilon = 0.00001;
 const vec3 Fdielectric = vec3(0.04); // Constant normal incidence Fresnel factor for all dielectrics.
 
+// Forward+
 layout(set = 5, binding = 0) readonly buffer VisibleLightIndicesBuffer
 {
-	int Indices[];
+    int Indices[];
 
 } sVisibleLightIndicesBuffer;
+layout(set = 5, binding = 1) uniform sampler2D uPreDepthMap;
 
 // ---------- Lights ----------
 struct PointLight
@@ -120,6 +130,22 @@ struct DirectionalLight
     vec3 Color;
     float Size;
 };
+
+// Set 0 belongs to the renderer
+layout(set = 0, binding = 0) uniform Camera
+{
+    mat4 ViewMatrix;
+    mat4 ProjectionMatrix;
+    mat4 ViewProjectionMatrix;
+
+} uCameraData;
+layout(set = 0, binding = 1) uniform RendererData
+{
+    uint TilesCountX; // Forward+
+    int ShowLightComplexity;
+    float _Padding_1;
+    float _Padding_2;
+} uRendererData;
 
 // Material - Set 1 and 2
 layout(set = 1, binding = 0) uniform Material
@@ -162,7 +188,7 @@ layout(set = 4, binding = 0) uniform Lights
     vec3 CameraPosition;
     int PointLightCount;
 
-    PointLight PointLights[100];
+    PointLight PointLights[1024];
     DirectionalLight DirLight;
 
 } uLights;
@@ -259,12 +285,39 @@ vec3 CalculateNormal()
    return newNormal;
 }
 
+int GetLightBufferIndex(int i)
+{
+    ivec2 tileID = ivec2(gl_FragCoord) / ivec2(16, 16); //Current Fragment position / Tile count
+    uint index = tileID.y * uRendererData.TilesCountX + tileID.x;
+
+    uint offset = index * 1024;
+    return sVisibleLightIndicesBuffer.Indices[offset + i];
+}
+
+int GetPointLightCount()
+{
+    int result = 0;
+    for (int i = 0; i < uLights.PointLightCount; i++)
+    {
+        uint lightIndex = GetLightBufferIndex(i);
+        if (lightIndex == -1)
+            break;
+
+        result++;
+    }
+
+    return result;
+}
 vec3 CalculatePointLights(vec3 F0)
 {
     vec3 result = vec3(0.0);
     for (int i = 0; i < uLights.PointLightCount; i++)
     {
-        PointLight light = uLights.PointLights[i];
+        uint lightIndex = GetLightBufferIndex(i);
+        if (lightIndex == -1)
+            break;
+
+        PointLight light = uLights.PointLights[lightIndex];
 
         vec3 Li = normalize(light.Position - vInput.WorldPos);
         float lightDistance = length(light.Position - vInput.WorldPos);
@@ -310,70 +363,70 @@ const int PCF_SAMPLES = 64;
 const int PCSS_SAMPLES = 16;
 
 const vec2 gPoissonDisk[64] = vec2[](
-	vec2(-0.884081, 0.124488),
-	vec2(-0.714377, 0.027940),
-	vec2(-0.747945, 0.227922),
-	vec2(-0.939609, 0.243634),
-	vec2(-0.985465, 0.045534),
-	vec2(-0.861367, -0.136222),
-	vec2(-0.881934, 0.396908),
-	vec2(-0.466938, 0.014526),
-	vec2(-0.558207, 0.212662),
-	vec2(-0.578447, -0.095822),
-	vec2(-0.740266, -0.095631),
-	vec2(-0.751681, 0.472604),
-	vec2(-0.553147, -0.243177),
-	vec2(-0.674762, -0.330730),
-	vec2(-0.402765, -0.122087),
-	vec2(-0.319776, -0.312166),
-	vec2(-0.413923, -0.439757),
-	vec2(-0.979153, -0.201245),
-	vec2(-0.865579, -0.288695),
-	vec2(-0.243704, -0.186378),
-	vec2(-0.294920, -0.055748),
-	vec2(-0.604452, -0.544251),
-	vec2(-0.418056, -0.587679),
-	vec2(-0.549156, -0.415877),
-	vec2(-0.238080, -0.611761),
-	vec2(-0.267004, -0.459702),
-	vec2(-0.100006, -0.229116),
-	vec2(-0.101928, -0.380382),
-	vec2(-0.681467, -0.700773),
-	vec2(-0.763488, -0.543386),
-	vec2(-0.549030, -0.750749),
-	vec2(-0.809045, -0.408738),
-	vec2(-0.388134, -0.773448),
-	vec2(-0.429392, -0.894892),
-	vec2(-0.131597, 0.065058),
-	vec2(-0.275002, 0.102922),
-	vec2(-0.106117, -0.068327),
-	vec2(-0.294586, -0.891515),
-	vec2(-0.629418, 0.379387),
-	vec2(-0.407257, 0.339748),
-	vec2(0.071650, -0.384284),
-	vec2(0.022018, -0.263793),
-	vec2(0.003879, -0.136073),
-	vec2(-0.137533, -0.767844),
-	vec2(-0.050874, -0.906068),
-	vec2(0.114133, -0.070053),
-	vec2(0.163314, -0.217231),
-	vec2(-0.100262, -0.587992),
-	vec2(-0.004942, 0.125368),
-	vec2(0.035302, -0.619310),
-	vec2(0.195646, -0.459022),
-	vec2(0.303969, -0.346362),
-	vec2(-0.678118, 0.685099),
-	vec2(-0.628418, 0.507978),
-	vec2(-0.508473, 0.458753),
-	vec2(0.032134, -0.782030),
-	vec2(0.122595, 0.280353),
-	vec2(-0.043643, 0.312119),
-	vec2(0.132993, 0.085170),
-	vec2(-0.192106, 0.285848),
-	vec2(0.183621, -0.713242),
-	vec2(0.265220, -0.596716),
-	vec2(-0.009628, -0.483058),
-	vec2(-0.018516, 0.435703)
+    vec2(-0.884081, 0.124488),
+    vec2(-0.714377, 0.027940),
+    vec2(-0.747945, 0.227922),
+    vec2(-0.939609, 0.243634),
+    vec2(-0.985465, 0.045534),
+    vec2(-0.861367, -0.136222),
+    vec2(-0.881934, 0.396908),
+    vec2(-0.466938, 0.014526),
+    vec2(-0.558207, 0.212662),
+    vec2(-0.578447, -0.095822),
+    vec2(-0.740266, -0.095631),
+    vec2(-0.751681, 0.472604),
+    vec2(-0.553147, -0.243177),
+    vec2(-0.674762, -0.330730),
+    vec2(-0.402765, -0.122087),
+    vec2(-0.319776, -0.312166),
+    vec2(-0.413923, -0.439757),
+    vec2(-0.979153, -0.201245),
+    vec2(-0.865579, -0.288695),
+    vec2(-0.243704, -0.186378),
+    vec2(-0.294920, -0.055748),
+    vec2(-0.604452, -0.544251),
+    vec2(-0.418056, -0.587679),
+    vec2(-0.549156, -0.415877),
+    vec2(-0.238080, -0.611761),
+    vec2(-0.267004, -0.459702),
+    vec2(-0.100006, -0.229116),
+    vec2(-0.101928, -0.380382),
+    vec2(-0.681467, -0.700773),
+    vec2(-0.763488, -0.543386),
+    vec2(-0.549030, -0.750749),
+    vec2(-0.809045, -0.408738),
+    vec2(-0.388134, -0.773448),
+    vec2(-0.429392, -0.894892),
+    vec2(-0.131597, 0.065058),
+    vec2(-0.275002, 0.102922),
+    vec2(-0.106117, -0.068327),
+    vec2(-0.294586, -0.891515),
+    vec2(-0.629418, 0.379387),
+    vec2(-0.407257, 0.339748),
+    vec2(0.071650, -0.384284),
+    vec2(0.022018, -0.263793),
+    vec2(0.003879, -0.136073),
+    vec2(-0.137533, -0.767844),
+    vec2(-0.050874, -0.906068),
+    vec2(0.114133, -0.070053),
+    vec2(0.163314, -0.217231),
+    vec2(-0.100262, -0.587992),
+    vec2(-0.004942, 0.125368),
+    vec2(0.035302, -0.619310),
+    vec2(0.195646, -0.459022),
+    vec2(0.303969, -0.346362),
+    vec2(-0.678118, 0.685099),
+    vec2(-0.628418, 0.507978),
+    vec2(-0.508473, 0.458753),
+    vec2(0.032134, -0.782030),
+    vec2(0.122595, 0.280353),
+    vec2(-0.043643, 0.312119),
+    vec2(0.132993, 0.085170),
+    vec2(-0.192106, 0.285848),
+    vec2(0.183621, -0.713242),
+    vec2(0.265220, -0.596716),
+    vec2(-0.009628, -0.483058),
+    vec2(-0.018516, 0.435703)
 );
 vec2 SamplePoissonDisk(uint index)
 {
@@ -382,22 +435,22 @@ vec2 SamplePoissonDisk(uint index)
 
 float GetShadowBias()
 {
-	const float MINIMUM_SHADOW_BIAS = 0.002;
-	float bias = max(MINIMUM_SHADOW_BIAS * (1.0 - dot(gPBRParams.Normal, uLights.DirLight.Direction)), MINIMUM_SHADOW_BIAS);
-	return bias;
+    const float MINIMUM_SHADOW_BIAS = 0.002;
+    float bias = max(MINIMUM_SHADOW_BIAS * (1.0 - dot(gPBRParams.Normal, uLights.DirLight.Direction)), MINIMUM_SHADOW_BIAS);
+    return bias;
 }
 
 float MediumShadowsDirectionalLight(int cascade, vec3 shadowCoords)
 {
-	float bias = GetShadowBias();
+    float bias = GetShadowBias();
     float sum = 0.0;
     vec2 texelSize = 1.0 / textureSize(ShadowMap1, 0);
     for(int x = -1; x <= 1; ++x)
     {
         for(int y = -1; y <= 1; ++y)
         {
-	        float z = SampleShadowMap(cascade, (shadowCoords.xy * 0.5 + 0.5) + vec2(x, y) * texelSize).x;
-            sum += step(shadowCoords.z, z + bias);
+            float z = SampleShadowMap(cascade, (shadowCoords.xy * 0.5 + 0.5) + vec2(x, y) * texelSize).x;
+            sum += shadowCoords.z - bias > z ? 0.0 : 1.0;
         }    
     }
     sum /= 9.0;
@@ -406,75 +459,76 @@ float MediumShadowsDirectionalLight(int cascade, vec3 shadowCoords)
 
 float HardShadowsDirectionalLight(int cascade, vec3 shadowCoords)
 {
-	float bias = GetShadowBias();
-	float shadowMapDepth = SampleShadowMap(cascade, shadowCoords.xy * 0.5 + 0.5).x;
-	return step(shadowCoords.z, shadowMapDepth + bias);
+    float bias = GetShadowBias();
+    float z = SampleShadowMap(cascade, shadowCoords.xy * 0.5 + 0.5).x;
+    float result = shadowCoords.z - bias > z ? 0.0 : 1.0;
+    return result;
 }
 
 // http://developer.download.nvidia.com/whitepapers/2008/PCSS_Integration.pdf
 float SearchWidth(float receiverDistance)
 {
-	const float NEAR = 0.1;
-	return uLights.DirLight.Size * (receiverDistance - NEAR) / uLights.CameraPosition.z;
+    const float NEAR = 0.01;
+    return uLights.DirLight.Size * (receiverDistance - NEAR) / uLights.CameraPosition.z;
 }
 
 float SearchRegionRadiusUV(float zWorld)
 {
-	const float lightzNear = 0.0;
-	const float lightRadiusUV = 0.05;
-	return lightRadiusUV * (zWorld - lightzNear) / zWorld;
+    const float lightzNear = 0.8;
+    const float lightRadiusUV = 0.05;
+    return lightRadiusUV * (zWorld - lightzNear) / zWorld;
 }
 
 float FindBlockerDistanceDirectionalLight(int cascade, vec3 shadowCoords)
 {
-	float bias = GetShadowBias();
+    float bias = GetShadowBias();
 
-	int blockers = 0;
-	float avgBlockerDistance = 0.0;
-	float searchWidth = SearchRegionRadiusUV(shadowCoords.z);
-	for (int i = 0; i < PCSS_SAMPLES; i++)
-	{
+    int blockers = 0;
+    float avgBlockerDistance = 0.0;
+    float searchWidth = SearchRegionRadiusUV(shadowCoords.z);
+    for (int i = 0; i < PCSS_SAMPLES; i++)
+    {
         vec2 disk = SamplePoissonDisk(i);
-		float z = SampleShadowMap(cascade, (shadowCoords.xy * 0.5 + 0.5) + disk * searchWidth).x;
-		if (z < (shadowCoords.z - bias))
-		{
-			blockers++;
-			avgBlockerDistance += z;
-		}
-	}
+        float z = SampleShadowMap(cascade, (shadowCoords.xy * 0.5 + 0.5) + disk * searchWidth).x;
+        if (z < (shadowCoords.z - bias))
+        {
+            blockers++;
+            avgBlockerDistance += z;
+        }
+    }
 
-	if (blockers > 0)
-		return avgBlockerDistance / float(blockers);
+    if (blockers > 0)
+        return avgBlockerDistance / float(blockers);
 
-	return -1.0;
+    return -1.0;
 }
 
 float PCFDirectionalLight(int cascade, vec3 shadowCoords, float uvRadius)
 {
-	float bias = GetShadowBias();
+    float bias = GetShadowBias();
 
-	float sum = 0.0;
-	for (int i = 0; i < PCF_SAMPLES; i++)
-	{
-		vec2 offset = SamplePoissonDisk(i) * uvRadius;
-		float z = SampleShadowMap(cascade, (shadowCoords.xy * 0.5 + 0.5) + offset).x;
-		sum += step(shadowCoords.z - bias, z);
-	}
-	return sum / float(PCF_SAMPLES);
+    float sum = 0.0;
+    for (int i = 0; i < PCF_SAMPLES; i++)
+    {
+        vec2 offset = SamplePoissonDisk(i) * uvRadius;
+        float z = SampleShadowMap(cascade, (shadowCoords.xy * 0.5 + 0.5) + offset).x;
+        sum += shadowCoords.z - bias > z ? 0.0 : 1.0;
+    }
+    return sum / float(PCF_SAMPLES);
 }
 
 float PCSSDirectionalLight(int cascade, vec3 shadowCoords)
 {
-	float blockerDistance = FindBlockerDistanceDirectionalLight(cascade, shadowCoords);
-	if (blockerDistance == -1.0) // No occlusion
-		return 1.0;
+    float blockerDistance = FindBlockerDistanceDirectionalLight(cascade, shadowCoords);
+    if (blockerDistance == -1.0) // No occlusion
+        return 1.0;
 
-	float penumbraWidth = (shadowCoords.z - blockerDistance) / blockerDistance;
+    float penumbraWidth = (shadowCoords.z - blockerDistance) / blockerDistance;
 
-	float NEAR = 0.01;
-	float uvRadius = penumbraWidth * uLights.DirLight.Size * NEAR / shadowCoords.z;
-	uvRadius = min(uvRadius, 0.002);
-	return PCFDirectionalLight(cascade, shadowCoords, uvRadius);
+    float NEAR = 0.01;
+    float uvRadius = penumbraWidth * uLights.DirLight.Size * NEAR / shadowCoords.z;
+    uvRadius = min(uvRadius, 0.002);
+    return PCFDirectionalLight(cascade, shadowCoords, uvRadius);
 }
 
 float CalculateShadows(int cascadeIndex, vec4 lightSpaceVector, vec3 normal, vec3 direction)
@@ -534,6 +588,29 @@ vec3 CalculateDirectionaLight(vec3 F0, out int cascadeIdx)
     return result * shadow;
 }
 
+vec3 GetGradient(float value)
+{
+    vec3 zero = vec3(0.0, 0.0, 0.0);
+    vec3 white = vec3(0.0, 0.1, 0.9);
+    vec3 red = vec3(0.2, 0.9, 0.4);
+    vec3 blue = vec3(0.8, 0.8, 0.3);
+    vec3 green = vec3(0.9, 0.2, 0.3);
+
+    float step0 = 0.0;
+    float step1 = 2.0;
+    float step2 = 4.0;
+    float step3 = 8.0;
+    float step4 = 16.0;
+
+    vec3 color = mix(zero, white, smoothstep(step0, step1, value));
+    color = mix(color, white, smoothstep(step1, step2, value));
+    color = mix(color, red, smoothstep(step1, step2, value));
+    color = mix(color, blue, smoothstep(step2, step3, value));
+    color = mix(color, green, smoothstep(step3, step4, value));
+
+    return color;
+}
+
 void main()
 {
     gPBRParams.Normal = CalculateNormal();
@@ -556,9 +633,12 @@ void main()
     vec3 ambient = vec3(0.0);
 
     FinalColor = vec4(ambient, 1.0) + vec4(directLighting, 1.0);
-    FinalColor = FinalColor / (FinalColor + vec4(1.0));
-    FinalColor = pow(FinalColor, vec4(1.0/2.2));
 
+    if (uRendererData.ShowLightComplexity == 1)
+    {
+        int pointLightCount = GetPointLightCount();
+        FinalColor.rgb = FinalColor.rgb + GetGradient(float(pointLightCount));
+    }
 
     if (uShadowParams.ShowCascades == 1)
     {
@@ -578,4 +658,6 @@ void main()
                 break;
         }
     }
+    FinalColor = FinalColor / (FinalColor + vec4(1.0));
+    FinalColor = pow(FinalColor, vec4(1.0/2.2));
 }

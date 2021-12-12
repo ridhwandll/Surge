@@ -1,6 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Surge/Graphics/RenderProcedure/GeometryProcedure.hpp"
 #include "ShadowMapProcedure.hpp"
+#include "LightCullingProcedure.hpp"
 
 namespace Surge
 {
@@ -32,25 +33,18 @@ namespace Surge
     {
         SURGE_PROFILE_FUNC("GeometryProcedure::Update");
 
-        // Light UBO data
-        mRendererData->LightData.CameraPosition = mRendererData->CameraPosition;
-        mRendererData->LightData.PointLightCount = Uint(mRendererData->PointLights.size());
-        for (Uint i = 0; i < mRendererData->LightData.PointLightCount; i++)
-            mRendererData->LightData.PointLights[i] = mRendererData->PointLights[i];
-        mRendererData->LightData.DirLight = mRendererData->DirLight;
-        mRendererData->LightUniformBuffer->SetData(&mRendererData->LightData);
-
-        mRendererData->LightDescriptorSet->SetBuffer(mRendererData->LightUniformBuffer, 0);
-        mRendererData->LightDescriptorSet->UpdateForRendering();
-        mRendererData->LightDescriptorSet->Bind(mRendererData->RenderCmdBuffer, mProcData.GeometryPipeline);
-
+        LightCullingProcedure::InternalData* lightCullingProcData = Core::GetRenderer()->GetRenderProcManager()->GetRenderProcData<LightCullingProcedure>();
         ShadowMapProcedure::InternalData* shadowProcData = Core::GetRenderer()->GetRenderProcManager()->GetRenderProcData<ShadowMapProcedure>();
+        mProcData.GeometryPipeline->Bind(mRendererData->RenderCmdBuffer);
+
         shadowProcData->ShadowDesciptorSet->SetBuffer(shadowProcData->ShadowUniformBuffer, 0);
         shadowProcData->ShadowDesciptorSet->UpdateForRendering();
         shadowProcData->ShadowDesciptorSet->Bind(mRendererData->RenderCmdBuffer, mProcData.GeometryPipeline);
 
+        mRendererData->LightDescriptorSet->Bind(mRendererData->RenderCmdBuffer, mProcData.GeometryPipeline);
+        lightCullingProcData->LightListDescriptorSet->Bind(mRendererData->RenderCmdBuffer, mProcData.GeometryPipeline);
+
         mProcData.OutputFrambuffer->BeginRenderPass(mRendererData->RenderCmdBuffer);
-        mProcData.GeometryPipeline->Bind(mRendererData->RenderCmdBuffer);
         for (const DrawCommand& object : mRendererData->DrawList)
         {
             const Ref<Mesh>& mesh = object.MeshComp->Mesh;
@@ -81,6 +75,11 @@ namespace Surge
     {
         mProcData.OutputFrambuffer.Reset();
         mProcData.GeometryPipeline.Reset();
+    }
+
+    void GeometryProcedure::Resize(Uint newWidth, Uint newHeight)
+    {
+        mProcData.OutputFrambuffer->Resize(newWidth, newHeight);
     }
 
 } // namespace Surge

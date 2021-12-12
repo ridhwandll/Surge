@@ -58,6 +58,11 @@ namespace Surge
         mProcData.PreDepthPipeline.Reset();
     }
 
+    void PreDepthProcedure::Resize(Uint newWidth, Uint newHeight)
+    {
+        mProcData.OutputFrambuffer->Resize(newWidth, newHeight);
+    }
+
 } // namespace Surge
 
 // Empty Reflection, register nothing

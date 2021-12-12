@@ -11,6 +11,7 @@ namespace Surge
         virtual ~ComputePipeline() = default;
 
         virtual void Bind(const Ref<RenderCommandBuffer>& renderCmdBuffer) = 0;
+        virtual void SetPushConstantData(const Ref<RenderCommandBuffer>& cmdBuffer, const String& bufferName, void* data) const = 0;
         virtual void Dispatch(const Ref<RenderCommandBuffer>& renderCmdBuffer, Uint groupCountX, Uint groupCountY, Uint groupCountZ) = 0;
         virtual const Ref<Shader>& GetShader() const = 0;
 

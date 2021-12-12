@@ -183,7 +183,7 @@ namespace Surge
                 layoutBinding.binding = buffer.Binding;
                 layoutBinding.descriptorCount = 1; // TODO: Need to add arrays
                 layoutBinding.descriptorType = VulkanUtils::ShaderBufferTypeToVulkan(buffer.ShaderUsage);
-                layoutBinding.stageFlags = VulkanUtils::GetShaderStagesFlagsFromShaderTypes(buffer.ShaderStages);
+                layoutBinding.stageFlags = VulkanUtils::GetShaderStagesFlagsFromShaderTypes(buffer.ShaderStages) | VK_SHADER_STAGE_ALL;
             }
 
             for (const ShaderResource& texture : mReflectionData.GetResources())
@@ -195,7 +195,7 @@ namespace Surge
                 LayoutBinding.binding = texture.Binding;
                 LayoutBinding.descriptorCount = 1; // TODO: Need to add arrays
                 LayoutBinding.descriptorType = VulkanUtils::ShaderImageUsageToVulkan(texture.ShaderUsage);
-                LayoutBinding.stageFlags = VulkanUtils::GetShaderStagesFlagsFromShaderTypes(texture.ShaderStages);
+                LayoutBinding.stageFlags = VulkanUtils::GetShaderStagesFlagsFromShaderTypes(texture.ShaderStages) | VK_SHADER_STAGE_ALL;
             }
 
             VkDescriptorSetLayoutCreateInfo layoutInfo {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};

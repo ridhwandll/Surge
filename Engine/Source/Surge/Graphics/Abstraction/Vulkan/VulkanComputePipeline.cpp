@@ -29,6 +29,18 @@ namespace Surge
         vkCmdBindPipeline(vulkanCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, mPipeline);
     }
 
+    void VulkanComputePipeline::SetPushConstantData(const Ref<RenderCommandBuffer>& cmdBuffer, const String& bufferName, void* data) const
+    {
+        VulkanRenderContext* renderContext = nullptr;
+        SURGE_GET_VULKAN_CONTEXT(renderContext);
+        Uint frameIndex = renderContext->GetFrameIndex();
+        VkCommandBuffer vulkanCmdBuffer = cmdBuffer.As<VulkanRenderCommandBuffer>()->GetVulkanCommandBuffer(frameIndex);
+        const VkPushConstantRange& pushConstant = mShader.As<VulkanShader>()->GetPushConstantRanges().at(bufferName);
+
+        SG_ASSERT(pushConstant.stageFlags != 0, "Invalid Push constant name: '{0}'!", bufferName);
+        vkCmdPushConstants(vulkanCmdBuffer, mPipelineLayout, pushConstant.stageFlags, pushConstant.offset, pushConstant.size, data);
+    }
+
     void VulkanComputePipeline::Dispatch(const Ref<RenderCommandBuffer>& renderCmdBuffer, Uint groupCountX, Uint groupCountY, Uint groupCountZ)
     {
         VulkanRenderContext* renderContext = nullptr;

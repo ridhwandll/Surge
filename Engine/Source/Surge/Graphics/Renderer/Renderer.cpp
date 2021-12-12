@@ -1,7 +1,6 @@
 ﻿// Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Surge/Graphics/Renderer/Renderer.hpp"
 #include "Surge/Utility/Filesystem.hpp"
-#include "SurgeMath/Math.hpp"
 #include "Surge/ECS/Scene.hpp"
 #include "Surge/Graphics/RenderProcedure/PreDepthProcedure.hpp"
 #include "Surge/Graphics/RenderProcedure/ShadowMapProcedure.hpp"
@@ -11,6 +10,21 @@
 
 namespace Surge
 {
+    struct UBufCameraData // At binding 0 set 0
+    {
+        glm::mat4 ViewMatrix;
+        glm::mat4 ProjectionMatrix;
+        glm::mat4 ViewProjectionMatrix;
+    };
+
+    struct UBufRendererData // At binding 0 set 1
+    {
+        Uint TilesCountX; // Forward+
+        int ShowLightComplexity;
+        float _Padding_1;
+        float _Padding_2;
+    };
+
     void Renderer::Initialize()
     {
         SURGE_PROFILE_FUNC("Renderer::Initialize()");
@@ -27,8 +41,9 @@ namespace Surge
         mData->LightDescriptorSet = DescriptorSet::Create(mainPBRShader, 4, false);
         mData->LightUniformBuffer = UniformBuffer::Create(sizeof(LightUniformBufferData));
 
-        mData->CameraUniformBuffer = UniformBuffer::Create(sizeof(glm::mat4) * 3);
-        mData->RendererDescriptorSet = DescriptorSet::Create(mainPBRShader, 0, false);
+        mData->CameraUniformBuffer = UniformBuffer::Create(sizeof(UBufCameraData));
+        mData->RendererDataUniformBuffer = UniformBuffer::Create(sizeof(UBufRendererData));
+        mData->DescriptorSet0 = DescriptorSet::Create(mainPBRShader, 0, false);
 
         Uint whiteTextureData = 0xffffffff;
         mData->WhiteTexture = Texture2D::Create(ImageFormat::RGBA8, 1, 1, &whiteTextureData);
@@ -41,32 +56,29 @@ namespace Surge
         mProcManager.Sort<PreDepthProcedure, LightCullingProcedure, ShadowMapProcedure, GeometryProcedure>();
     }
 
-    void Renderer::Shutdown()
-    {
-        SURGE_PROFILE_FUNC("Renderer::Shutdown()");
-        mProcManager.Shutdown();
-        mData->ShaderSet.Shutdown();
-        mData.reset();
-    }
-
     void Renderer::BeginFrame(const Camera& camera, const glm::mat4& transform)
     {
         SURGE_PROFILE_FUNC("Renderer::BeginFrame(Camera)");
-        glm::vec3 translation, rotation, scale;
-        Math::DecomposeTransform(transform, translation, rotation, scale);
-
         mData->ViewMatrix = glm::inverse(transform);
         mData->ProjectionMatrix = camera.GetProjectionMatrix();
         mData->ViewProjection = mData->ProjectionMatrix * mData->ViewMatrix;
-        mData->CameraPosition = translation;
+        mData->CameraPosition = transform[3];
         mData->RenderCmdBuffer->BeginRecording();
 
+        LightCullingProcedure::InternalData* lightCullingProcData = Core::GetRenderer()->GetRenderProcManager()->GetRenderProcData<LightCullingProcedure>();
         GeometryProcedure::InternalData* geometryProcData = Core::GetRenderer()->GetRenderProcManager()->GetRenderProcData<GeometryProcedure>();
-        glm::mat4 cameraData[2] = {mData->ViewMatrix, mData->ProjectionMatrix};
-        mData->CameraUniformBuffer->SetData(cameraData);
-        mData->RendererDescriptorSet->SetBuffer(mData->CameraUniformBuffer, 0);
-        mData->RendererDescriptorSet->UpdateForRendering();
-        mData->RendererDescriptorSet->Bind(mData->RenderCmdBuffer, geometryProcData->GeometryPipeline);
+
+        UBufCameraData camData = {mData->ViewMatrix, mData->ProjectionMatrix, mData->ViewProjection};
+        UBufRendererData rendererData = {lightCullingProcData->TileCountX, lightCullingProcData->ShowLightComplexity, 0.0, 0.0};
+
+        mData->CameraUniformBuffer->SetData(&camData);
+        mData->RendererDataUniformBuffer->SetData(&rendererData);
+
+        mData->DescriptorSet0->SetBuffer(mData->CameraUniformBuffer, 0);
+        mData->DescriptorSet0->SetBuffer(mData->RendererDataUniformBuffer, 1);
+
+        mData->DescriptorSet0->UpdateForRendering();
+        mData->DescriptorSet0->Bind(mData->RenderCmdBuffer, geometryProcData->GeometryPipeline);
     }
 
     void Renderer::BeginFrame(const EditorCamera& camera)
@@ -78,12 +90,20 @@ namespace Surge
         mData->CameraPosition = camera.GetPosition();
         mData->RenderCmdBuffer->BeginRecording();
 
+        LightCullingProcedure::InternalData* lightCullingProcData = Core::GetRenderer()->GetRenderProcManager()->GetRenderProcData<LightCullingProcedure>();
         GeometryProcedure::InternalData* geometryProcData = Core::GetRenderer()->GetRenderProcManager()->GetRenderProcData<GeometryProcedure>();
-        glm::mat4 cameraData[2] = {mData->ViewMatrix, mData->ProjectionMatrix};
-        mData->CameraUniformBuffer->SetData(cameraData);
-        mData->RendererDescriptorSet->SetBuffer(mData->CameraUniformBuffer, 0);
-        mData->RendererDescriptorSet->UpdateForRendering();
-        mData->RendererDescriptorSet->Bind(mData->RenderCmdBuffer, geometryProcData->GeometryPipeline);
+
+        UBufCameraData camData = {mData->ViewMatrix, mData->ProjectionMatrix, mData->ViewProjection};
+        UBufRendererData rendererData = {lightCullingProcData->TileCountX, lightCullingProcData->ShowLightComplexity, 0.0, 0.0};
+
+        mData->CameraUniformBuffer->SetData(&camData);
+        mData->RendererDataUniformBuffer->SetData(&rendererData);
+
+        mData->DescriptorSet0->SetBuffer(mData->CameraUniformBuffer, 0);
+        mData->DescriptorSet0->SetBuffer(mData->RendererDataUniformBuffer, 1);
+
+        mData->DescriptorSet0->UpdateForRendering();
+        mData->DescriptorSet0->Bind(mData->RenderCmdBuffer, geometryProcData->GeometryPipeline);
     }
 
     void Renderer::EndFrame()
@@ -94,9 +114,14 @@ namespace Surge
         mData->RenderCmdBuffer->EndRecording();
 
         mData->RenderCmdBuffer->Submit();
-
         mData->DrawList.clear();
         mData->PointLights.clear();
+    }
+
+    void Renderer::SetRenderArea(Uint width, Uint height)
+    {
+        if (width || height)
+            mProcManager.ResizeAll(width, height);
     }
 
     Ref<Shader>& Renderer::GetShader(const String& name)
@@ -109,6 +134,13 @@ namespace Surge
     {
         GeometryProcedure::InternalData* passData = mProcManager.GetRenderProcData<GeometryProcedure>();
         return passData->OutputFrambuffer;
+    }
+
+    void Renderer::Shutdown()
+    {
+        SURGE_PROFILE_FUNC("Renderer::Shutdown()");
+        mProcManager.Shutdown();
+        mData->ShaderSet.Shutdown();
     }
 
 } // namespace Surge

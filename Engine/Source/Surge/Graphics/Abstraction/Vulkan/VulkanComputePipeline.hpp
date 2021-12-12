@@ -12,9 +12,10 @@ namespace Surge
         VulkanComputePipeline(Ref<Shader>& computeShader);
         virtual ~VulkanComputePipeline() override;
 
-        void Bind(const Ref<RenderCommandBuffer>& renderCmdBuffer) override;
-        void Dispatch(const Ref<RenderCommandBuffer>& renderCmdBuffer, Uint groupCountX, Uint groupCountY, Uint groupCountZ) override;
-        const Ref<Shader>& GetShader() const override { return mShader; }
+        virtual void Bind(const Ref<RenderCommandBuffer>& renderCmdBuffer) override;
+        virtual void SetPushConstantData(const Ref<RenderCommandBuffer>& cmdBuffer, const String& bufferName, void* data) const override;
+        virtual void Dispatch(const Ref<RenderCommandBuffer>& renderCmdBuffer, Uint groupCountX, Uint groupCountY, Uint groupCountZ) override;
+        virtual const Ref<Shader>& GetShader() const override { return mShader; }
 
         VkPipelineLayout GetPipelineLayout() const { return mPipelineLayout; }
 

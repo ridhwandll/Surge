@@ -54,7 +54,7 @@ namespace Surge
             });
 
             PropertyRenderProcedure<LightCullingProcedure>("Light Culling Procedure", [](LightCullingProcedure* proc, LightCullingProcedure::InternalData* internalData) {
-                //internalData->LightListStorageBuffer->Get
+                ImGuiAux::TProperty<bool>("Show Light Complexity", &internalData->ShowLightComplexity);
             });
 
             PropertyRenderProcedure<ShadowMapProcedure>("Shadow Map Procedure", [](ShadowMapProcedure* proc, ShadowMapProcedure::InternalData* internalData) {
@@ -78,6 +78,10 @@ namespace Surge
             });
 
             PropertyRenderProcedure<GeometryProcedure>("Geometry Procedure", [](GeometryProcedure* proc, GeometryProcedure::InternalData* internalData) {
+                ImGui::TableNextColumn();
+                ImGui::TextUnformatted("Total PointLight Count");
+                ImGui::TableNextColumn();
+                ImGui::Text("%i", Core::GetRenderer()->GetData()->LightData.PointLightCount);
             });
         }
         ImGui::End();
