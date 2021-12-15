@@ -73,40 +73,39 @@ namespace Surge
         // TODO: Check for previous resources
         if (!mPendingBuffers.empty() || !mPendingImages.empty() || !mPendingStorageBuffers.empty())
         {
+            Vector<VkWriteDescriptorSet> writeDescriptorSets;
             for (auto& [binding, buffer] : mPendingBuffers)
             {
-                VkWriteDescriptorSet writeDescriptorSet;
-                writeDescriptorSet = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+                VkWriteDescriptorSet writeDescriptorSet = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
                 writeDescriptorSet.dstBinding = binding;
                 writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
                 writeDescriptorSet.pBufferInfo = &buffer.As<VulkanUniformBuffer>()->GetVulkanDescriptorBufferInfo();
                 writeDescriptorSet.descriptorCount = 1;
                 writeDescriptorSet.dstSet = mDescriptorSets[frameIndex];
-                vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
+                writeDescriptorSets.push_back(writeDescriptorSet);
             }
             for (auto& [binding, buffer] : mPendingStorageBuffers)
             {
-                VkWriteDescriptorSet writeDescriptorSet;
-                writeDescriptorSet = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+                VkWriteDescriptorSet writeDescriptorSet = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
                 writeDescriptorSet.dstBinding = binding;
                 writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
                 writeDescriptorSet.pBufferInfo = &buffer.As<VulkanStorageBuffer>()->GetVulkanDescriptorBufferInfo();
                 writeDescriptorSet.descriptorCount = 1;
                 writeDescriptorSet.dstSet = mDescriptorSets[frameIndex];
-                vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
+                writeDescriptorSets.push_back(writeDescriptorSet);
             }
             for (auto& [binding, image] : mPendingImages)
             {
                 const ImageSpecification& spec = image->GetSpecification();
-                VkWriteDescriptorSet writeDescriptorSet;
-                writeDescriptorSet = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+                VkWriteDescriptorSet writeDescriptorSet = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
                 writeDescriptorSet.dstBinding = binding;
                 writeDescriptorSet.descriptorType = spec.Usage == ImageUsage::Storage ? VK_DESCRIPTOR_TYPE_STORAGE_IMAGE : VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
                 writeDescriptorSet.pImageInfo = &image.As<VulkanImage2D>()->GetVulkanDescriptorImageInfo();
                 writeDescriptorSet.descriptorCount = 1;
                 writeDescriptorSet.dstSet = mDescriptorSets[frameIndex];
-                vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
+                writeDescriptorSets.push_back(writeDescriptorSet);
             }
+            vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
 
             mPendingStorageBuffers.clear();
             mPendingBuffers.clear();
