@@ -4,9 +4,9 @@
 
 namespace Surge
 {
-    Ref<StorageBuffer> StorageBuffer::Create(Uint size)
+    Ref<StorageBuffer> StorageBuffer::Create(Uint size, GPUMemoryUsage memoryUsage)
     {
-        return Ref<VulkanStorageBuffer>::Create(size);
+        return Ref<VulkanStorageBuffer>::Create(size, memoryUsage);
     }
 
 } // namespace Surge

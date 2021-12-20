@@ -1,6 +1,6 @@
 ﻿// Copyright (c) - SurgeTechnologies - All rights reserved
 [SurgeShader: Vertex]
-#version 460 core
+#version 450 core
 const int MAX_CASCADE_COUNT = 4;
 
 layout(location = 0) in vec3 aPosition;
@@ -74,7 +74,7 @@ void main()
 }
 
 [SurgeShader: Pixel]
-#version 460 core
+#version 450 core
 
 const int MAX_CASCADE_COUNT = 4;
 
@@ -99,14 +99,6 @@ layout(location = 0) out vec4 FinalColor;
 const float PI = 3.141592;
 const float Epsilon = 0.00001;
 const vec3 Fdielectric = vec3(0.04); // Constant normal incidence Fresnel factor for all dielectrics.
-
-// Forward+
-layout(set = 5, binding = 0) readonly buffer VisibleLightIndicesBuffer
-{
-    int Indices[];
-
-} sVisibleLightIndicesBuffer;
-layout(set = 5, binding = 1) uniform sampler2D uPreDepthMap;
 
 // ---------- Lights ----------
 struct PointLight
@@ -146,6 +138,22 @@ layout(set = 0, binding = 1) uniform RendererData
     float _Padding_1;
     float _Padding_2;
 } uRendererData;
+layout(set = 0, binding = 2) uniform Lights
+{
+    vec3 CameraPosition;
+    int PointLightCount;
+
+    PointLight PointLights[1024];
+    DirectionalLight DirLight;
+
+} uLights;
+// Forward+
+layout(set = 0, binding = 3) readonly buffer VisibleLightIndicesBuffer
+{
+    int Indices[];
+
+} sVisibleLightIndicesBuffer;
+layout(set = 0, binding = 4) uniform sampler2D uPreDepthMap;
 
 // Material - Set 1 and 2
 layout(set = 1, binding = 0) uniform Material
@@ -181,17 +189,6 @@ layout(set = 3, binding = 1) uniform sampler2D ShadowMap1;
 layout(set = 3, binding = 2) uniform sampler2D ShadowMap2;
 layout(set = 3, binding = 3) uniform sampler2D ShadowMap3;
 layout(set = 3, binding = 4) uniform sampler2D ShadowMap4;
-
-// Move to a Storage buffer later
-layout(set = 4, binding = 0) uniform Lights
-{
-    vec3 CameraPosition;
-    int PointLightCount;
-
-    PointLight PointLights[1024];
-    DirectionalLight DirLight;
-
-} uLights;
 
 struct PBRParameters
 {
@@ -290,7 +287,7 @@ int GetLightBufferIndex(int i)
     ivec2 tileID = ivec2(gl_FragCoord) / ivec2(16, 16); //Current Fragment position / Tile count
     uint index = tileID.y * uRendererData.TilesCountX + tileID.x;
 
-    uint offset = index * 1024;
+    uint offset = index * 1024; // Max lights 1024
     return sVisibleLightIndicesBuffer.Indices[offset + i];
 }
 
@@ -347,20 +344,8 @@ vec3 CalculatePointLights(vec3 F0)
     return result;
 }
 
-float SampleShadowMap(int cascadeIndex, vec2 texCoords)
-{
-   if (cascadeIndex == 0)
-       return texture(ShadowMap1, texCoords).r;
-   if (cascadeIndex == 1)
-       return texture(ShadowMap2, texCoords).r;
-   if (cascadeIndex == 2)
-       return texture(ShadowMap3, texCoords).r;
-   if (cascadeIndex == 3)
-       return texture(ShadowMap4, texCoords).r;
-}
 //Employ stochastic sampling
 const int PCF_SAMPLES = 64;
-const int PCSS_SAMPLES = 16;
 
 const vec2 gPoissonDisk[64] = vec2[](
     vec2(-0.884081, 0.124488),
@@ -435,9 +420,21 @@ vec2 SamplePoissonDisk(uint index)
 
 float GetShadowBias()
 {
-    const float MINIMUM_SHADOW_BIAS = 0.002;
-    float bias = max(MINIMUM_SHADOW_BIAS * (1.0 - dot(gPBRParams.Normal, uLights.DirLight.Direction)), MINIMUM_SHADOW_BIAS);
+    const float minBias = 0.002;
+    float bias = max(minBias * (1.0 - dot(gPBRParams.Normal, uLights.DirLight.Direction)), minBias);
     return bias;
+}
+
+float SampleShadowMap(int cascadeIndex, vec2 texCoords)
+{
+    if (cascadeIndex == 0)
+        return texture(ShadowMap1, texCoords).r;
+    if (cascadeIndex == 1)
+        return texture(ShadowMap2, texCoords).r;
+    if (cascadeIndex == 2)
+        return texture(ShadowMap3, texCoords).r;
+    if (cascadeIndex == 3)
+        return texture(ShadowMap4, texCoords).r;
 }
 
 float MediumShadowsDirectionalLight(int cascade, vec3 shadowCoords)
@@ -465,70 +462,19 @@ float HardShadowsDirectionalLight(int cascade, vec3 shadowCoords)
     return result;
 }
 
-// http://developer.download.nvidia.com/whitepapers/2008/PCSS_Integration.pdf
-float SearchWidth(float receiverDistance)
-{
-    const float NEAR = 0.01;
-    return uLights.DirLight.Size * (receiverDistance - NEAR) / uLights.CameraPosition.z;
-}
-
-float SearchRegionRadiusUV(float zWorld)
-{
-    const float lightzNear = 0.8;
-    const float lightRadiusUV = 0.05;
-    return lightRadiusUV * (zWorld - lightzNear) / zWorld;
-}
-
-float FindBlockerDistanceDirectionalLight(int cascade, vec3 shadowCoords)
+float PCFDirectionalLight(int cascade, vec3 shadowCoords)
 {
     float bias = GetShadowBias();
-
-    int blockers = 0;
-    float avgBlockerDistance = 0.0;
-    float searchWidth = SearchRegionRadiusUV(shadowCoords.z);
-    for (int i = 0; i < PCSS_SAMPLES; i++)
-    {
-        vec2 disk = SamplePoissonDisk(i);
-        float z = SampleShadowMap(cascade, (shadowCoords.xy * 0.5 + 0.5) + disk * searchWidth).x;
-        if (z < (shadowCoords.z - bias))
-        {
-            blockers++;
-            avgBlockerDistance += z;
-        }
-    }
-
-    if (blockers > 0)
-        return avgBlockerDistance / float(blockers);
-
-    return -1.0;
-}
-
-float PCFDirectionalLight(int cascade, vec3 shadowCoords, float uvRadius)
-{
-    float bias = GetShadowBias();
-
     float sum = 0.0;
+    vec2 texelSize = 1.0 / textureSize(ShadowMap1, 0);
+
     for (int i = 0; i < PCF_SAMPLES; i++)
     {
-        vec2 offset = SamplePoissonDisk(i) * uvRadius;
-        float z = SampleShadowMap(cascade, (shadowCoords.xy * 0.5 + 0.5) + offset).x;
+        vec2 offset = gPoissonDisk[i] * texelSize * 3.0;
+        float z = SampleShadowMap(cascade, shadowCoords.xy * 0.5 + 0.5 + offset).x;
         sum += shadowCoords.z - bias > z ? 0.0 : 1.0;
     }
     return sum / float(PCF_SAMPLES);
-}
-
-float PCSSDirectionalLight(int cascade, vec3 shadowCoords)
-{
-    float blockerDistance = FindBlockerDistanceDirectionalLight(cascade, shadowCoords);
-    if (blockerDistance == -1.0) // No occlusion
-        return 1.0;
-
-    float penumbraWidth = (shadowCoords.z - blockerDistance) / blockerDistance;
-
-    float NEAR = 0.01;
-    float uvRadius = penumbraWidth * uLights.DirLight.Size * NEAR / shadowCoords.z;
-    uvRadius = min(uvRadius, 0.002);
-    return PCFDirectionalLight(cascade, shadowCoords, uvRadius);
 }
 
 float CalculateShadows(int cascadeIndex, vec4 lightSpaceVector, vec3 normal, vec3 direction)
@@ -545,7 +491,7 @@ float CalculateShadows(int cascadeIndex, vec4 lightSpaceVector, vec3 normal, vec
     else if(uShadowParams.ShadowQuality == 1)
         shadow = MediumShadowsDirectionalLight(cascadeIndex, projCoords);
     else if(uShadowParams.ShadowQuality == 2)
-        shadow = PCSSDirectionalLight(cascadeIndex, projCoords);
+        shadow = PCFDirectionalLight(cascadeIndex, projCoords);
 
     return shadow;
 }
@@ -630,9 +576,9 @@ void main()
     directLighting += CalculateDirectionaLight(F0, cascadeIndex);
 
     // TODO: GI
-    vec3 ambient = vec3(0.0);
+    vec3 ambient = vec3(0.01) * gPBRParams.Albedo;
 
-    FinalColor = vec4(ambient, 1.0) + vec4(directLighting, 1.0);
+    FinalColor = vec4(ambient + directLighting, 1.0);
 
     if (uRendererData.ShowLightComplexity == 1)
     {

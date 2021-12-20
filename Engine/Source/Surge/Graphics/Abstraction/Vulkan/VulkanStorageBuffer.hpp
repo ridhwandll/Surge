@@ -9,7 +9,7 @@ namespace Surge
     class VulkanStorageBuffer : public StorageBuffer
     {
     public:
-        VulkanStorageBuffer(Uint size);
+        VulkanStorageBuffer(Uint size, GPUMemoryUsage memoryUsage);
         virtual ~VulkanStorageBuffer() override;
 
         virtual void SetData(const void* data, Uint offset = 0) const override;
@@ -26,9 +26,10 @@ namespace Surge
 
     private:
         Uint mSize;
-
+        GPUMemoryUsage mMemoryUsage;
         VkBuffer mVulkanBuffer = VK_NULL_HANDLE;
         VmaAllocation mAllocation = VK_NULL_HANDLE;
         VkDescriptorBufferInfo mDescriptorInfo {};
     };
+
 } // namespace Surge

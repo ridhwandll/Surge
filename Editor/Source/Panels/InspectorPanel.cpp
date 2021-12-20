@@ -121,7 +121,8 @@ namespace Surge
                         ImGuiTreeNodeFlags flags = ((i == selectedMatIndex) ? ImGuiTreeNodeFlags_Selected : 0);
                         flags |= ImGuiTreeNodeFlags_SpanFullWidth;
 
-                        bool open = ImGuiAux::Selectable(materials[i]->GetName().c_str());
+                        // TODO: remove std::to_string hack
+                        bool open = ImGuiAux::Selectable(fmt::format("{0} (ID: {1})", materials[i]->GetName(), std::to_string(*(int*)&materials[i])).c_str());
 
                         if (selectedMatIndex == i)
                             ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32({0.1f, 0.1f, 0.1f, 1.0f}));

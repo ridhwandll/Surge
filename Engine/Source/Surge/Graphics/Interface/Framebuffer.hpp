@@ -7,10 +7,16 @@
 
 namespace Surge
 {
+    struct FramebufferAttachmentSpec
+    {
+        ImageFormat Format;
+        SamplerProperties AttachmentSamplerProps = {};
+    };
+
     struct FramebufferSpecification
     {
         Uint Width = 0, Height = 0;
-        Vector<ImageFormat> Formats;
+        Vector<FramebufferAttachmentSpec> AttachmentSpecs;
         glm::vec4 ClearColor = {0.1f, 0.1f, 0.1f, 1.0f};
         bool NoResize = false;
     };

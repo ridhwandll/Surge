@@ -33,4 +33,5 @@ namespace Surge
         void* mPixelData;
         Uint mPixelDataSize;
     };
+
 } // namespace Surge

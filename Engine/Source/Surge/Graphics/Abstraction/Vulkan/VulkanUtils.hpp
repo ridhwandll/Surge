@@ -12,6 +12,7 @@ namespace Surge::VulkanUtils
     String ShaderTypeToString(const ShaderType& type);
     shaderc_shader_kind ShadercShaderKindFromSurgeShaderType(const ShaderType& type);
 
+    VkCompareOp CompareOpToVkCompareOp(CompareOp op);
     VkPrimitiveTopology GetVulkanPrimitiveTopology(PrimitiveTopology primitive);
     VkFormat ShaderDataTypeToVulkanFormat(ShaderDataType type);
     Vector<VkPushConstantRange> GetPushConstantRangesVectorFromHashMap(const HashMap<String, VkPushConstantRange>& pushConstants);

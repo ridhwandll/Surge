@@ -4,8 +4,8 @@
 
 namespace Surge
 {
-    VulkanStorageBuffer::VulkanStorageBuffer(Uint size)
-        : mSize(size)
+    VulkanStorageBuffer::VulkanStorageBuffer(Uint size, GPUMemoryUsage memoryUsage)
+        : mSize(size), mMemoryUsage(memoryUsage)
     {
         Invalidate();
     }
@@ -58,7 +58,7 @@ namespace Surge
         bufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
         bufferInfo.size = mSize;
 
-        mAllocation = renderContext->GetMemoryAllocator()->AllocateBuffer(bufferInfo, VMA_MEMORY_USAGE_GPU_ONLY, mVulkanBuffer, nullptr);
+        mAllocation = renderContext->GetMemoryAllocator()->AllocateBuffer(bufferInfo, SurgeMemoryUsageToVmaMemoryUsage(mMemoryUsage), mVulkanBuffer, nullptr);
         SET_VK_OBJECT_DEBUGNAME(mVulkanBuffer, VK_OBJECT_TYPE_BUFFER, "Storage Buffer");
 
         // Update Descriptor info

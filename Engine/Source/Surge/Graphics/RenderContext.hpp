@@ -21,6 +21,17 @@ namespace Surge
         uint64_t Free = 0;
     };
 
+    enum class GPUMemoryUsage
+    {
+        Unknown = 0,
+        GPUOnly,
+        CPUOnly,
+        CPUToGPU,
+        GPUToCPU,
+        CPUCopy,
+        GPULazilyAllocated
+    };
+
     // NOTE(Rid):
     // The "Core" owns the RenderContext
     // RenderContext owns the API Instance, LogicalDevice, SwapChain, PhysicalDevice, MemoryAllocator etc.

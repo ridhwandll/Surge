@@ -7,26 +7,9 @@
 // - http://advances.realtimerendering.com/s2017/2017_Sig_Improved_Culling_final.pdf
 
 [SurgeShader: Compute]
-#version 460 core
+#version 450 core
 #define TILE_SIZE 16
 
-// Set 0 belongs to the renderer
-layout(set = 0, binding = 0) uniform Camera
-{
-    mat4 ViewMatrix;
-    mat4 ProjectionMatrix;
-    mat4 ViewProjectionMatrix;
-
-} uCameraData;
-layout(set = 0, binding = 1) uniform RendererData
-{
-    uint TilesCountX; // Forward+
-    int ShowLightComplexity;
-    float _Padding_1;
-    float _Padding_2;
-} uRendererData;
-
-// Lights Data
 struct PointLight
 {
     vec3 Position;
@@ -48,7 +31,22 @@ struct DirectionalLight
     vec3 Color;
     float Size;
 };
-layout(set = 4, binding = 0) uniform Lights
+// Set 0 belongs to the renderer
+layout(set = 0, binding = 0) uniform Camera
+{
+    mat4 ViewMatrix;
+    mat4 ProjectionMatrix;
+    mat4 ViewProjectionMatrix;
+
+} uCameraData;
+layout(set = 0, binding = 1) uniform RendererData
+{
+    uint TilesCountX; // Forward+
+    int ShowLightComplexity;
+    float _Padding_1;
+    float _Padding_2;
+} uRendererData;
+layout(set = 0, binding = 2) uniform Lights
 {
     vec3 CameraPosition;
     int PointLightCount;
@@ -57,18 +55,17 @@ layout(set = 4, binding = 0) uniform Lights
     DirectionalLight DirLight;
 
 } uLights;
+layout(std430, set = 0, binding = 3) writeonly buffer VisibleLightIndicesBuffer
+{
+    int Indices[];
+
+} sVisibleLightIndicesBuffer;
+layout(set = 0, binding = 4) uniform sampler2D uPreDepthMap;
 
 layout(push_constant) uniform ScreenData
 {
     ivec2 ScreenSize;
 } uScreenData;
-
-layout(std430, set = 5, binding = 0) writeonly buffer VisibleLightIndicesBuffer
-{
-    int Indices[];
-
-} sVisibleLightIndicesBuffer;
-layout(set = 5, binding = 1) uniform sampler2D uPreDepthMap;
 
 // Shared values between all the threads in the current work group
 shared uint minDepthInt;

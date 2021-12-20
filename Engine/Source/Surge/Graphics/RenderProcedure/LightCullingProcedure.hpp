@@ -23,7 +23,6 @@ namespace Surge
             Uint TileCountX;
             bool ShowLightComplexity = false; // Used by Renderer
             Ref<ComputePipeline> LightCullingPipeline;
-            Ref<DescriptorSet> LightListDescriptorSet;
             Ref<StorageBuffer> LightListStorageBuffer;
         };
 

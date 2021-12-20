@@ -2,17 +2,17 @@
     "Scene": {
         "Entity0": {
             "Surge::IDComponent": {
-                "ID": 8802266489981893552
+                "ID": 2542431744767595228
             },
             "Surge::MeshComponent": {
                 "Mesh": "Engine\\Assets\\Mesh\\Cube.fbx"
             },
             "Surge::NameComponent": {
-                "Name": "Geometry"
+                "Name": "Cube"
             },
             "Surge::ParentChildComponent": {
                 "ChildrenIDs": [
-                    8697899125033718998
+                    4094498824928601651
                 ],
                 "ParentID": 0
             },
@@ -28,45 +28,13 @@
                     "Z": 0.0
                 },
                 "Scale": {
-                    "X": 20.0,
+                    "X": 10.0,
                     "Y": 1.0,
-                    "Z": 20.0
+                    "Z": 10.0
                 }
             }
         },
         "Entity1": {
-            "Surge::IDComponent": {
-                "ID": 8697899125033718998
-            },
-            "Surge::MeshComponent": {
-                "Mesh": "Engine\\Assets\\Mesh\\Cube.fbx"
-            },
-            "Surge::NameComponent": {
-                "Name": "Pillar"
-            },
-            "Surge::ParentChildComponent": {
-                "ChildrenIDs": [],
-                "ParentID": 8802266489981893552
-            },
-            "Surge::TransformComponent": {
-                "Position": {
-                    "X": 0.0,
-                    "Y": 2.5,
-                    "Z": 0.0
-                },
-                "Rotation": {
-                    "X": 0.0,
-                    "Y": 0.0,
-                    "Z": 0.0
-                },
-                "Scale": {
-                    "X": 0.04999997466802597,
-                    "Y": 5.0,
-                    "Z": 0.04999997466802597
-                }
-            }
-        },
-        "Entity2": {
             "Surge::DirectionalLightComponent": {
                 "Color": {
                     "X": 1.0,
@@ -98,17 +66,81 @@
                     "Z": 0.0
                 },
                 "Rotation": {
-                    "X": -30.528779983520508,
-                    "Y": -34.57118225097656,
-                    "Z": -0.00017211884551215917
+                    "X": -50.03153610229492,
+                    "Y": -28.27516746520996,
+                    "Z": -9.594017028808594
                 },
                 "Scale": {
-                    "X": 0.9999998807907104,
-                    "Y": 0.999994158744812,
-                    "Z": 0.9999765157699585
+                    "X": 0.9999258518218994,
+                    "Y": 0.9999442100524902,
+                    "Z": 0.9998019337654114
                 }
             }
         },
-        "Size": 3
+        "Entity2": {
+            "Surge::IDComponent": {
+                "ID": 1314082698857124037
+            },
+            "Surge::MeshComponent": {
+                "Mesh": "Engine\\Assets\\Mesh\\Torus.fbx"
+            },
+            "Surge::NameComponent": {
+                "Name": "Torus"
+            },
+            "Surge::ParentChildComponent": {
+                "ChildrenIDs": [],
+                "ParentID": 0
+            },
+            "Surge::TransformComponent": {
+                "Position": {
+                    "X": 0.0,
+                    "Y": 1.469977617263794,
+                    "Z": 0.0
+                },
+                "Rotation": {
+                    "X": -24.127090454101563,
+                    "Y": 15.599434852600098,
+                    "Z": 30.974437713623047
+                },
+                "Scale": {
+                    "X": 0.9999910593032837,
+                    "Y": 0.9999791383743286,
+                    "Z": 0.9999997615814209
+                }
+            }
+        },
+        "Entity3": {
+            "Surge::IDComponent": {
+                "ID": 4094498824928601651
+            },
+            "Surge::MeshComponent": {
+                "Mesh": "Engine\\Assets\\Mesh\\Cube.fbx"
+            },
+            "Surge::NameComponent": {
+                "Name": "Pillar"
+            },
+            "Surge::ParentChildComponent": {
+                "ChildrenIDs": [],
+                "ParentID": 2542431744767595228
+            },
+            "Surge::TransformComponent": {
+                "Position": {
+                    "X": -0.30665287375450134,
+                    "Y": 3.0,
+                    "Z": 0.366405725479126
+                },
+                "Rotation": {
+                    "X": 0.0,
+                    "Y": 0.0,
+                    "Z": 0.0
+                },
+                "Scale": {
+                    "X": 0.09999994933605194,
+                    "Y": 5.0,
+                    "Z": 0.09999994933605194
+                }
+            }
+        },
+        "Size": 4
     }
 }

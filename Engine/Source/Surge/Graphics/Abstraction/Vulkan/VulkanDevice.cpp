@@ -12,7 +12,7 @@ namespace Surge
         VK_CALL(vkEnumeratePhysicalDevices(instance, &deviceCount, physicalDevices.data()));
 
         std::multimap<int, VkPhysicalDevice> candidates;
-        for (const auto& device: physicalDevices)
+        for (const auto& device : physicalDevices)
         {
             int32_t score = RatePhysicalDevice(device);
             candidates.insert(std::make_pair(score, device));
@@ -174,7 +174,7 @@ namespace Surge
             if (vkEnumerateDeviceExtensionProperties(mPhysicalDevice, nullptr, &extCount, &extensions.front()) == VK_SUCCESS)
             {
                 Log<Severity::Trace>("Found {1} extensions on {0}", mProperties.vk10Properties.properties.deviceName, extensions.size());
-                for (const VkExtensionProperties& ext: extensions)
+                for (const VkExtensionProperties& ext : extensions)
                     mSupportedExtensions.emplace(ext.extensionName);
             }
         }
@@ -418,4 +418,5 @@ namespace Surge
 
         return score;
     }
+
 } // namespace Surge

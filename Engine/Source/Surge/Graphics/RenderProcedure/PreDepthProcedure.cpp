@@ -8,7 +8,7 @@ namespace Surge
         mRendererData = rendererData;
 
         FramebufferSpecification spec = {};
-        spec.Formats = {ImageFormat::RED32F, ImageFormat::Depth32};
+        spec.AttachmentSpecs = {{ImageFormat::Depth32, {}}};
         spec.Width = 1280;
         spec.Height = 720;
         mProcData.OutputFrambuffer = Framebuffer::Create(spec);

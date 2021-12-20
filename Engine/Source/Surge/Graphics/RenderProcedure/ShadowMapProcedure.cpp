@@ -36,7 +36,7 @@ namespace Surge
 
         // Framebuffers
         FramebufferSpecification spec = {};
-        spec.Formats = {ImageFormat::Depth32};
+        spec.AttachmentSpecs = {{ImageFormat::Depth32, {}}};
         spec.Width = mShadowMapResolution;
         spec.Height = mShadowMapResolution;
         for (Uint i = 0; i < totalCascades; i++)

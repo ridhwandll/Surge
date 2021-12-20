@@ -9,4 +9,5 @@ namespace Surge
     {
         return Ref<VulkanImage2D>::Create(specification);
     }
+
 } // namespace Surge

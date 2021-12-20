@@ -41,9 +41,24 @@ namespace Surge
         ClampToBorder
     };
 
+    enum class CompareOp
+    {
+        Never,
+        Less,
+        Equal,
+        LessOrEqual,
+        Greater,
+        NotEqual,
+        GreaterOrEqual,
+        Always,
+    };
+
     struct SamplerProperties
     {
-        TextureAddressMode SamplerAddressMode = TextureAddressMode::ClampToEdge;
+        bool EnableAnisotropy = false;
+        bool EnableComparison = false;
+        CompareOp SamplerCompareOp = CompareOp::Always;
+        TextureAddressMode SamplerAddressMode = TextureAddressMode::Repeat;
         TextureFilter SamplerFilter = TextureFilter::Linear;
     };
 
@@ -51,7 +66,7 @@ namespace Surge
     {
         ImageFormat Format = ImageFormat::RGBA8;
         ImageUsage Usage = ImageUsage::Storage;
-        SamplerProperties Sampler {};
+        SamplerProperties SamplerProps {};
         Uint Width = 0;
         Uint Height = 0;
         Uint Mips = 1;

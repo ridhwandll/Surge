@@ -54,7 +54,7 @@ namespace Surge
         VK_CALL(vkEnumerateInstanceLayerProperties(&instanceLayerCount, instanceLayerProperties.data()));
 
         bool validationLayerPresent = false;
-        for (const VkLayerProperties& layer: instanceLayerProperties)
+        for (const VkLayerProperties& layer : instanceLayerProperties)
         {
             if (strcmp(layer.layerName, validationLayerName) == 0)
             {
@@ -66,11 +66,14 @@ namespace Surge
 
         if (!validationLayerPresent)
             Log<Severity::Error>("Validation layer requested, but it is not present ({0}), validation is disabled", validationLayerName);
+        else
+            Log<Severity::Info>("Vulkan Validation layer enabled");
     }
 
-    void VulkanDiagnostics::AddValidationExtensions(Vector<const char*>& outInstanceExtensions) { outInstanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME); }
-
-    void VulkanDiagnostics::StartDiagnostics(VkInstance& instance) { VK_CALL(CreateDebugUtilsMessengerEXT(instance, &mDebugCreateInfo, nullptr, &mDebugMessenger)); }
+    void VulkanDiagnostics::StartDiagnostics(VkInstance& instance)
+    {
+        VK_CALL(CreateDebugUtilsMessengerEXT(instance, &mDebugCreateInfo, nullptr, &mDebugMessenger));
+    }
 
     void VulkanDiagnostics::EndDiagnostics(VkInstance& instance) { DestroyDebugUtilsMessengerEXT(instance, mDebugMessenger, nullptr); }
 

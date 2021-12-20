@@ -42,7 +42,6 @@ namespace Surge
         // Lights
         LightUniformBufferData LightData;
         Ref<UniformBuffer> LightUniformBuffer;
-        Ref<DescriptorSet> LightDescriptorSet;
         Vector<PointLight> PointLights;
         DirectionalLight DirLight;
 

@@ -58,7 +58,11 @@ namespace Surge
     public:
         void Create(VkInstanceCreateInfo& vkInstanceCreateInfo);
         void AddValidationLayers(Vector<const char*>& outInstanceLayers);
-        void AddValidationExtensions(Vector<const char*>& outInstanceExtensions);
+        FORCEINLINE void AddValidationExtensions(Vector<const char*>& outInstanceExtensions)
+        {
+            outInstanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        }
+
         void StartDiagnostics(VkInstance& instance);
         void EndDiagnostics(VkInstance& instance);
 
@@ -69,6 +73,7 @@ namespace Surge
         VkDebugUtilsMessengerEXT mDebugMessenger;
         VkDebugUtilsMessengerCreateInfoEXT mDebugCreateInfo {};
     };
+
 } // namespace Surge
 
 #ifdef SURGE_DEBUG

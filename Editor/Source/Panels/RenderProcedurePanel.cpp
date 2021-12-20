@@ -14,7 +14,7 @@ namespace Surge
     {
         if (ImGuiAux::PropertyGridHeader(name, false))
         {
-            if (ImGui::BeginTable("ShaderTable", 2, ImGuiTableFlags_Resizable))
+            if (ImGui::BeginTable("Props", 2, ImGuiTableFlags_Resizable))
             {
                 RenderProcedureManager* renderProcManager = Core::GetRenderer()->GetRenderProcManager();
                 T* proc = renderProcManager->GetProcedure<T>();
@@ -23,13 +23,14 @@ namespace Surge
                 bool isProcActive = renderProcManager->IsProcecureActive<T>();
                 if (ImGuiAux::TProperty<bool>("Active", &isProcActive))
                     renderProcManager->SetProcecureActive<T>(isProcActive);
-
                 if (isProcActive)
                 {
-                    if (ImGuiAux::TButton("Restart Procedure", "Restart"))
-                        renderProcManager->RestartProcedure<ShadowMapProcedure>();
-                    uiFunction(proc, internaldata);
+                    if (ImGuiAux::TButton("RestartProcedure", "Restart"))
+                        renderProcManager->RestartProcedure<T>();
                 }
+
+                if (isProcActive)
+                    uiFunction(proc, internaldata);
 
                 ImGui::EndTable();
             }

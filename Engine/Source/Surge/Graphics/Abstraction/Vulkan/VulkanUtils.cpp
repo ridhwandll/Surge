@@ -314,4 +314,21 @@ namespace Surge
         return result;
     }
 
+    VkCompareOp VulkanUtils::CompareOpToVkCompareOp(CompareOp op)
+    {
+        switch (op)
+        {
+            case Surge::CompareOp::Never: return VK_COMPARE_OP_NEVER;
+            case Surge::CompareOp::Less: return VK_COMPARE_OP_LESS;
+            case Surge::CompareOp::Equal: return VK_COMPARE_OP_EQUAL;
+            case Surge::CompareOp::LessOrEqual: return VK_COMPARE_OP_LESS_OR_EQUAL;
+            case Surge::CompareOp::Greater: return VK_COMPARE_OP_GREATER;
+            case Surge::CompareOp::NotEqual: return VK_COMPARE_OP_NOT_EQUAL;
+            case Surge::CompareOp::GreaterOrEqual: return VK_COMPARE_OP_GREATER_OR_EQUAL;
+            case Surge::CompareOp::Always: return VK_COMPARE_OP_ALWAYS;
+        }
+        SG_ASSERT_INTERNAL("Invalid CompareOp!");
+        return VK_COMPARE_OP_MAX_ENUM;
+    }
+
 } // namespace Surge

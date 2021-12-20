@@ -36,7 +36,7 @@ namespace Surge
 
         // HACK; TODO: FIX
         Vector<VkClearValue> clearValues;
-        if (mSpecification.Formats.size() == 1 && VulkanUtils::IsDepthFormat(mSpecification.Formats[0]))
+        if (mSpecification.AttachmentSpecs.size() == 1 && VulkanUtils::IsDepthFormat(mSpecification.AttachmentSpecs[0].Format))
         {
             clearValues.resize(1);
             clearValues[0].depthStencil = {1.0f, 0};
@@ -63,7 +63,7 @@ namespace Surge
         renderPassBeginInfo.renderArea.offset = {0, 0};
         renderPassBeginInfo.renderArea.extent = {mSpecification.Width, mSpecification.Height};
         renderPassBeginInfo.framebuffer = mFramebuffer;
-        renderPassBeginInfo.clearValueCount = Uint(clearValues.size());
+        renderPassBeginInfo.clearValueCount = static_cast<Uint>(clearValues.size());
         renderPassBeginInfo.pClearValues = clearValues.data();
         vkCmdBeginRenderPass(vulkanCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -92,23 +92,24 @@ namespace Surge
         VkAttachmentReference depthAttachmentReference;
 
         Uint attachmentIndex = 0;
-        for (ImageFormat& format : mSpecification.Formats)
+        for (FramebufferAttachmentSpec& spec : mSpecification.AttachmentSpecs)
         {
             ImageSpecification imageSpec;
-            imageSpec.Format = format;
+            imageSpec.Format = spec.Format;
             imageSpec.Width = mSpecification.Width;
             imageSpec.Height = mSpecification.Height;
             imageSpec.Usage = ImageUsage::Attachment;
             imageSpec.Mips = 1;
+            imageSpec.SamplerProps = spec.AttachmentSamplerProps;
             Ref<Image2D> image = Image2D::Create(imageSpec);
 
-            if (VulkanUtils::IsDepthFormat(format))
+            if (VulkanUtils::IsDepthFormat(spec.Format))
             {
                 SG_ASSERT(!mDepthAttachmentImage, "Depth Attachment already exists!");
                 mDepthAttachmentImage = image;
                 VkAttachmentDescription& depthAttachment = attachmentDescriptions.emplace_back();
                 depthAttachment = {};
-                depthAttachment.format = VulkanUtils::GetImageFormat(format);
+                depthAttachment.format = VulkanUtils::GetImageFormat(spec.Format);
                 depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
                 depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
                 depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -124,7 +125,7 @@ namespace Surge
                 mColorAttachmentImages.push_back(image);
                 VkAttachmentDescription& colorAttachment = attachmentDescriptions.emplace_back();
                 colorAttachment = {};
-                colorAttachment.format = VulkanUtils::GetImageFormat(format);
+                colorAttachment.format = VulkanUtils::GetImageFormat(spec.Format);
                 colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
                 colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
                 colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;

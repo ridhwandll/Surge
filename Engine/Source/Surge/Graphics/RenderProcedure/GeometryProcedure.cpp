@@ -11,7 +11,7 @@ namespace Surge
         mRendererData = rendererData;
 
         FramebufferSpecification spec = {};
-        spec.Formats = {ImageFormat::RGBA16F, ImageFormat::Depth32};
+        spec.AttachmentSpecs = {{{ImageFormat::RGBA16F, {}}, {ImageFormat::Depth32, {}}}};
         spec.Width = 1280;
         spec.Height = 720;
         mProcData.OutputFrambuffer = Framebuffer::Create(spec);
@@ -40,9 +40,7 @@ namespace Surge
         shadowProcData->ShadowDesciptorSet->SetBuffer(shadowProcData->ShadowUniformBuffer, 0);
         shadowProcData->ShadowDesciptorSet->UpdateForRendering();
         shadowProcData->ShadowDesciptorSet->Bind(mRendererData->RenderCmdBuffer, mProcData.GeometryPipeline);
-
-        mRendererData->LightDescriptorSet->Bind(mRendererData->RenderCmdBuffer, mProcData.GeometryPipeline);
-        lightCullingProcData->LightListDescriptorSet->Bind(mRendererData->RenderCmdBuffer, mProcData.GeometryPipeline);
+        mRendererData->DescriptorSet0->Bind(mRendererData->RenderCmdBuffer, mProcData.GeometryPipeline);
 
         mProcData.OutputFrambuffer->BeginRenderPass(mRendererData->RenderCmdBuffer);
         for (const DrawCommand& object : mRendererData->DrawList)

@@ -77,16 +77,19 @@ namespace Surge
         // Sampler
         VkSamplerCreateInfo samplerCreateInfo {VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
         samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
-        samplerCreateInfo.anisotropyEnable = VK_FALSE; // TODO: have an option to enable it
-        samplerCreateInfo.magFilter = VulkanUtils::GetImageFiltering(mSpecification.Sampler.SamplerFilter);
+        samplerCreateInfo.anisotropyEnable = mSpecification.SamplerProps.EnableAnisotropy;
+        samplerCreateInfo.magFilter = VulkanUtils::GetImageFiltering(mSpecification.SamplerProps.SamplerFilter);
         samplerCreateInfo.minFilter = samplerCreateInfo.magFilter;
         samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-        samplerCreateInfo.addressModeU = VulkanUtils::GetImageAddressMode(mSpecification.Sampler.SamplerAddressMode);
+        samplerCreateInfo.addressModeU = VulkanUtils::GetImageAddressMode(mSpecification.SamplerProps.SamplerAddressMode);
         samplerCreateInfo.addressModeV = samplerCreateInfo.addressModeU;
         samplerCreateInfo.addressModeW = samplerCreateInfo.addressModeU;
         samplerCreateInfo.mipLodBias = 0.0f;
         samplerCreateInfo.minLod = 0.0f;
         samplerCreateInfo.maxLod = float(mSpecification.Mips);
+        samplerCreateInfo.compareEnable = mSpecification.SamplerProps.EnableComparison;
+        samplerCreateInfo.compareOp = VulkanUtils::CompareOpToVkCompareOp(mSpecification.SamplerProps.SamplerCompareOp);
+
         VK_CALL(vkCreateSampler(device->GetLogicalDevice(), &samplerCreateInfo, nullptr, &mImageSampler));
         SET_VK_OBJECT_DEBUGNAME(mImageSampler, VK_OBJECT_TYPE_SAMPLER, "Sampler");
 

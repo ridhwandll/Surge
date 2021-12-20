@@ -15,7 +15,7 @@ namespace Surge
         virtual Uint GetSize() const = 0;
         virtual void Resize(Uint newSize) = 0;
 
-        static Ref<StorageBuffer> Create(Uint size);
+        static Ref<StorageBuffer> Create(Uint size, GPUMemoryUsage memoryUsage);
     };
 
 } // namespace Surge

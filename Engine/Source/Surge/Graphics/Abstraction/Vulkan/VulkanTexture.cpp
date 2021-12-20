@@ -44,7 +44,7 @@ namespace Surge
         imageSpec.Height = mHeight;
         imageSpec.Mips = specification.UseMips ? mipChainLevels : 1;
         imageSpec.Usage = specification.Usage;
-        imageSpec.Sampler = specification.Sampler;
+        imageSpec.SamplerProps = specification.Sampler;
         mImage = Image2D::Create(imageSpec);
         mSpecification.Format = imageFormat;
 
@@ -66,7 +66,7 @@ namespace Surge
         imageSpec.Height = mHeight;
         imageSpec.Mips = 1;
         imageSpec.Usage = specification.Usage;
-        imageSpec.Sampler = specification.Sampler;
+        imageSpec.SamplerProps = specification.Sampler;
         mImage = Image2D::Create(imageSpec);
         mSpecification.Format = format;
 

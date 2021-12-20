@@ -38,7 +38,6 @@ namespace Surge
         mData->ShaderSet.LoadAll();
 
         Ref<Shader> mainPBRShader = Core::GetRenderer()->GetShader("PBR");
-        mData->LightDescriptorSet = DescriptorSet::Create(mainPBRShader, 4, false);
         mData->LightUniformBuffer = UniformBuffer::Create(sizeof(LightUniformBufferData));
 
         mData->CameraUniformBuffer = UniformBuffer::Create(sizeof(UBufCameraData));
