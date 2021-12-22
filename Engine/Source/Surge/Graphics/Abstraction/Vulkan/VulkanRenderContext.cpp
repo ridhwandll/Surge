@@ -122,8 +122,7 @@ namespace Surge
     {
         if (mImGuiEnabled)
         {
-            void* imTextureID = mImGuiContext.AddImage(image);
-            return imTextureID;
+            return mImGuiContext.AddImage(image);
         }
         return nullptr;
     }

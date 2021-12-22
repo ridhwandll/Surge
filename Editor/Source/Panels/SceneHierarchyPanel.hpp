@@ -2,6 +2,7 @@
 #pragma once
 #include "Panels/IPanel.hpp"
 #include "Surge/ECS/Scene.hpp"
+#include "Utility/ImGUIAux.hpp"
 
 namespace Surge
 {
@@ -37,9 +38,6 @@ namespace Surge
         Scene* mSceneContext;
         Entity mSelectedEntity; // TODO: Make It a vector when we allow multiple selection
 
-        // Renaming stuff
-        bool mRenaming;
-        String mOldName;
-        String mTempBuffer;
+        ImGuiAux::RenamingMechanism mRenamingMech;
     };
 } // namespace Surge

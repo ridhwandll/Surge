@@ -15,15 +15,17 @@ namespace Surge
     {
     public:
         Scene() = default;
-        Scene(bool runtime);
+        Scene(const String& name, bool runtime);
         ~Scene();
 
         void OnRuntimeStart();
-        void Update();
-        void Update(const EditorCamera& camera);
+        void Update();                     // Runtime Update
+        void Update(EditorCamera& camera); // EditorCam Update
         void OnRuntimeEnd();
         void CopyTo(Scene* other);
         Entity FindEntityByUUID(UUID id);
+        String& GetName() { return mName; }
+        const UUID& GetUUID() const { return mSceneUUID; }
 
         // Entity manipulation
         void CreateEntity(Entity& outEntity, const String& name = "New Entity");
@@ -36,6 +38,7 @@ namespace Surge
 
         entt::registry& GetRegistry() { return mRegistry; }
         const entt::registry& GetRegistry() const { return mRegistry; }
+
         Pair<RuntimeCamera*, glm::mat4> GetMainCameraEntity(); // Camera - CameraTransform(view = glm::inverse(CameraTransform))
         glm::mat4 GetWorldSpaceTransformMatrix(Entity entity);
 
@@ -44,6 +47,8 @@ namespace Surge
         void ConvertToWorldSpace(Entity entity);
 
     private:
+        String mName;
+        UUID mSceneUUID;
         entt::registry mRegistry;
     };
 

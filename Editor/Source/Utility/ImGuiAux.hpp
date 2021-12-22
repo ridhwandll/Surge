@@ -7,9 +7,18 @@
 #include <imgui_internal.h>
 
 #define HIERARCHY_ENTITY_DND "HiEnT!"
+
 // Function name prefixed with T means it is used inside ImGui::BeginTable
 namespace Surge::ImGuiAux
 {
+    namespace Colors
+    {
+        constexpr glm::vec4 ThemeColor = glm::vec4(1.0f, 0.5f, 0.1f, 1.0f);
+        constexpr glm::vec4 ThemeColorLight = glm::vec4(1.0f, 0.6f, 0.1f, 1.0f);
+        constexpr glm::vec4 ExtraDark = glm::vec4(0.05f, 0.05f, 0.05f, 1.0f);
+
+    } // namespace Colors
+
     enum class CustomProprtyFlag
     {
         None,
@@ -84,6 +93,8 @@ namespace Surge::ImGuiAux
     bool PropertyGridHeader(const String& name, bool openByDefault = true, const glm::vec2& size = {4.5f, 4.5f}, bool spacing = false);
 
     void TextCentered(const char* text);
+    bool ButtonCentered(const char* title);
+
     void Image(const Ref<Image2D>& image, const glm::vec2& size);
 
     template <typename T>
@@ -146,18 +157,18 @@ namespace Surge::ImGuiAux
             static_assert(false, "Invalid case! Maybe you used wrong CustomProprtyFlag with wrong type? For example: Using glm::vec3 with CustomProprtyFlag::Color4");
         ImGui::PopItemWidth();
         if (ImGui::IsItemHovered() || ImGui::IsItemActive())
-            DrawRectAroundWidget({1.0f, 0.5f, 0.1f, 1.0f}, 1.5f, 1.0f);
+            DrawRectAroundWidget(Colors::ThemeColor, 1.5f, 1.0f);
         ImGui::PopID();
 
         return result;
     }
 
-    FORCEINLINE bool Selectable(const char* title)
+    FORCEINLINE bool TSelectable(const char* title)
     {
         ImGui::TableNextColumn();
         bool isSlected = ImGui::Selectable(title);
         if (ImGui::IsItemFocused())
-            DrawRectAroundWidget({1.0f, 0.5f, 0.1f, 1.0f}, 1.5f, 1.0f);
+            DrawRectAroundWidget(Colors::ThemeColor, 1.5f, 1.0f);
         return isSlected;
     }
 
@@ -176,7 +187,7 @@ namespace Surge::ImGuiAux
         result = ImGui::Button(buttonText);
 
         if (ImGui::IsItemHovered() || ImGui::IsItemActive())
-            DrawRectAroundWidget({1.0f, 0.5f, 0.1f, 1.0f}, 1.5f, 1.0f);
+            DrawRectAroundWidget(Colors::ThemeColor, 1.5f, 1.0f);
         ImGui::PopID();
 
         return result;
@@ -188,7 +199,7 @@ namespace Surge::ImGuiAux
         result = ImGui::Button(buttonText);
 
         if (ImGui::IsItemHovered() || ImGui::IsItemActive())
-            DrawRectAroundWidget({1.0f, 0.5f, 0.1f, 1.0f}, 1.5f, 1.0f);
+            DrawRectAroundWidget(Colors::ThemeColor, 1.5f, 1.0f);
 
         return result;
     }
@@ -223,5 +234,44 @@ namespace Surge::ImGuiAux
         ImGui::PopID();
         return modified;
     }
+
+    FORCEINLINE void ToolTip(const char* tip)
+    {
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::BeginTooltip();
+            ImGui::TextUnformatted(tip);
+            ImGui::EndTooltip();
+        }
+    }
+
+    FORCEINLINE void DelayedToolTip(const char* tip)
+    {
+        if (ImGui::IsItemHovered() && GImGui->HoveredIdTimer > 0.5f)
+        {
+            ImGui::BeginTooltip();
+            ImGui::TextUnformatted(tip);
+            ImGui::EndTooltip();
+        }
+    }
+
+    class RenamingMechanism
+    {
+    public:
+        RenamingMechanism() = default;
+        RenamingMechanism(const RenamingMechanism&) = delete;
+        RenamingMechanism operator=(const RenamingMechanism&) = delete;
+        ~RenamingMechanism() = default;
+
+        FORCEINLINE void SetRenamingState(bool isRenaming) { mRenaming = isRenaming; }
+        void Update(String& name);
+
+        bool operator!() const { return !mRenaming; }
+
+    private:
+        bool mRenaming = false;
+        String mOldName;
+        String mTempBuffer;
+    };
 
 } // namespace Surge::ImGuiAux

@@ -2,6 +2,7 @@
 #include "Surge/Core/Core.hpp"
 #include "Utility/ImGuiAux.hpp"
 #include "Editor.hpp"
+#include <imgui_stdlib.h>
 
 namespace Surge
 {
@@ -15,8 +16,7 @@ namespace Surge
 
     void ImGuiAux::Image(const Ref<Image2D>& image, const glm::vec2& size)
     {
-        void* imguiTextureId = Core::GetRenderContext()->GetImGuiTextureID(image);
-        ImGui::Image(imguiTextureId, {size.x, size.y});
+        ImGui::Image(Core::GetRenderContext()->GetImGuiTextureID(image), {size.x, size.y});
     }
 
     void ImGuiAux::TextCentered(const char* text)
@@ -24,7 +24,7 @@ namespace Surge
         float windowWidth = ImGui::GetWindowSize().x;
         float textWidth = ImGui::CalcTextSize(text).x;
         ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
-        ImGui::Text(text);
+        ImGui::TextUnformatted(text);
     }
 
     void ImGuiAux::DockSpace()
@@ -84,6 +84,56 @@ namespace Surge
         }
 
         return open;
+    }
+
+    bool ImGuiAux::ButtonCentered(const char* title)
+    {
+        float windowWidth = ImGui::GetWindowSize().x;
+        float textWidth = ImGui::CalcTextSize(title).x;
+        ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
+        bool res = ImGui::Button(title);
+
+        if (ImGui::IsItemHovered() || ImGui::IsItemActive())
+            DrawRectAroundWidget(Colors::ThemeColor, 1.5f, 1.0f);
+
+        return res;
+    }
+
+    void ImGuiAux::RenamingMechanism::Update(String& name)
+    {
+        if (ImGui::IsWindowHovered() && Input::IsKeyPressed(Key::F2))
+            mRenaming = true;
+
+        if (mRenaming)
+        {
+            if (!name.empty())
+            {
+                mTempBuffer = name;
+                mOldName = mTempBuffer;
+                name.clear();
+            }
+            ImGui::SameLine();
+
+            // Copy the name from mTempBuffer
+            if (ImGui::InputText("##Txt", &mTempBuffer, ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue))
+            {
+                mRenaming = false;
+                name = mTempBuffer;
+                mTempBuffer.clear();
+                mOldName.clear();
+            }
+            ImGui::SetKeyboardFocusHere();
+            ImGuiAux::DrawRectAroundWidget({0.1f, 0.3f, 1.0f, 1.0f}, 1.5f, 1.0f);
+
+            // Revert to old name if user hits Escape
+            if (Input::IsKeyPressed(Key::Escape))
+            {
+                mRenaming = false;
+                name = mOldName;
+                mOldName.clear();
+                mTempBuffer.clear();
+            }
+        }
     }
 
 } // namespace Surge

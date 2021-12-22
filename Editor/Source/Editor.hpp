@@ -6,12 +6,6 @@
 
 namespace Surge
 {
-    enum class SceneState
-    {
-        Edit,
-        Play
-    };
-
     class Editor : public Surge::Client
     {
     public:
@@ -28,8 +22,7 @@ namespace Surge
         void OnRuntimeStart();
         void OnRuntimeEnd();
 
-        Ref<Scene>& GetEditorScene() { return mEditorScene; }
-        SceneState GetSceneState() { return mSceneState; }
+        Project& GetActiveProject() { return mActiveProject; }
         PanelManager& GetPanelManager() { return mPanelManager; }
         Titlebar& GetTitlebar() { return mTitleBar; }
         EditorCamera& GetCamera() { return mCamera; }
@@ -41,13 +34,8 @@ namespace Surge
         EditorCamera mCamera;
         Renderer* mRenderer;
 
-        Ref<Scene> mEditorScene, mRuntimeScene;
-
-        Entity mEntity;
-        Entity mOtherEntity;
-
         PanelManager mPanelManager;
         Titlebar mTitleBar {};
-        SceneState mSceneState;
+        Project mActiveProject;
     };
 } // namespace Surge

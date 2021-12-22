@@ -2,9 +2,7 @@
 #include "Panels/SceneHierarchyPanel.hpp"
 #include "Surge/ECS/Components.hpp"
 #include "Surge/Core/Input/Input.hpp"
-#include "Utility/ImGUIAux.hpp"
 #include <imgui.h>
-#include <imgui_stdlib.h>
 #include <imgui_internal.h>
 
 namespace Surge
@@ -14,7 +12,6 @@ namespace Surge
         mCode = GetStaticCode();
         mSceneContext = nullptr;
         mSelectedEntity = {};
-        mRenaming = false;
     }
 
     void SceneHierarchyPanel::Render(bool* show)
@@ -35,13 +32,13 @@ namespace Surge
                 if (ImGui::MenuItem("Empty Entity"))
                 {
                     mSceneContext->CreateEntity(mSelectedEntity, "Entity");
-                    mRenaming = true;
+                    mRenamingMech.SetRenamingState(true);
                 }
                 if (ImGui::MenuItem("Mesh"))
                 {
                     mSceneContext->CreateEntity(mSelectedEntity, "Mesh");
                     mSelectedEntity.AddComponent<MeshComponent>();
-                    mRenaming = true;
+                    mRenamingMech.SetRenamingState(true);
                 }
                 if (ImGui::MenuItem("Camera"))
                 {
@@ -98,8 +95,7 @@ namespace Surge
     void SceneHierarchyPanel::DrawEntityNode(Entity& e)
     {
         String& name = e.GetComponent<NameComponent>().Name;
-        ImGuiTreeNodeFlags flags = ((mSelectedEntity == e) ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow;
-        flags |= ImGuiTreeNodeFlags_SpanFullWidth;
+        ImGuiTreeNodeFlags flags = ((mSelectedEntity == e) ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanFullWidth;
 
         bool isSelectedEntity = false;
         if (mSelectedEntity == e)
@@ -132,53 +128,19 @@ namespace Surge
             ImGui::EndDragDropTarget();
         }
 
-        if (ImGui::IsItemClicked() && !mRenaming)
+        if (ImGui::IsItemClicked() && !mRenamingMech)
             mSelectedEntity = e;
 
         if (isSelectedEntity)
         {
-            if (!mRenaming && mSelectedEntity)
-                ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32({0.1f, 0.1f, 0.1f, 1.0f}));
+            if (!mRenamingMech && mSelectedEntity)
+                ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(ImGuiAux::Colors::ExtraDark));
 
-            // Start renaming
-            if (ImGui::IsWindowHovered() && Input::IsKeyPressed(Key::F2))
-                mRenaming = true;
-
-            // Renaming ongoing
-            if (mRenaming)
-            {
-                if (!name.empty())
-                {
-                    mTempBuffer = name;
-                    mOldName = mTempBuffer;
-                    name.clear();
-                }
-                ImGui::SameLine();
-
-                // Copy the name from mTempBuffer
-                if (ImGui::InputText("##Txt", &mTempBuffer, ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue))
-                {
-                    mRenaming = false;
-                    name = mTempBuffer;
-                    mTempBuffer.clear();
-                    mOldName.clear();
-                }
-                ImGui::SetKeyboardFocusHere();
-                ImGuiAux::DrawRectAroundWidget({0.1f, 0.3f, 1.0f, 1.0f}, 1.5f, 1.0f);
-
-                // Revert to old name if user hits Escape
-                if (Input::IsKeyPressed(Key::Escape))
-                {
-                    mRenaming = false;
-                    name = mOldName;
-                    mOldName.clear();
-                    mTempBuffer.clear();
-                }
-            }
+            mRenamingMech.Update(name);
             ImGui::PopStyleColor();
         }
 
-        if (ImGui::BeginPopupContextItem() && !mRenaming)
+        if (ImGui::BeginPopupContextItem() && !mRenamingMech)
         {
             if (ImGui::MenuItem("Delete"))
             {

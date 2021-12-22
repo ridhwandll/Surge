@@ -21,6 +21,7 @@ namespace Surge
     void Titlebar::Render()
     {
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5.0f, 8.0f));
+        Editor* editor = static_cast<Editor*>(Core::GetClient());
 
         // Start drawing window
         ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -43,14 +44,14 @@ namespace Surge
                 {
                     String path = FileDialog::OpenFile("");
                     if (!path.empty())
-                        Serializer::Deserialize<Scene>(path, mEditor->GetEditorScene());
+                        Serializer::Deserialize<Scene>(path, mEditor->GetActiveProject().GetActiveScene());
                 }
                 if (ImGui::MenuItem("Save"))
                 {
                     String path = FileDialog::SaveFile("");
                     if (!path.empty())
                     {
-                        Serializer::Serialize<Scene>(path, mEditor->GetEditorScene());
+                        Serializer::Serialize<Scene>(path, mEditor->GetActiveProject().GetActiveScene());
                     }
                 }
                 ImGui::EndPopup();
@@ -60,7 +61,6 @@ namespace Surge
                 ImGui::OpenPopup("ViewPopup");
             if (ImGui::BeginPopup("ViewPopup"))
             {
-                Editor* editor = static_cast<Editor*>(Core::GetClient());
                 PanelManager& panelManager = editor->GetPanelManager();
 
                 for (auto& [code, element] : panelManager.GetAllPanels())
@@ -76,20 +76,35 @@ namespace Surge
             float textWidth = ImGui::CalcTextSize(ICON_SURGE_PLAY).x;
 
             ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
-            SceneState sceneState = mEditor->GetSceneState();
-            if (sceneState == SceneState::Edit)
+            ProjectState projectState = mEditor->GetActiveProject().GetState();
+            if (projectState == ProjectState::Edit)
             {
                 if (ImGui::Button(ICON_SURGE_PLAY))
                 {
                     mEditor->OnRuntimeStart();
                 }
             }
-            else if (sceneState == SceneState::Play)
+            else if (projectState == ProjectState::Play)
             {
                 if (ImGui::Button(ICON_SURGE_STOP))
                 {
                     mEditor->OnRuntimeEnd();
                 }
+            }
+            ImGui::SameLine();
+
+            {
+                const char* activeProjectName = editor->GetActiveProject().GetName().c_str();
+                ImGui::SetCursorPosX(windowWidth - 200);
+                ImGui::Text("%s", activeProjectName);
+                ImGuiAux::ToolTip("Project Name");
+
+                ImGuiContext& g = *GImGui;
+                ImRect& rect = (g.LastItemData.StatusFlags & ImGuiItemStatusFlags_HasDisplayRect) ? g.LastItemData.DisplayRect : g.LastItemData.Rect;
+                rect.Expand(5);     // Expand the rect by 5 units
+                rect.TranslateY(2); // Translate 2 units down Y axis to "Hide the bottom line"
+                ImDrawList* drawList = ImGui::GetWindowDrawList();
+                drawList->AddRect(rect.Min, rect.Max, ImGui::ColorConvertFloat4ToU32(ImGuiAux::Colors::ThemeColorLight), 0.8f, ImDrawCornerFlags_All, 1.0f);
             }
 
             // System buttons

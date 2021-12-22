@@ -5,9 +5,8 @@
 
 namespace Surge
 {
-    Scene::Scene(bool runtime)
-    {
-    }
+    Scene::Scene(const String& name, bool runtime)
+        : mName(name), mSceneUUID(UUID()) {}
 
     Scene::~Scene()
     {
@@ -24,8 +23,9 @@ namespace Surge
         // Cleanup scripts and physics system here
     }
 
-    void Scene::Update(const EditorCamera& camera)
+    void Scene::Update(EditorCamera& camera)
     {
+        camera.OnUpdate();
         Renderer* renderer = Core::GetRenderer();
         renderer->BeginFrame(camera);
         {
@@ -129,6 +129,7 @@ namespace Surge
         CopyComponent<CameraComponent>(other->mRegistry, mRegistry, enttMap);
         CopyComponent<PointLightComponent>(other->mRegistry, mRegistry, enttMap);
         CopyComponent<DirectionalLightComponent>(other->mRegistry, mRegistry, enttMap);
+        CopyComponent<ParentChildComponent>(other->mRegistry, mRegistry, enttMap);
     }
 
     Surge::Entity Scene::FindEntityByUUID(UUID id)

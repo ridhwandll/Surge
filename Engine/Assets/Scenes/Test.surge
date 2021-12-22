@@ -127,11 +127,11 @@
                 "Position": {
                     "X": -0.30665287375450134,
                     "Y": 3.0,
-                    "Z": 0.366405725479126
+                    "Z": 0.3664056956768036
                 },
                 "Rotation": {
                     "X": 0.0,
-                    "Y": 0.0,
+                    "Y": -0.0,
                     "Z": 0.0
                 },
                 "Scale": {
@@ -141,6 +141,46 @@
                 }
             }
         },
-        "Size": 4
+        "Entity4": {
+            "Surge::CameraComponent": {
+                "FixedAspectRatio": false,
+                "Orthographic FarClip": 1.0,
+                "Orthographic NearClip": -1.0,
+                "Orthographic Size": 10.0,
+                "Perspective FarClip": 1024.0,
+                "Perspective NearClip": 0.10000000149011612,
+                "Primary": true,
+                "Projection": "Perspective",
+                "Vertical FOV": 45.0
+            },
+            "Surge::IDComponent": {
+                "ID": 4076437613997059357
+            },
+            "Surge::NameComponent": {
+                "Name": "Camera"
+            },
+            "Surge::ParentChildComponent": {
+                "ChildrenIDs": [],
+                "ParentID": 0
+            },
+            "Surge::TransformComponent": {
+                "Position": {
+                    "X": 0.0,
+                    "Y": 9.448860168457031,
+                    "Z": 23.3226375579834
+                },
+                "Rotation": {
+                    "X": -19.411731719970703,
+                    "Y": 0.0,
+                    "Z": 0.0
+                },
+                "Scale": {
+                    "X": 1.0,
+                    "Y": 1.0,
+                    "Z": 1.0
+                }
+            }
+        },
+        "Size": 5
     }
 }
