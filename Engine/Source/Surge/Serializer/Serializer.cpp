@@ -173,7 +173,7 @@ namespace Surge
     }
 
     template <>
-    void Surge::Serializer::Serialize(const Path& path, Ref<Scene>& in)
+    void Surge::Serializer::Serialize(const Path& path, Scene* in)
     {
         SG_ASSERT_NOMSG(in);
         SCOPED_TIMER("Serialization");
@@ -181,12 +181,12 @@ namespace Surge
 
         uint64_t index = 0;
         in->GetRegistry().each([&](auto entityID) {
-            Entity e = Entity(entityID, in.Raw());
+            Entity e = Entity(entityID, in);
             SerializeEntity(outJson["Scene"], e, index);
             index++;
         });
 
-        const size_t size = in->GetRegistry().size<IDComponent>();
+        const size_t size = in->GetRegistry().view<IDComponent>().size();
         outJson["Scene"]["Size"] = size;
 
         String result = outJson.dump(4);
@@ -311,7 +311,7 @@ namespace Surge
     }
 
     template <>
-    void Serializer::Deserialize(const Path& path, Ref<Scene>& out)
+    void Serializer::Deserialize(const Path& path, Scene* out)
     {
         SG_ASSERT_NOMSG(out);
         out->GetRegistry().clear();
@@ -329,4 +329,36 @@ namespace Surge
             DeserializeEntity(parsedJson["Scene"], newEntity, i);
         }
     }
+
+    ///////////
+    //Project//
+    ///////////
+
+    template <>
+    void Serializer::Serialize(const Path& path, Project* in)
+    {
+        nlohmann::json outJson = nlohmann::json();
+
+        Vector<Ref<Scene>>& allScenes = in->GetAllScenes();
+        for (Ref<Scene>& scene : allScenes)
+        {
+            outJson[scene->GetName()] = "A Path! Yay!";
+        }
+
+        String result = outJson.dump(4);
+        FILE* f;
+        errno_t e = fopen_s(&f, path.c_str(), "w");
+        if (f)
+        {
+            fwrite(result.c_str(), sizeof(char), result.size(), f);
+            fclose(f);
+        }
+    }
+
+    template <>
+    void Serializer::Deserialize(const Path& path, Project* out)
+    {
+        String jsonContents = Filesystem::ReadFile<String>(path);
+    }
+
 } // namespace Surge

@@ -16,7 +16,7 @@ namespace Surge
 
     void SceneHierarchyPanel::Render(bool* show)
     {
-        if (!*show)
+        if (!*show || !mSceneContext)
             return;
 
         // Draw the entities

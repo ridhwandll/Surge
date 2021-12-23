@@ -1,5 +1,6 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Surge/Core/Core.hpp"
+#include "Surge/Core/Input/Input.hpp"
 #include "Utility/ImGuiAux.hpp"
 #include "Editor.hpp"
 #include <imgui_stdlib.h>

@@ -122,7 +122,7 @@ namespace Surge
 
         // Create the file if it doesn't exist
         if (!Filesystem::Exists(SHADER_HASH_CACHE_PATH))
-            Filesystem::CreateFile(SHADER_HASH_CACHE_PATH);
+            Filesystem::CreateOrEnsureFile(SHADER_HASH_CACHE_PATH);
 
         // Load in the contents of the file, because we append to it later
         String previousContents = Filesystem::ReadFile<String>(SHADER_HASH_CACHE_PATH);

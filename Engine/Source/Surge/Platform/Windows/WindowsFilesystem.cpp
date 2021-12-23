@@ -5,8 +5,11 @@
 
 namespace Surge
 {
-    void Filesystem::CreateFile(const Path& path)
+    void Filesystem::CreateOrEnsureFile(const Path& path)
     {
+        if (Filesystem::Exists(path))
+            return;
+
         HANDLE hFile = ::CreateFile(path.c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
         SURGE_GET_WIN32_LAST_ERROR
         if (hFile != INVALID_HANDLE_VALUE)
@@ -59,6 +62,11 @@ namespace Surge
         return result;
     }
 
+    bool Filesystem::CreateOrEnsureDirectory(const Path& path)
+    {
+        return std::filesystem::create_directories(path) || std::filesystem::exists(path);
+    }
+
     String Filesystem::RemoveExtension(const Path& path)
     {
         size_t lastindex = path.find_last_of(".");
@@ -87,11 +95,7 @@ namespace Surge
 
     bool Filesystem::Exists(const Path& path)
     {
-        std::ifstream exists(path);
-        if (exists.is_open())
-            return true;
-
-        return false;
+        return std::filesystem::exists(path);
     }
 
     template <typename T>

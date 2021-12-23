@@ -28,6 +28,8 @@
 #include "Surge/Serializer/Serializer.hpp"
 #include "Surge/Utility/PlatformMisc.hpp"
 #include "Surge/Project/Project.hpp"
+#include "Surge/Utility/FileDialogs.hpp"
+#include "Surge/Serializer/Serializer.hpp"
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm/gtc/type_ptr.hpp"

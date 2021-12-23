@@ -2,6 +2,7 @@
 #include "Panels/ViewportPanel.hpp"
 #include "Surge/Graphics/Interface/Image.hpp"
 #include "Surge/Core/Core.hpp"
+#include "Surge/Core/Input/Input.hpp"
 #include "Surge/Core/Hash.hpp"
 #include "Surge/ECS/Components.hpp"
 #include "SurgeReflect/TypeTraits.hpp"
@@ -81,7 +82,7 @@ namespace Surge
 
                 glm::mat4 cameraView, cameraProjection;
                 Editor* app = static_cast<Editor*>(Core::GetClient());
-                if (app->GetActiveProject().GetState() == ProjectState::Edit)
+                if (app->GetActiveProject()->GetState() == ProjectState::Edit)
                 {
                     EditorCamera& camera = app->GetCamera();
                     cameraProjection = camera.GetProjectionMatrix();

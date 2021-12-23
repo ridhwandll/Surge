@@ -44,7 +44,9 @@ namespace Surge
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;   // Enable Docking
         io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows
         constexpr float fontSize = 14.0f;
-        io.Fonts->AddFontFromFileTTF("Engine/Assets/Fonts/OpenSans-Bold.ttf", fontSize);
+        io.Fonts->AddFontFromFileTTF("Engine/Assets/Fonts/OpenSans-Bold.ttf", fontSize); // Normal Bold
+        io.Fonts->AddFontFromFileTTF("Engine/Assets/Fonts/OpenSans-Regular.ttf", 18.0f); // Medium
+        io.Fonts->AddFontFromFileTTF("Engine/Assets/Fonts/OpenSans-Bold.ttf", 24.0f);    // Largest Bold
         io.FontDefault = io.Fonts->AddFontFromFileTTF("Engine/Assets/Fonts/OpenSans-Regular.ttf", fontSize);
 
         // Merge Icons

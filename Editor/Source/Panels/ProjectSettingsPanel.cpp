@@ -1,23 +1,25 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "ProjectSettingsPanel.hpp"
 #include "Surge/Core/Core.hpp"
+#include "Surge/Core/Input/Input.hpp"
 #include "Editor.hpp"
 #include <imgui.h>
 #include <imgui_stdlib.h>
-#include "IconsFontAwesome.hpp"
+#include <IconsFontAwesome.hpp>
 
 namespace Surge
 {
     void ProjectSettingsPanel::Init(void* panelInitArgs)
     {
         mCode = GetStaticCode();
-        mActiveProject = &reinterpret_cast<Editor*>(Surge::Core::GetClient())->GetActiveProject();
     }
 
     void ProjectSettingsPanel::Render(bool* show)
     {
         if (!*show)
             return;
+
+        Project* activeProject = reinterpret_cast<Editor*>(Surge::Core::GetClient())->GetActiveProject();
 
         if (ImGui::Begin(PanelCodeToString(mCode), show))
         {
@@ -31,12 +33,12 @@ namespace Surge
                 ImGui::TableSetupColumn("Action", ImGuiTableColumnFlags_WidthFixed);
                 ImGui::TableHeadersRow();
 
-                for (Uint i = 0; i < mActiveProject->GetAllScenes().size(); i++)
+                for (Uint i = 0; i < activeProject->GetAllScenes().size(); i++)
                 {
                     ImGui::PushID(i);
                     ImGui::TableNextColumn();
 
-                    Ref<Scene>& scene = mActiveProject->GetAllScenes()[i];
+                    Ref<Scene>& scene = activeProject->GetAllScenes()[i];
                     UUID currentSceneUUID = scene->GetUUID();
 
                     bool opened = false;
@@ -58,13 +60,13 @@ namespace Surge
 
                     // Second column
                     ImGui::TableNextColumn();
-                    if (mActiveProject->GetActiveScene()->GetUUID() != currentSceneUUID)
+                    if (activeProject->GetActiveScene()->GetUUID() != currentSceneUUID)
                     {
                         if (ImGui::SmallButton("Remove"))
-                            mActiveProject->RemoveScene(i);
+                            activeProject->RemoveScene(i);
                         ImGui::SameLine();
                         if (ImGui::SmallButton("Edit"))
-                            mActiveProject->SetActiveScene(i);
+                            activeProject->SetActiveScene(i);
                     }
 
                     if (opened)
@@ -76,7 +78,7 @@ namespace Surge
 
                 if (ImGuiAux::ButtonCentered("Add Scene"))
                 {
-                    Ref<Scene> newScene = mActiveProject->AddScene("NewScene");
+                    Ref<Scene> newScene = activeProject->AddScene("NewScene");
                     mSelectedSceneUUID = newScene->GetUUID();
                     mRenamingMech.SetRenamingState(true);
                 }

@@ -5,7 +5,6 @@
 
 namespace Surge
 {
-    class Project;
     class ProjectSettingsPanel : public IPanel
     {
     public:
@@ -25,7 +24,6 @@ namespace Surge
         UUID mSelectedSceneUUID;
 
         ImGuiAux::RenamingMechanism mRenamingMech;
-        Project* mActiveProject;
     };
 
 } // namespace Surge

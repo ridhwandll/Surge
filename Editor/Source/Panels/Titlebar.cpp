@@ -36,75 +36,82 @@ namespace Surge
             ImGuiAux::Image(mIcon->GetImage2D(), {20, 20});
             ImGui::SameLine();
 
-            if (ImGui::SmallButton("File"))
-                ImGui::OpenPopup("FilePopup");
-            if (ImGui::BeginPopup("FilePopup"))
+            // Only show the File, View and Play button when there is an active project
+            if (editor->GetActiveProject())
             {
-                if (ImGui::MenuItem("Load"))
+                if (ImGui::SmallButton("File"))
+                    ImGui::OpenPopup("FilePopup");
+                if (ImGui::BeginPopup("FilePopup"))
                 {
-                    String path = FileDialog::OpenFile("");
-                    if (!path.empty())
-                        Serializer::Deserialize<Scene>(path, mEditor->GetActiveProject().GetActiveScene());
-                }
-                if (ImGui::MenuItem("Save"))
-                {
-                    String path = FileDialog::SaveFile("");
-                    if (!path.empty())
+                    if (ImGui::MenuItem("Load"))
                     {
-                        Serializer::Serialize<Scene>(path, mEditor->GetActiveProject().GetActiveScene());
+                        String path = FileDialog::OpenFile("");
+                        if (!path.empty())
+                            Serializer::Deserialize<Scene>(path, mEditor->GetActiveProject()->GetActiveScene().Raw());
+                    }
+                    if (ImGui::MenuItem("Save"))
+                    {
+                        String path = FileDialog::SaveFile("");
+                        if (!path.empty())
+                        {
+                            Serializer::Serialize<Scene>(path, mEditor->GetActiveProject()->GetActiveScene().Raw());
+                        }
+                    }
+                    ImGui::EndPopup();
+                }
+                ImGui::SameLine();
+                if (ImGui::SmallButton("View"))
+                    ImGui::OpenPopup("ViewPopup");
+                if (ImGui::BeginPopup("ViewPopup"))
+                {
+                    PanelManager& panelManager = editor->GetPanelManager();
+
+                    for (auto& [code, element] : panelManager.GetAllPanels())
+                    {
+                        if (ImGui::MenuItem(PanelCodeToString(code)))
+                            element.Show = !element.Show;
+                    }
+
+                    ImGui::EndPopup();
+                }
+
+                float windowWidth = ImGui::GetWindowSize().x;
+                float textWidth = ImGui::CalcTextSize(ICON_SURGE_PLAY).x;
+
+                ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
+                ProjectState projectState = mEditor->GetActiveProject()->GetState();
+                if (projectState == ProjectState::Edit)
+                {
+                    if (ImGui::Button(ICON_SURGE_PLAY))
+                    {
+                        mEditor->OnRuntimeStart();
                     }
                 }
-                ImGui::EndPopup();
-            }
-            ImGui::SameLine();
-            if (ImGui::SmallButton("View"))
-                ImGui::OpenPopup("ViewPopup");
-            if (ImGui::BeginPopup("ViewPopup"))
-            {
-                PanelManager& panelManager = editor->GetPanelManager();
-
-                for (auto& [code, element] : panelManager.GetAllPanels())
+                else if (projectState == ProjectState::Play)
                 {
-                    if (ImGui::MenuItem(PanelCodeToString(code)))
-                        element.Show = !element.Show;
+                    if (ImGui::Button(ICON_SURGE_STOP))
+                    {
+                        mEditor->OnRuntimeEnd();
+                    }
                 }
+                ImGui::SameLine();
+                if (ImGui::Button(ICON_SURGE_HOME))
+                    editor->DestroyActiveProject();
 
-                ImGui::EndPopup();
-            }
-
-            float windowWidth = ImGui::GetWindowSize().x;
-            float textWidth = ImGui::CalcTextSize(ICON_SURGE_PLAY).x;
-
-            ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
-            ProjectState projectState = mEditor->GetActiveProject().GetState();
-            if (projectState == ProjectState::Edit)
-            {
-                if (ImGui::Button(ICON_SURGE_PLAY))
+                ImGui::SameLine();
                 {
-                    mEditor->OnRuntimeStart();
-                }
-            }
-            else if (projectState == ProjectState::Play)
-            {
-                if (ImGui::Button(ICON_SURGE_STOP))
-                {
-                    mEditor->OnRuntimeEnd();
-                }
-            }
-            ImGui::SameLine();
+                    const char* activeProjectName = editor->GetActiveProject()->GetName().c_str();
+                    ImGui::SetCursorPosX(windowWidth - 200);
+                    ImGui::Text("%s", activeProjectName);
+                    ImGuiAux::ToolTip("Project Name");
 
-            {
-                const char* activeProjectName = editor->GetActiveProject().GetName().c_str();
-                ImGui::SetCursorPosX(windowWidth - 200);
-                ImGui::Text("%s", activeProjectName);
-                ImGuiAux::ToolTip("Project Name");
-
-                ImGuiContext& g = *GImGui;
-                ImRect& rect = (g.LastItemData.StatusFlags & ImGuiItemStatusFlags_HasDisplayRect) ? g.LastItemData.DisplayRect : g.LastItemData.Rect;
-                rect.Expand(5);     // Expand the rect by 5 units
-                rect.TranslateY(2); // Translate 2 units down Y axis to "Hide the bottom line"
-                ImDrawList* drawList = ImGui::GetWindowDrawList();
-                drawList->AddRect(rect.Min, rect.Max, ImGui::ColorConvertFloat4ToU32(ImGuiAux::Colors::ThemeColorLight), 0.8f, ImDrawCornerFlags_All, 1.0f);
+                    ImGuiContext& g = *GImGui;
+                    ImRect& rect = (g.LastItemData.StatusFlags & ImGuiItemStatusFlags_HasDisplayRect) ? g.LastItemData.DisplayRect : g.LastItemData.Rect;
+                    rect.Expand(5);     // Expand the rect by 5 units
+                    rect.TranslateY(2); // Translate 2 units down Y axis to "Hide the bottom line"
+                    ImDrawList* drawList = ImGui::GetWindowDrawList();
+                    drawList->AddRect(rect.Min, rect.Max, ImGui::ColorConvertFloat4ToU32(ImGuiAux::Colors::ThemeColorLight), 0.8f, ImDrawCornerFlags_All, 1.0f);
+                }
             }
 
             // System buttons

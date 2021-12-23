@@ -140,4 +140,5 @@ namespace Surge
         friend class Ref;
         T* mInstance;
     };
+
 } // namespace Surge

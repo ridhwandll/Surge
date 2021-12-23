@@ -10,6 +10,12 @@ namespace Surge
         Play
     };
 
+    struct ProjectDirectoryData
+    {
+        Path InternalDirectory; //Path to the .surge folder
+        Path ProjectFilePath;   // Path to the .surgeProj file
+    };
+
     // The idea behing Project is:-
     // - It will contain settings for the engine subsystems(RenderEngine, ScriptEngine, PhysicsEngine, AudioEngine etc.)
     // - A Project can have many scenes, more like a scene container
@@ -19,8 +25,7 @@ namespace Surge
     class Project
     {
     public:
-        Project() = default;
-        Project(const String& name);
+        Project(const String& name, const Path& path);
         ~Project();
 
         void OnRuntimeStart();
@@ -44,12 +49,19 @@ namespace Surge
         auto& GetAllScenes() { return mScenes; }
         auto& GetAllRuntimeScenes() { return mRuntimeSceneStorage; }
 
+        operator bool() { return mIsValid; }
+        bool operator==(const Project& other) const { return mProjectID == other.mProjectID; }
+        bool operator!=(const Project& other) const { return !(*this == other); }
+
     private:
         String mName;
+        Path mPath;
         UUID mProjectID;
         ProjectState mProjectState;
-
         Uint mActiveSceneIndex;
+
+        ProjectDirectoryData mDirectoryData;
+        bool mIsValid;
         Vector<Ref<Scene>> mScenes;
         Vector<Ref<Scene>> mRuntimeSceneStorage;
         Vector<std::function<void(Ref<Scene>& scene)>> mOnActiveSceneChangeCallbacks;

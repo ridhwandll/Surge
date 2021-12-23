@@ -16,6 +16,20 @@ namespace Surge::ImGuiAux
         constexpr glm::vec4 ThemeColor = glm::vec4(1.0f, 0.5f, 0.1f, 1.0f);
         constexpr glm::vec4 ThemeColorLight = glm::vec4(1.0f, 0.6f, 0.1f, 1.0f);
         constexpr glm::vec4 ExtraDark = glm::vec4(0.05f, 0.05f, 0.05f, 1.0f);
+        constexpr glm::vec4 Red = glm::vec4(0.8f, 0.1f, 0.1f, 1.0f);
+        constexpr glm::vec4 Green = glm::vec4(0.1f, 0.8f, 0.1f, 1.0f);
+        constexpr glm::vec4 Blue = glm::vec4(0.1f, 0.1f, 0.8f, 1.0f);
+
+        constexpr glm::vec4 Iron = glm::vec4(0.560f, 0.570f, 0.580f, 1.0f);
+        constexpr glm::vec4 Silver = glm::vec4(0.972f, 0.960f, 0.915f, 1.0f);
+        constexpr glm::vec4 Aluminum = glm::vec4(0.913f, 0.921f, 0.925f, 1.0f);
+        constexpr glm::vec4 Gold = glm::vec4(1.0f, 0.766f, 0.336f, 1.0f);
+        constexpr glm::vec4 Copper = glm::vec4(0.955f, 0.637f, 0.538f, 1.0f);
+        constexpr glm::vec4 Chromium = glm::vec4(0.550f, 0.556f, 0.554f, 1.0f);
+        constexpr glm::vec4 Nickel = glm::vec4(0.660f, 0.609f, 0.526f, 1.0f);
+        constexpr glm::vec4 Titanium = glm::vec4(0.542f, 0.497f, 0.449f, 1.0f);
+        constexpr glm::vec4 Cobalt = glm::vec4(0.662f, 0.655f, 0.634f, 1.0f);
+        constexpr glm::vec4 Platinum = glm::vec4(0.672f, 0.637f, 0.585f, 1.0f);
 
     } // namespace Colors
 
@@ -31,9 +45,9 @@ namespace Surge::ImGuiAux
         ScopedBoldFont(const ScopedBoldFont&) = delete;
         ScopedBoldFont operator=(const ScopedBoldFont&) = delete;
 
-        ScopedBoldFont()
+        ScopedBoldFont(bool largeFont = false)
         {
-            ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
+            largeFont ? ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[2]) : ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
         }
         ~ScopedBoldFont()
         {
@@ -87,7 +101,7 @@ namespace Surge::ImGuiAux
         }
     };
 
-    void DrawRectAroundWidget(const glm::vec4& color, float thickness, float rounding);
+    void DrawRectAroundWidget(const glm::vec4& color, float thickness = 1.5f, float rounding = 1.0f);
     void DockSpace();
 
     bool PropertyGridHeader(const String& name, bool openByDefault = true, const glm::vec2& size = {4.5f, 4.5f}, bool spacing = false);

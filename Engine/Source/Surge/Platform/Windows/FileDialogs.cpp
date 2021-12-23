@@ -1,6 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Surge/Utility/FileDialogs.hpp"
 #include <commdlg.h>
+#include <ShlObj_core.h>
 
 namespace Surge
 {
@@ -18,7 +19,7 @@ namespace Surge
             ofn.lpstrInitialDir = currentDir;
         ofn.lpstrFilter = filter;
         ofn.nFilterIndex = 1;
-        ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+        ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR | OFN_EXPLORER;
 
         if (GetOpenFileNameA(&ofn) == TRUE)
             return ofn.lpstrFile;
@@ -50,4 +51,34 @@ namespace Surge
 
         return String();
     }
+
+    Surge::String FileDialog::ChooseFolder()
+    {
+        TCHAR path[MAX_PATH];
+
+        BROWSEINFO bi = {0};
+        bi.lpszTitle = ("Choose Folder");
+        bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_USENEWUI;
+        bi.lpfn = NULL;
+        bi.lParam = NULL;
+
+        LPITEMIDLIST pidl = SHBrowseForFolder(&bi);
+        if (pidl != 0)
+        {
+            // Get the name of the folder and put it in path
+            SHGetPathFromIDList(pidl, path);
+
+            //Free memory used
+            IMalloc* imalloc = 0;
+            if (SUCCEEDED(SHGetMalloc(&imalloc)))
+            {
+                imalloc->Free(pidl);
+                imalloc->Release();
+            }
+
+            return path;
+        }
+        return "";
+    }
+
 } // namespace Surge
