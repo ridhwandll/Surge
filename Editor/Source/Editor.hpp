@@ -25,18 +25,7 @@ namespace Surge
         void OnRuntimeStart();
         void OnRuntimeEnd();
 
-        void SetActiveProject(Project* proj) { mActiveProject = proj; }
-        void DestroyActiveProject()
-        {
-            Surge::Core::AddFrameEndCallback([&] {
-                if (mActiveProject)
-                {
-                    delete mActiveProject;
-                    mActiveProject = nullptr;
-                }
-            });
-        }
-        Project* GetActiveProject() { return mActiveProject; }
+        Project& GetActiveProject() { return mActiveProject; }
 
         PanelManager& GetPanelManager() { return mPanelManager; }
         Titlebar& GetTitlebar() { return mTitleBar; }
@@ -51,7 +40,7 @@ namespace Surge
 
         PanelManager mPanelManager;
         Titlebar mTitleBar {};
-        Project* mActiveProject;
+        Project mActiveProject;
         ProjectBrowserWindow mProjectBrowser;
         friend class ProjectBrowserWindow;
     };

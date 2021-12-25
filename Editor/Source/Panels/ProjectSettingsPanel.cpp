@@ -19,7 +19,7 @@ namespace Surge
         if (!*show)
             return;
 
-        Project* activeProject = reinterpret_cast<Editor*>(Surge::Core::GetClient())->GetActiveProject();
+        Project activeProject = reinterpret_cast<Editor*>(Surge::Core::GetClient())->GetActiveProject();
 
         if (ImGui::Begin(PanelCodeToString(mCode), show))
         {
@@ -33,18 +33,18 @@ namespace Surge
                 ImGui::TableSetupColumn("Action", ImGuiTableColumnFlags_WidthFixed);
                 ImGui::TableHeadersRow();
 
-                for (Uint i = 0; i < activeProject->GetAllScenes().size(); i++)
+                for (Uint i = 0; i < activeProject.GetAllScenes().size(); i++)
                 {
                     ImGui::PushID(i);
                     ImGui::TableNextColumn();
 
-                    Ref<Scene>& scene = activeProject->GetAllScenes()[i];
-                    UUID currentSceneUUID = scene->GetUUID();
+                    Ref<Scene>& scene = activeProject.GetAllScenes()[i];
+                    UUID currentSceneUUID = scene->GetMetadata().SceneUUID;
 
                     bool opened = false;
                     {
                         ImGuiAux::ScopedColor style({ImGuiCol_Header, ImGuiCol_HeaderHovered, ImGuiCol_HeaderActive}, {0.0, 0.0, 0.0, 0.0});
-                        opened = ImGui::TreeNodeEx(reinterpret_cast<void*>(scene.Raw()), ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_Bullet, scene->GetName().c_str());
+                        opened = ImGui::TreeNodeEx(reinterpret_cast<void*>(scene.Raw()), ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_Bullet, scene->GetMetadata().Name.c_str());
                     }
                     if (ImGui::IsItemClicked() && !mRenamingMech)
                         mSelectedSceneUUID = currentSceneUUID;
@@ -53,20 +53,20 @@ namespace Surge
                         mRenamingMech.SetRenamingState(true);
 
                     if (mSelectedSceneUUID == currentSceneUUID)
-                        mRenamingMech.Update(scene->GetName());
+                        mRenamingMech.Update(scene->GetMetadata().Name);
 
                     if (mSelectedSceneUUID == currentSceneUUID)
                         ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(ImGuiAux::Colors::ExtraDark));
 
                     // Second column
                     ImGui::TableNextColumn();
-                    if (activeProject->GetActiveScene()->GetUUID() != currentSceneUUID)
+                    if (activeProject.GetActiveScene()->GetMetadata().SceneUUID != currentSceneUUID)
                     {
                         if (ImGui::SmallButton("Remove"))
-                            activeProject->RemoveScene(i);
+                            activeProject.RemoveScene(i);
                         ImGui::SameLine();
                         if (ImGui::SmallButton("Edit"))
-                            activeProject->SetActiveScene(i);
+                            activeProject.SetActiveScene(i);
                     }
 
                     if (opened)
@@ -78,8 +78,9 @@ namespace Surge
 
                 if (ImGuiAux::ButtonCentered("Add Scene"))
                 {
-                    Ref<Scene> newScene = activeProject->AddScene("NewScene");
-                    mSelectedSceneUUID = newScene->GetUUID();
+                    // TODO: Don't hardcode the scene path in future
+                    Ref<Scene> newScene = activeProject.AddScene("NewScene", activeProject.GetMetadata().ProjPath);
+                    mSelectedSceneUUID = newScene->GetMetadata().SceneUUID;
                     mRenamingMech.SetRenamingState(true);
                 }
             }

@@ -10,10 +10,16 @@ namespace Surge
         Play
     };
 
-    struct ProjectDirectoryData
+    struct ProjectMetadata
     {
-        Path InternalDirectory; //Path to the .surge folder
-        Path ProjectFilePath;   // Path to the .surgeProj file
+        String Name;              // Name of the project, what else
+        Path ProjPath;            // Path to the project folder
+        Path InternalDirectory;   // Path to the .surge folder   -> (ProjPath/.surge)
+        Path ProjectMetadataPath; // Path to the .surgeProj file -> (ProjPath/.surge/Example.surgeProj)
+        UUID ProjectID;           // Unique Project ID
+        Uint ActiveSceneIndex;    // The index of the scene which is active (Explanation++)
+
+        Vector<SceneMetadata> SceneMetadatas; // "Relative" Path to the scene
     };
 
     // The idea behing Project is:-
@@ -25,43 +31,54 @@ namespace Surge
     class Project
     {
     public:
-        Project(const String& name, const Path& path);
+        Project();
         ~Project();
+
+        void Invalidate(const String& name, const Path& path);
+        void Invalidate(const ProjectMetadata& metadata);
+        void Destroy();
 
         void OnRuntimeStart();
         void Update(EditorCamera& camera);
         void OnRuntimeEnd();
 
-        Ref<Scene> AddScene(const String& name);
+        Ref<Scene> AddScene(const String& name, const Path& path);
+        Ref<Scene> AddScene(const SceneMetadata& metadata);
         void RemoveScene(Uint arrayIndex);
-        Ref<Scene>& GetScene(Uint arrayIndex);
-        const String& GetName() const { return mName; }
-        const UUID& GetUUID() const { return mProjectID; }
 
-        Ref<Scene>& GetActiveScene() { return mScenes[mActiveSceneIndex]; }
-        Uint& GetActiveSceneIndex() { return mActiveSceneIndex; }
+        Ref<Scene>& GetScene(Uint arrayIndex);
+        Scene* GetActiveScene()
+        {
+            switch (mProjectState)
+            {
+                case Surge::ProjectState::Edit:
+                    return mScenes[mMetadata.ActiveSceneIndex].Raw();
+                case Surge::ProjectState::Play:
+                    return mRuntimeSceneStorage[mMetadata.ActiveSceneIndex].Raw();
+            }
+            return nullptr;
+        }
         void SetActiveScene(Uint sceneindex);
         void AddActiveSceneChangeCallback(std::function<void(Ref<Scene>& scene)> func) { mOnActiveSceneChangeCallbacks.push_back(func); }
 
+        const ProjectMetadata& GetMetadata() const { return mMetadata; }
         const ProjectState& GetState() const { return mProjectState; }
         void SetState(ProjectState state) { mProjectState = state; }
+        void Save();
 
         auto& GetAllScenes() { return mScenes; }
         auto& GetAllRuntimeScenes() { return mRuntimeSceneStorage; }
 
         operator bool() { return mIsValid; }
-        bool operator==(const Project& other) const { return mProjectID == other.mProjectID; }
+        bool operator==(const Project& other) const { return mMetadata.ProjectID == other.mMetadata.ProjectID; }
         bool operator!=(const Project& other) const { return !(*this == other); }
 
     private:
-        String mName;
-        Path mPath;
-        UUID mProjectID;
-        ProjectState mProjectState;
-        Uint mActiveSceneIndex;
+        ProjectState mProjectState = ProjectState::Edit;
 
-        ProjectDirectoryData mDirectoryData;
-        bool mIsValid;
+        ProjectMetadata mMetadata;
+
+        bool mIsValid = false;
         Vector<Ref<Scene>> mScenes;
         Vector<Ref<Scene>> mRuntimeSceneStorage;
         Vector<std::function<void(Ref<Scene>& scene)>> mOnActiveSceneChangeCallbacks;

@@ -4,12 +4,10 @@
 #include "Surge/Serializer/Serializer.hpp"
 #include "Surge/Utility/Filesystem.hpp"
 #include "Surge/Project/Project.hpp"
-#include "Surge/ECS/Scene.hpp"
 #include "Panels/SceneHierarchyPanel.hpp"
 #include "Utility/ImGuiAux.hpp"
-#include "Editor.hpp"
-#include <imgui_stdlib.h>
 #include <json/json.hpp>
+#include <imgui_stdlib.h>
 
 #define PROJECT_DATA_FILENAME "Projects.json"
 namespace Surge
@@ -23,27 +21,22 @@ namespace Surge
 
     void ProjectBrowserWindow::Render()
     {
-        ImGui::Begin("Project Browser");
+        ImGui::Begin("Project Browser", 0, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
         {
             ImGuiAux::ScopedBoldFont scopedBoldFont(true);
-            ImGuiAux::TextCentered("Welcome to Surge!");
-            ImGui::Separator();
             ImGuiAux::TextCentered("Projects");
+            ImGui::Spacing();
         }
         if (mPersistantProjectData.empty())
         {
-            ImGuiAux::TextCentered("No projects found! Create a New Project to show them up here!");
+            ImGuiAux::TextCentered("No projects found :(");
+            ImGuiAux::TextCentered("Create a New Project or Add Existing ones to access them from here!");
         }
         else
         {
-            if (ImGui::BeginTable("ProjectsTable", 3, ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable, {0.0f, 0.0f}, 0.0f))
+            if (ImGui::BeginTable("ProjectsTable", 3, ImGuiTableFlags_Resizable | ImGuiTableFlags_NoBordersInBodyUntilResize, {0.0f, 0.0f}, 0.0f))
             {
                 ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
-                ImGui::TableSetupColumn("Name");
-                ImGui::TableSetupColumn("Path");
-                ImGui::TableSetupColumn("Action");
-                ImGui::TableHeadersRow();
-
                 Uint index = 0;
                 for (const PersistantProjectData& proj : mPersistantProjectData)
                 {
@@ -58,7 +51,13 @@ namespace Surge
 
                     ImGui::TableNextColumn();
                     if (ImGuiAux::Button("Edit"))
-                        LaunchProject(proj.Name, "Test", proj.AbsolutePath);
+                    {
+                        ProjectMetadata metadata;
+                        String metadataPath = fmt::format("{0}/.surge/{1}.surgeProj", proj.AbsolutePath, proj.Name);
+                        Serializer::Deserialize<ProjectMetadata>(metadataPath, &metadata);
+                        LaunchProject(metadata);
+                        Core::GetWindow()->Maximize();
+                    }
                     ImGui::SameLine();
                     if (ImGuiAux::Button("Remove"))
                         RemoveProjectFromPersistantStorage(index);
@@ -74,17 +73,30 @@ namespace Surge
             ImGuiAux::ScopedBoldFont scopedBoldFont(true);
             ImGui::Separator();
 
-            const char* conjustedTitle = "New Project Add Existing";
+            //const char* conjustedTitle = "New Project Add Existing";
+            const char* conjustedTitle = "New Project";
             float windowWidth = ImGui::GetWindowSize().x;
             float textWidth = ImGui::CalcTextSize(conjustedTitle).x;
             ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
 
             if (ImGuiAux::Button("New Project"))
                 ImGui::OpenPopup("New Project");
-            ImGui::SameLine();
-            if (ImGuiAux::Button("Add Existing"))
-            {
-            }
+            //ImGui::SameLine();
+            //if (ImGuiAux::Button("Add Existing"))
+            //{
+            //    mProjectPathBuffer = FileDialog::OpenFile("SurgeProjectFile (*.surgeProj)\0*.surgeProj\0*");
+            //    if (!mProjectPathBuffer.empty())
+            //    {
+            //        ProjectMetadata metadata;
+            //        Serializer::Deserialize<ProjectMetadata>(mProjectPathBuffer, &metadata);
+            //        PersistantProjectData& pp = mPersistantProjectData.emplace_back();
+            //        pp.AbsolutePath = mProjectPathBuffer;
+            //        pp.Name = metadata.Name;
+            //
+            //        WriteProjectsToPersistantStorage();
+            //        LoadProjectsFromPersistantStorage();
+            //    }
+            //}
         }
 
         if (ImGui::BeginPopupModal("New Project"))
@@ -128,7 +140,14 @@ namespace Surge
                 ImGui::Separator();
                 if (ImGuiAux::ButtonCentered("Yessir, Create the Project!"))
                 {
-                    SerializeProject();
+                    Project temp;
+                    temp.Invalidate(mProjectNameBuffer, mProjectPathBuffer);
+
+                    PersistantProjectData& pp = mPersistantProjectData.emplace_back();
+                    pp.AbsolutePath = mProjectPathBuffer;
+                    pp.Name = mProjectNameBuffer;
+
+                    WriteProjectsToPersistantStorage();
                     LoadProjectsFromPersistantStorage();
 
                     ImGui::CloseCurrentPopup();
@@ -150,34 +169,25 @@ namespace Surge
         ImGui::End();
     }
 
-    void ProjectBrowserWindow::LaunchProject(const String& name, const String& sceneName, const Path& path)
+    void ProjectBrowserWindow::LaunchProject(const ProjectMetadata& metadata)
     {
-        Editor* editor = static_cast<Editor*>(Surge::Core::GetClient());
-        editor->SetActiveProject(new Project(name, path));
-
-        Ref<Scene> scene = editor->mActiveProject->AddScene(sceneName);
-        Serializer::Deserialize<Scene>("Engine/Assets/Scenes/Default.surge", scene.Raw());
-        editor->mActiveProject->AddActiveSceneChangeCallback([&](Ref<Scene>& scene) {
-            editor->mPanelManager.GetPanel<SceneHierarchyPanel>()->SetSceneContext(scene.Raw());
-            editor->mRenderer->SetSceneContext(scene);
-        });
-        editor->mActiveProject->SetActiveScene(0);
+        SG_ASSERT(mOnProjectLaunch, "Cannot launch project!");
+        mOnProjectLaunch(metadata);
     }
 
-    void ProjectBrowserWindow::SerializeProject()
+    void ProjectBrowserWindow::WriteProjectsToPersistantStorage()
     {
         Path projectsPersistantDataPath = fmt::format("{0}/{1}", mPersistantStoragePath, PROJECT_DATA_FILENAME);
-        String jsonContents = Filesystem::ReadFile<String>(projectsPersistantDataPath);
-        nlohmann::json parsedJson = jsonContents.empty() ? nlohmann::json() : nlohmann::json::parse(jsonContents);
+        nlohmann::json j = nlohmann::json();
+        String result = j.dump(4);
 
-        Uint size;
-        parsedJson.contains("Size") ? size = parsedJson["Size"] : size = 0;
-
-        parsedJson[fmt::format("Project{0}", size)]["Path"] = mProjectPathBuffer;
-        parsedJson[fmt::format("Project{0}", size)]["Name"] = mProjectNameBuffer;
-        parsedJson["Size"] = ++size;
-
-        String result = parsedJson.dump(4);
+        for (PersistantProjectData& projData : mPersistantProjectData)
+        {
+            String uuidStr = fmt::format("{0}", UUID());
+            j[uuidStr]["Path"] = projData.AbsolutePath;
+            j[uuidStr]["Name"] = projData.Name;
+        }
+        result = j.dump(4);
         FILE* f = nullptr;
         fopen_s(&f, projectsPersistantDataPath.c_str(), "w");
         if (f)
@@ -187,49 +197,23 @@ namespace Surge
         }
     }
 
-    // Objective of this function is to Load and "Clean" the persistant json file
     void ProjectBrowserWindow::LoadProjectsFromPersistantStorage()
     {
         Vector<PersistantProjectData> result;
-        bool writeFile = false;
 
         Path projectsPersistantDataPath = fmt::format("{0}/{1}", mPersistantStoragePath, PROJECT_DATA_FILENAME);
         String jsonContents = Filesystem::ReadFile<String>(projectsPersistantDataPath);
-        nlohmann::json parsedJson = jsonContents.empty() ? nlohmann::json() : nlohmann::json::parse(jsonContents);
+        const nlohmann::json parsedJson = jsonContents.empty() ? nlohmann::json() : nlohmann::json::parse(jsonContents);
 
-        Uint size;
-        parsedJson.contains("Size") ? size = parsedJson["Size"] : size = 0;
-
-        for (Uint i = 0; i < size; i++)
+        for (const nlohmann::json& j : parsedJson)
         {
-            String currentProjectFmt = fmt::format("Project{0}", i);
-            String path = parsedJson[currentProjectFmt]["Path"];
-            String name = parsedJson[currentProjectFmt]["Name"];
+            String path = j["Path"];
+            String name = j["Name"];
             if (Filesystem::Exists(path)) // TODO: Add more checks to make sure the project is valid, curretly only checks for the valid path
             {
                 PersistantProjectData& projData = result.emplace_back();
                 projData.Name = name;
                 projData.AbsolutePath = path;
-            }
-            else
-            {
-                // The path doesn't exist anymore, so remove the project from the json
-                parsedJson.erase(currentProjectFmt);
-                size--;
-                writeFile = true;
-            }
-        }
-        if (writeFile)
-        {
-            parsedJson["Size"] = size;
-
-            String r = parsedJson.dump(4);
-            FILE* f = nullptr;
-            fopen_s(&f, projectsPersistantDataPath.c_str(), "w");
-            if (f)
-            {
-                fwrite(r.c_str(), sizeof(char), r.size(), f);
-                fclose(f);
             }
         }
         mPersistantProjectData = result;
@@ -238,7 +222,7 @@ namespace Surge
     void ProjectBrowserWindow::RemoveProjectFromPersistantStorage(Uint index)
     {
         mPersistantProjectData.erase(mPersistantProjectData.begin() + index);
-        // TODO: Serialize
+        WriteProjectsToPersistantStorage();
     }
 
 } // namespace Surge

@@ -5,8 +5,17 @@
 
 namespace Surge
 {
-    Scene::Scene(const String& name, bool runtime)
-        : mName(name), mSceneUUID(UUID()) {}
+    Scene::Scene(const String& name, const String& path, bool runtime)
+    {
+        mMetadata.Name = name;
+        mMetadata.SceneUUID = UUID();
+        mMetadata.ScenePath = path;
+    }
+
+    Scene::Scene(const SceneMetadata& sceneMetadata, bool runtime)
+    {
+        mMetadata = sceneMetadata;
+    }
 
     Scene::~Scene()
     {

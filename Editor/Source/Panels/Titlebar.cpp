@@ -43,20 +43,8 @@ namespace Surge
                     ImGui::OpenPopup("FilePopup");
                 if (ImGui::BeginPopup("FilePopup"))
                 {
-                    if (ImGui::MenuItem("Load"))
-                    {
-                        String path = FileDialog::OpenFile("");
-                        if (!path.empty())
-                            Serializer::Deserialize<Scene>(path, mEditor->GetActiveProject()->GetActiveScene().Raw());
-                    }
-                    if (ImGui::MenuItem("Save"))
-                    {
-                        String path = FileDialog::SaveFile("");
-                        if (!path.empty())
-                        {
-                            Serializer::Serialize<Scene>(path, mEditor->GetActiveProject()->GetActiveScene().Raw());
-                        }
-                    }
+                    if (ImGui::MenuItem("Save Project"))
+                        editor->GetActiveProject().Save();
                     ImGui::EndPopup();
                 }
                 ImGui::SameLine();
@@ -79,7 +67,7 @@ namespace Surge
                 float textWidth = ImGui::CalcTextSize(ICON_SURGE_PLAY).x;
 
                 ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
-                ProjectState projectState = mEditor->GetActiveProject()->GetState();
+                ProjectState projectState = mEditor->GetActiveProject().GetState();
                 if (projectState == ProjectState::Edit)
                 {
                     if (ImGui::Button(ICON_SURGE_PLAY))
@@ -94,15 +82,17 @@ namespace Surge
                         mEditor->OnRuntimeEnd();
                     }
                 }
-                ImGui::SameLine();
-                if (ImGui::Button(ICON_SURGE_HOME))
-                    editor->DestroyActiveProject();
 
                 ImGui::SameLine();
                 {
-                    const char* activeProjectName = editor->GetActiveProject()->GetName().c_str();
+                    String activeProjectName = editor->GetActiveProject().GetMetadata().Name;
                     ImGui::SetCursorPosX(windowWidth - 200);
-                    ImGui::Text("%s", activeProjectName);
+
+                    if (ImGui::Button(ICON_SURGE_LIST_ALT))
+                        editor->GetActiveProject().Destroy();
+                    ImGui::SameLine();
+
+                    ImGui::Text("%s", activeProjectName.c_str());
                     ImGuiAux::ToolTip("Project Name");
 
                     ImGuiContext& g = *GImGui;

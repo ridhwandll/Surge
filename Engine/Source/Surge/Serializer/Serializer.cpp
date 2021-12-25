@@ -335,15 +335,31 @@ namespace Surge
     ///////////
 
     template <>
-    void Serializer::Serialize(const Path& path, Project* in)
+    void Serializer::Serialize(const Path& path, ProjectMetadata* in)
     {
         nlohmann::json outJson = nlohmann::json();
 
-        Vector<Ref<Scene>>& allScenes = in->GetAllScenes();
-        for (Ref<Scene>& scene : allScenes)
+        outJson["Name"] = in->Name;
+        outJson["ProjPath"] = in->ProjPath;
+        outJson["InternalDirectory"] = in->InternalDirectory;
+        outJson["ProjectMetadataPath"] = in->ProjectMetadataPath;
+        outJson["ActiveSceneIndex"] = in->ActiveSceneIndex;
+
+        nlohmann::json& sceneNode = outJson["Scenes"];
+        Uint index = 0;
+        for (auto& sceneMetadata : in->SceneMetadatas)
         {
-            outJson[scene->GetName()] = "A Path! Yay!";
+            String idx = fmt::format("{0}", index);
+            sceneNode[idx]["UUID"] = sceneMetadata.SceneUUID.Get();
+            sceneNode[idx]["Name"] = sceneMetadata.Name;
+            String relativeScenePath;
+
+            std::filesystem::path path(sceneMetadata.ScenePath);
+            path.is_absolute() ? relativeScenePath = std::filesystem::relative(sceneMetadata.ScenePath, in->ProjPath).string() : relativeScenePath = sceneMetadata.ScenePath;
+            sceneNode[idx]["Path"] = relativeScenePath;
+            index++;
         }
+        sceneNode["Size"] = in->SceneMetadatas.size();
 
         String result = outJson.dump(4);
         FILE* f;
@@ -356,9 +372,28 @@ namespace Surge
     }
 
     template <>
-    void Serializer::Deserialize(const Path& path, Project* out)
+    void Serializer::Deserialize(const Path& path, ProjectMetadata* out)
     {
         String jsonContents = Filesystem::ReadFile<String>(path);
+        nlohmann::json inJson = jsonContents.empty() ? nlohmann::json() : nlohmann::json::parse(jsonContents);
+
+        out->Name = inJson["Name"];
+        out->ProjPath = inJson["ProjPath"];
+        out->InternalDirectory = inJson["InternalDirectory"];
+        out->ProjectMetadataPath = inJson["ProjectMetadataPath"];
+        out->ActiveSceneIndex = inJson["ActiveSceneIndex"];
+
+        nlohmann::json& sceneNode = inJson["Scenes"];
+        Uint size = sceneNode["Size"];
+        for (Uint i = 0; i < size; i++)
+        {
+            String idx = fmt::format("{0}", i);
+            SceneMetadata& metadata = out->SceneMetadatas.emplace_back();
+
+            metadata.Name = sceneNode[idx]["Name"];
+            metadata.ScenePath = fmt::format("{0}/{1}", out->ProjPath, sceneNode[idx]["Path"].get<String>());
+            metadata.SceneUUID = sceneNode[idx]["UUID"].get<uint64_t>();
+        }
     }
 
 } // namespace Surge

@@ -9,13 +9,21 @@
 
 namespace Surge
 {
+    struct SceneMetadata
+    {
+        String Name;
+        String ScenePath;
+        UUID SceneUUID;
+    };
+
     class Scene;
     class Entity;
     class Scene : public RefCounted
     {
     public:
         Scene() = default;
-        Scene(const String& name, bool runtime);
+        Scene(const SceneMetadata& sceneMetadata, bool runtime);
+        Scene(const String& name, const String& path, bool runtime);
         ~Scene();
 
         void OnRuntimeStart();
@@ -24,8 +32,7 @@ namespace Surge
         void OnRuntimeEnd();
         void CopyTo(Scene* other);
         Entity FindEntityByUUID(UUID id);
-        String& GetName() { return mName; }
-        const UUID& GetUUID() const { return mSceneUUID; }
+        SceneMetadata& GetMetadata() { return mMetadata; }
 
         // Entity manipulation
         void CreateEntity(Entity& outEntity, const String& name = "New Entity");
@@ -47,8 +54,7 @@ namespace Surge
         void ConvertToWorldSpace(Entity entity);
 
     private:
-        String mName;
-        UUID mSceneUUID;
+        SceneMetadata mMetadata;
         entt::registry mRegistry;
     };
 

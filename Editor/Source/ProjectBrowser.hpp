@@ -1,6 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "Surge/Core/Defines.hpp"
+#include "Surge/Project/Project.hpp"
 
 namespace Surge
 {
@@ -17,10 +18,11 @@ namespace Surge
         ~ProjectBrowserWindow() = default;
 
         void Render();
+        void SetProjectLaunchCallback(std::function<void(const ProjectMetadata& metadata)> func) { mOnProjectLaunch = func; }
 
     private:
-        void LaunchProject(const String& name, const String& sceneName, const Path& path);
-        void SerializeProject();
+        void LaunchProject(const ProjectMetadata& metadata);
+        void WriteProjectsToPersistantStorage();
         void LoadProjectsFromPersistantStorage();
         void RemoveProjectFromPersistantStorage(Uint index);
 
@@ -28,8 +30,9 @@ namespace Surge
         String mProjectNameBuffer = "MyProject";
         String mSceneNameBuffer = "MainScene";
         String mProjectPathBuffer;
-        Path mPersistantStoragePath;
 
+        Path mPersistantStoragePath;
+        std::function<void(const ProjectMetadata& metadata)> mOnProjectLaunch;
         Vector<PersistantProjectData> mPersistantProjectData;
     };
 
