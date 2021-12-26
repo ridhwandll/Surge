@@ -1,6 +1,6 @@
 // dear imgui, v1.85 WIP
 // (headers)
-
+// clang-format off
 // Help:
 // - Read FAQ at http://dearimgui.org/faq
 // - Newcomers, read 'Programmer guide' in imgui.cpp for notes on how to setup Dear ImGui in your codebase.

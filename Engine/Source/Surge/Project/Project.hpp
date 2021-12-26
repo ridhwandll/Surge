@@ -12,6 +12,8 @@ namespace Surge
 
     struct ProjectMetadata
     {
+        ProjectMetadata() = default;
+        ProjectMetadata(const String& name, const Path& path);
         String Name;              // Name of the project, what else
         Path ProjPath;            // Path to the project folder
         Path InternalDirectory;   // Path to the .surge folder   -> (ProjPath/.surge)

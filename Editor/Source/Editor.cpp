@@ -38,6 +38,7 @@ namespace Surge
             });
             mActiveProject.SetActiveScene(0);
         });
+        mProjectBrowser.Initialize();
     }
 
     void Editor::OnUpdate()
@@ -109,6 +110,7 @@ namespace Surge
 
     void Editor::OnShutdown()
     {
+        mProjectBrowser.Shutdown();
     }
 
 } // namespace Surge

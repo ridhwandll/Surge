@@ -9,19 +9,24 @@ namespace Surge
     {
         String Name;
         String AbsolutePath;
+        String CreationDateString;
+        bool Valid = false;
+        bool StartupProject = false;
     };
 
     class ProjectBrowserWindow
     {
     public:
-        ProjectBrowserWindow();
+        ProjectBrowserWindow() = default;
         ~ProjectBrowserWindow() = default;
+        void Initialize();
+        void Shutdown();
 
         void Render();
         void SetProjectLaunchCallback(std::function<void(const ProjectMetadata& metadata)> func) { mOnProjectLaunch = func; }
 
     private:
-        void LaunchProject(const ProjectMetadata& metadata);
+        void LaunchProject(const PersistantProjectData& projData);
         void WriteProjectsToPersistantStorage();
         void LoadProjectsFromPersistantStorage();
         void RemoveProjectFromPersistantStorage(Uint index);

@@ -47,7 +47,7 @@ namespace Surge::ImGuiAux
 
         ScopedBoldFont(bool largeFont = false)
         {
-            largeFont ? ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[2]) : ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
+            largeFont ? ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]) : ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
         }
         ~ScopedBoldFont()
         {
@@ -267,6 +267,15 @@ namespace Surge::ImGuiAux
             ImGui::TextUnformatted(tip);
             ImGui::EndTooltip();
         }
+    }
+
+    FORCEINLINE void ShiftCursorX(float x)
+    {
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + x);
+    }
+    FORCEINLINE void ShiftCursorY(float y)
+    {
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + y);
     }
 
     class RenamingMechanism

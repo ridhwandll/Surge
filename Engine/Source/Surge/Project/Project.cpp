@@ -5,6 +5,22 @@
 
 namespace Surge
 {
+    ProjectMetadata::ProjectMetadata(const String& name, const Path& path)
+    {
+        Name = name;
+        ProjPath = path;
+        ProjectID = UUID();
+        ActiveSceneIndex = 0;
+        InternalDirectory = fmt::format("{0}/{1}", path, ".surge");
+        ProjectMetadataPath = fmt::format("{0}/{1}.surgeProj", InternalDirectory, name);
+
+        bool success = Filesystem::CreateOrEnsureDirectory(InternalDirectory);
+        SG_ASSERT(success, "Cannot create directory!");
+        Filesystem::CreateOrEnsureFile(ProjectMetadataPath);
+
+        Serializer::Serialize<ProjectMetadata>(ProjectMetadataPath, this);
+    }
+
     Project::Project()
     {
         mIsValid = false;
@@ -18,25 +34,13 @@ namespace Surge
     void Project::Invalidate(const String& name, const Path& path)
     {
         Destroy();
-
-        mMetadata.Name = name;
-        mMetadata.ProjPath = path;
-        mMetadata.ProjectID = UUID();
-        mMetadata.ActiveSceneIndex = 0;
-        mMetadata.InternalDirectory = fmt::format("{0}/{1}", path, ".surge");
-        mMetadata.ProjectMetadataPath = fmt::format("{0}/{1}.surgeProj", mMetadata.InternalDirectory, name);
-
-        bool success = Filesystem::CreateOrEnsureDirectory(mMetadata.InternalDirectory);
-        SG_ASSERT(success, "Cannot create directory!");
-        Filesystem::CreateOrEnsureFile(mMetadata.ProjectMetadataPath);
+        mMetadata = ProjectMetadata(name, path);
 
         // Add a default scene
         Ref<Scene> scene = AddScene("Default", fmt::format("{0}", fmt::format("{0}/Default.surge", mMetadata.ProjPath)));
         Serializer::Deserialize<Scene>("Engine/Assets/Scenes/Default.surge", scene.Raw());
         Serializer::Serialize<Scene>(scene->GetMetadata().ScenePath, scene.Raw());
 
-        // Write the project metadata to file
-        Serializer::Serialize<ProjectMetadata>(mMetadata.ProjectMetadataPath, &mMetadata);
         mIsValid = true;
     }
 

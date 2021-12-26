@@ -88,12 +88,7 @@ namespace Surge
                     String activeProjectName = editor->GetActiveProject().GetMetadata().Name;
                     ImGui::SetCursorPosX(windowWidth - 200);
 
-                    if (ImGui::Button(ICON_SURGE_LIST_ALT))
-                        editor->GetActiveProject().Destroy();
-                    ImGui::SameLine();
-
-                    ImGui::Text("%s", activeProjectName.c_str());
-                    ImGuiAux::ToolTip("Project Name");
+                    ImGui::Text(activeProjectName.c_str());
 
                     ImGuiContext& g = *GImGui;
                     ImRect& rect = (g.LastItemData.StatusFlags & ImGuiItemStatusFlags_HasDisplayRect) ? g.LastItemData.DisplayRect : g.LastItemData.Rect;
@@ -101,6 +96,15 @@ namespace Surge
                     rect.TranslateY(2); // Translate 2 units down Y axis to "Hide the bottom line"
                     ImDrawList* drawList = ImGui::GetWindowDrawList();
                     drawList->AddRect(rect.Min, rect.Max, ImGui::ColorConvertFloat4ToU32(ImGuiAux::Colors::ThemeColorLight), 0.8f, ImDrawCornerFlags_All, 1.0f);
+
+                    const char* label = "Projects";
+                    const ImGuiID id = ImGui::GetCurrentWindow()->GetID(label);
+                    bool hovered = false;
+                    if (ImGui::ButtonBehavior(rect, id, &hovered, nullptr, 0))
+                        editor->GetActiveProject().Destroy();
+                    ImGuiAux::DelayedToolTip("Click for opening ProjectBrowser");
+                    if (hovered)
+                        drawList->AddRect(rect.Min, rect.Max, ImGui::ColorConvertFloat4ToU32(ImGuiAux::Colors::Silver), 0.8f, ImDrawCornerFlags_All, 1.0f);
                 }
             }
 

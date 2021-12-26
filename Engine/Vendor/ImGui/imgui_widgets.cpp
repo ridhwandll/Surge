@@ -1,6 +1,6 @@
 // dear imgui, v1.85 WIP
 // (widgets code)
-
+// clang-format off
 /*
 
 Index of this file:
