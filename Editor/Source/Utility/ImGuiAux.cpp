@@ -100,7 +100,7 @@ namespace Surge
         return res;
     }
 
-    void ImGuiAux::RenamingMechanism::Update(String& name)
+    void ImGuiAux::RenamingMechanism::Update(String& name, const std::function<void(const String& newName)>& onRenameEnd)
     {
         if (ImGui::IsWindowHovered() && Input::IsKeyPressed(Key::F2))
             mRenaming = true;
@@ -120,6 +120,7 @@ namespace Surge
             {
                 mRenaming = false;
                 name = mTempBuffer;
+                onRenameEnd(mTempBuffer);
                 mTempBuffer.clear();
                 mOldName.clear();
             }

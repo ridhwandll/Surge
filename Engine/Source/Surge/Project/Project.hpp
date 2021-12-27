@@ -46,6 +46,7 @@ namespace Surge
 
         Ref<Scene> AddScene(const String& name, const Path& path);
         Ref<Scene> AddScene(const SceneMetadata& metadata);
+        void RenameScene(Uint index, const String& newName);
         void RemoveScene(Uint arrayIndex);
 
         Ref<Scene>& GetScene(Uint arrayIndex);

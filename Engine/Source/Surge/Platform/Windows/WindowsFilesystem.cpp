@@ -98,6 +98,11 @@ namespace Surge
         return std::filesystem::exists(path);
     }
 
+    void Filesystem::RemoveFile(const Path& path)
+    {
+        std::filesystem::remove(path);
+    }
+
     template <typename T>
     T Filesystem::ReadFile(const Path& path)
     {

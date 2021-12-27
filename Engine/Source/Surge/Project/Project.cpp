@@ -119,6 +119,8 @@ namespace Surge
         Ref<Scene> newScene = Ref<Scene>::Create(metadata, false);
         mScenes.push_back(newScene);
         mMetadata.SceneMetadatas.push_back(newScene->GetMetadata());
+        Serializer::Serialize<Scene>(metadata.ScenePath, newScene.Raw());
+        Serializer::Serialize<ProjectMetadata>(mMetadata.ProjectMetadataPath, &mMetadata);
         return newScene;
     }
 
@@ -127,11 +129,32 @@ namespace Surge
         Ref<Scene> newScene = Ref<Scene>::Create(name, path, false);
         mScenes.push_back(newScene);
         mMetadata.SceneMetadatas.push_back(newScene->GetMetadata());
+        Serializer::Serialize<Scene>(path, newScene.Raw());
+        Serializer::Serialize<ProjectMetadata>(mMetadata.ProjectMetadataPath, &mMetadata);
         return newScene;
+    }
+
+    void Project::RenameScene(Uint index, const String& newName)
+    {
+        Ref<Scene>& sceneToRename = mScenes[index];
+        SceneMetadata& metadata = sceneToRename->GetMetadata();
+
+        Filesystem::RemoveFile(metadata.ScenePath);
+        metadata.Name = newName;
+        metadata.ScenePath = fmt::format("{0}/{1}.surge", Filesystem::GetParentPath(metadata.ScenePath), newName);
+
+        mMetadata.SceneMetadatas[index].Name = newName;
+        mMetadata.SceneMetadatas[index].ScenePath = metadata.ScenePath;
+
+        Serializer::Serialize<Scene>(metadata.ScenePath, sceneToRename.Raw());
+        Serializer::Serialize<ProjectMetadata>(mMetadata.ProjectMetadataPath, &mMetadata);
     }
 
     void Project::RemoveScene(Uint arrayIndex)
     {
+        Ref<Scene>& sceneToRemove = mScenes[arrayIndex];
+        Filesystem::RemoveFile(sceneToRemove->GetMetadata().ScenePath);
+        Serializer::Serialize<ProjectMetadata>(mMetadata.ProjectMetadataPath, &mMetadata);
         mScenes.erase(mScenes.begin() + arrayIndex);
     }
 

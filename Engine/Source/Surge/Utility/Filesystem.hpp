@@ -13,7 +13,7 @@ namespace Surge::Filesystem
     String GetNameWithExtension(const Path& assetFilepath);
     String GetNameWithoutExtension(const Path& assetFilepath);
     Path GetParentPath(const Path& path);
-
+    void RemoveFile(const Path& path);
     bool Exists(const Path& path);
 
 } // namespace Surge::Filesystem

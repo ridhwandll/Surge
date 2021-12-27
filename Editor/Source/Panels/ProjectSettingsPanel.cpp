@@ -19,7 +19,7 @@ namespace Surge
         if (!*show)
             return;
 
-        Project activeProject = reinterpret_cast<Editor*>(Surge::Core::GetClient())->GetActiveProject();
+        Project& activeProject = reinterpret_cast<Editor*>(Surge::Core::GetClient())->GetActiveProject();
 
         if (ImGui::Begin(PanelCodeToString(mCode), show))
         {
@@ -53,7 +53,11 @@ namespace Surge
                         mRenamingMech.SetRenamingState(true);
 
                     if (mSelectedSceneUUID == currentSceneUUID)
-                        mRenamingMech.Update(scene->GetMetadata().Name);
+                    {
+                        mRenamingMech.Update(scene->GetMetadata().Name, [&](const String& newName) {
+                            activeProject.RenameScene(i, newName);
+                        });
+                    }
 
                     if (mSelectedSceneUUID == currentSceneUUID)
                         ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(ImGuiAux::Colors::ExtraDark));
@@ -79,7 +83,7 @@ namespace Surge
                 if (ImGuiAux::ButtonCentered("Add Scene"))
                 {
                     // TODO: Don't hardcode the scene path in future
-                    Ref<Scene> newScene = activeProject.AddScene("NewScene", activeProject.GetMetadata().ProjPath);
+                    Ref<Scene> newScene = activeProject.AddScene("NewScene", fmt::format("{0}/NewScene.surge", activeProject.GetMetadata().ProjPath));
                     mSelectedSceneUUID = newScene->GetMetadata().SceneUUID;
                     mRenamingMech.SetRenamingState(true);
                 }

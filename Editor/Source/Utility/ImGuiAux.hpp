@@ -278,6 +278,7 @@ namespace Surge::ImGuiAux
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + y);
     }
 
+    // clang-format off
     class RenamingMechanism
     {
     public:
@@ -286,8 +287,8 @@ namespace Surge::ImGuiAux
         RenamingMechanism operator=(const RenamingMechanism&) = delete;
         ~RenamingMechanism() = default;
 
-        FORCEINLINE void SetRenamingState(bool isRenaming) { mRenaming = isRenaming; }
-        void Update(String& name);
+        FORCEINLINE void SetRenamingState(bool isRenaming) { mRenaming = isRenaming; }        
+        void Update(String& name, const std::function<void(const String& newName)>& onRenameEnd = [](const String& newName) {}); 
 
         bool operator!() const { return !mRenaming; }
 
@@ -296,5 +297,6 @@ namespace Surge::ImGuiAux
         String mOldName;
         String mTempBuffer;
     };
+    // clang-format on
 
 } // namespace Surge::ImGuiAux

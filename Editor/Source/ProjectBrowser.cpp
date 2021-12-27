@@ -224,10 +224,12 @@ namespace Surge
     {
         ProjectMetadata metadata;
         String metadataPath = fmt::format("{0}/.surge/{1}.surgeProj", projData.AbsolutePath, projData.Name);
-        Serializer::Deserialize<ProjectMetadata>(metadataPath, &metadata);
-
-        SG_ASSERT(mOnProjectLaunch, "Cannot launch project!");
-        mOnProjectLaunch(metadata);
+        if (Filesystem::Exists(metadataPath))
+        {
+            Serializer::Deserialize<ProjectMetadata>(metadataPath, &metadata);
+            SG_ASSERT(mOnProjectLaunch, "Cannot launch project!");
+            mOnProjectLaunch(metadata);
+        }
     }
 
     void ProjectBrowserWindow::WriteProjectsToPersistantStorage()
