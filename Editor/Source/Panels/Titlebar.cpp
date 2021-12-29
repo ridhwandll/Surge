@@ -101,7 +101,11 @@ namespace Surge
                     const ImGuiID id = ImGui::GetCurrentWindow()->GetID(label);
                     bool hovered = false;
                     if (ImGui::ButtonBehavior(rect, id, &hovered, nullptr, 0))
+                    {
                         editor->GetActiveProject().Destroy();
+                        Window* window = Core::GetWindow();
+                        window->RestoreFromMaximize();
+                    }
                     ImGuiAux::DelayedToolTip("Click for opening ProjectBrowser");
                     if (hovered)
                         drawList->AddRect(rect.Min, rect.Max, ImGui::ColorConvertFloat4ToU32(ImGuiAux::Colors::Silver), 0.8f, ImDrawCornerFlags_All, 1.0f);

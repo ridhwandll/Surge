@@ -1,5 +1,6 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
+#include "Surge/Core/String.hpp"
 #include <cstdint>
 
 namespace Surge

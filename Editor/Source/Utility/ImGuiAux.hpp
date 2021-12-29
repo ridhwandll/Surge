@@ -19,6 +19,7 @@ namespace Surge::ImGuiAux
         constexpr glm::vec4 Red = glm::vec4(0.8f, 0.1f, 0.1f, 1.0f);
         constexpr glm::vec4 Green = glm::vec4(0.1f, 0.8f, 0.1f, 1.0f);
         constexpr glm::vec4 Blue = glm::vec4(0.1f, 0.1f, 0.8f, 1.0f);
+        constexpr glm::vec4 White = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
         constexpr glm::vec4 Iron = glm::vec4(0.560f, 0.570f, 0.580f, 1.0f);
         constexpr glm::vec4 Silver = glm::vec4(0.972f, 0.960f, 0.915f, 1.0f);

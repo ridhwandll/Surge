@@ -54,7 +54,7 @@ namespace Surge
 
                     for (Ref<Shader>& shader : allAhaders)
                     {
-                        ImGui::PushID(shader->GetPath().c_str());
+                        ImGui::PushID(shader->GetPath());
                         String typeString;
                         ShaderType types = shader->GetTypes();
                         if (ShaderType::Vertex & types && ShaderType::Pixel & types)

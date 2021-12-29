@@ -3,6 +3,8 @@
 #include "Surge/Core/Defines.hpp"
 #include "Surge/Core/Hash.hpp"
 #include "Surge/Core/Memory.hpp"
+#include "Surge/Core/String.hpp"
+#include "Surge/Core/Path.hpp"
 
 namespace Surge
 {

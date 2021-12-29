@@ -12,7 +12,7 @@ namespace Surge
     struct SceneMetadata
     {
         String Name;
-        String ScenePath;
+        Path ScenePath;
         UUID SceneUUID;
     };
 
@@ -23,7 +23,7 @@ namespace Surge
     public:
         Scene() = default;
         Scene(const SceneMetadata& sceneMetadata, bool runtime);
-        Scene(const String& name, const String& path, bool runtime);
+        Scene(const String& name, const Path& path, bool runtime);
         ~Scene();
 
         void OnRuntimeStart();

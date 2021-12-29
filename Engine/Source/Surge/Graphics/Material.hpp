@@ -1,6 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "Surge/Core/Buffer.hpp"
+#include "Surge/Core/String.hpp"
 #include "Surge/Graphics/Shader/Shader.hpp"
 #include "Surge/Graphics/Shader/ReflectionData.hpp"
 #include "Surge/Graphics/Interface/UniformBuffer.hpp"

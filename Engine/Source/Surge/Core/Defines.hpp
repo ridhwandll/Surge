@@ -5,7 +5,6 @@
 #include "Surge/Utility/PlatformMisc.hpp"
 #include <deque>
 #include <memory>
-#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -63,6 +62,18 @@
     FORCEINLINE type& operator|=(type& a, type b) { return a = static_cast<type>(static_cast<int>(a) | static_cast<int>(b)); } \
     FORCEINLINE bool operator&(type a, type b) { return static_cast<bool>(static_cast<int>(a) & static_cast<int>(b)); }
 
+#define SURGE_DISABLE_COPY(CLASS) \
+public:                           \
+    CLASS(const CLASS&) = delete; \
+    CLASS& operator=(const CLASS&) = delete
+
+#define SURGE_DISABLE_COPY_AND_MOVE(CLASS) \
+public:                                    \
+    CLASS(const CLASS&) = delete;          \
+    CLASS(CLASS&&) = delete;               \
+    CLASS& operator=(CLASS&&) = delete;    \
+    CLASS& operator=(const CLASS&) = delete
+
 //TODO: Maybe move to a platform specific file
 // Platform specific macros
 #define ENABLE_WIN32_DEBUG_MESSAGE 0
@@ -80,12 +91,9 @@
 
 namespace Surge
 {
-    // Type defines
-    using String = std::string;
     using Uint = uint32_t;
     using Byte = uint8_t;
 
-    using Path = String; // TODO(Rid): Have a dedicated path class
     using CallbackID = UUID;
 
     template <typename T>
@@ -111,4 +119,5 @@ namespace Surge
         T1 Data1;
         T2 Data2;
     };
+
 } // namespace Surge

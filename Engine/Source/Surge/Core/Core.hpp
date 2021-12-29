@@ -5,6 +5,7 @@
 #include "Surge/Core/Window/Window.hpp"
 #include "Surge/Graphics/RenderContext.hpp"
 #include "Surge/Graphics/Renderer/Renderer.hpp"
+#include "Surge/Scripting/ScriptEngine.hpp"
 
 namespace Surge::Core
 {
@@ -15,6 +16,8 @@ namespace Surge::Core
         Window* SurgeWindow = nullptr;
         RenderContext* SurgeRenderContext = nullptr;
         Renderer* SurgeRenderer = nullptr;
+        ScriptEngine* SurgeScriptEngine = nullptr;
+
         bool Running = false;
         Vector<std::function<void()>> FrameEndCallbacks;
     };
@@ -28,6 +31,7 @@ namespace Surge::Core
     Window* GetWindow();
     RenderContext* GetRenderContext();
     Renderer* GetRenderer();
+    ScriptEngine* GetScriptEngine();
     CoreData* GetData();
     Client* GetClient();
 

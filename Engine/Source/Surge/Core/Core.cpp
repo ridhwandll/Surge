@@ -44,6 +44,10 @@ namespace Surge::Core
         GCoreData.SurgeRenderer = new Renderer();
         GCoreData.SurgeRenderer->Initialize();
 
+        // ScriptEngine
+        GCoreData.SurgeScriptEngine = new ScriptEngine();
+        GCoreData.SurgeScriptEngine->Initialize();
+
         // Reflection Engine
         SurgeReflect::Registry::Initialize();
 
@@ -90,6 +94,10 @@ namespace Surge::Core
 
         GCoreData.SurgeRenderer->Shutdown();
         delete GCoreData.SurgeRenderer;
+
+        GCoreData.SurgeScriptEngine->Destroy();
+        delete GCoreData.SurgeScriptEngine;
+
         delete GCoreData.SurgeWindow;
         GCoreData.SurgeRenderContext->Shutdown();
         delete GCoreData.SurgeRenderContext;
@@ -104,7 +112,8 @@ namespace Surge::Core
     Window* GetWindow() { return GCoreData.SurgeWindow; }
     RenderContext* GetRenderContext() { return GCoreData.SurgeRenderContext; }
     Renderer* GetRenderer() { return GCoreData.SurgeRenderer; }
+    ScriptEngine* GetScriptEngine() { return GCoreData.SurgeScriptEngine; }
     CoreData* GetData() { return &GCoreData; }
-    Surge::Client* GetClient() { return GCoreData.SurgeClient; }
+    Client* GetClient() { return GCoreData.SurgeClient; }
 
 } // namespace Surge::Core

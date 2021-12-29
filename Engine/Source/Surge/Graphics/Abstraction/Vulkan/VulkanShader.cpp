@@ -111,7 +111,7 @@ namespace Surge
             if (compile)
             {
                 // Compile, not present in cache
-                shaderc::CompilationResult result = compiler.CompileGlslToSpv(source, VulkanUtils::ShadercShaderKindFromSurgeShaderType(stage), mPath.c_str(), options);
+                shaderc::CompilationResult result = compiler.CompileGlslToSpv(source, VulkanUtils::ShadercShaderKindFromSurgeShaderType(stage), mPath, options);
                 if (result.GetCompilationStatus() != shaderc_compilation_status_success)
                 {
                     Log<Severity::Error>("{0} Shader compilation failure!", VulkanUtils::ShaderTypeToString(stage));

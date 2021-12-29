@@ -32,4 +32,9 @@ namespace Surge
         MessageBox(NULL, text, "Error!", MB_ICONERROR | MB_OK);
     }
 
+    glm::vec2 PlatformMisc::GetScreenSize()
+    {
+        return glm::vec2(GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
+    }
+
 } // namespace Surge

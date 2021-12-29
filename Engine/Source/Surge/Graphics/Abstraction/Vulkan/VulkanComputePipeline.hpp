@@ -24,7 +24,7 @@ namespace Surge
         void Release();
 
     private:
-        Ref<VulkanShader> mShader;
+        Ref<Shader> mShader;
         VkPipeline mPipeline;
         VkPipelineLayout mPipelineLayout;
         VkDescriptorSetLayout mEmptyLayout;

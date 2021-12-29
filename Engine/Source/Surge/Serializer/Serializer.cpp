@@ -146,7 +146,7 @@ namespace Surge
                     const Ref<Mesh>* mesh = reinterpret_cast<const Ref<Mesh>*>(source);
                     String path;
                     if (*mesh)
-                        path = std::filesystem::relative((*mesh)->GetPath()).string();
+                        path = std::filesystem::relative((*mesh)->GetPath().Str()).string();
 
                     out[name] = path;
                     offset += size;
@@ -191,7 +191,7 @@ namespace Surge
 
         String result = outJson.dump(4);
         FILE* f;
-        errno_t e = fopen_s(&f, path.c_str(), "w");
+        errno_t e = fopen_s(&f, path, "w");
         if (f)
         {
             fwrite(result.c_str(), sizeof(char), result.size(), f);
@@ -354,8 +354,8 @@ namespace Surge
             sceneNode[idx]["Name"] = sceneMetadata.Name;
             String relativeScenePath;
 
-            std::filesystem::path path(sceneMetadata.ScenePath);
-            path.is_absolute() ? relativeScenePath = std::filesystem::relative(sceneMetadata.ScenePath, in->ProjPath).string() : relativeScenePath = sceneMetadata.ScenePath;
+            std::filesystem::path path(sceneMetadata.ScenePath.Str());
+            path.is_absolute() ? relativeScenePath = std::filesystem::relative(sceneMetadata.ScenePath.Str(), in->ProjPath.Str()).string() : relativeScenePath = sceneMetadata.ScenePath.Str();
             sceneNode[idx]["Path"] = relativeScenePath;
             index++;
         }
@@ -363,7 +363,7 @@ namespace Surge
 
         String result = outJson.dump(4);
         FILE* f;
-        errno_t e = fopen_s(&f, path.c_str(), "w");
+        errno_t e = fopen_s(&f, path, "w");
         if (f)
         {
             fwrite(result.c_str(), sizeof(char), result.size(), f);
@@ -378,9 +378,9 @@ namespace Surge
         nlohmann::json inJson = jsonContents.empty() ? nlohmann::json() : nlohmann::json::parse(jsonContents);
 
         out->Name = inJson["Name"];
-        out->ProjPath = inJson["ProjPath"];
-        out->InternalDirectory = inJson["InternalDirectory"];
-        out->ProjectMetadataPath = inJson["ProjectMetadataPath"];
+        out->ProjPath = inJson["ProjPath"].get<String>();
+        out->InternalDirectory = inJson["InternalDirectory"].get<String>();
+        out->ProjectMetadataPath = inJson["ProjectMetadataPath"].get<String>();
         out->ActiveSceneIndex = inJson["ActiveSceneIndex"];
 
         nlohmann::json& sceneNode = inJson["Scenes"];
