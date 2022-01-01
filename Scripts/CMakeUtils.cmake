@@ -22,3 +22,14 @@ function(GroupSourcesByFolder target)
     source_group("${last_dir}" FILES ${files})
   endif()
 endfunction()
+
+function(CopyBinaryToExeDir target libToCopy exeTargetName)
+add_custom_command(
+    TARGET ${target}
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${libToCopy}
+        ${CMAKE_BINARY_DIR}/${exeTargetName}/$<CONFIGURATION>/Libraries
+    )
+endfunction()
+

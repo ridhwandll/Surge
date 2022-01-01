@@ -1,7 +1,6 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "Surge/Core/String.hpp"
-#include <filesystem>
 #include <fmt/format.h>
 
 namespace Surge
@@ -14,10 +13,25 @@ namespace Surge
             : mPathStr(cstr) {}
         Path(const String& str)
             : mPathStr(str) {}
-        Path(const std::filesystem::path& path)
-            : mPathStr(path.string()) {}
 
         ~Path() = default;
+
+        Path ParentPath()
+        {
+            auto path = mPathStr.substr(0, mPathStr.find_last_of("/\\"));
+            return path;
+        }
+
+        Path FileName()
+        {
+            String name;
+            auto lastSlash = mPathStr.find_last_of("/\\");
+            lastSlash = lastSlash == String::npos ? 0 : lastSlash + 1;
+            auto lastDot = mPathStr.rfind('.');
+            auto count = lastDot == String::npos ? mPathStr.size() - lastSlash : lastDot - lastSlash;
+            name = mPathStr.substr(lastSlash, count);
+            return name;
+        }
 
         const String& Str() const { return mPathStr; }
         std::wstring WStr() const { return std::wstring(mPathStr.begin(), mPathStr.end()); }

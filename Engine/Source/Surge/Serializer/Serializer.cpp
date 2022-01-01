@@ -340,6 +340,7 @@ namespace Surge
         nlohmann::json outJson = nlohmann::json();
 
         outJson["Name"] = in->Name;
+        outJson["UUID"] = in->ProjectID.Get();
         outJson["ProjPath"] = in->ProjPath;
         outJson["InternalDirectory"] = in->InternalDirectory;
         outJson["ProjectMetadataPath"] = in->ProjectMetadataPath;
@@ -378,6 +379,8 @@ namespace Surge
         nlohmann::json inJson = jsonContents.empty() ? nlohmann::json() : nlohmann::json::parse(jsonContents);
 
         out->Name = inJson["Name"];
+        if (inJson.contains("UUID"))
+            out->ProjectID = inJson["UUID"].get<uint64_t>();
         out->ProjPath = inJson["ProjPath"].get<String>();
         out->InternalDirectory = inJson["InternalDirectory"].get<String>();
         out->ProjectMetadataPath = inJson["ProjectMetadataPath"].get<String>();

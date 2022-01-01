@@ -8,7 +8,7 @@
 #include "Surge/Core/String.hpp"
 #include "Surge/Core/Path.hpp"
 #include "Surge/Debug/Profiler.hpp"
-#include "Surge/Utility/PlatformMisc.hpp"
+#include "Surge/Utility/Platform.hpp"
 
 #include <string>
 #include <memory>

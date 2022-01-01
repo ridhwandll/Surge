@@ -6,6 +6,7 @@
 #include "Surge/Graphics/Mesh.hpp"
 #include "Surge/Graphics/Camera/RuntimeCamera.hpp"
 #include "SurgeReflect/SurgeReflect.hpp"
+#include "Surge/Scripting/ScriptEngine.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
@@ -114,6 +115,15 @@ namespace Surge
         float Size = 45.5f;
 
         SURGE_REFLECTION_ENABLE;
+    };
+
+    struct ScriptComponent
+    {
+        ScriptComponent() = default;
+        ScriptComponent(const ScriptID& scriptEngineID)
+            : ScriptEngineID(scriptEngineID) {}
+
+        ScriptID ScriptEngineID;
     };
 
 //! NOTE: ALL THE MAJOR COMPONENTS MUST BE REGISTERED HERE, ADD BY SEPARATING VIA A COMMA (',') WHEN YOU ADD A NEW COMPONENT

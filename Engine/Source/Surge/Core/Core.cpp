@@ -7,9 +7,11 @@
 #include "Surge/Platform/Windows/WindowsWindow.hpp"
 #include "Surge/Debug/Profiler.hpp"
 #include "SurgeReflect/SurgeReflect.hpp"
-#include "Thread/ThreadPool.hpp"
+#include "Surge/Utility/Filesystem.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderContext.hpp"
+#include <filesystem>
 
+#define ENV_VAR_KEY "SURGE_DIR"
 namespace Surge::Core
 {
     static CoreData GCoreData;
@@ -29,6 +31,11 @@ namespace Surge::Core
         SG_ASSERT(application, "Invalid Application!");
 
         Clock::Start();
+
+        String path = Platform::GetEnvVariable(ENV_VAR_KEY);
+        if (!Filesystem::Exists(path))
+            Platform::SetEnvVariable(ENV_VAR_KEY, std::filesystem::current_path().string());
+
         GCoreData.SurgeClient = application;
         const ClientOptions& clientOptions = GCoreData.SurgeClient->GeClientOptions();
 
@@ -95,7 +102,7 @@ namespace Surge::Core
         GCoreData.SurgeRenderer->Shutdown();
         delete GCoreData.SurgeRenderer;
 
-        GCoreData.SurgeScriptEngine->Destroy();
+        GCoreData.SurgeScriptEngine->Shutdown();
         delete GCoreData.SurgeScriptEngine;
 
         delete GCoreData.SurgeWindow;

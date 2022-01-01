@@ -2,7 +2,7 @@
 #pragma once
 #include "Surge/Core/Logger/Logger.hpp"
 #include "Surge/Core/UUID.hpp"
-#include "Surge/Utility/PlatformMisc.hpp"
+#include "Surge/Utility/Platform.hpp"
 #include <deque>
 #include <memory>
 #include <unordered_map>
@@ -11,38 +11,42 @@
 // Platform detection
 #ifdef _WIN32
 #define SURGE_WINDOWS
+#define SCRIPT_API __declspec(dllexport)
 #elif __APPLE__
 #define SURGE_APPLE
+#error "Haha Apple?"
 #elif __linux__
 #define SURGE_LINUX
+#error "Haha LinuS?"
+#define SCRIPT_API "Compiler dependent kekw! Fill this with correct alterantive of __declspec(dllexport)"
 #endif
 
 // Assertions
 #ifdef SURGE_DEBUG
 #define ASSERT() __debugbreak()
-#define SG_ASSERT(condition, ...)                                                     \
-    {                                                                                 \
-        if (!(condition))                                                             \
-        {                                                                             \
-            ::Surge::Log<Surge::Severity::Fatal>(__VA_ARGS__);                        \
-            ::Surge::PlatformMisc::ErrorMessageBox(fmt::format(__VA_ARGS__).c_str()); \
-            ASSERT();                                                                 \
-        }                                                                             \
-    }
-#define SG_ASSERT_NOMSG(condition)                                       \
-    {                                                                    \
-        if (!(condition))                                                \
-        {                                                                \
-            ::Surge::Log<Surge::Severity::Fatal>("Assertion Failed!");   \
-            ::Surge::PlatformMisc::ErrorMessageBox("Assertion Failed!"); \
-            ASSERT();                                                    \
-        }                                                                \
-    }
-#define SG_ASSERT_INTERNAL(...)                                                   \
+#define SG_ASSERT(condition, ...)                                                 \
     {                                                                             \
-        ::Surge::Log<Surge::Severity::Fatal>(__VA_ARGS__);                        \
-        ::Surge::PlatformMisc::ErrorMessageBox(fmt::format(__VA_ARGS__).c_str()); \
-        ASSERT();                                                                 \
+        if (!(condition))                                                         \
+        {                                                                         \
+            ::Surge::Log<Surge::Severity::Fatal>(__VA_ARGS__);                    \
+            ::Surge::Platform::ErrorMessageBox(fmt::format(__VA_ARGS__).c_str()); \
+            ASSERT();                                                             \
+        }                                                                         \
+    }
+#define SG_ASSERT_NOMSG(condition)                                     \
+    {                                                                  \
+        if (!(condition))                                              \
+        {                                                              \
+            ::Surge::Log<Surge::Severity::Fatal>("Assertion Failed!"); \
+            ::Surge::Platform::ErrorMessageBox("Assertion Failed!");   \
+            ASSERT();                                                  \
+        }                                                              \
+    }
+#define SG_ASSERT_INTERNAL(...)                                               \
+    {                                                                         \
+        ::Surge::Log<Surge::Severity::Fatal>(__VA_ARGS__);                    \
+        ::Surge::Platform::ErrorMessageBox(fmt::format(__VA_ARGS__).c_str()); \
+        ASSERT();                                                             \
     }
 #define SCOPED_TIMER(...) Timer tImEr(fmt::format(__VA_ARGS__), true)
 #else

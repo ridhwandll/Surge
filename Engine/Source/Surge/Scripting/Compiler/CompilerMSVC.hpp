@@ -10,16 +10,15 @@ namespace Surge
         CompilerMSVC() = default;
         virtual ~CompilerMSVC() override = default;
 
-        virtual void Initialize(const Path& binaryDirectory) override;
+        virtual void Initialize() override;
         virtual const String& GetName() const override { return mName; };
         virtual void Shutdown() override;
 
     protected:
-        virtual std::wstring BuildCMDLineString(const CompileInfo& options) const override;
+        virtual std::wstring BuildCMDLineString(const Path& binaryDirectory, const CompileInfo& options) const override;
 
     private:
         String mName;
-        Path mBinaryDirectory;
 
         Path mX86dir;
         Path mMSVCDir;

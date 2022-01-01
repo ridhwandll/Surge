@@ -35,7 +35,7 @@ namespace Surge
         RegisterClassEx(&wc);
         SURGE_GET_WIN32_LAST_ERROR
 
-        glm::ivec2 screenSize = PlatformMisc::GetScreenSize();
+        glm::ivec2 screenSize = Platform::GetScreenSize();
         mWin32Window = CreateWindow(wc.lpszClassName, mWindowData.Title.c_str(),
                                     WS_OVERLAPPEDWINDOW, (screenSize.x - mWindowData.Width) / 2, (screenSize.y - mWindowData.Height) / 2, mWindowData.Width,
                                     mWindowData.Height, nullptr, NULL, wc.hInstance, this);

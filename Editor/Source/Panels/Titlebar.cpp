@@ -64,30 +64,32 @@ namespace Surge
                 }
 
                 float windowWidth = ImGui::GetWindowSize().x;
-                float textWidth = ImGui::CalcTextSize(ICON_SURGE_PLAY).x;
-
+                float textWidth = ImGui::CalcTextSize(ICON_SURGE_PLAY ICON_SURGE_CODE).x;
                 ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
                 ProjectState projectState = mEditor->GetActiveProject().GetState();
                 if (projectState == ProjectState::Edit)
                 {
-                    if (ImGui::Button(ICON_SURGE_PLAY))
+                    if (ImGuiAux::Button(ICON_SURGE_PLAY))
                     {
                         mEditor->OnRuntimeStart();
                     }
                 }
                 else if (projectState == ProjectState::Play)
                 {
-                    if (ImGui::Button(ICON_SURGE_STOP))
+                    if (ImGuiAux::Button(ICON_SURGE_STOP))
                     {
                         mEditor->OnRuntimeEnd();
                     }
                 }
+                ImGui::SameLine();
+                if (ImGuiAux::Button(ICON_SURGE_CODE))
+                    Core::GetScriptEngine()->CompileScripts();
+                ImGuiAux::DelayedToolTip("Recompile scripts");
 
                 ImGui::SameLine();
                 {
                     String activeProjectName = editor->GetActiveProject().GetMetadata().Name;
                     ImGui::SetCursorPosX(windowWidth - 200);
-
                     ImGui::Text(activeProjectName.c_str());
 
                     ImGuiContext& g = *GImGui;
@@ -146,7 +148,7 @@ namespace Surge
                     }
 
                     if (pressed)
-                        PlatformMisc::RequestExit();
+                        Platform::RequestExit();
 
                     buttonRect.Min.x -= buttonSize;
                     buttonRect.Max.x -= buttonSize;

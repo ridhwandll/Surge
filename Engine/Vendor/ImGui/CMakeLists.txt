@@ -1,3 +1,5 @@
+include(${CMAKE_SOURCE_DIR}/scripts/CMakeUtils.cmake)
+
 if(WIN32)
 set(BACKENDS
     "Backends/imgui_impl_vulkan.cpp"

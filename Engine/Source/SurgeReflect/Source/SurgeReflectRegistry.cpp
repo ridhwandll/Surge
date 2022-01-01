@@ -34,7 +34,7 @@ namespace SurgeReflect
         return mClasses.insert({name, new Class(name)}).first->second;
     }
 
-    void Registry::RemoveClass(const std::string& name)
+    void Registry::RemoveClass(std::string name)
     {
         auto itr = mClasses.find(name);
         if (itr != mClasses.end())

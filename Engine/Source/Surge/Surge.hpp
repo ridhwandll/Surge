@@ -26,7 +26,7 @@
 #include <imgui.h>
 #include "Surge/Utility/Filesystem.hpp"
 #include "Surge/Serializer/Serializer.hpp"
-#include "Surge/Utility/PlatformMisc.hpp"
+#include "Surge/Utility/Platform.hpp"
 #include "Surge/Project/Project.hpp"
 #include "Surge/Utility/FileDialogs.hpp"
 #include "Surge/Serializer/Serializer.hpp"

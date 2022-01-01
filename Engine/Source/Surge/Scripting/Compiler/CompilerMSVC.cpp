@@ -25,7 +25,7 @@ namespace Surge
 
             return std::filesystem::path(programFilesBuffer).string();
         }
-
+        Log<Severity::Fatal>("Do you even use Windows?");
         return Path();
     }
 
@@ -41,7 +41,7 @@ namespace Surge
             {
                 // Trim trailing newlines
                 const std::filesystem::path VisualStudioLocation(vsWhereOutput.begin(), vsWhereOutput.end() - 2);
-                if (Filesystem::Exists(VisualStudioLocation))
+                if (Filesystem::Exists(VisualStudioLocation.string()))
                 {
                     for (const std::filesystem::directory_entry& msvcDir : std::filesystem::directory_iterator(VisualStudioLocation / "VC" / "Tools" / "MSVC"))
                     {
@@ -50,7 +50,7 @@ namespace Surge
                 }
             }
         }
-
+        Log<Severity::Fatal>("No version of MSVC is installed! Maybe you forgot to install Visual Studio with C++ workload?");
         return Path();
     }
 
@@ -60,26 +60,25 @@ namespace Surge
         {
             const std::filesystem::path directoryPath = rDirectory.path();
 
-            if (Filesystem::Exists(directoryPath / "um" / "x64" / "kernel32.lib"))
-                return directoryPath.filename();
+            if (Filesystem::Exists(Path(directoryPath.string()) / "um" / "x64" / "kernel32.lib"))
+                return directoryPath.filename().string();
         }
-
+        Log<Severity::Fatal>("No version of WindowsSDK is installed! Maybe you forgot to install Visual Studio with C++ workload?");
         return Path();
     }
 
-    void CompilerMSVC::Initialize(const Path& binaryDirectory)
+    void CompilerMSVC::Initialize()
     {
         mName = "MSVC";
-        mBinaryDirectory = binaryDirectory;
         mX86dir = FindProgramFilesX86Dir();
         mMSVCDir = FindMSVCDir(mX86dir);
         mWinSDKVersion = FindWindowsSDKVersion(mX86dir);
-
-        Filesystem::CreateOrEnsureDirectory(mBinaryDirectory / INT_DIRECTORY);
     }
 
-    std::wstring CompilerMSVC::BuildCMDLineString(const CompileInfo& options) const
+    std::wstring CompilerMSVC::BuildCMDLineString(const Path& binaryDirectory, const CompileInfo& options) const
     {
+        Filesystem::CreateOrEnsureDirectory(binaryDirectory / INT_DIRECTORY);
+
         String fileName = Filesystem::GetNameWithoutExtension(options.InputFile);
         std::wstring inputFileName = std::wstring(fileName.begin(), fileName.end());
 
@@ -91,20 +90,35 @@ namespace Surge
 
         compileCmd += L"\"" + (mMSVCDir / "bin" / HOST / "x64" / "cl.exe").WStr() + L"\"";
         compileCmd += L" /nologo";
-        compileCmd += L" /EHsc /std:c++17";
+        compileCmd += L" /EHsc /std:c++17 /MDd";
 
-        // Set standard include directories
         {
+            // Set standard include directories
             const std::filesystem::path WindowsSDKIncludeDir = std::filesystem::path((mX86dir / "Windows Kits" / "10" / "Include" / mWinSDKVersion).Str());
             compileCmd += L" /I\"" + (mMSVCDir / "include").WStr() + L"\"";
             compileCmd += L" /I\"" + (WindowsSDKIncludeDir / "ucrt").wstring() + L"\"";
             compileCmd += L" /I\"" + (WindowsSDKIncludeDir / "um").wstring() + L"\"";
             compileCmd += L" /I\"" + (WindowsSDKIncludeDir / "shared").wstring() + L"\"";
+
+            // Surge include directores
+            Path path = Platform::GetEnvVariable("SURGE_DIR");
+            compileCmd += L" /I\"" + (path / "Engine" / "Source").WStr() + L"\"";
+            compileCmd += L" /I\"" + (path / "Engine" / "Source" / "SurgeReflect" / "Include").WStr() + L"\"";
+
+            std::filesystem::path vendorPath = (path / "Engine" / "Vendor").Str();
+            for (const auto& dirEntry : std::filesystem::directory_iterator(vendorPath))
+            {
+                auto includePath = dirEntry.path() / "Include";
+                if (Filesystem::Exists(includePath.string()))
+                    compileCmd += L" /I\"" + includePath.wstring() + L"\"";
+                else
+                    compileCmd += L" /I\"" + dirEntry.path().wstring() + L"\"";
+            }
         }
 
         // Input File
         compileCmd += L" /Tp \"" + options.InputFile.WStr() + L"\"";
-        compileCmd += L" /Fo\"" + (mBinaryDirectory / INT_DIRECTORY).WStr() + L"/" + inputFileName + L"\"";
+        compileCmd += L" /Fo\"" + (binaryDirectory / INT_DIRECTORY).WStr() + L"/" + inputFileName + L"\"";
 
         //
         // Link
@@ -112,8 +126,8 @@ namespace Surge
 
         // TODO: Make it always a produce dll
         compileCmd += L" /link";
-        compileCmd += L" /SUBSYSTEM:CONSOLE";
-        compileCmd += L" /OUT:\"" + mBinaryDirectory.WStr() + L"/" + inputFileName + L".exe\"";
+        compileCmd += L" /DLL";
+        compileCmd += L" /OUT:\"" + binaryDirectory.WStr() + L"/" + inputFileName + L".dll\"";
 
         // Add standard library paths
         {
@@ -122,6 +136,18 @@ namespace Surge
             compileCmd += L" /LIBPATH:\"" + (mMSVCDir / "lib" / "x64").WStr() + L"\"";
             compileCmd += L" /LIBPATH:\"" + (WindowsSDKLibraryDir / "um" / "x64").wstring() + L"\"";
             compileCmd += L" /LIBPATH:\"" + (WindowsSDKLibraryDir / "ucrt" / "x64").wstring() + L"\"";
+            compileCmd += L" \"Advapi32.lib\"";
+            compileCmd += L" \"shell32.lib\"";
+
+            // Add Surge Libs |"Libraries" folder is generated at build time via CMake
+            Path exeLibFolder = Platform::GetCurrentExecutablePath().ParentPath() / "Libraries";
+            compileCmd += L" /LIBPATH:\"" + exeLibFolder.WStr() + L"\"";
+
+            for (auto& dir : std::filesystem::directory_iterator(exeLibFolder.Str()))
+            {
+                auto fileName = dir.path().filename().wstring();
+                compileCmd += L" \"" + fileName + L"\"";
+            }
         }
 
         // Miscellaneous options

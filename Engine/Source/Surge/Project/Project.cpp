@@ -40,7 +40,7 @@ namespace Surge
         Ref<Scene> scene = AddScene("Default", fmt::format("{0}", fmt::format("{0}/Default.surge", mMetadata.ProjPath)));
         Serializer::Deserialize<Scene>("Engine/Assets/Scenes/Default.surge", scene.Raw());
         Serializer::Serialize<Scene>(scene->GetMetadata().ScenePath, scene.Raw());
-
+        Core::GetScriptEngine()->SetActiveProjct(mMetadata.ProjectID);
         mIsValid = true;
     }
 
@@ -72,9 +72,11 @@ namespace Surge
             }
         }
 
-        // Write the project metadata to file
-        Serializer::Serialize<ProjectMetadata>(mMetadata.ProjectMetadataPath, &mMetadata);
+        Serializer::Serialize<ProjectMetadata>(mMetadata.ProjectMetadataPath, &mMetadata); // Write the project metadata to file
+        Core::GetScriptEngine()->SetActiveProjct(mMetadata.ProjectID);
         mIsValid = true;
+
+        //Core::GetScriptEngine()->CreateScript("C:/Users/fahim/Desktop/Script.cpp");
     }
 
     void Project::OnRuntimeStart()
@@ -89,6 +91,7 @@ namespace Surge
             runtimeScene->OnRuntimeStart();
         }
         Core::GetRenderer()->SetSceneContext(mRuntimeSceneStorage[mMetadata.ActiveSceneIndex]);
+        Core::GetScriptEngine()->OnRuntimeStart();
     }
 
     void Project::Update(EditorCamera& camera)
@@ -100,6 +103,7 @@ namespace Surge
                 break;
             case Surge::ProjectState::Play:
                 mRuntimeSceneStorage[mMetadata.ActiveSceneIndex]->Update();
+                Core::GetScriptEngine()->OnUpdate();
                 break;
         }
     }
@@ -111,6 +115,7 @@ namespace Surge
             scene->OnRuntimeEnd();
         }
         mRuntimeSceneStorage.clear();
+        Core::GetScriptEngine()->OnRuntimeEnd();
         Core::GetRenderer()->SetSceneContext(mScenes[mMetadata.ActiveSceneIndex]);
     }
 

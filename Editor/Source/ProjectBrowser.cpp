@@ -16,7 +16,7 @@ namespace Surge
 {
     void ProjectBrowserWindow::Initialize()
     {
-        mPersistantStoragePath = PlatformMisc::GetPersistantStoragePath();
+        mPersistantStoragePath = Platform::GetPersistantStoragePath();
         Filesystem::CreateOrEnsureFile(fmt::format("{0}/{1}", mPersistantStoragePath, PROJECT_DATA_FILENAME));
         LoadProjectsFromPersistantStorage();
         for (const PersistantProjectData& proj : mPersistantProjectData)

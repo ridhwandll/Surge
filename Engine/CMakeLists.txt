@@ -65,3 +65,13 @@ target_compile_definitions(Surge
     $<$<CONFIG:Debug>:SURGE_DEBUG>
     $<$<CONFIG:Release>:SURGE_RELEASE>
 )
+
+add_custom_command(TARGET Surge PRE_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/Editor/$<CONFIGURATION>/Libraries)
+CopyBinaryToExeDir(Surge ${CMAKE_BINARY_DIR}/Engine/$<CONFIGURATION>/Surge.lib Editor)
+CopyBinaryToExeDir(Surge ${CMAKE_BINARY_DIR}/Engine/Vendor/ImGui/$<CONFIGURATION>/ImGui.lib Editor)
+CopyBinaryToExeDir(Surge ${CMAKE_BINARY_DIR}/Engine/Vendor/fmt/$<CONFIGURATION>/fmt.lib Editor)
+CopyBinaryToExeDir(Surge ${CMAKE_BINARY_DIR}/Engine/Vendor/Optick/$<CONFIGURATION>/Optick.lib Editor)
+CopyBinaryToExeDir(Surge ${CMAKE_BINARY_DIR}/Engine/Vendor/SPIRV-Cross/$<CONFIGURATION>/SPIRV-Cross.lib Editor)
+CopyBinaryToExeDir(Surge ${CMAKE_BINARY_DIR}/Engine/Vendor/volk/$<CONFIGURATION>/volk.lib Editor)
+CopyBinaryToExeDir(Surge ${CMAKE_SOURCE_DIR}/Engine/Vendor/assimp/Lib/assimp-vc142-mt.lib Editor)
+CopyBinaryToExeDir(Surge ${CMAKE_SOURCE_DIR}/Engine/Vendor/shaderc/Lib/shaderc_shared.lib Editor)
