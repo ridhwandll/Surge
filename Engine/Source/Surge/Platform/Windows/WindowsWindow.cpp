@@ -1,6 +1,5 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Surge/Platform/Windows/WindowsWindow.hpp"
-#include "Pch.hpp"
 #include "Surge/Core/Core.hpp"
 #include <imgui.h>
 #include <dwmapi.h>

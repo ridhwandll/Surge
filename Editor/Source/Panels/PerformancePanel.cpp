@@ -28,7 +28,7 @@ namespace Surge
             const float headerSpacingOffset = -(ImGui::GetStyle().ItemSpacing.y + 1.0f);
 
             ImGui::Text("Device: %s", renderContext->GetGPUInfo().Name.c_str());
-            ImGui::Text("Frame Time: % .2f ms ", Clock::GetMilliseconds());
+            ImGui::Text("Frame Time: % .2f ms ", Core::GetClock().GetMilliseconds());
             ImGui::Text("FPS: % .2f", ImGui::GetIO().Framerate);
 
             if (ImGuiAux::PropertyGridHeader("GPU Memory Status", false))

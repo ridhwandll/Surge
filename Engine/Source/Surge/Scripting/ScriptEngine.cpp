@@ -2,10 +2,11 @@
 #include "Surge/Scripting/ScriptEngine.hpp"
 #include "Surge/Scripting/Compiler/CompilerMSVC.hpp"
 #include "SurgeReflect/SurgeReflectRegistry.hpp"
+#include "Surge/Scripting/SurgeBehaviour.hpp"
 
 namespace Surge
 {
-    using CreateScriptFN = SurgeBehaviour* (*)(SurgeReflect::Registry* reg);
+    using CreateScriptFN = SurgeBehaviour* (*)(Core::CoreData*, SurgeReflect::Registry*);
     using GetReflectionFN = SurgeReflect::Class* (*)(SurgeReflect::Registry*);
     using DestroyScriptFN = void (*)(SurgeBehaviour*);
 
@@ -38,6 +39,7 @@ namespace Surge
     void ScriptEngine::OnRuntimeStart()
     {
         SurgeReflect::Registry* reg = SurgeReflect::Registry::Get();
+        Log<Surge::Severity::Debug>("Reflection MemAdd: {0}", (void*)reg);
 
         SG_ASSERT(mActiveProjctID, "No Active project!");
         HashMap<ScriptID, ScriptInstance>& k = mScripts[mActiveProjctID];
@@ -47,10 +49,17 @@ namespace Surge
             String libName = fmt::format("{0}/{1}.dll", scriptInstance.ScriptPath.ParentPath(), scriptInstance.ScriptPath.FileName());
             scriptInstance.LibHandle = Platform::LoadSharedLibrary(libName);
 
+            if (scriptInstance.LibHandle == NULL)
+            {
+                CompileInfo opt;
+                opt.InputFile = scriptInstance.ScriptPath;
+                mCompiler->CompileAndLink(scriptInstance.ScriptPath.ParentPath(), opt);
+                scriptInstance.LibHandle = Platform::LoadSharedLibrary(libName);
+            }
             CreateScriptFN scriptCreateFN = reinterpret_cast<CreateScriptFN>(Platform::GetFunction(scriptInstance.LibHandle, "CreateScript"));
             GetReflectionFN getReflectionFN = reinterpret_cast<GetReflectionFN>(Platform::GetFunction(scriptInstance.LibHandle, "GetReflection"));
 
-            scriptInstance.Script = scriptCreateFN(reg);
+            scriptInstance.Script = scriptCreateFN(Core::GetData(), reg);
             scriptInstance.Reflection = getReflectionFN(reg);
 
             SG_ASSERT_NOMSG(scriptInstance.LibHandle);

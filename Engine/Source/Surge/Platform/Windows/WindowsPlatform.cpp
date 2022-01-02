@@ -45,7 +45,7 @@ namespace Surge
         LSTATUS lOpenStatus = RegCreateKeyExA(HKEY_CURRENT_USER, keyPath, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hKey, &createdNewKey);
         if (lOpenStatus == ERROR_SUCCESS)
         {
-            LSTATUS lSetStatus = RegSetValueExA(hKey, key.c_str(), 0, REG_SZ, (LPBYTE)value.c_str(), value.length() + 1);
+            LSTATUS lSetStatus = RegSetValueExA(hKey, key.c_str(), 0, REG_SZ, (LPBYTE)value.c_str(), static_cast<DWORD>(value.length()) + 1);
             RegCloseKey(hKey);
 
             if (lSetStatus == ERROR_SUCCESS)

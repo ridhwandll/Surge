@@ -1,5 +1,4 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
-#include "Pch.hpp"
 #include "Surge/Core/Input/Input.hpp"
 
 namespace Surge

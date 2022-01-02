@@ -1,6 +1,5 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDiagnostics.hpp"
-#include "Pch.hpp"
 
 namespace Surge
 {

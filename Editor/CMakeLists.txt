@@ -22,7 +22,13 @@ add_custom_command(
         ${CMAKE_SOURCE_DIR}/Engine/Vendor/assimp/Binaries/assimp-vc142-mt.dll
         ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIGURATION>
     )
-
+add_custom_command(
+    TARGET Editor
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_BINARY_DIR}/Engine/Source/SurgeReflect/$<CONFIGURATION>/Surge.Reflection.dll
+        ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIGURATION>
+    )
 GroupSourcesByFolder(Editor)
 set_property(TARGET Editor PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 set_target_properties(Editor PROPERTIES FOLDER App)

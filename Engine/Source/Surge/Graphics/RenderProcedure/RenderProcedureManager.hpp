@@ -1,8 +1,8 @@
 ﻿// Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "Surge/Graphics/RenderProcedure/RenderProcedure.hpp"
+#include "Surge/Core/Profiler.hpp"
 #include "SurgeReflect/SurgeReflect.hpp"
-#include "Surge/Debug/Profiler.hpp"
 
 namespace Surge
 {

@@ -1,10 +1,10 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
-#include "Panels/Titlebar.hpp"
-#include "Panels/PaneManager.hpp"
-#include "Surge/Project/Project.hpp"
+#include "Surge/Core/Project/Project.hpp"
 #include "Surge/Graphics/Camera/EditorCamera.hpp"
 #include "Surge/Graphics/Renderer/Renderer.hpp"
+#include "Panels/Titlebar.hpp"
+#include "Panels/PaneManager.hpp"
 #include "ProjectBrowser.hpp"
 
 namespace Surge

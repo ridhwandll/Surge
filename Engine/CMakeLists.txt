@@ -43,7 +43,7 @@ target_include_directories(Surge PUBLIC ${INCLUDE_DIRS})
 target_link_libraries(Surge PUBLIC ${LIB_LINKS})
 
 # Add Precompiled Header
-target_precompile_headers(Surge PRIVATE "Source/Pch.hpp")
+target_precompile_headers(Surge PRIVATE "Source/Surge/Pch.hpp")
 
 GroupSourcesByFolder(Surge)
 
@@ -75,3 +75,5 @@ CopyBinaryToExeDir(Surge ${CMAKE_BINARY_DIR}/Engine/Vendor/SPIRV-Cross/$<CONFIGU
 CopyBinaryToExeDir(Surge ${CMAKE_BINARY_DIR}/Engine/Vendor/volk/$<CONFIGURATION>/volk.lib Editor)
 CopyBinaryToExeDir(Surge ${CMAKE_SOURCE_DIR}/Engine/Vendor/assimp/Lib/assimp-vc142-mt.lib Editor)
 CopyBinaryToExeDir(Surge ${CMAKE_SOURCE_DIR}/Engine/Vendor/shaderc/Lib/shaderc_shared.lib Editor)
+
+add_subdirectory(Source/SurgeReflect)

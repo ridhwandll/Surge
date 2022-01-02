@@ -3,7 +3,7 @@
 #include "Surge/Utility/FileDialogs.hpp"
 #include "Surge/Serializer/Serializer.hpp"
 #include "Surge/Utility/Filesystem.hpp"
-#include "Surge/Project/Project.hpp"
+#include "Surge/Core/Project/Project.hpp"
 #include "Panels/SceneHierarchyPanel.hpp"
 #include "Utility/ImGuiAux.hpp"
 #include <json/json.hpp>

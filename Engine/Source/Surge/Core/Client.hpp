@@ -1,6 +1,6 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
-#include "Surge/Events/Event.hpp"
+#include "Surge/Core/Events/Event.hpp"
 #include "Surge/Core/Window/Window.hpp"
 
 namespace Surge

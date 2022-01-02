@@ -63,10 +63,10 @@ namespace Surge
                     ImGui::EndPopup();
                 }
 
-                float windowWidth = ImGui::GetWindowSize().x;
-                float textWidth = ImGui::CalcTextSize(ICON_SURGE_PLAY ICON_SURGE_CODE).x;
-                ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
                 ProjectState projectState = mEditor->GetActiveProject().GetState();
+                float windowWidth = ImGui::GetWindowSize().x;
+                float textWidth = projectState == ProjectState::Edit ? ImGui::CalcTextSize(ICON_SURGE_PLAY ICON_SURGE_CODE).x : ImGui::CalcTextSize(ICON_SURGE_PLAY).x;
+                ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
                 if (projectState == ProjectState::Edit)
                 {
                     if (ImGuiAux::Button(ICON_SURGE_PLAY))
@@ -81,9 +81,14 @@ namespace Surge
                         mEditor->OnRuntimeEnd();
                     }
                 }
-                ImGui::SameLine();
-                if (ImGuiAux::Button(ICON_SURGE_CODE))
-                    Core::GetScriptEngine()->CompileScripts();
+
+                if (projectState == ProjectState::Edit)
+                {
+                    ImGui::SameLine();
+                    if (ImGuiAux::Button(ICON_SURGE_CODE))
+                        Core::GetScriptEngine()->CompileScripts();
+                }
+
                 ImGuiAux::DelayedToolTip("Recompile scripts");
 
                 ImGui::SameLine();

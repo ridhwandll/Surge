@@ -28,19 +28,6 @@ private:                                                \
 #define SURGE_REFLECT_CLASS_REGISTER_END(ClassName) ;}
 // clang-format on
 
-// SCRIPT RELATED
-#define SURGE_SCRIPT_REFLECTION_BEGIN(ClassName)                        \
-public:                                                                 \
-    virtual void SetupInternalAPI(SurgeReflect::Registry* reg) override \
-    {                                                                   \
-        SurgeReflect::Class& clazz = SurgeReflect::Class(#ClassName);   \
-        clazz
-
-#define SURGE_SCRIPT_REFLECTION_END(ClassName)      \
-    ;                                               \
-    reg->RegisterReflectionClass(std::move(clazz)); \
-    }
-
 namespace SurgeReflect
 {
     template <typename T>

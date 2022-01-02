@@ -1,11 +1,9 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Surge/Core/Core.hpp"
-#include "Pch.hpp"
 #include "Surge/Core/Input/Input.hpp"
 #include "Surge/Core/Time/Clock.hpp"
 #include "Surge/Core/Window/Window.hpp"
 #include "Surge/Platform/Windows/WindowsWindow.hpp"
-#include "Surge/Debug/Profiler.hpp"
 #include "SurgeReflect/SurgeReflect.hpp"
 #include "Surge/Utility/Filesystem.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanRenderContext.hpp"
@@ -30,7 +28,7 @@ namespace Surge::Core
         SCOPED_TIMER("Core::Initialize");
         SG_ASSERT(application, "Invalid Application!");
 
-        Clock::Start();
+        GCoreData.SurgeClock.Start();
 
         String path = Platform::GetEnvVariable(ENV_VAR_KEY);
         if (!Filesystem::Exists(path))
@@ -68,7 +66,7 @@ namespace Surge::Core
         while (GCoreData.Running)
         {
             SURGE_PROFILE_FRAME("Core::Frame");
-            Clock::Update();
+            GCoreData.SurgeClock.Update();
             GCoreData.SurgeWindow->Update();
 
             if (GCoreData.SurgeWindow->GetWindowState() != WindowState::Minimized)
@@ -122,5 +120,6 @@ namespace Surge::Core
     ScriptEngine* GetScriptEngine() { return GCoreData.SurgeScriptEngine; }
     CoreData* GetData() { return &GCoreData; }
     Client* GetClient() { return GCoreData.SurgeClient; }
+    Surge::Clock& GetClock() { return GCoreData.SurgeClock; }
 
 } // namespace Surge::Core

@@ -1,6 +1,5 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanSwapChain.hpp"
-#include "Pch.hpp"
 #include "Surge/Core/Core.hpp"
 #include "Surge/Core/Defines.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanDevice.hpp"

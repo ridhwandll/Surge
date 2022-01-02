@@ -1,6 +1,5 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "GraphicsPipeline.hpp"
-#include "Pch.hpp"
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanGraphicsPipeline.hpp"
 
 namespace Surge

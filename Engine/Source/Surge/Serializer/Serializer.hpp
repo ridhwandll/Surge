@@ -1,8 +1,8 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "Surge/Core/Defines.hpp"
+#include "Surge/Core/Project/Project.hpp"
 #include "Surge/ECS/Scene.hpp"
-#include "Surge/Project/Project.hpp"
 
 namespace Surge::Serializer
 {

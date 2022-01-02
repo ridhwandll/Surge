@@ -1,42 +1,37 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Clock.hpp"
-#include "Pch.hpp"
-#include <chrono>
 
 namespace Surge
 {
-    static std::chrono::high_resolution_clock::time_point sStart;
-    static std::chrono::high_resolution_clock::time_point sThen;
-    static std::chrono::high_resolution_clock::time_point sNow;
-
     void Clock::Start()
     {
-        sStart = std::chrono::high_resolution_clock::now();
-        sThen = sStart;
-        sNow = sStart;
+        mStart = std::chrono::high_resolution_clock::now();
+        mThen = mStart;
+        mNow = mStart;
     }
 
     float Clock::GetLife()
     {
-        std::chrono::duration<float> lifeTime = std::chrono::duration_cast<std::chrono::duration<float>>(sNow - sStart);
+        std::chrono::duration<float> lifeTime = std::chrono::duration_cast<std::chrono::duration<float>>(mNow - mStart);
         return lifeTime.count();
     }
 
     float Clock::GetSeconds()
     {
-        std::chrono::duration<float> deltaTime = std::chrono::duration_cast<std::chrono::duration<float>>(sNow - sThen);
+        std::chrono::duration<float> deltaTime = std::chrono::duration_cast<std::chrono::duration<float>>(mNow - mThen);
         return deltaTime.count();
     }
 
     float Clock::GetMilliseconds()
     {
-        std::chrono::duration<float> deltaTime = std::chrono::duration_cast<std::chrono::duration<float>>(sNow - sThen);
+        std::chrono::duration<float> deltaTime = std::chrono::duration_cast<std::chrono::duration<float>>(mNow - mThen);
         return deltaTime.count() * 1000.0f;
     }
 
     void Clock::Update()
     {
-        sThen = sNow;
-        sNow = std::chrono::high_resolution_clock::now();
+        mThen = mNow;
+        mNow = std::chrono::high_resolution_clock::now();
     }
+
 } // namespace Surge

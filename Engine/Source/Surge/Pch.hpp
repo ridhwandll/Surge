@@ -7,7 +7,7 @@
 #include "Surge/Core/Time/Timer.hpp"
 #include "Surge/Core/String.hpp"
 #include "Surge/Core/Path.hpp"
-#include "Surge/Debug/Profiler.hpp"
+#include "Surge/Core/Profiler.hpp"
 #include "Surge/Utility/Platform.hpp"
 
 #include <string>

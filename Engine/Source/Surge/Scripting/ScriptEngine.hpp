@@ -1,12 +1,12 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "Surge/Scripting/Compiler/ScriptCompiler.hpp"
-#include "Surge/Scripting/SurgeBehaviour.hpp"
 
 namespace Surge
 {
     using ScriptID = UUID;
 
+    class SurgeBehaviour;
     struct ScriptInstance
     {
         Path ScriptPath; // Relative to project

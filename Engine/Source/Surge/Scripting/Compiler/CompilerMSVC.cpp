@@ -90,7 +90,12 @@ namespace Surge
 
         compileCmd += L"\"" + (mMSVCDir / "bin" / HOST / "x64" / "cl.exe").WStr() + L"\"";
         compileCmd += L" /nologo";
-        compileCmd += L" /EHsc /std:c++17 /MDd";
+        compileCmd += L" /EHsc /std:c++17";
+#ifdef SURGE_DEBUG
+        compileCmd += L" /MDd /O2";
+#else SURGE_RELEASE
+        compileCmd += L" /MD /O2";
+#endif
 
         {
             // Set standard include directories

@@ -1,7 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
-#include "Camera.hpp"
-#include "Surge/Events/Event.hpp"
+#include "Surge/Graphics/Camera/Camera.hpp"
+#include "Surge/Core/Events/Event.hpp"
 
 namespace Surge
 {

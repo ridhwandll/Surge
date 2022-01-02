@@ -10,8 +10,8 @@
 #include "Surge/Core/Thread/ThreadPool.hpp"
 #include "Surge/Core/Time/Clock.hpp"
 #include "Surge/Core/Window/Window.hpp"
-
-#include "Surge/Events/Event.hpp"
+#include "Surge/Core/Project/Project.hpp"
+#include "Surge/Core/Events/Event.hpp"
 
 #include "Surge/Graphics/Interface/GraphicsPipeline.hpp"
 #include "Surge/Graphics/Interface/IndexBuffer.hpp"
@@ -27,7 +27,6 @@
 #include "Surge/Utility/Filesystem.hpp"
 #include "Surge/Serializer/Serializer.hpp"
 #include "Surge/Utility/Platform.hpp"
-#include "Surge/Project/Project.hpp"
 #include "Surge/Utility/FileDialogs.hpp"
 #include "Surge/Serializer/Serializer.hpp"
 

@@ -13,6 +13,7 @@ namespace Surge::Core
     {
         Client* SurgeClient = nullptr; // Provided by the User
 
+        Clock SurgeClock;
         Window* SurgeWindow = nullptr;
         RenderContext* SurgeRenderContext = nullptr;
         Renderer* SurgeRenderer = nullptr;
@@ -28,11 +29,18 @@ namespace Surge::Core
 
     void AddFrameEndCallback(const std::function<void()>& func); // FrameEndCallbacks are a way to accomplish some task at the very end of a frame
 
+    // Window should be a part of core
     Window* GetWindow();
+    Clock& GetClock();
+
+    // Part of renderer module
     RenderContext* GetRenderContext();
     Renderer* GetRenderer();
+
+    // Part of scripting module
     ScriptEngine* GetScriptEngine();
-    CoreData* GetData();
+
     Client* GetClient();
+    CoreData* GetData();
 
 } // namespace Surge::Core
