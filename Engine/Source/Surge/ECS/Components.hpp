@@ -12,7 +12,7 @@
 
 namespace Surge
 {
-    struct IDComponent
+    struct SURGE_API IDComponent
     {
         IDComponent() = default;
         IDComponent(const UUID& id)
@@ -23,7 +23,7 @@ namespace Surge
         SURGE_REFLECTION_ENABLE;
     };
 
-    struct ParentChildComponent
+    struct SURGE_API ParentChildComponent
     {
         ParentChildComponent() = default;
         ParentChildComponent(const UUID& parentID)
@@ -35,7 +35,7 @@ namespace Surge
         SURGE_REFLECTION_ENABLE;
     };
 
-    struct NameComponent
+    struct SURGE_API NameComponent
     {
         NameComponent() = default;
         NameComponent(const String& name)
@@ -46,7 +46,7 @@ namespace Surge
         SURGE_REFLECTION_ENABLE;
     };
 
-    struct TransformComponent
+    struct SURGE_API TransformComponent
     {
         TransformComponent() = default;
         TransformComponent(const glm::vec3& position, const glm::vec3& rotation, const glm::vec3& scale)
@@ -66,7 +66,7 @@ namespace Surge
         SURGE_REFLECTION_ENABLE;
     };
 
-    struct MeshComponent
+    struct SURGE_API MeshComponent
     {
         MeshComponent() = default;
         MeshComponent(const Ref<Mesh>& mesh)
@@ -77,7 +77,7 @@ namespace Surge
         SURGE_REFLECTION_ENABLE;
     };
 
-    struct CameraComponent
+    struct SURGE_API CameraComponent
     {
         CameraComponent() = default;
         CameraComponent(const RuntimeCamera& cam, bool primary, bool fixedAspectRatio)
@@ -90,7 +90,7 @@ namespace Surge
         SURGE_REFLECTION_ENABLE;
     };
 
-    struct PointLightComponent
+    struct SURGE_API PointLightComponent
     {
         PointLightComponent() = default;
         PointLightComponent(glm::vec3 color, float intensity, float radius, float falloff)
@@ -103,7 +103,7 @@ namespace Surge
         SURGE_REFLECTION_ENABLE;
     };
 
-    struct DirectionalLightComponent
+    struct SURGE_API DirectionalLightComponent
     {
         DirectionalLightComponent() = default;
         DirectionalLightComponent(glm::vec3 direction, glm::vec3 color, float intensity)
@@ -117,7 +117,7 @@ namespace Surge
         SURGE_REFLECTION_ENABLE;
     };
 
-    struct ScriptComponent
+    struct SURGE_API ScriptComponent
     {
         ScriptComponent() = default;
         ScriptComponent(const ScriptID& scriptEngineID)

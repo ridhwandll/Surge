@@ -4,7 +4,7 @@
 
 namespace Surge
 {
-    class PreDepthProcedure : public RenderProcedure
+    class SURGE_API PreDepthProcedure : public RenderProcedure
     {
     public:
         PreDepthProcedure() = default;

@@ -3,7 +3,7 @@
 
 namespace Surge
 {
-    class UUID
+    class SURGE_API UUID
     {
     public:
         UUID();

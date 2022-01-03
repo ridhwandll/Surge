@@ -5,10 +5,11 @@
 #include "Surge/Core/Memory.hpp"
 #include "Surge/Core/String.hpp"
 #include "Surge/Core/Path.hpp"
+#include "Surge/Core/UUID.hpp"
 
 namespace Surge
 {
-    enum class ShaderType
+    enum class SURGE_API ShaderType
     {
         None = 0,
         Vertex = BIT(0),
@@ -30,7 +31,7 @@ namespace Surge
         return "None";
     }
 
-    enum class ShaderDataType
+    enum class SURGE_API ShaderDataType
     {
         None,
         Int,
@@ -93,8 +94,8 @@ namespace Surge
         ShaderType Type;
     };
 
-    class ShaderReflectionData;
-    class Shader : public RefCounted
+    class SURGE_API ShaderReflectionData;
+    class SURGE_API Shader : public RefCounted
     {
     public:
         Shader() = default;
@@ -102,8 +103,8 @@ namespace Surge
 
         virtual void Load(const HashMap<ShaderType, bool>& compileStages = {}) = 0;
         virtual void Reload() = 0;
-        NODISCARD virtual CallbackID AddReloadCallback(const std::function<void()> callback) = 0;
-        virtual void RemoveReloadCallback(const CallbackID& id) = 0;
+        NODISCARD virtual UUID AddReloadCallback(const std::function<void()> callback) = 0;
+        virtual void RemoveReloadCallback(const UUID& id) = 0;
         NODISCARD virtual const ShaderReflectionData& GetReflectionData() const = 0;
         NODISCARD virtual const Vector<SPIRVHandle>& GetSPIRVs() const = 0;
         NODISCARD virtual const Path& GetPath() const = 0;

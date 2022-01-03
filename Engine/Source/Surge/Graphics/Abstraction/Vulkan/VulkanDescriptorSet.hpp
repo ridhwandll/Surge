@@ -5,7 +5,7 @@
 
 namespace Surge
 {
-    class VulkanDescriptorSet : public DescriptorSet
+    class SURGE_API VulkanDescriptorSet : public DescriptorSet
     {
     public:
         VulkanDescriptorSet(const Ref<Shader>& shader, Uint setNumber, bool resetEveryFrame, int index = -1);

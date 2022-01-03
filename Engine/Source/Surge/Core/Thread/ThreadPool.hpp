@@ -13,7 +13,7 @@
 
 namespace Surge
 {
-    class ThreadPool
+    class SURGE_API ThreadPool
     {
     public:
         ThreadPool(Uint threadCount = std::thread::hardware_concurrency());

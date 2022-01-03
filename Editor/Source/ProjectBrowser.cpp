@@ -1,5 +1,6 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "ProjectBrowser.hpp"
+#include "Surge/Utility/Platform.hpp"
 #include "Surge/Utility/FileDialogs.hpp"
 #include "Surge/Serializer/Serializer.hpp"
 #include "Surge/Utility/Filesystem.hpp"

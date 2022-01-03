@@ -3,8 +3,8 @@
 
 namespace Surge::FileDialog
 {
-    String OpenFile(const char* filter);
-    String SaveFile(const char* filter);
-    String ChooseFolder();
+    SURGE_API String OpenFile(const char* filter);
+    SURGE_API String SaveFile(const char* filter);
+    SURGE_API String ChooseFolder();
 
 } // namespace Surge::FileDialog

@@ -5,7 +5,7 @@
 
 namespace Surge
 {
-    class StorageBuffer : public RefCounted
+    class SURGE_API StorageBuffer : public RefCounted
     {
     public:
         virtual ~StorageBuffer() = default;

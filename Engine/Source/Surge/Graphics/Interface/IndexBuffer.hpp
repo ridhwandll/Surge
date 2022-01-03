@@ -6,7 +6,7 @@
 
 namespace Surge
 {
-    class IndexBuffer : public RefCounted
+    class SURGE_API IndexBuffer : public RefCounted
     {
     public:
         IndexBuffer() = default;

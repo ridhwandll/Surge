@@ -6,7 +6,7 @@
 
 namespace Surge
 {
-    class LightCullingProcedure : public RenderProcedure
+    class SURGE_API LightCullingProcedure : public RenderProcedure
     {
     public:
         LightCullingProcedure() = default;

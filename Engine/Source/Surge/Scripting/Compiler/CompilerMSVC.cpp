@@ -145,7 +145,7 @@ namespace Surge
             compileCmd += L" \"shell32.lib\"";
 
             // Add Surge Libs |"Libraries" folder is generated at build time via CMake
-            Path exeLibFolder = Platform::GetCurrentExecutablePath().ParentPath() / "Libraries";
+            Path exeLibFolder = Path(Platform::GetCurrentExecutablePath()).ParentPath() / "Libraries";
             compileCmd += L" /LIBPATH:\"" + exeLibFolder.WStr() + L"\"";
 
             for (auto& dir : std::filesystem::directory_iterator(exeLibFolder.Str()))

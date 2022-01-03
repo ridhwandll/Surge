@@ -9,7 +9,7 @@
 
 namespace Surge
 {
-    struct SceneMetadata
+    struct SURGE_API SceneMetadata
     {
         String Name;
         Path ScenePath;
@@ -18,7 +18,7 @@ namespace Surge
 
     class Scene;
     class Entity;
-    class Scene : public RefCounted
+    class SURGE_API Scene : public RefCounted
     {
     public:
         Scene() = default;
@@ -62,7 +62,7 @@ namespace Surge
     // Entity
     //
 
-    class Entity
+    class SURGE_API Entity
     {
     public:
         Entity() = default;

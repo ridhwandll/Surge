@@ -6,6 +6,7 @@
 #include "Surge/Graphics/RenderContext.hpp"
 #include "Surge/Graphics/Renderer/Renderer.hpp"
 #include "Surge/Scripting/ScriptEngine.hpp"
+#include "Surge/Core/Time/Clock.hpp"
 
 namespace Surge::Core
 {
@@ -23,24 +24,24 @@ namespace Surge::Core
         Vector<std::function<void()>> FrameEndCallbacks;
     };
 
-    void Initialize(Client* application);
-    void Run();
-    void Shutdown();
+    SURGE_API void Initialize(Client* application);
+    SURGE_API void Run();
+    SURGE_API void Shutdown();
 
-    void AddFrameEndCallback(const std::function<void()>& func); // FrameEndCallbacks are a way to accomplish some task at the very end of a frame
+    SURGE_API void AddFrameEndCallback(const std::function<void()>& func); // FrameEndCallbacks are a way to accomplish some task at the very end of a frame
 
     // Window should be a part of core
-    Window* GetWindow();
-    Clock& GetClock();
+    SURGE_API Window* GetWindow();
+    SURGE_API Clock& GetClock();
 
     // Part of renderer module
-    RenderContext* GetRenderContext();
-    Renderer* GetRenderer();
+    SURGE_API RenderContext* GetRenderContext();
+    SURGE_API Renderer* GetRenderer();
 
     // Part of scripting module
-    ScriptEngine* GetScriptEngine();
+    SURGE_API ScriptEngine* GetScriptEngine();
 
-    Client* GetClient();
-    CoreData* GetData();
+    SURGE_API Client* GetClient();
+    SURGE_API CoreData* GetData();
 
 } // namespace Surge::Core

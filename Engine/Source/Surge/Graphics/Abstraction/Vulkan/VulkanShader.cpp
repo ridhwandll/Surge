@@ -60,14 +60,14 @@ namespace Surge
             callback();
     }
 
-    Surge::CallbackID VulkanShader::AddReloadCallback(const std::function<void()> callback)
+    Surge::UUID VulkanShader::AddReloadCallback(const std::function<void()> callback)
     {
         UUID id = UUID();
         mCallbacks[id] = callback;
         return id;
     }
 
-    void VulkanShader::RemoveReloadCallback(const CallbackID& id)
+    void VulkanShader::RemoveReloadCallback(const UUID& id)
     {
         auto itr = mCallbacks.find(id);
         if (itr != mCallbacks.end())
@@ -75,7 +75,7 @@ namespace Surge
             mCallbacks.erase(id);
             return;
         }
-        SG_ASSERT_INTERNAL("Invalid CallbackID!");
+        SG_ASSERT_INTERNAL("Invalid UUID!");
     }
 
     void VulkanShader::Compile(const HashMap<ShaderType, bool>& compileStages)

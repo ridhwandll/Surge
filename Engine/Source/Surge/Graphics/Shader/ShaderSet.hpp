@@ -9,7 +9,7 @@
 
 namespace Surge
 {
-    class ShaderSet
+    class SURGE_API ShaderSet
     {
     public:
         ShaderSet() = default;

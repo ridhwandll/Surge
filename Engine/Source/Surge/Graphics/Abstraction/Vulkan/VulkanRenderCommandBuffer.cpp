@@ -6,10 +6,10 @@
 
 namespace Surge
 {
-    VulkanRenderCommandBuffer::VulkanRenderCommandBuffer(bool createFromSwapchain, Uint size, const String& debugName)
+    VulkanRenderCommandBuffer::VulkanRenderCommandBuffer(bool createFromSwapchain, Uint size)
         : mCreatedFromSwapchain(createFromSwapchain)
     {
-        SCOPED_TIMER("[{0}] RenderCommandBuffer Creation", debugName);
+        SCOPED_TIMER("RenderCommandBuffer Creation");
         VulkanRenderContext* renderContext = nullptr;
         SURGE_GET_VULKAN_CONTEXT(renderContext);
         VulkanDevice* vulkanDevice = renderContext->GetDevice();

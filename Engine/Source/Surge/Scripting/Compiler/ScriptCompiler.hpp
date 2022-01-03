@@ -10,7 +10,7 @@ namespace Surge
         Path InputFile;
     };
 
-    class ScriptCompiler
+    class SURGE_API ScriptCompiler
     {
     public:
         ScriptCompiler() = default;

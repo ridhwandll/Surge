@@ -5,7 +5,7 @@
 
 namespace Surge
 {
-    class VulkanImGuiContext
+    class SURGE_API VulkanImGuiContext
     {
     public:
         VulkanImGuiContext() = default;
@@ -21,10 +21,12 @@ namespace Surge
 
         void* AddImage(const Ref<Image2D>& image2d) const;
         void SetDarkThemeColors();
+        void* GetContext() { return mImGuiContext; }
 
     private:
         VkDescriptorPool mImguiPool;
         void* mVulkanRenderContext = nullptr;
+        void* mImGuiContext;
 
     private:
         friend class VulkanRenderContext;

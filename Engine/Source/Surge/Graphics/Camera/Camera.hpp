@@ -4,14 +4,14 @@
 
 namespace Surge
 {
-    enum class CameraMode
+    enum class SURGE_API CameraMode
     {
         None,
         Flycam,
         Arcball
     };
 
-    class Camera
+    class SURGE_API Camera
     {
     public:
         Camera() = default;

@@ -7,7 +7,7 @@
 
 namespace Surge
 {
-    enum class WindowFlags
+    enum class SURGE_API WindowFlags
     {
         // TODO: Add more flags
         Minimized = BIT(1),
@@ -17,7 +17,7 @@ namespace Surge
     };
     MAKE_BIT_ENUM(WindowFlags);
 
-    enum class WindowState
+    enum class SURGE_API WindowState
     {
         Normal = 0,
         Minimized
@@ -35,7 +35,7 @@ namespace Surge
         WindowFlags Flags;
     };
 
-    class Window
+    class SURGE_API Window
     {
     public:
         virtual ~Window() = default;

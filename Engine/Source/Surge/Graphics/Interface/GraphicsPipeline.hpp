@@ -7,7 +7,7 @@
 
 namespace Surge
 {
-    enum class PrimitiveTopology
+    enum class SURGE_API PrimitiveTopology
     {
         None = 0,
         PointList,
@@ -17,7 +17,7 @@ namespace Surge
         TriangleStrip
     };
 
-    enum class CompareOperation
+    enum class SURGE_API CompareOperation
     {
         Never = 0,
         Less,
@@ -29,7 +29,7 @@ namespace Surge
         Always
     };
 
-    enum class PolygonMode
+    enum class SURGE_API PolygonMode
     {
         None = 0,
         Fill,
@@ -37,7 +37,7 @@ namespace Surge
         Point
     };
 
-    enum class CullMode
+    enum class SURGE_API CullMode
     {
         None = 0,
         Front,
@@ -59,7 +59,7 @@ namespace Surge
         String DebugName = "";
     };
 
-    class GraphicsPipeline : public RefCounted
+    class SURGE_API GraphicsPipeline : public RefCounted
     {
     public:
         GraphicsPipeline() = default;

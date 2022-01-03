@@ -21,7 +21,7 @@ namespace Surge
         bool NoResize = false;
     };
 
-    class Framebuffer : public RefCounted
+    class SURGE_API Framebuffer : public RefCounted
     {
     public:
         virtual ~Framebuffer() = default;

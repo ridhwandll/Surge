@@ -6,7 +6,7 @@
 
 namespace Surge
 {
-    class GeometryProcedure : public RenderProcedure
+    class SURGE_API GeometryProcedure : public RenderProcedure
     {
     public:
         GeometryProcedure() = default;

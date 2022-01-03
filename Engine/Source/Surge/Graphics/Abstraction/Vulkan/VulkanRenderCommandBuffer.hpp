@@ -7,17 +7,17 @@
 
 namespace Surge
 {
-    class VulkanRenderCommandBuffer : public RenderCommandBuffer
+    class SURGE_API VulkanRenderCommandBuffer : public RenderCommandBuffer
     {
     public:
-        VulkanRenderCommandBuffer(bool createFromSwapchain, Uint size = 0, const String& debugName = "");
+        VulkanRenderCommandBuffer(bool createFromSwapchain, Uint size = 0);
         virtual ~VulkanRenderCommandBuffer() override;
 
         virtual void BeginRecording() override;
         virtual void EndRecording() override;
         virtual void Submit() override;
 
-        VkCommandPool GetVulkanCommandPool() const { mCommandPool; }
+        VkCommandPool GetVulkanCommandPool() const { return mCommandPool; }
         VkCommandBuffer GetVulkanCommandBuffer(Uint index) const { return mCommandBuffers[index]; }
 
     private:

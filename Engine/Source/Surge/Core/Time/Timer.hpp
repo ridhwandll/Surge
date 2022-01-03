@@ -4,7 +4,7 @@
 
 namespace Surge
 {
-    class Timer
+    class SURGE_API Timer
     {
     public:
         Timer(const String& name = "Timer", bool logOnDestructor = false) : mName(name), mLogOnDestructor(logOnDestructor) { Reset(); }

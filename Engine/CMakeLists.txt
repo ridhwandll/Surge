@@ -38,7 +38,7 @@ set(LIB_LINKS
     ${CMAKE_SOURCE_DIR}/Engine/Vendor/assimp/Lib/assimp-vc142-mt.lib
 )
 
-add_library(Surge STATIC ${SOURCE_FILES})
+add_library(Surge SHARED ${SOURCE_FILES})
 target_include_directories(Surge PUBLIC ${INCLUDE_DIRS})
 target_link_libraries(Surge PUBLIC ${LIB_LINKS})
 
@@ -64,6 +64,9 @@ target_compile_definitions(Surge
 
     $<$<CONFIG:Debug>:SURGE_DEBUG>
     $<$<CONFIG:Release>:SURGE_RELEASE>
+
+    PRIVATE
+    SURGE_EXPORT
 )
 
 add_custom_command(TARGET Surge PRE_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/Editor/$<CONFIGURATION>/Libraries)
@@ -77,3 +80,11 @@ CopyBinaryToExeDir(Surge ${CMAKE_SOURCE_DIR}/Engine/Vendor/assimp/Lib/assimp-vc1
 CopyBinaryToExeDir(Surge ${CMAKE_SOURCE_DIR}/Engine/Vendor/shaderc/Lib/shaderc_shared.lib Editor)
 
 add_subdirectory(Source/SurgeReflect)
+
+add_custom_command(
+    TARGET Surge
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_BINARY_DIR}/Engine/$<CONFIGURATION>/Surge.dll
+        ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIGURATION>
+    )

@@ -97,9 +97,9 @@ namespace Surge
         return String();
     }
 
-    void* Platform::LoadSharedLibrary(const Path& path)
+    void* Platform::LoadSharedLibrary(const String& path)
     {
-        HMODULE library = LoadLibrary(path);
+        HMODULE library = LoadLibrary(path.c_str());
         return library;
     }
 
@@ -115,7 +115,7 @@ namespace Surge
     }
 
     // Look at this stackoverflow post for other platfrom implementation: https://stackoverflow.com/a/60250581/14349078
-    Path Platform::GetCurrentExecutablePath()
+    String Platform::GetCurrentExecutablePath()
     {
         char rawPathName[MAX_PATH];
         GetModuleFileNameA(NULL, rawPathName, MAX_PATH);

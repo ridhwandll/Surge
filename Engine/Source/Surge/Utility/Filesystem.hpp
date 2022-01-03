@@ -3,17 +3,17 @@
 
 namespace Surge::Filesystem
 {
-    void CreateOrEnsureFile(const Path& path);
+    SURGE_API void CreateOrEnsureFile(const Path& path);
 
     // Returns empty String if failed to open the Path
     template <typename T>
     T ReadFile(const Path& path);
-    bool CreateOrEnsureDirectory(const Path& path);
-    String RemoveExtension(const Path& path);
-    String GetNameWithExtension(const Path& assetFilepath);
-    String GetNameWithoutExtension(const Path& assetFilepath);
-    Path GetParentPath(const Path& path);
-    void RemoveFile(const Path& path);
-    bool Exists(const Path& path);
+    SURGE_API bool CreateOrEnsureDirectory(const Path& path);
+    SURGE_API String RemoveExtension(const Path& path);
+    SURGE_API String GetNameWithExtension(const Path& assetFilepath);
+    SURGE_API String GetNameWithoutExtension(const Path& assetFilepath);
+    SURGE_API Path GetParentPath(const Path& path);
+    SURGE_API void RemoveFile(const Path& path);
+    SURGE_API bool Exists(const Path& path);
 
 } // namespace Surge::Filesystem

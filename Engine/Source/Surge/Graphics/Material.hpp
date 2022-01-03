@@ -9,7 +9,7 @@
 
 namespace Surge
 {
-    class Material : public RefCounted
+    class SURGE_API Material : public RefCounted
     {
     public:
         Material() = default;
@@ -89,7 +89,7 @@ namespace Surge
 
         Vector<Pair<Uint, Texture2D*>> mUpdatePendingTextures;
 
-        CallbackID mShaderReloadID;
+        UUID mShaderReloadID;
     };
 
 } // namespace Surge

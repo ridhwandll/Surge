@@ -6,7 +6,7 @@
 
 namespace Surge
 {
-    class VulkanComputePipeline : public ComputePipeline
+    class SURGE_API VulkanComputePipeline : public ComputePipeline
     {
     public:
         VulkanComputePipeline(Ref<Shader>& computeShader);
@@ -28,7 +28,7 @@ namespace Surge
         VkPipeline mPipeline;
         VkPipelineLayout mPipelineLayout;
         VkDescriptorSetLayout mEmptyLayout;
-        CallbackID mShaderReloadID;
+        UUID mShaderReloadID;
     };
 
 } // namespace Surge

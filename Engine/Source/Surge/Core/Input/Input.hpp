@@ -5,13 +5,13 @@
 
 namespace Surge
 {
-    enum class CursorMode
+    enum class SURGE_API CursorMode
     {
         Normal = 0,
         Locked
     };
 
-    class Input
+    class SURGE_API Input
     {
     public:
         static bool IsKeyPressed(KeyCode key);

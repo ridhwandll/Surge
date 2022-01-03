@@ -5,7 +5,7 @@
 
 namespace Surge
 {
-    class EditorCamera : public Camera
+    class SURGE_API EditorCamera : public Camera
     {
     public:
         EditorCamera() = default;

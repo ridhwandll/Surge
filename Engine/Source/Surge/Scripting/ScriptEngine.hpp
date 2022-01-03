@@ -6,7 +6,7 @@ namespace Surge
 {
     using ScriptID = UUID;
 
-    class SurgeBehaviour;
+    class SURGE_API SurgeBehaviour;
     struct ScriptInstance
     {
         Path ScriptPath; // Relative to project
@@ -15,9 +15,9 @@ namespace Surge
         void* LibHandle;
     };
 
-    // Main class for C++ scripting system in Surge, mainly managed by the Surge::Project class
+    // Main class SURGE_API  for C++ scripting system in Surge, mainly managed by the Surge::Project class SURGE_API
     // Owns a Surge::ScriptCompiler and all the scripts per project(managed via a HashMap)
-    class ScriptEngine
+    class SURGE_API ScriptEngine
     {
     public:
         ScriptEngine() = default;
@@ -45,7 +45,7 @@ namespace Surge
         ScriptCompiler* mCompiler;
         UUID mActiveProjctID;
         HashMap<UUID, HashMap<ScriptID, ScriptInstance>> mScripts; // Mapped as <ProjectID <ScriptID - ScriptInstance>>
-        friend class Project;
+        friend class SURGE_API Project;
     };
 
 } // namespace Surge

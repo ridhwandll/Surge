@@ -7,10 +7,10 @@
 
 namespace Surge
 {
-    class RuntimeCamera : public Camera
+    class SURGE_API RuntimeCamera : public Camera
     {
     public:
-        enum class ProjectionType
+        enum class SURGE_API ProjectionType
         {
             Perspective = 0,
             Orthographic = 1

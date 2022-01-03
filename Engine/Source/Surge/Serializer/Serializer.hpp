@@ -18,13 +18,13 @@ namespace Surge::Serializer
     }
 
     template <>
-    void Serialize(const Path& path, Scene* in);
+    SURGE_API void Serialize(const Path& path, Scene* in);
     template <>
-    void Deserialize(const Path& path, Scene* out);
+    SURGE_API void Deserialize(const Path& path, Scene* out);
 
     template <>
-    void Serialize(const Path& path, ProjectMetadata* in);
+    SURGE_API void Serialize(const Path& path, ProjectMetadata* in);
     template <>
-    void Deserialize(const Path& path, ProjectMetadata* out);
+    SURGE_API void Deserialize(const Path& path, ProjectMetadata* out);
 
 } // namespace Surge::Serializer

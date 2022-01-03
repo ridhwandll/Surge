@@ -4,7 +4,7 @@
 
 namespace Surge
 {
-    enum class ImageFormat
+    enum class SURGE_API ImageFormat
     {
         None = 0,
 
@@ -19,7 +19,7 @@ namespace Surge
         Depth24Stencil8
     };
 
-    enum class ImageUsage
+    enum class SURGE_API ImageUsage
     {
         None = 0,
         Attachment,
@@ -27,13 +27,13 @@ namespace Surge
         Storage
     };
 
-    enum class TextureFilter
+    enum class SURGE_API TextureFilter
     {
         Linear,
         Nearest
     };
 
-    enum class TextureAddressMode
+    enum class SURGE_API TextureAddressMode
     {
         Repeat,
         MirroredRepeat,
@@ -41,7 +41,7 @@ namespace Surge
         ClampToBorder
     };
 
-    enum class CompareOp
+    enum class SURGE_API CompareOp
     {
         Never,
         Less,
@@ -72,7 +72,7 @@ namespace Surge
         Uint Mips = 1;
     };
 
-    class Image : public RefCounted
+    class SURGE_API Image : public RefCounted
     {
     public:
         virtual ~Image() {}
@@ -84,7 +84,7 @@ namespace Surge
         virtual const ImageSpecification& GetSpecification() const = 0;
     };
 
-    class Image2D : public Image
+    class SURGE_API Image2D : public Image
     {
     public:
         static Ref<Image2D> Create(const ImageSpecification& specification);

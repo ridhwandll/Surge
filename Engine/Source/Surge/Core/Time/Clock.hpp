@@ -1,10 +1,11 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
+#include "Surge/Core/Defines.hpp"
 #include <chrono>
 
 namespace Surge
 {
-    class Clock
+    class SURGE_API Clock
     {
     public:
         // Starts the timer. Initializes Life and Delta to current time

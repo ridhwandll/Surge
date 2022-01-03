@@ -4,7 +4,7 @@
 
 namespace Surge
 {
-    class ComputePipeline : public RefCounted
+    class SURGE_API ComputePipeline : public RefCounted
     {
     public:
         ComputePipeline() = default;

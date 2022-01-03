@@ -4,7 +4,7 @@
 
 namespace Surge
 {
-    class CompilerMSVC : public ScriptCompiler
+    class SURGE_API CompilerMSVC : public ScriptCompiler
     {
     public:
         CompilerMSVC() = default;

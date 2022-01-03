@@ -10,7 +10,7 @@ namespace Surge
         Play
     };
 
-    struct ProjectMetadata
+    struct SURGE_API ProjectMetadata
     {
         ProjectMetadata() = default;
         ProjectMetadata(const String& name, const Path& path);
@@ -30,7 +30,7 @@ namespace Surge
     // - Contains the ordered array of Scenes to play, manage scene transitions
     // TODO: Add Support for re-ordering scenes
 
-    class Project
+    class SURGE_API Project
     {
     public:
         Project();

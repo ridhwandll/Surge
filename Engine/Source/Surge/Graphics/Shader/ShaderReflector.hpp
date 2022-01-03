@@ -4,7 +4,7 @@
 
 namespace Surge
 {
-    class ShaderReflector
+    class SURGE_API ShaderReflector
     {
     public:
         ShaderReflector() = default;

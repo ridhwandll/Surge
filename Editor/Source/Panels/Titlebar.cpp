@@ -2,6 +2,7 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "Panels/Titlebar.hpp"
 #include "Surge/Core/Core.hpp"
+#include "Surge/Utility/Platform.hpp"
 #include "Surge/Utility/FileDialogs.hpp"
 #include "Surge/Serializer/Serializer.hpp"
 #include "Utility/ImGUIAux.hpp"

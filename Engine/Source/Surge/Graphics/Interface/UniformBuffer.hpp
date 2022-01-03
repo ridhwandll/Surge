@@ -5,7 +5,7 @@
 
 namespace Surge
 {
-    class UniformBuffer : public RefCounted
+    class SURGE_API UniformBuffer : public RefCounted
     {
     public:
         virtual ~UniformBuffer() = default;

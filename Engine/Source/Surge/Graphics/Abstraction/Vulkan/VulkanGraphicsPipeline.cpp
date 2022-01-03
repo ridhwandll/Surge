@@ -29,7 +29,7 @@ namespace Surge
         SURGE_GET_VULKAN_CONTEXT(renderContext);
         VkDevice logicalDevice = renderContext->GetDevice()->GetLogicalDevice();
 
-        // Setting up all the shaders into a create info class
+        // Setting up all the shaders into a create info class SURGE_API
         HashMap<ShaderType, VkShaderModule> shaderModules = mSpecification.Shader.As<VulkanShader>()->GetVulkanShaderModules();
         Vector<VkPipelineShaderStageCreateInfo> shaderStages;
         for (const auto& shader : shaderModules)

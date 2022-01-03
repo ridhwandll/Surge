@@ -11,7 +11,7 @@ namespace Surge
         bool EnableImGui = true;
     };
 
-    class Client
+    class SURGE_API Client
     {
     public:
         Client() = default;

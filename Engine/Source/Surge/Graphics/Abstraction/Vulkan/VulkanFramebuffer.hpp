@@ -5,7 +5,7 @@
 
 namespace Surge
 {
-    class VulkanFramebuffer : public Framebuffer
+    class SURGE_API VulkanFramebuffer : public Framebuffer
     {
     public:
         VulkanFramebuffer(const FramebufferSpecification& spec);

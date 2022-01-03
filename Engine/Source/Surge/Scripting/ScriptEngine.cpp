@@ -6,8 +6,8 @@
 
 namespace Surge
 {
-    using CreateScriptFN = SurgeBehaviour* (*)(Core::CoreData*, SurgeReflect::Registry*);
-    using GetReflectionFN = SurgeReflect::Class* (*)(SurgeReflect::Registry*);
+    using CreateScriptFN = SurgeBehaviour* (*)();
+    using GetReflectionFN = SurgeReflect::Class* (*)();
     using DestroyScriptFN = void (*)(SurgeBehaviour*);
 
     void ScriptEngine::Initialize()
@@ -39,7 +39,10 @@ namespace Surge
     void ScriptEngine::OnRuntimeStart()
     {
         SurgeReflect::Registry* reg = SurgeReflect::Registry::Get();
-        Log<Surge::Severity::Debug>("Reflection MemAdd: {0}", (void*)reg);
+        Log<Surge::Severity::Debug>("Engine: Reflection MemAdd: {0}", (void*)reg);
+        Log<Surge::Severity::Debug>("Engine: Renderer MemAdd: {0}", (void*)Core::GetRenderer());
+        Log<Surge::Severity::Debug>("Engine: ScriptEngine MemAdd: {0}", (void*)this);
+        Log<Surge::Severity::Debug>("-------------------------------------");
 
         SG_ASSERT(mActiveProjctID, "No Active project!");
         HashMap<ScriptID, ScriptInstance>& k = mScripts[mActiveProjctID];
@@ -59,8 +62,8 @@ namespace Surge
             CreateScriptFN scriptCreateFN = reinterpret_cast<CreateScriptFN>(Platform::GetFunction(scriptInstance.LibHandle, "CreateScript"));
             GetReflectionFN getReflectionFN = reinterpret_cast<GetReflectionFN>(Platform::GetFunction(scriptInstance.LibHandle, "GetReflection"));
 
-            scriptInstance.Script = scriptCreateFN(Core::GetData(), reg);
-            scriptInstance.Reflection = getReflectionFN(reg);
+            scriptInstance.Script = scriptCreateFN();
+            scriptInstance.Reflection = getReflectionFN();
 
             SG_ASSERT_NOMSG(scriptInstance.LibHandle);
             SG_ASSERT_NOMSG(scriptInstance.Reflection);

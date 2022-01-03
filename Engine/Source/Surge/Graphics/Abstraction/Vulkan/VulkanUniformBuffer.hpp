@@ -7,7 +7,7 @@
 
 namespace Surge
 {
-    class VulkanUniformBuffer : public UniformBuffer
+    class SURGE_API VulkanUniformBuffer : public UniformBuffer
     {
     public:
         VulkanUniformBuffer(Uint size);

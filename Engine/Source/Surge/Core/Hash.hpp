@@ -6,7 +6,7 @@
 namespace Surge
 {
     using HashCode = int64_t;
-    class Hash
+    class SURGE_API Hash
     {
     public:
         template <typename T>

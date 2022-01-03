@@ -4,7 +4,7 @@
 
 namespace Surge
 {
-    class RenderCommandBuffer : public RefCounted
+    class SURGE_API RenderCommandBuffer : public RefCounted
     {
     public:
         virtual ~RenderCommandBuffer() = default;
@@ -13,6 +13,6 @@ namespace Surge
         virtual void EndRecording() = 0;
         virtual void Submit() = 0;
 
-        static Ref<RenderCommandBuffer> Create(bool createFromSwapchain, Uint size = 0, const String& debugName = "");
+        static Ref<RenderCommandBuffer> Create(bool createFromSwapchain, Uint size = 0);
     };
 } // namespace Surge
