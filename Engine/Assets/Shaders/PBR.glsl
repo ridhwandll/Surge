@@ -198,7 +198,6 @@ struct PBRParameters
 
     vec3 Normal;
     vec3 View;
-    float NdotV;
 };
 PBRParameters gPBRParams;
 
@@ -344,7 +343,7 @@ int GetPointLightCount()
     return result;
 }
 
-vec3 CalculatePointLights(vec3 DielectricF0, vec3 MetallicF0)
+vec3 CalculatePointLights(vec3 dielectricF0, vec3 metallicF0)
 {
     vec3 result = vec3(0.0);
     for (int i = 0; i < uLights.PointLightCount; i++)
@@ -363,8 +362,8 @@ vec3 CalculatePointLights(vec3 DielectricF0, vec3 MetallicF0)
         attenuation *= mix(attenuation, 1.0, light.Falloff);
 
         vec3 brdf = FilamentBRDF(lightDir, gPBRParams.View, gPBRParams.Normal,
-                                 gPBRParams.Roughness, gPBRParams.Metalness, DielectricF0,
-                                 MetallicF0, vec3(1.0), gPBRParams.Albedo);
+                                 gPBRParams.Roughness, gPBRParams.Metalness, dielectricF0,
+                                 metallicF0, vec3(1.0), gPBRParams.Albedo);
 
 
         float nDotL = max(dot(gPBRParams.Normal, lightDir), 0.0);
@@ -491,7 +490,7 @@ float HardShadowsDirectionalLight(int cascade, vec3 shadowCoords)
     return result;
 }
 
-float PCFDirectionalLight(int cascade, vec3 shadowCoords)
+float PCFDirectionalLight(int cascade, vec3 shadowCoords, float radius)
 {
     float bias = GetShadowBias();
     float sum = 0.0;
@@ -499,40 +498,96 @@ float PCFDirectionalLight(int cascade, vec3 shadowCoords)
 
     for (int i = 0; i < PCF_SAMPLES; i++)
     {
-        vec2 offset = gPoissonDisk[i] * texelSize * 3.0;
+        vec2 offset = gPoissonDisk[i] * texelSize * radius;
         float z = SampleShadowMap(cascade, shadowCoords.xy * 0.5 + 0.5 + offset).x;
         sum += shadowCoords.z - bias > z ? 0.0 : 1.0;
     }
     return sum / float(PCF_SAMPLES);
 }
 
-float CalculateShadows(int cascadeIndex, vec4 lightSpaceVector, vec3 normal, vec3 direction)
+float CalculateSearchWidth(float receiverDepth, DirectionalLight light)
 {
-    vec3 projCoords = lightSpaceVector.xyz / lightSpaceVector.w; // Perspective divide
-    float currentDepth = projCoords.z;
+    return light.Size * receiverDepth;
+}
+
+float CalcBlockerDistance(int cascade, vec3 shadowCoords, DirectionalLight light)
+{
+    float bias = GetShadowBias();
+    vec2 texel = 1.0 / textureSize(ShadowMap1, 0).xy;
+    float blockerDistances = 0.0;
+    float numBlockerDistances = 0.0;
+    float receiverDepth = 0.5 * shadowCoords.z + 0.5;
+
+    float searchWidth = CalculateSearchWidth(receiverDepth, light);
+    for (uint i = 0; i < PCF_SAMPLES; i++)
+    {
+      vec2 disk = SamplePoissonDisk(i);
+
+      float blockerDepth = SampleShadowMap(cascade, shadowCoords.xy * 0.5 + 0.5 + disk * texel).r;
+      if (blockerDepth < shadowCoords.z - bias)
+      {
+        numBlockerDistances += 1.0;
+        blockerDistances += blockerDepth;
+      }
+    }
+
+    if (numBlockerDistances > 0.0)
+      return blockerDistances / numBlockerDistances;
+    else
+      return -1.0;
+}
+
+float CalcPCFKernelSize(int cascade, vec3 shadowCoords, DirectionalLight light)
+{
+    float receiverDepth = 0.5 * shadowCoords.z + 0.5;
+    float blockerDepth = CalcBlockerDistance(cascade, shadowCoords, light);
+
+    float kernelSize = 1.0;
+    if (blockerDepth > 0.0)
+    {
+      float penumbraWidth = light.Size * (receiverDepth - blockerDepth) / blockerDepth;
+      kernelSize = penumbraWidth / receiverDepth;
+    }
+
+    return kernelSize;
+}
+
+float PCSSDirectionalLight(int cascade, vec3 shadowCoords, DirectionalLight light)
+{
+    float kernelRadius = CalcPCFKernelSize(cascade, shadowCoords, light);
+    return PCFDirectionalLight(cascade, shadowCoords, kernelRadius);
+}
+
+float CalculateShadows(int cascadeIndex, vec4 lightSpaceVector, vec3 normal,
+                       vec3 direction, DirectionalLight light)
+{
+    vec3 shadowCoords = lightSpaceVector.xyz / lightSpaceVector.w; // Perspective divide
+    float currentDepth = shadowCoords.z;
     if (currentDepth > 1.0)
         return 0.0;
 
     float shadow = 0.0;
 
     if (uShadowParams.ShadowQuality == 0)
-        shadow = HardShadowsDirectionalLight(cascadeIndex, projCoords); // Hard Shadows
+        shadow = HardShadowsDirectionalLight(cascadeIndex, shadowCoords); // Hard Shadows
     else if(uShadowParams.ShadowQuality == 1)
-        shadow = MediumShadowsDirectionalLight(cascadeIndex, projCoords);
+        shadow = MediumShadowsDirectionalLight(cascadeIndex, shadowCoords);
     else if(uShadowParams.ShadowQuality == 2)
-        shadow = PCFDirectionalLight(cascadeIndex, projCoords);
+        shadow = PCFDirectionalLight(cascadeIndex, shadowCoords, 3.0);
+    else if(uShadowParams.ShadowQuality == 3)
+        shadow = PCSSDirectionalLight(cascadeIndex, shadowCoords, light);
 
     return shadow;
 }
 
-vec3 CalculateDirectionaLight(vec3 DielectricF0, vec3 MetallicF0, out int cascadeIdx)
+vec3 CalculateDirectionaLight(vec3 dielectricF0, vec3 metallicF0, out int cascadeIdx)
 {
     DirectionalLight light = uLights.DirLight;
 
     vec3 lightDir = normalize(light.Direction);
     vec3 brdf = FilamentBRDF(lightDir, gPBRParams.View, gPBRParams.Normal,
-                             gPBRParams.Roughness, gPBRParams.Metalness, DielectricF0,
-                             MetallicF0, vec3(1.0), gPBRParams.Albedo);
+                             gPBRParams.Roughness, gPBRParams.Metalness, dielectricF0,
+                             metallicF0, vec3(1.0), gPBRParams.Albedo);
 
     float nDotL = max(dot(gPBRParams.Normal, lightDir), 0.0);
     vec3 result = brdf * light.Intensity * light.Color * nDotL;
@@ -543,7 +598,9 @@ vec3 CalculateDirectionaLight(vec3 DielectricF0, vec3 MetallicF0, out int cascad
         if (vInput.ViewSpacePos.z > -uShadowParams.CascadeEnds[j])
         {
             cascadeIdx = j;
-            shadow = CalculateShadows(cascadeIdx, vInput.LightSpaceVector[j], gPBRParams.Normal, uLights.DirLight.Direction);
+            shadow = CalculateShadows(cascadeIdx, vInput.LightSpaceVector[j],
+                                      gPBRParams.Normal, uLights.DirLight.Direction,
+                                      light);
             break;
         }
     }
@@ -580,7 +637,6 @@ void main()
     gPBRParams.Metalness = texture(MetalnessMap, vInput.TexCoord).r * uMaterial.Metalness;
     gPBRParams.Roughness = texture(RoughnessMap, vInput.TexCoord).r * uMaterial.Roughness;
     gPBRParams.View = normalize(uLights.CameraPosition - vInput.WorldPos);
-    gPBRParams.NdotV = max(dot(gPBRParams.Normal, gPBRParams.View), 0.0);
 
     // Fresnel reflectance at normal incidence for metals. Had to separate the
     // dielectric and metallic BRDF's to ensure energy conservation.
