@@ -63,7 +63,7 @@ void main()
     vOutput.Tangent   = mat3(uMesh.Transform) * normalize(aTangent);
     vOutput.BiTangent = mat3(uMesh.Transform) * normalize(aBiTangent);
     vOutput.Normal    = mat3(uMesh.Transform) * normalize(aNormal);
-    
+
     vOutput.WorldPos = vec3(uMesh.Transform * vec4(aPosition, 1.0));
     vOutput.ViewSpacePos = vec3(uCameraData.ViewMatrix * vec4(vOutput.WorldPos, 1.0));
 
@@ -98,7 +98,7 @@ layout(location = 0) out vec4 FinalColor;
 // ---------- Constants ----------
 const float PI = 3.141592;
 const float Epsilon = 0.00001;
-const vec3 Fdielectric = vec3(0.04); // Constant normal incidence Fresnel factor for all dielectrics.
+const vec3 DielectricF0 = vec3(0.04); // Constant normal incidence Fresnel factor for all dielectrics.
 
 // ---------- Lights ----------
 struct PointLight
@@ -107,7 +107,7 @@ struct PointLight
     float Intensity;
 
     vec3 Color;
-    float Radius; 
+    float Radius;
 
     float Falloff;
     int _Padding_;
@@ -202,62 +202,100 @@ struct PBRParameters
 };
 PBRParameters gPBRParams;
 
-// GGX/Towbridge-Reitz normal distribution function.
-// Uses Disney's reparametrization of alpha = roughness^2
-float NdfGGX(float cosLh, float roughness)
+//------------------------------------------------------------------------------
+// The following BRDF has been adapted from the Filament material system
+// and Strontium (an open-source multimedia engine).
+//------------------------------------------------------------------------------
+float GGXNormal(float nDotH, float actualRoughness)
 {
-    float alpha = roughness * roughness;
-    float alphaSq = alpha * alpha;
-
-    float denom = (cosLh * cosLh) * (alphaSq - 1.0) + 1.0;
-    return alphaSq / (PI * denom * denom);
+    float a = nDotH * actualRoughness;
+    float k = actualRoughness / (1.0 - nDotH * nDotH + a * a);
+    return k * k * (1.0 / PI);
 }
 
-// Single term for separable Schlick-GGX below.
-float GaSchlickG1(float cosTheta, float k)
+// Fast visibility term. Incorrect as it approximates the two square roots.
+float GGXViewFast(float nDotV, float nDotL, float actualRoughness)
 {
-    return cosTheta / (cosTheta * (1.0 - k) + k);
+    float a = actualRoughness;
+    float vVGGX = nDotL * (nDotV * (1.0 - a) + a);
+    float lVGGX = nDotV * (nDotL * (1.0 - a) + a);
+    return 0.5 / max(vVGGX + lVGGX, 1e-5);
 }
 
-// Schlick-GGX approximation of geometric attenuation function using Smith's method.
-float GaSchlickGGX(float cosLi, float NdotV, float roughness)
+// Schlick approximation for the Fresnel factor.
+vec3 FresnelSchlick(float vDotH, vec3 f0, vec3 f90)
 {
-    float r = roughness + 1.0;
-    float k = (r * r) / 8.0; // Epic suggests using this roughness remapping for analytic lights.
-    return GaSchlickG1(cosLi, k) * GaSchlickG1(NdotV, k);
+    float p = 1.0 - vDotH;
+    return f0 + (f90 - f0) * p * p * p * p * p;
 }
 
-float GeometrySchlickGGX(float NdotV, float roughness)
+// Cook-Torrance specular for the specular component of the BRDF.
+vec3 CookTorranceSpecular(float nDotH, float lDotH, float nDotV, float nDotL,
+                          float vDotH, float actualRoughness, vec3 f0, vec3 f90)
 {
-    float r = (roughness + 1.0);
-    float k = (r * r) / 8.0;
-
-    float nom = NdotV;
-    float denom = NdotV * (1.0 - k) + k;
-
-    return nom / denom;
+    float D = GGXNormal(nDotH, actualRoughness);
+    vec3 F = FresnelSchlick(vDotH, f0, f90);
+    float V = GGXViewFast(nDotV, nDotL, actualRoughness);
+    return D * F * V;
 }
 
-float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
+// Lambertian diffuse for the diffuse component of the BRDF. Corrected to guarantee
+// energy is conserved.
+vec3 CorrectedLambertianDiffuse(vec3 f0, vec3 f90, float vDotH, float lDotH,
+                                vec3 diffuseAlbedo)
 {
-    float NdotV = max(dot(N, V), 0.0);
-    float NdotL = max(dot(N, L), 0.0);
-    float ggx2 = GeometrySchlickGGX(NdotV, roughness);
-    float ggx1 = GeometrySchlickGGX(NdotL, roughness);
+    // Making the assumption that the external medium is air (IOR of 1).
+    vec3 iorExtern = vec3(1.0);
+    // Calculating the IOR of the medium using f0.
+    vec3 iorIntern = (vec3(1.0) - sqrt(f0)) / (vec3(1.0) + sqrt(f0));
+    // Ratio of the IORs.
+    vec3 iorRatio = iorExtern / iorIntern;
 
-    return ggx1 * ggx2;
+    // Compute the incoming and outgoing Fresnel factors.
+    vec3 fIncoming = FresnelSchlick(lDotH, f0, f90);
+    vec3 fOutgoing = FresnelSchlick(vDotH, f0, f90);
+
+    // Compute the fraction of light which doesn't get reflected back into the
+    // medium for TIR.
+    vec3 rExtern = PI * (20.0 * f0 + 1.0) / 21.0;
+    // Use rExtern to compute the fraction of light which gets reflected back into
+    // the medium for TIR.
+    vec3 rIntern = vec3(1.0) - (iorRatio * iorRatio * (vec3(1.0) - rExtern));
+
+    // The TIR contribution.
+    vec3 tirDiffuse = vec3(1.0) - (rIntern * diffuseAlbedo);
+
+    // The final diffuse BRDF.
+    return (iorRatio * iorRatio) * diffuseAlbedo * (vec3(1.0) - fIncoming)
+           * (vec3(1.0) - fOutgoing) / (PI * tirDiffuse);
 }
 
-// Shlick's approximation of the Fresnel factor.
-vec3 FresnelSchlick(vec3 F0, float cosTheta)
+vec3 FilamentBRDF(vec3 l, vec3 v, vec3 n, float roughness, float metallic, vec3 dielectricF0,
+                  vec3 metallicF0, vec3 f90, vec3 diffuseAlbedo)
 {
-    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
-}
+    vec3 h = normalize(v + l);
 
-vec3 FresnelSchlickRoughness(vec3 F0, float cosTheta, float roughness)
-{
-    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
+    float nDotV = max(abs(dot(n, v)), 1e-5);
+    float nDotL = clamp(dot(n, l), 1e-5, 1.0);
+    float nDotH = clamp(dot(n, h), 1e-5, 1.0);
+    float lDotH = clamp(dot(l, h), 1e-5, 1.0);
+    float vDotH = clamp(dot(v, h), 1e-5, 1.0);
+
+    float clampedRoughness = max(roughness, 0.045);
+    float actualRoughness = clampedRoughness * clampedRoughness;
+
+    vec3 fs = CookTorranceSpecular(nDotH, lDotH, nDotV, nDotL, vDotH,
+                                   actualRoughness, dielectricF0, f90);
+    vec3 fd = CorrectedLambertianDiffuse(dielectricF0, f90, vDotH, lDotH,
+                                         diffuseAlbedo);
+    vec3 dielectricBRDF = fs + fd;
+
+    vec3 metallicBRDF = CookTorranceSpecular(nDotH, lDotH, nDotV, nDotL, vDotH,
+                                             actualRoughness, metallicF0, f90);
+
+    return mix(dielectricBRDF, metallicBRDF, metallic);
 }
+//------------------------------------------------------------------------------
 
 vec3 CalculateNormal()
 {
@@ -270,10 +308,10 @@ vec3 CalculateNormal()
 
         vec3 bumpMapNormal = texture(NormalMap, vInput.TexCoord).xyz;
         bumpMapNormal = 2.0 * bumpMapNormal - vec3(1.0);
-        
+
         mat3 TBN = mat3(tangent, bitangent, normal);
         newNormal = TBN * bumpMapNormal;
-        newNormal = normalize(newNormal); 
+        newNormal = normalize(newNormal);
    }
    else
    {
@@ -305,7 +343,8 @@ int GetPointLightCount()
 
     return result;
 }
-vec3 CalculatePointLights(vec3 F0)
+
+vec3 CalculatePointLights(vec3 DielectricF0, vec3 MetallicF0)
 {
     vec3 result = vec3(0.0);
     for (int i = 0; i < uLights.PointLightCount; i++)
@@ -316,30 +355,20 @@ vec3 CalculatePointLights(vec3 F0)
 
         PointLight light = uLights.PointLights[lightIndex];
 
-        vec3 Li = normalize(light.Position - vInput.WorldPos);
-        float lightDistance = length(light.Position - vInput.WorldPos);
-        vec3 Lh = normalize(Li + gPBRParams.View);
+        vec3 lightVector = light.Position - vInput.WorldPos;
+        vec3 lightDir = normalize(lightVector);
+        float lightDistance = length(lightVector);
 
         float attenuation = clamp(1.0 - (lightDistance * lightDistance) / (light.Radius * light.Radius), 0.0, 1.0);
         attenuation *= mix(attenuation, 1.0, light.Falloff);
 
-        vec3 Lradiance = light.Color * light.Intensity * attenuation;
+        vec3 brdf = FilamentBRDF(lightDir, gPBRParams.View, gPBRParams.Normal,
+                                 gPBRParams.Roughness, gPBRParams.Metalness, DielectricF0,
+                                 MetallicF0, vec3(1.0), gPBRParams.Albedo);
 
-        // Calculate angles between surface normal and various light vectors.
-        float cosLi = max(0.0, dot(gPBRParams.Normal, Li));
-        float cosLh = max(0.0, dot(gPBRParams.Normal, Lh));
 
-        vec3 F = FresnelSchlickRoughness(F0, max(0.0, dot(Lh, gPBRParams.View)), gPBRParams.Roughness);
-        float D = NdfGGX(cosLh, gPBRParams.Roughness);
-        float G = GaSchlickGGX(cosLi, gPBRParams.NdotV, gPBRParams.Roughness);
-
-        vec3 kd = (1.0 - F) * (1.0 - gPBRParams.Metalness);
-        vec3 diffuseBRDF = kd * gPBRParams.Albedo;
-
-        // Cook-Torrance
-        vec3 specularBRDF = (F * D * G) / max(Epsilon, 4.0 * cosLi * gPBRParams.NdotV);
-        specularBRDF = clamp(specularBRDF, vec3(0.0), vec3(10.0));
-        result += (diffuseBRDF + specularBRDF) * Lradiance * cosLi;
+        float nDotL = max(dot(gPBRParams.Normal, lightDir), 0.0);
+        result += max(brdf * light.Intensity * light.Color * attenuation * nDotL, 0.0.xxx);
     }
     return result;
 }
@@ -448,7 +477,7 @@ float MediumShadowsDirectionalLight(int cascade, vec3 shadowCoords)
         {
             float z = SampleShadowMap(cascade, (shadowCoords.xy * 0.5 + 0.5) + vec2(x, y) * texelSize).x;
             sum += shadowCoords.z - bias > z ? 0.0 : 1.0;
-        }    
+        }
     }
     sum /= 9.0;
     return sum;
@@ -496,30 +525,17 @@ float CalculateShadows(int cascadeIndex, vec4 lightSpaceVector, vec3 normal, vec
     return shadow;
 }
 
-vec3 CalculateDirectionaLight(vec3 F0, out int cascadeIdx)
+vec3 CalculateDirectionaLight(vec3 DielectricF0, vec3 MetallicF0, out int cascadeIdx)
 {
-    vec3 result = vec3(0.0);
     DirectionalLight light = uLights.DirLight;
 
-    vec3 Li = light.Direction;
-    vec3 Lradiance = light.Color * light.Intensity;
-    vec3 Lh = normalize(Li + gPBRParams.View);
+    vec3 lightDir = normalize(light.Direction);
+    vec3 brdf = FilamentBRDF(lightDir, gPBRParams.View, gPBRParams.Normal,
+                             gPBRParams.Roughness, gPBRParams.Metalness, DielectricF0,
+                             MetallicF0, vec3(1.0), gPBRParams.Albedo);
 
-    // Calculate angles between surface normal and various light vectors.
-    float cosLi = max(0.0, dot(gPBRParams.Normal, Li));
-    float cosLh = max(0.0, dot(gPBRParams.Normal, Lh));
-
-    vec3 F = FresnelSchlickRoughness(F0, max(0.0, dot(Lh, gPBRParams.View)), gPBRParams.Roughness);
-    float D = NdfGGX(cosLh, gPBRParams.Roughness);
-    float G = GaSchlickGGX(cosLi, gPBRParams.NdotV, gPBRParams.Roughness);
-
-    vec3 kd = (1.0 - F) * (1.0 - gPBRParams.Metalness);
-    vec3 diffuseBRDF = kd * gPBRParams.Albedo;
-
-    // Cook-Torrance
-    vec3 specularBRDF = (F * D * G) / max(Epsilon, 4.0 * cosLi * gPBRParams.NdotV);
-    specularBRDF = clamp(specularBRDF, vec3(0.0), vec3(10.0));
-    result += (diffuseBRDF + specularBRDF) * Lradiance * cosLi;
+    float nDotL = max(dot(gPBRParams.Normal, lightDir), 0.0);
+    vec3 result = brdf * light.Intensity * light.Color * nDotL;
 
     float shadow = 1.0;
     for (int j = 0; j < uShadowParams.CascadeCount; j++)
@@ -565,15 +581,16 @@ void main()
     gPBRParams.Roughness = texture(RoughnessMap, vInput.TexCoord).r * uMaterial.Roughness;
     gPBRParams.View = normalize(uLights.CameraPosition - vInput.WorldPos);
     gPBRParams.NdotV = max(dot(gPBRParams.Normal, gPBRParams.View), 0.0);
-       
-    // Fresnel reflectance at normal incidence (for metals use albedo color)
-    vec3 F0 = mix(Fdielectric, gPBRParams.Albedo, gPBRParams.Metalness);
-    int cascadeIndex;
+
+    // Fresnel reflectance at normal incidence for metals. Had to separate the
+    // dielectric and metallic BRDF's to ensure energy conservation.
+    vec3 MetallicF0 = gPBRParams.Albedo * gPBRParams.Metalness;
 
     // Direct lighting calculation for analytical lights
     vec3 directLighting = vec3(0.0);
-    directLighting += CalculatePointLights(F0);
-    directLighting += CalculateDirectionaLight(F0, cascadeIndex);
+    directLighting += CalculatePointLights(DielectricF0, MetallicF0);
+    int cascadeIndex;
+    directLighting += CalculateDirectionaLight(DielectricF0, MetallicF0, cascadeIndex);
 
     // TODO: GI
     vec3 ambient = vec3(0.01) * gPBRParams.Albedo;
