@@ -18,12 +18,14 @@ namespace Surge
 
     class Scene;
     class Entity;
+    class Project;
+
     class SURGE_API Scene : public RefCounted
     {
     public:
         Scene() = default;
-        Scene(const SceneMetadata& sceneMetadata, bool runtime);
-        Scene(const String& name, const Path& path, bool runtime);
+        Scene(Project* parentProject, const SceneMetadata& sceneMetadata, bool runtime);
+        Scene(Project* parentProject, const String& name, const Path& path, bool runtime);
         ~Scene();
 
         void OnRuntimeStart();
@@ -33,6 +35,7 @@ namespace Surge
         void CopyTo(Scene* other);
         Entity FindEntityByUUID(UUID id);
         SceneMetadata& GetMetadata() { return mMetadata; }
+        Project* GetParentProject() { return mParentProject; }
 
         // Entity manipulation
         void CreateEntity(Entity& outEntity, const String& name = "New Entity");
@@ -52,10 +55,13 @@ namespace Surge
     private:
         void ConvertToLocalSpace(Entity entity);
         void ConvertToWorldSpace(Entity entity);
+        void OnScriptComponentDestroy(entt::registry& registry, entt::entity entity);
 
     private:
+        Project* mParentProject;
         SceneMetadata mMetadata;
         entt::registry mRegistry;
+        bool mRuntime;
     };
 
     //

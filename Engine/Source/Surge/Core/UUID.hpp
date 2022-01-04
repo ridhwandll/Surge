@@ -1,5 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
+#include "Surge/Core/Defines.hpp"
+#define NULL_UUID 0
 
 namespace Surge
 {

@@ -22,7 +22,11 @@ namespace Surge
         ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR | OFN_EXPLORER;
 
         if (GetOpenFileNameA(&ofn) == TRUE)
-            return ofn.lpstrFile;
+        {
+            String result = ofn.lpstrFile;
+            std::replace(result.begin(), result.end(), '\\', '/');
+            return result;
+        }
 
         return String();
     }

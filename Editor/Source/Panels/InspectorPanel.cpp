@@ -8,6 +8,9 @@
 #include <imgui_internal.h>
 #include <imgui_stdlib.h>
 #include <IconsFontAwesome.hpp>
+#include "Surge/Core/Project/Project.hpp"
+#include "Editor.hpp"
+#include <filesystem>
 
 namespace Surge
 {
@@ -98,6 +101,8 @@ namespace Surge
                         entity.AddComponent<PointLightComponent>();
                     if (ImGui::MenuItem("Directional Light"))
                         entity.AddComponent<DirectionalLightComponent>();
+                    if (ImGui::MenuItem("C++ Script"))
+                        entity.AddComponent<ScriptComponent>();
                     ImGui::EndPopup();
                 }
             }
@@ -274,6 +279,31 @@ namespace Surge
                 ImGuiAux::TProperty<glm::vec3, ImGuiAux::CustomProprtyFlag::Color3>("Color", &component.Color);
                 ImGuiAux::TProperty<float>("Intensity", &component.Intensity);
                 ImGuiAux::TProperty<float>("Size", &component.Size);
+            });
+        }
+        if (entity.HasComponent<ScriptComponent>())
+        {
+            ScriptComponent& component = entity.GetComponent<ScriptComponent>();
+            DrawComponent<ScriptComponent>(entity, "Script", [&component]() {
+                const ProjectMetadata& metadata = static_cast<Editor*>(Core::GetClient())->GetActiveProject().GetMetadata();
+                const String scriptPath = component.ScriptPath ? std::filesystem::relative(component.ScriptPath.Str(), metadata.ProjPath.Str()).string() : "";
+                if (ImGuiAux::TButton("Path", scriptPath.empty() ? "Open..." : scriptPath.c_str()))
+                {
+                    String path = FileDialog::OpenFile("");
+                    if (!path.empty())
+                    {
+                        if (Core::GetScriptEngine()->ScriptEngine::IsScriptValid(component.ScriptEngineID))
+                        {
+                            Surge::Core::GetScriptEngine()->DestroyScript(component.ScriptEngineID);
+                        }
+                        component.ScriptPath = path;
+                        component.ScriptEngineID = Surge::Core::GetScriptEngine()->CreateScript(component.ScriptPath);
+                    }
+                }
+                ImGui::TableNextColumn();
+                ImGui::TextUnformatted("ScriptEngine ID");
+                ImGui::TableNextColumn();
+                ImGui::TextUnformatted(fmt::format("{0}", component.ScriptEngineID).c_str());
             });
         }
 

@@ -120,15 +120,18 @@ namespace Surge
     struct SURGE_API ScriptComponent
     {
         ScriptComponent() = default;
-        ScriptComponent(const ScriptID& scriptEngineID)
-            : ScriptEngineID(scriptEngineID) {}
+        ScriptComponent(const Path& path, const ScriptID& scriptEngineID)
+            : ScriptPath(path), ScriptEngineID(scriptEngineID) {}
 
-        ScriptID ScriptEngineID;
+        Path ScriptPath;
+        ScriptID ScriptEngineID = NULL_UUID;
+
+        SURGE_REFLECTION_ENABLE
     };
 
 //! NOTE: ALL THE MAJOR COMPONENTS MUST BE REGISTERED HERE, ADD BY SEPARATING VIA A COMMA (',') WHEN YOU ADD A NEW COMPONENT
 #define ALL_MAJOR_COMPONENTS ::Surge::IDComponent, ::Surge::NameComponent, ::Surge::TransformComponent,      \
                              ::Surge::MeshComponent, ::Surge::CameraComponent, ::Surge::PointLightComponent, \
-                             ::Surge::DirectionalLightComponent, ::Surge::ParentChildComponent
+                             ::Surge::DirectionalLightComponent, ::Surge::ParentChildComponent, ::Surge::ScriptComponent
 
 } // namespace Surge

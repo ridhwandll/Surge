@@ -6,8 +6,9 @@ namespace Surge
 {
     using ScriptID = UUID;
 
-    class SURGE_API SurgeBehaviour;
-    struct ScriptInstance
+    class SurgeBehaviour;
+    class Scene;
+    struct SURGE_API ScriptInstance
     {
         Path ScriptPath; // Relative to project
         SurgeReflect::Class* Reflection;
@@ -29,22 +30,22 @@ namespace Surge
 
         // Script Manipulation
         ScriptID CreateScript(const Path& scriptPath);
-        void DestroyScript(const ScriptID& handle);
+        void DestroyScript(ScriptID& handle);
         const ScriptInstance& GetScript(const ScriptID& handle) const;
-
+        const auto& GetAllScripts() const { return mScripts; }
         ScriptCompiler* GetCompiler() { return mCompiler; };
+        bool IsScriptValid(ScriptID& handle);
 
     private:
         // Function called by Surge::Project
         void OnRuntimeStart();
         void OnUpdate();
         void OnRuntimeEnd();
-        void SetActiveProjct(const UUID& projectID) { mActiveProjctID = projectID; }
+        void OnSceneChange(Scene* activatedScene);
 
     private:
         ScriptCompiler* mCompiler;
-        UUID mActiveProjctID;
-        HashMap<UUID, HashMap<ScriptID, ScriptInstance>> mScripts; // Mapped as <ProjectID <ScriptID - ScriptInstance>>
+        HashMap<ScriptID, ScriptInstance> mScripts; // Mapped as <ScriptID - ScriptInstance>
         friend class SURGE_API Project;
     };
 

@@ -3,6 +3,7 @@
 #include "Surge/Scripting/Compiler/CompilerMSVC.hpp"
 #include "SurgeReflect/SurgeReflectRegistry.hpp"
 #include "Surge/Scripting/SurgeBehaviour.hpp"
+#include "Surge/ECS/Scene.hpp"
 
 namespace Surge
 {
@@ -19,34 +20,35 @@ namespace Surge
 
     ScriptID ScriptEngine::CreateScript(const Path& scriptPath)
     {
-        SG_ASSERT(mActiveProjctID, "No Active project!");
-
         ScriptID id = UUID();
         ScriptInstance newScriptInstance = {};
         newScriptInstance.ScriptPath = scriptPath;
         newScriptInstance.Reflection = nullptr; // Filled later
         newScriptInstance.Script = nullptr;     // Filled later
-        mScripts[mActiveProjctID][id] = newScriptInstance;
+        mScripts[id] = newScriptInstance;
         return id;
     }
 
     const ScriptInstance& ScriptEngine::GetScript(const ScriptID& handle) const
     {
-        SG_ASSERT(mActiveProjctID, "No Active project!");
-        return mScripts.at(mActiveProjctID).at(handle);
+        return mScripts.at(handle);
+    }
+
+    bool ScriptEngine::IsScriptValid(ScriptID& handle)
+    {
+        auto itr = mScripts.find(handle);
+        if (itr != mScripts.end())
+        {
+            return true;
+        }
+        return false;
     }
 
     void ScriptEngine::OnRuntimeStart()
     {
         SurgeReflect::Registry* reg = SurgeReflect::Registry::Get();
-        Log<Surge::Severity::Debug>("Engine: Reflection MemAdd: {0}", (void*)reg);
-        Log<Surge::Severity::Debug>("Engine: Renderer MemAdd: {0}", (void*)Core::GetRenderer());
-        Log<Surge::Severity::Debug>("Engine: ScriptEngine MemAdd: {0}", (void*)this);
-        Log<Surge::Severity::Debug>("-------------------------------------");
 
-        SG_ASSERT(mActiveProjctID, "No Active project!");
-        HashMap<ScriptID, ScriptInstance>& k = mScripts[mActiveProjctID];
-        for (auto& [scriptID, scriptInstance] : k)
+        for (auto& [scriptID, scriptInstance] : mScripts)
         {
             // TODO: Don't harcode the .dll extension
             String libName = fmt::format("{0}/{1}.dll", scriptInstance.ScriptPath.ParentPath(), scriptInstance.ScriptPath.FileName());
@@ -78,7 +80,7 @@ namespace Surge
 
     void ScriptEngine::OnUpdate()
     {
-        for (auto [scriptID, scriptInstance] : mScripts[mActiveProjctID])
+        for (auto [scriptID, scriptInstance] : mScripts)
         {
             if (scriptInstance.Reflection->GetFunction("OnUpdate"))
             {
@@ -90,7 +92,7 @@ namespace Surge
     void ScriptEngine::OnRuntimeEnd()
     {
         SurgeReflect::Registry* reflection = SurgeReflect::Registry::Get();
-        for (auto [scriptID, scriptInstance] : mScripts[mActiveProjctID])
+        for (auto [scriptID, scriptInstance] : mScripts)
         {
             SG_ASSERT_NOMSG(scriptInstance.LibHandle);
             SG_ASSERT_NOMSG(scriptInstance.Reflection);
@@ -109,10 +111,27 @@ namespace Surge
         }
     }
 
-    void ScriptEngine::DestroyScript(const ScriptID& handle)
+    void ScriptEngine::OnSceneChange(Scene* activatedScene)
     {
-        SG_ASSERT(mActiveProjctID, "No Active project!");
-        mScripts.at(mActiveProjctID).erase(handle);
+        mScripts.clear();
+        auto& reg = activatedScene->GetRegistry();
+        {
+            auto& view = reg.view<ScriptComponent>();
+            for (auto& entity : view)
+            {
+                auto& script = view.get<ScriptComponent>(entity);
+                script.ScriptEngineID = CreateScript(script.ScriptPath);
+            }
+        }
+    }
+
+    void ScriptEngine::DestroyScript(ScriptID& handle)
+    {
+        if (!handle)
+            return;
+
+        mScripts.erase(handle);
+        handle = NULL_UUID;
     }
 
     void ScriptEngine::Shutdown()
@@ -123,7 +142,7 @@ namespace Surge
 
     void ScriptEngine::CompileScripts()
     {
-        for (auto [scriptID, scriptInstance] : mScripts[mActiveProjctID])
+        for (auto [scriptID, scriptInstance] : mScripts)
         {
             CompileInfo opt;
             opt.InputFile = scriptInstance.ScriptPath;

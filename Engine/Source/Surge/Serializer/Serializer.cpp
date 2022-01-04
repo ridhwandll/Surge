@@ -119,6 +119,19 @@ namespace Surge
                     offset += size;
                     continue;
                 }
+                else if (type.EqualTo<Path>())
+                {
+                    // Get the path size; (we cannot use var.GetSize() as that uses sizeof())
+                    const Path* src = reinterpret_cast<const Path*>(source);
+                    size = src->Size();
+
+                    String destination;
+                    destination.resize(size);
+                    std::memcpy(reinterpret_cast<void*>(destination.data()), src->Str().c_str(), size);
+                    out[name] = destination;
+                    offset += size;
+                    continue;
+                }
                 else if (type.EqualTo<glm::vec3>())
                 {
                     glm::vec3 destination;
@@ -241,7 +254,7 @@ namespace Surge
                     std::memcpy(dst, &source, size);
                 }
             }
-            else if (type.EqualTo<UUID>())
+            else if (type.EqualTo<UUID>() || type.EqualTo<ScriptID>())
             {
                 const uint64_t source = inJson[name];
                 uint64_t* dst = reinterpret_cast<uint64_t*>(destination);
@@ -263,6 +276,15 @@ namespace Surge
                 String* src = reinterpret_cast<String*>(destination);
                 src->resize(size);
                 std::memcpy(src->data(), source.c_str(), size);
+            }
+            else if (type.EqualTo<Path>())
+            {
+                const String source = inJson[name];
+                size = source.size(); // We cannot use var.GetSize() as that uses sizeof()
+
+                Path* src = reinterpret_cast<Path*>(destination);
+                src->Resize(size);
+                std::memcpy(src->Str().data(), source.c_str(), size);
             }
             else if (type.EqualTo<glm::vec3>())
             {
@@ -314,7 +336,8 @@ namespace Surge
     void Serializer::Deserialize(const Path& path, Scene* out)
     {
         SG_ASSERT_NOMSG(out);
-        out->GetRegistry().clear();
+        auto& registry = out->GetRegistry();
+        registry.clear();
 
         String jsonContents = Filesystem::ReadFile<String>(path);
 
@@ -327,6 +350,15 @@ namespace Surge
             Entity newEntity;
             out->CreateEntity(newEntity, "");
             DeserializeEntity(parsedJson["Scene"], newEntity, i);
+        }
+
+        { // Create all the scripts
+            auto& view = registry.view<ScriptComponent>();
+            for (auto& entity : view)
+            {
+                auto& script = view.get<ScriptComponent>(entity);
+                script.ScriptEngineID = Core::GetScriptEngine()->CreateScript(script.ScriptPath);
+            }
         }
     }
 

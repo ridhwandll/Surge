@@ -131,7 +131,7 @@ namespace Surge
 
         // TODO: Make it always a produce dll
         compileCmd += L" /link";
-        compileCmd += L" /DLL";
+        compileCmd += L" /DLL /NOIMPLIB";
         compileCmd += L" /OUT:\"" + binaryDirectory.WStr() + L"/" + inputFileName + L".dll\"";
 
         // Add standard library paths

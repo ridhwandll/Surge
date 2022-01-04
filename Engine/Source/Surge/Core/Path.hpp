@@ -33,11 +33,16 @@ namespace Surge
             return name;
         }
 
+        size_t Size() const { return mPathStr.size(); }
+        void Resize(size_t newSize) { mPathStr.resize(newSize); }
+
+        String& Str() { return mPathStr; }
         const String& Str() const { return mPathStr; }
         std::wstring WStr() const { return std::wstring(mPathStr.begin(), mPathStr.end()); }
 
         operator String() { return mPathStr; }
         operator const char*() const { return mPathStr.c_str(); }
+        operator bool() const { return !mPathStr.empty(); }
 
         [[nodiscard]] friend bool operator==(const Path& left, const String& right) { return left.Str() == right; }
         [[nodiscard]] friend Path operator/(const Path& left, const Path& right) { return fmt::format("{0}/{1}", left.Str(), right.Str()); }

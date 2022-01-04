@@ -9,6 +9,7 @@
 #include "Surge/ECS/Components.hpp"
 #include "Utility/ImGuiAux.hpp"
 #include "Surge/Graphics/RenderProcedure/ShadowMapProcedure.hpp"
+#include <filesystem>
 
 namespace Surge
 {
@@ -88,9 +89,10 @@ namespace Surge
             }
 
 #ifdef SURGE_DEBUG
+            Editor* editor = static_cast<Editor*>(Core::GetClient());
             if (ImGuiAux::PropertyGridHeader("All Entities (Debug Only)", false))
             {
-                SceneHierarchyPanel* hierarchy = static_cast<Editor*>(Core::GetClient())->GetPanelManager().GetPanel<SceneHierarchyPanel>();
+                SceneHierarchyPanel* hierarchy = editor->GetPanelManager().GetPanel<SceneHierarchyPanel>();
                 Scene* scene = hierarchy->GetSceneContext();
                 scene->GetRegistry().each([&scene](entt::entity e) {
                     Entity ent = Entity(e, scene);
@@ -98,6 +100,18 @@ namespace Surge
                     ImGui::SameLine();
                     ImGui::Text(ent.GetComponent<NameComponent>().Name.c_str());
                 });
+                ImGui::TreePop();
+            }
+            if (ImGuiAux::PropertyGridHeader("All Scripts (Debug Only)", false))
+            {
+
+                const auto& scripts = Core::GetScriptEngine()->GetAllScripts();
+                for (auto& script : scripts)
+                {
+                    if (ImGui::TreeNode(fmt::format("{0} - {1}", script.first, std::filesystem::relative(script.second.ScriptPath.Str(), editor->GetActiveProject().GetMetadata().ProjPath.Str()).string()).c_str()))
+                        ImGui::TreePop();
+                }
+
                 ImGui::TreePop();
             }
 #endif
