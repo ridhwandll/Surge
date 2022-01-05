@@ -1,6 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "Surge/Scripting/Compiler/ScriptCompiler.hpp"
+#include "Surge/ECS/Components.hpp"
 
 namespace Surge
 {
@@ -13,6 +14,7 @@ namespace Surge
         Path ScriptPath; // Relative to project
         SurgeReflect::Class* Reflection;
         SurgeBehaviour* Script;
+        UUID ParentEntityID;
         void* LibHandle;
     };
 
@@ -29,7 +31,7 @@ namespace Surge
         void CompileScripts();
 
         // Script Manipulation
-        ScriptID CreateScript(const Path& scriptPath);
+        ScriptID CreateScript(const Path& scriptPath, const UUID& entityID);
         void DestroyScript(ScriptID& handle);
         const ScriptInstance& GetScript(const ScriptID& handle) const;
         const auto& GetAllScripts() const { return mScripts; }
@@ -38,7 +40,7 @@ namespace Surge
 
     private:
         // Function called by Surge::Project
-        void OnRuntimeStart();
+        void OnRuntimeStart(Scene* scene);
         void OnUpdate();
         void OnRuntimeEnd();
         void OnSceneChange(Scene* activatedScene);

@@ -284,7 +284,7 @@ namespace Surge
         if (entity.HasComponent<ScriptComponent>())
         {
             ScriptComponent& component = entity.GetComponent<ScriptComponent>();
-            DrawComponent<ScriptComponent>(entity, "Script", [&component]() {
+            DrawComponent<ScriptComponent>(entity, "Script", [&component, &entity]() {
                 const ProjectMetadata& metadata = static_cast<Editor*>(Core::GetClient())->GetActiveProject().GetMetadata();
                 const String scriptPath = component.ScriptPath ? std::filesystem::relative(component.ScriptPath.Str(), metadata.ProjPath.Str()).string() : "";
                 if (ImGuiAux::TButton("Path", scriptPath.empty() ? "Open..." : scriptPath.c_str()))
@@ -297,7 +297,7 @@ namespace Surge
                             Surge::Core::GetScriptEngine()->DestroyScript(component.ScriptEngineID);
                         }
                         component.ScriptPath = path;
-                        component.ScriptEngineID = Surge::Core::GetScriptEngine()->CreateScript(component.ScriptPath);
+                        component.ScriptEngineID = Surge::Core::GetScriptEngine()->CreateScript(component.ScriptPath, entity.GetComponent<IDComponent>().ID);
                     }
                 }
                 ImGui::TableNextColumn();

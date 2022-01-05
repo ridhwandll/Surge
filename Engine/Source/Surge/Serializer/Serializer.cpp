@@ -123,12 +123,14 @@ namespace Surge
                 {
                     // Get the path size; (we cannot use var.GetSize() as that uses sizeof())
                     const Path* src = reinterpret_cast<const Path*>(source);
-                    size = src->Size();
 
                     String destination;
                     destination.resize(size);
                     std::memcpy(reinterpret_cast<void*>(destination.data()), src->Str().c_str(), size);
-                    out[name] = destination;
+                    auto relativePath = std::filesystem::relative(destination, e.GetScene()->GetParentProject()->GetMetadata().ProjPath.Str()).string();
+                    out[name] = relativePath;
+
+                    size = relativePath.size();
                     offset += size;
                     continue;
                 }
@@ -280,11 +282,15 @@ namespace Surge
             else if (type.EqualTo<Path>())
             {
                 const String source = inJson[name];
-                size = source.size(); // We cannot use var.GetSize() as that uses sizeof()
+                size = source.size();
 
                 Path* src = reinterpret_cast<Path*>(destination);
-                src->Resize(size);
-                std::memcpy(src->Str().data(), source.c_str(), size);
+                String temp;
+                temp.resize(size);
+                std::memcpy(temp.data(), source.c_str(), size);
+                *src = Path(fmt::format("{0}/{1}", e.GetScene()->GetParentProject()->GetMetadata().ProjPath.Str(), temp));
+
+                size = src->Size();
             }
             else if (type.EqualTo<glm::vec3>())
             {
@@ -353,11 +359,11 @@ namespace Surge
         }
 
         { // Create all the scripts
-            auto& view = registry.view<ScriptComponent>();
+            const auto& view = registry.view<IDComponent, ScriptComponent>();
             for (auto& entity : view)
             {
-                auto& script = view.get<ScriptComponent>(entity);
-                script.ScriptEngineID = Core::GetScriptEngine()->CreateScript(script.ScriptPath);
+                const auto& [id, script] = view.get<IDComponent, ScriptComponent>(entity);
+                script.ScriptEngineID = Core::GetScriptEngine()->CreateScript(script.ScriptPath, id.ID);
             }
         }
     }

@@ -1,5 +1,6 @@
 #pragma once
 #include "SurgeReflect/SurgeReflect.hpp"
+#include "Surge/ECS/Scene.hpp"
 
 namespace Surge
 {
@@ -17,6 +18,11 @@ namespace Surge
 
         // Invoked once on runtime end
         virtual void OnDestroy() {};
+
+        Entity& GetEntity() { return mEntity; }
+
+    protected:
+        Entity mEntity;
     };
 
 } // namespace Surge
@@ -24,9 +30,10 @@ namespace Surge
 #define SURGE_REGISTER_SCRIPT(CLASS_NAME)                              \
     extern "C"                                                         \
     {                                                                  \
-        SCRIPT_API ::Surge::SurgeBehaviour* CreateScript()             \
+        SCRIPT_API ::Surge::SurgeBehaviour* CreateScript(Entity& e)    \
         {                                                              \
             auto* script = new CLASS_NAME;                             \
+            script->GetEntity() = e;                                   \
             return script;                                             \
         }                                                              \
                                                                        \

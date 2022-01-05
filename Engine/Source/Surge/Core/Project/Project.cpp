@@ -85,7 +85,7 @@ namespace Surge
             runtimeScene->OnRuntimeStart();
         }
         Core::GetRenderer()->SetSceneContext(mRuntimeSceneStorage[mMetadata.ActiveSceneIndex]);
-        Core::GetScriptEngine()->OnRuntimeStart();
+        Core::GetScriptEngine()->OnRuntimeStart(GetActiveScene());
     }
 
     void Project::Update(EditorCamera& camera)

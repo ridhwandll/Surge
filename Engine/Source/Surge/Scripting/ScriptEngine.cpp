@@ -7,7 +7,7 @@
 
 namespace Surge
 {
-    using CreateScriptFN = SurgeBehaviour* (*)();
+    using CreateScriptFN = SurgeBehaviour* (*)(Entity& e);
     using GetReflectionFN = SurgeReflect::Class* (*)();
     using DestroyScriptFN = void (*)(SurgeBehaviour*);
 
@@ -18,11 +18,12 @@ namespace Surge
         Log<Severity::Info>("ScriptEngine initialized with compiler: {0}", mCompiler->GetName());
     }
 
-    ScriptID ScriptEngine::CreateScript(const Path& scriptPath)
+    ScriptID ScriptEngine::CreateScript(const Path& scriptPath, const UUID& entityID)
     {
         ScriptID id = UUID();
         ScriptInstance newScriptInstance = {};
         newScriptInstance.ScriptPath = scriptPath;
+        newScriptInstance.ParentEntityID = entityID;
         newScriptInstance.Reflection = nullptr; // Filled later
         newScriptInstance.Script = nullptr;     // Filled later
         mScripts[id] = newScriptInstance;
@@ -44,7 +45,7 @@ namespace Surge
         return false;
     }
 
-    void ScriptEngine::OnRuntimeStart()
+    void ScriptEngine::OnRuntimeStart(Scene* scene)
     {
         SurgeReflect::Registry* reg = SurgeReflect::Registry::Get();
 
@@ -64,7 +65,7 @@ namespace Surge
             CreateScriptFN scriptCreateFN = reinterpret_cast<CreateScriptFN>(Platform::GetFunction(scriptInstance.LibHandle, "CreateScript"));
             GetReflectionFN getReflectionFN = reinterpret_cast<GetReflectionFN>(Platform::GetFunction(scriptInstance.LibHandle, "GetReflection"));
 
-            scriptInstance.Script = scriptCreateFN();
+            scriptInstance.Script = scriptCreateFN(scene->FindEntityByUUID(scriptInstance.ParentEntityID));
             scriptInstance.Reflection = getReflectionFN();
 
             SG_ASSERT_NOMSG(scriptInstance.LibHandle);
@@ -116,11 +117,11 @@ namespace Surge
         mScripts.clear();
         auto& reg = activatedScene->GetRegistry();
         {
-            auto& view = reg.view<ScriptComponent>();
+            const auto& view = reg.view<IDComponent, ScriptComponent>();
             for (auto& entity : view)
             {
-                auto& script = view.get<ScriptComponent>(entity);
-                script.ScriptEngineID = CreateScript(script.ScriptPath);
+                const auto& [id, script] = view.get<IDComponent, ScriptComponent>(entity);
+                script.ScriptEngineID = CreateScript(script.ScriptPath, id.ID);
             }
         }
     }
