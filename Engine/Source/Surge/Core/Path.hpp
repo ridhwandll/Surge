@@ -14,11 +14,14 @@ namespace Surge
         Path(const String& str)
             : mPathStr(str) {}
 
-        ~Path() = default;
+        void operator=(const Path& other)
+        {
+            mPathStr = other.mPathStr;
+        }
 
         Path ParentPath()
         {
-            auto path = mPathStr.substr(0, mPathStr.find_last_of("/\\"));
+            String path = mPathStr.substr(0, mPathStr.find_last_of("/\\"));
             return path;
         }
 
@@ -34,9 +37,7 @@ namespace Surge
         }
 
         size_t Size() const { return mPathStr.size(); }
-        void Resize(size_t newSize) { mPathStr.resize(newSize); }
 
-        String& Str() { return mPathStr; }
         const String& Str() const { return mPathStr; }
         std::wstring WStr() const { return std::wstring(mPathStr.begin(), mPathStr.end()); }
 

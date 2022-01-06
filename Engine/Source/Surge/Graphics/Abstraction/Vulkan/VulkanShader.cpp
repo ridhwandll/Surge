@@ -5,6 +5,7 @@
 #include "Surge/Graphics/Abstraction/Vulkan/VulkanUtils.hpp"
 #include "Surge/Utility/Filesystem.hpp"
 #include <shaderc/shaderc.hpp>
+#include <filesystem>
 
 #ifdef SURGE_DEBUG
 #define SHADER_LOG(...) Log<Severity::Debug>(__VA_ARGS__);
@@ -131,13 +132,45 @@ namespace Surge
             SG_ASSERT(!spirvHandle.SPIRV.empty(), "Invalid SPIRV!");
 
             // Create the VkShaderModule
-            VkShaderModuleCreateInfo createInfo {};
-            createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+            VkShaderModuleCreateInfo createInfo {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
             createInfo.codeSize = spirvHandle.SPIRV.size() * sizeof(Uint);
             createInfo.pCode = spirvHandle.SPIRV.data();
             VK_CALL(vkCreateShaderModule(device, &createInfo, nullptr, &mVkShaderModules[stage]));
             SET_VK_OBJECT_DEBUGNAME(mVkShaderModules.at(stage), VK_OBJECT_TYPE_SHADER_MODULE, "Vulkan Shader");
             mShaderSPIRVs.push_back(spirvHandle);
+        }
+        if (mShaderSources.empty())
+        {
+            for (auto& dir : std::filesystem::directory_iterator(SHADER_CACHE_PATH))
+            {
+                String chachedShaderPath = dir.path().string();
+                if (dir.path().extension() != ".spv") // Early exit if it's not a spirv file
+                    continue;
+
+                // Get the shader type from filename
+                String shaderStageString = std::filesystem::path(Filesystem::RemoveExtension(chachedShaderPath)).extension().string().substr(1, std::string::npos);
+                ShaderType shaderStage = VulkanUtils::ShaderTypeFromString(shaderStageString + "]"); //TODO: remove this hack
+
+                // Get the correct cache name for this shader
+                String cacheName = fmt::format("{0}.{1}.spv", Filesystem::GetNameWithExtension(mPath), ShaderTypeToString(shaderStage));
+                String cachePath = fmt::format("{0}/{1}", SHADER_CACHE_PATH, cacheName);
+                std::replace(chachedShaderPath.begin(), chachedShaderPath.end(), '\\', '/');
+
+                // We are iterating the whole shader cache directory, so skip the other files
+                if (cachePath != chachedShaderPath)
+                    continue;
+
+                SPIRVHandle spirvHandle;
+                spirvHandle.SPIRV = Filesystem::ReadFile<Vector<Uint>>(chachedShaderPath);
+                spirvHandle.Type = shaderStage;
+                mShaderSPIRVs.push_back(spirvHandle);
+
+                VkShaderModuleCreateInfo createInfo {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
+                createInfo.codeSize = spirvHandle.SPIRV.size() * sizeof(Uint);
+                createInfo.pCode = spirvHandle.SPIRV.data();
+                VK_CALL(vkCreateShaderModule(device, &createInfo, nullptr, &mVkShaderModules[shaderStage]));
+                SET_VK_OBJECT_DEBUGNAME(mVkShaderModules.at(shaderStage), VK_OBJECT_TYPE_SHADER_MODULE, "Vulkan Shader");
+            }
         }
         ShaderReflector reflector;
         mReflectionData = reflector.Reflect(mShaderSPIRVs);

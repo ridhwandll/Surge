@@ -1,10 +1,8 @@
 include(${CMAKE_SOURCE_DIR}/scripts/CMakeUtils.cmake)
 
 file(GLOB_RECURSE SOURCE_FILES
-    Source/Surge/*.cpp
-    Source/Surge/*.hpp
-    Source/SurgeReflect/*.hpp
-    Source/SurgeReflect/*.cpp
+    Source/*.cpp
+    Source/*.hpp
     Vendor/stb/stb_image.cpp
 )
 
@@ -78,8 +76,6 @@ CopyBinaryToExeDir(Surge ${CMAKE_BINARY_DIR}/Engine/Vendor/SPIRV-Cross/$<CONFIGU
 CopyBinaryToExeDir(Surge ${CMAKE_BINARY_DIR}/Engine/Vendor/volk/$<CONFIGURATION>/volk.lib Editor)
 CopyBinaryToExeDir(Surge ${CMAKE_SOURCE_DIR}/Engine/Vendor/assimp/Lib/assimp-vc142-mt.lib Editor)
 CopyBinaryToExeDir(Surge ${CMAKE_SOURCE_DIR}/Engine/Vendor/shaderc/Lib/shaderc_shared.lib Editor)
-
-add_subdirectory(Source/SurgeReflect)
 
 add_custom_command(
     TARGET Surge

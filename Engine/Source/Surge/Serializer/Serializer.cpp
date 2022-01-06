@@ -90,8 +90,7 @@ namespace Surge
                 }
                 else if (type.EqualTo<UUID>())
                 {
-                    uint64_t destination;
-                    std::memcpy(&destination, reinterpret_cast<const uint64_t*>(source), size);
+                    uint64_t destination = *reinterpret_cast<const uint64_t*>(source);
                     out[name] = destination;
                     offset += size;
                     continue;
@@ -121,16 +120,12 @@ namespace Surge
                 }
                 else if (type.EqualTo<Path>())
                 {
-                    // Get the path size; (we cannot use var.GetSize() as that uses sizeof())
                     const Path* src = reinterpret_cast<const Path*>(source);
-
-                    String destination;
-                    destination.resize(size);
-                    std::memcpy(reinterpret_cast<void*>(destination.data()), src->Str().c_str(), size);
-                    auto relativePath = std::filesystem::relative(destination, e.GetScene()->GetParentProject()->GetMetadata().ProjPath.Str()).string();
+                    size = src->Size();
+                    auto k = sizeof(Path);
+                    auto relativePath = std::filesystem::relative(src->Str(), e.GetScene()->GetParentProject()->GetMetadata().ProjPath.Str()).string();
                     out[name] = relativePath;
 
-                    size = relativePath.size();
                     offset += size;
                     continue;
                 }
@@ -285,10 +280,7 @@ namespace Surge
                 size = source.size();
 
                 Path* src = reinterpret_cast<Path*>(destination);
-                String temp;
-                temp.resize(size);
-                std::memcpy(temp.data(), source.c_str(), size);
-                *src = Path(fmt::format("{0}/{1}", e.GetScene()->GetParentProject()->GetMetadata().ProjPath.Str(), temp));
+                *src = Path(fmt::format("{0}/{1}", e.GetScene()->GetParentProject()->GetMetadata().ProjPath.Str(), source));
 
                 size = src->Size();
             }

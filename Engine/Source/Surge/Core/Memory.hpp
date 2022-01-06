@@ -137,7 +137,7 @@ namespace Surge
             }
         }
 
-        friend class SURGE_API Ref;
+        friend class Ref;
         T* mInstance;
     };
 

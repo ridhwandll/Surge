@@ -4,7 +4,7 @@
 
 namespace Surge
 {
-    // TODO: Have a custom string class SURGE_API
+    // TODO: Have a custom string class
     using String = std::string;
 
 } // namespace Surge

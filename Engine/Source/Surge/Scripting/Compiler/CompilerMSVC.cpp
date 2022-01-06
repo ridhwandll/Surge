@@ -106,7 +106,19 @@ namespace Surge
             compileCmd += L" /I\"" + (WindowsSDKIncludeDir / "shared").wstring() + L"\"";
 
             // Surge include directores
-            Path path = Platform::GetEnvVariable("SURGE_DIR");
+            Path path;
+            if (Path exeDir = Path(Platform::GetCurrentExecutablePath()).ParentPath(); Filesystem::Exists(exeDir / "Engine" / "Source"))
+            {
+                // Used in shipping builds exeDir / "Engine" / "Source" is availabe along with the .exe
+                path = exeDir;
+                Log<Severity::Info>("Using C++ ScriptAPI from: {0}", exeDir);
+            }
+            else
+            {
+                // Used while developing surge, as exeDir / "Engine" / "Source" doesn't exist while developing surge
+                // the actual source repository is used
+                path = Platform::GetEnvVariable("SURGE_DIR");
+            }
             compileCmd += L" /I\"" + (path / "Engine" / "Source").WStr() + L"\"";
             compileCmd += L" /I\"" + (path / "Engine" / "Source" / "SurgeReflect" / "Include").WStr() + L"\"";
 

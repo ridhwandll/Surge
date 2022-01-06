@@ -22,6 +22,7 @@ namespace Surge
 
         bool open = ImGuiAux::PropertyGridHeader(name.c_str());
 
+        bool remvove = false;
         if (open)
         {
             const ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
@@ -32,7 +33,7 @@ namespace Surge
                 ImGui::SameLine();
                 ImGui::SetCursorPosX(contentRegionAvailable.x + 13.0f);
                 if (ImGui::Button(ICON_SURGE_TRASH_O))
-                    entity.RemoveComponent<XComponent>();
+                    remvove = true;
             }
             if (ImGui::BeginTable("##ComponentTable", 2, ImGuiTableFlags_Resizable))
             {
@@ -41,6 +42,9 @@ namespace Surge
             }
             ImGui::TreePop();
         }
+        if (remvove)
+            Surge::Core::AddFrameEndCallback([entity]() mutable { entity.RemoveComponent<XComponent>(); });
+
         ImGui::PopID();
     }
 
