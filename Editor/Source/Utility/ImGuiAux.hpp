@@ -122,7 +122,7 @@ namespace Surge::ImGuiAux
         const char* currentString = stringArray[currentStringIndexInArray];
         if (ImGui::BeginCombo("##cbox", currentString))
         {
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < stringArraySize; i++)
             {
                 const bool isSelected = currentString == stringArray[i];
                 if (ImGui::Selectable(stringArray[i], isSelected))

@@ -17,7 +17,8 @@ namespace Surge
     {
         Low = 0,
         Medium = 1,
-        Ultra = 2
+        Ultra = 2,
+        Epic = 3
     };
 
     FORCEINLINE Uint CascadeCountToUInt(CascadeCount c)
