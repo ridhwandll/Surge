@@ -14,7 +14,7 @@ namespace Surge
         bool UseMips = false;
     };
 
-    class Texture : public RefCounted
+    class SURGE_API Texture : public RefCounted
     {
     public:
         virtual ~Texture() {}
@@ -27,7 +27,7 @@ namespace Surge
         virtual const TextureSpecification& GetSpecification() const = 0;
     };
 
-    class Texture2D : public Texture
+    class SURGE_API Texture2D : public Texture
     {
     public:
         virtual const Ref<Image2D> GetImage2D() const = 0;

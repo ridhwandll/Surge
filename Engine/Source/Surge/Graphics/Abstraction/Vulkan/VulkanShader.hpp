@@ -6,7 +6,7 @@
 
 namespace Surge
 {
-    class VulkanShader : public Shader
+    class SURGE_API VulkanShader : public Shader
     {
     public:
         VulkanShader(const Path& path);
@@ -14,8 +14,8 @@ namespace Surge
 
         virtual void Load(const HashMap<ShaderType, bool>& compileStages = {}) override;
         virtual void Reload() override;
-        virtual CallbackID AddReloadCallback(const std::function<void()> callback) override;
-        virtual void RemoveReloadCallback(const CallbackID& id);
+        virtual UUID AddReloadCallback(const std::function<void()> callback) override;
+        virtual void RemoveReloadCallback(const UUID& id);
         virtual const ShaderReflectionData& GetReflectionData() const override { return mReflectionData; }
         virtual const Vector<SPIRVHandle>& GetSPIRVs() const override { return mShaderSPIRVs; }
         virtual const Path& GetPath() const override { return mPath; }
@@ -49,6 +49,6 @@ namespace Surge
         ShaderType mTypesBit;
 
         ShaderReflectionData mReflectionData;
-        HashMap<CallbackID, std::function<void()>> mCallbacks;
+        HashMap<UUID, std::function<void()>> mCallbacks;
     };
 } // namespace Surge

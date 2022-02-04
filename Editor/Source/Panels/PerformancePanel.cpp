@@ -2,13 +2,14 @@
 #include "Panels/PerformancePanel.hpp"
 #include "Surge/Core/Core.hpp"
 #include "Surge/Graphics/RenderContext.hpp"
+#include "Surge/Graphics/RenderProcedure/ShadowMapProcedure.hpp"
 #include "Surge/Utility/Filesystem.hpp"
-#include <imgui.h>
 #include "Editor.hpp"
 #include "SceneHierarchyPanel.hpp"
 #include "Surge/ECS/Components.hpp"
 #include "Utility/ImGuiAux.hpp"
-#include "Surge/Graphics/RenderProcedure/ShadowMapProcedure.hpp"
+#include <imgui.h>
+#include <filesystem>
 
 namespace Surge
 {
@@ -28,7 +29,7 @@ namespace Surge
             const float headerSpacingOffset = -(ImGui::GetStyle().ItemSpacing.y + 1.0f);
 
             ImGui::Text("Device: %s", renderContext->GetGPUInfo().Name.c_str());
-            ImGui::Text("Frame Time: % .2f ms ", Clock::GetMilliseconds());
+            ImGui::Text("Frame Time: % .2f ms ", Core::GetClock().GetMilliseconds());
             ImGui::Text("FPS: % .2f", ImGui::GetIO().Framerate);
 
             if (ImGuiAux::PropertyGridHeader("GPU Memory Status", false))
@@ -54,7 +55,7 @@ namespace Surge
 
                     for (Ref<Shader>& shader : allAhaders)
                     {
-                        ImGui::PushID(shader->GetPath().c_str());
+                        ImGui::PushID(shader->GetPath());
                         String typeString;
                         ShaderType types = shader->GetTypes();
                         if (ShaderType::Vertex & types && ShaderType::Pixel & types)
@@ -88,9 +89,10 @@ namespace Surge
             }
 
 #ifdef SURGE_DEBUG
+            Editor* editor = static_cast<Editor*>(Core::GetClient());
             if (ImGuiAux::PropertyGridHeader("All Entities (Debug Only)", false))
             {
-                SceneHierarchyPanel* hierarchy = static_cast<Editor*>(Core::GetClient())->GetPanelManager().GetPanel<SceneHierarchyPanel>();
+                SceneHierarchyPanel* hierarchy = editor->GetPanelManager().GetPanel<SceneHierarchyPanel>();
                 Scene* scene = hierarchy->GetSceneContext();
                 scene->GetRegistry().each([&scene](entt::entity e) {
                     Entity ent = Entity(e, scene);
@@ -98,6 +100,18 @@ namespace Surge
                     ImGui::SameLine();
                     ImGui::Text(ent.GetComponent<NameComponent>().Name.c_str());
                 });
+                ImGui::TreePop();
+            }
+            if (ImGuiAux::PropertyGridHeader("All Scripts (Debug Only)", false))
+            {
+
+                const auto& scripts = Core::GetScriptEngine()->GetAllScripts();
+                for (auto& script : scripts)
+                {
+                    if (ImGui::TreeNode(fmt::format("{0} - {1}", script.first, std::filesystem::relative(script.second.ScriptSourcePath.Str(), editor->GetActiveProject().GetMetadata().ProjPath.Str()).string()).c_str()))
+                        ImGui::TreePop();
+                }
+
                 ImGui::TreePop();
             }
 #endif

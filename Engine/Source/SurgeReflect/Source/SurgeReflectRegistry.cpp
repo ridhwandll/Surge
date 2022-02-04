@@ -1,6 +1,6 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "SurgeReflect/SurgeReflectRegistry.hpp"
-#include "Surge/Core/Defines.hpp"
+#include <assert.h>
 
 namespace SurgeReflect
 {
@@ -34,7 +34,7 @@ namespace SurgeReflect
         return mClasses.insert({name, new Class(name)}).first->second;
     }
 
-    void Registry::RemoveClass(const std::string& name)
+    void Registry::RemoveClass(std::string name)
     {
         auto itr = mClasses.find(name);
         if (itr != mClasses.end())
@@ -43,7 +43,7 @@ namespace SurgeReflect
             mClasses.erase(name);
             return;
         }
-        SG_ASSERT_INTERNAL("Trying to remove a class that is not present!");
+        assert(false && "Trying to remove a class that is not present!");
     }
 
     SurgeReflect::Class* Registry::GetIfExists(const std::string& name)

@@ -59,7 +59,7 @@ namespace Surge
         SURGE_GET_VULKAN_CONTEXT(renderContext);
         VkDevice logicalDevice = renderContext->GetDevice()->GetLogicalDevice();
 
-        HashMap<ShaderType, VkShaderModule> shaderModules = mShader->GetVulkanShaderModules();
+        HashMap<ShaderType, VkShaderModule> shaderModules = mShader.As<VulkanShader>()->GetVulkanShaderModules();
         SG_ASSERT(shaderModules.size() == 1, "The Surge shader must only contain 1 shader, which is compute shader")
         VkPipelineShaderStageCreateInfo shaderStage {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
         shaderStage.stage = VulkanUtils::GetVulkanShaderStage(ShaderType::Compute);
@@ -78,7 +78,7 @@ namespace Surge
             // The descriptor set layouts for a pipeline layout always start from set 0, so if a
             // shader only uses set 5, then you must create a pipeline layout with *5 descriptor sets*
             // Then it becomes: 0- mEmptyLayout; 1- mEmptyLayout; 2- mEmptyLayout; 3- mEmptyLayout; 4- mEmptyLayout; 5- TheRealLayoutFromTheShader
-            const std::map<Uint, VkDescriptorSetLayout>& descriptorSetLayoutsMap = mShader->GetDescriptorSetLayouts();
+            const std::map<Uint, VkDescriptorSetLayout>& descriptorSetLayoutsMap = mShader.As<VulkanShader>()->GetDescriptorSetLayouts();
             // We can get the maximum number of set used in shader like this because std::map is already sorted in order
             Uint lastKeyOfMap = (--descriptorSetLayoutsMap.end())->first;
             for (Uint i = 0; i <= lastKeyOfMap; i++)
@@ -93,7 +93,7 @@ namespace Surge
 
         } // End of "Mess Scope"
 
-        const Vector<VkPushConstantRange> pushConstants = VulkanUtils::GetPushConstantRangesVectorFromHashMap(mShader->GetPushConstantRanges());
+        const Vector<VkPushConstantRange> pushConstants = VulkanUtils::GetPushConstantRangesVectorFromHashMap(mShader.As<VulkanShader>()->GetPushConstantRanges());
 
         VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
         pipelineLayoutCreateInfo.setLayoutCount = static_cast<Uint>(descriptorSetLayouts.size());

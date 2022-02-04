@@ -13,6 +13,8 @@ namespace Surge
 {
     void Editor::OnInitialize()
     {
+        ImGui::SetCurrentContext((ImGuiContext*)Core::GetRenderContext()->GetImGuiContext());
+
         mRenderer = Core::GetRenderer();
         mCamera = EditorCamera(45.0f, 1.778f, 0.1f, 1000.0f);
         mCamera.SetActive(true);

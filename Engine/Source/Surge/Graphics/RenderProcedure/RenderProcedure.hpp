@@ -5,7 +5,7 @@
 namespace Surge
 {
     struct RendererData;
-    class RenderProcedure
+    class SURGE_API RenderProcedure
     {
     public:
         RenderProcedure() = default;
@@ -21,7 +21,7 @@ namespace Surge
 
     protected:
         RendererData* mRendererData;
-        friend class RenderProcedureManager;
+        friend class SURGE_API RenderProcedureManager;
     };
 
 } // namespace Surge

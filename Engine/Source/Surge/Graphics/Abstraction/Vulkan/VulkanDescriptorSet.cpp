@@ -105,7 +105,7 @@ namespace Surge
                 writeDescriptorSet.dstSet = mDescriptorSets[frameIndex];
                 writeDescriptorSets.push_back(writeDescriptorSet);
             }
-            vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
+            vkUpdateDescriptorSets(device, static_cast<Uint>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 
             mPendingStorageBuffers.clear();
             mPendingBuffers.clear();

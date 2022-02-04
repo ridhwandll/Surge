@@ -37,7 +37,7 @@ namespace Surge
         aiString aiTexPath;
         if (aiMat->GetTexture(texType, 0, &aiTexPath) == aiReturn_SUCCESS)
         {
-            String texturePath = Filesystem::GetParentPath(meshPath) + "/" + String(aiTexPath.data);
+            Path texturePath = Filesystem::GetParentPath(meshPath) / String(aiTexPath.data);
             Log<Severity::Trace>("{0} path: {1}", texName, texturePath);
 
             TextureSpecification spec;

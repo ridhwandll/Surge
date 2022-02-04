@@ -19,6 +19,7 @@ namespace Surge::ImGuiAux
         constexpr glm::vec4 Red = glm::vec4(0.8f, 0.1f, 0.1f, 1.0f);
         constexpr glm::vec4 Green = glm::vec4(0.1f, 0.8f, 0.1f, 1.0f);
         constexpr glm::vec4 Blue = glm::vec4(0.1f, 0.1f, 0.8f, 1.0f);
+        constexpr glm::vec4 White = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
         constexpr glm::vec4 Iron = glm::vec4(0.560f, 0.570f, 0.580f, 1.0f);
         constexpr glm::vec4 Silver = glm::vec4(0.972f, 0.960f, 0.915f, 1.0f);
@@ -103,7 +104,7 @@ namespace Surge::ImGuiAux
 
     void DrawRectAroundWidget(const glm::vec4& color, float thickness = 1.5f, float rounding = 1.0f);
     void DockSpace();
-
+    bool Spinner(const char* label, float radius, float thickness);
     bool PropertyGridHeader(const String& name, bool openByDefault = true, const glm::vec2& size = {4.5f, 4.5f}, bool spacing = false);
 
     void TextCentered(const char* text);
@@ -121,7 +122,7 @@ namespace Surge::ImGuiAux
         const char* currentString = stringArray[currentStringIndexInArray];
         if (ImGui::BeginCombo("##cbox", currentString))
         {
-            for (int i = 0; i < 3; i++)
+            for (Uint i = 0; i < stringArraySize; i++)
             {
                 const bool isSelected = currentString == stringArray[i];
                 if (ImGui::Selectable(stringArray[i], isSelected))

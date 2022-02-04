@@ -5,7 +5,7 @@
 
 namespace Surge
 {
-    class VulkanDevice;
+    class SURGE_API VulkanDevice;
     struct GPUMemoryStats;
 
     FORCEINLINE VmaMemoryUsage SurgeMemoryUsageToVmaMemoryUsage(GPUMemoryUsage usage)
@@ -31,7 +31,7 @@ namespace Surge
         return VMA_MEMORY_USAGE_UNKNOWN;
     }
 
-    class VulkanMemoryAllocator
+    class SURGE_API VulkanMemoryAllocator
     {
     public:
         VulkanMemoryAllocator() = default;

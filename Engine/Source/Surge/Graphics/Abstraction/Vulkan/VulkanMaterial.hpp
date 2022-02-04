@@ -5,7 +5,7 @@
 
 namespace Surge
 {
-    class VulkanMaterial : public Material
+    class SURGE_API VulkanMaterial : public Material
     {
     public:
         VulkanMaterial(const Ref<Shader>& shader, const String& materialName);

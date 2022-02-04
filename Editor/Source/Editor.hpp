@@ -1,10 +1,10 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
-#include "Panels/Titlebar.hpp"
-#include "Panels/PaneManager.hpp"
-#include "Surge/Project/Project.hpp"
+#include "Surge/Core/Client.hpp"
 #include "Surge/Graphics/Camera/EditorCamera.hpp"
 #include "Surge/Graphics/Renderer/Renderer.hpp"
+#include "Panels/Titlebar.hpp"
+#include "Panels/PaneManager.hpp"
 #include "ProjectBrowser.hpp"
 
 namespace Surge
@@ -25,8 +25,6 @@ namespace Surge
         void OnRuntimeStart();
         void OnRuntimeEnd();
 
-        Project& GetActiveProject() { return mActiveProject; }
-
         PanelManager& GetPanelManager() { return mPanelManager; }
         Titlebar& GetTitlebar() { return mTitleBar; }
         EditorCamera& GetCamera() { return mCamera; }
@@ -40,7 +38,6 @@ namespace Surge
 
         PanelManager mPanelManager;
         Titlebar mTitleBar {};
-        Project mActiveProject;
         ProjectBrowserWindow mProjectBrowser;
         friend class ProjectBrowserWindow;
     };

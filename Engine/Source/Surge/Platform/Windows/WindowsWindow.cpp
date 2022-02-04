@@ -1,6 +1,5 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Surge/Platform/Windows/WindowsWindow.hpp"
-#include "Pch.hpp"
 #include "Surge/Core/Core.hpp"
 #include <imgui.h>
 #include <dwmapi.h>
@@ -35,8 +34,9 @@ namespace Surge
         RegisterClassEx(&wc);
         SURGE_GET_WIN32_LAST_ERROR
 
+        glm::ivec2 screenSize = Platform::GetScreenSize();
         mWin32Window = CreateWindow(wc.lpszClassName, mWindowData.Title.c_str(),
-                                    WS_OVERLAPPEDWINDOW, 0, 0, mWindowData.Width,
+                                    WS_OVERLAPPEDWINDOW, (screenSize.x - mWindowData.Width) / 2, (screenSize.y - mWindowData.Height) / 2, mWindowData.Width,
                                     mWindowData.Height, nullptr, NULL, wc.hInstance, this);
         SURGE_GET_WIN32_LAST_ERROR
         ApplyFlags();
@@ -99,21 +99,29 @@ namespace Surge
 
     void WindowsWindow::SetPos(const glm::vec2& pos) const
     {
-        RECT rect = {(LONG)pos.x, (LONG)pos.y, (LONG)pos.x, (LONG)pos.y};
-        SetWindowPos(mWin32Window, nullptr, rect.left, rect.top, 0, 0, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSIZE);
+        Surge::Core::AddFrameEndCallback([&, pos] {
+            SetWindowPos(mWin32Window, nullptr, static_cast<int>(pos.x), static_cast<int>(pos.y), 0, 0, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSIZE);
+        });
     }
 
     glm::vec2 WindowsWindow::GetSize() const
     {
-        RECT area;
-        GetClientRect(mWin32Window, &area);
-        return {static_cast<float>(area.right), static_cast<float>(area.bottom)};
+        RECT rect;
+        glm::vec2 result;
+        if (GetWindowRect(mWin32Window, &rect))
+        {
+            result.x = static_cast<float>(rect.right - rect.left);
+            result.y = static_cast<float>(rect.bottom - rect.top);
+        }
+        return result;
     }
 
     void WindowsWindow::SetSize(const glm::vec2& size) const
     {
-        RECT rect = {0, 0, (LONG)size.x, (LONG)size.y};
-        SetWindowPos(mWin32Window, HWND_TOP, 0, 0, rect.right - rect.left, rect.bottom - rect.top, SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_NOZORDER);
+        Surge::Core::AddFrameEndCallback([&, size] {
+            RECT rect = {0, 0, (LONG)size.x, (LONG)size.y};
+            SetWindowPos(mWin32Window, HWND_TOP, 0, 0, rect.right - rect.left, rect.bottom - rect.top, SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_NOZORDER);
+        });
     }
 
     void WindowsWindow::ShowConsole(bool show) const

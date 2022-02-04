@@ -21,7 +21,7 @@ namespace Surge
         uint64_t Free = 0;
     };
 
-    enum class GPUMemoryUsage
+    enum class SURGE_API GPUMemoryUsage
     {
         Unknown = 0,
         GPUOnly,
@@ -35,7 +35,7 @@ namespace Surge
     // NOTE(Rid):
     // The "Core" owns the RenderContext
     // RenderContext owns the API Instance, LogicalDevice, SwapChain, PhysicalDevice, MemoryAllocator etc.
-    class RenderContext
+    class SURGE_API RenderContext
     {
     public:
         RenderContext() = default;
@@ -53,7 +53,7 @@ namespace Surge
         // Maybe move ImGui stuff somwhere else?
         virtual void RenderImGui() = 0;
         virtual void* GetImGuiTextureID(const Ref<Image2D>& image) const = 0;
-
+        virtual void* GetImGuiContext() = 0;
         virtual GPUMemoryStats GetMemoryStatus() const = 0;
         virtual GPUInfo GetGPUInfo() const = 0;
     };

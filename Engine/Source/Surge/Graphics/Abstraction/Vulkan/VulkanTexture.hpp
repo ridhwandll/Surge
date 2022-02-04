@@ -4,7 +4,7 @@
 
 namespace Surge
 {
-    class VulkanTexture2D : public Texture2D
+    class SURGE_API VulkanTexture2D : public Texture2D
     {
     public:
         VulkanTexture2D(const String& filepath, TextureSpecification specification = {});

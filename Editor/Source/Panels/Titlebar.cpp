@@ -2,6 +2,7 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "Panels/Titlebar.hpp"
 #include "Surge/Core/Core.hpp"
+#include "Surge/Utility/Platform.hpp"
 #include "Surge/Utility/FileDialogs.hpp"
 #include "Surge/Serializer/Serializer.hpp"
 #include "Utility/ImGUIAux.hpp"
@@ -33,7 +34,9 @@ namespace Surge
         ImGui::PushStyleColor(ImGuiCol_Button, {0.12f, 0.12f, 0.12f, 1.0f});
         if (ImGui::Begin("##dummy", NULL, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoDecoration))
         {
-            ImGuiAux::Image(mIcon->GetImage2D(), {20, 20});
+            constexpr float iconSize = 20.0f;
+            ImGuiAux::Image(mIcon->GetImage2D(), {iconSize * 2, iconSize * 2});
+            ImGuiAux::ShiftCursorY(iconSize);
             ImGui::SameLine();
 
             // Only show the File, View and Play button when there is an active project
@@ -63,23 +66,39 @@ namespace Surge
                     ImGui::EndPopup();
                 }
 
-                float windowWidth = ImGui::GetWindowSize().x;
-                float textWidth = ImGui::CalcTextSize(ICON_SURGE_PLAY).x;
-
-                ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
+                ImGuiAux::ShiftCursorY(-iconSize);
                 ProjectState projectState = mEditor->GetActiveProject().GetState();
+                float windowWidth = ImGui::GetWindowSize().x;
+                float textWidth = projectState == ProjectState::Edit ? ImGui::CalcTextSize(ICON_SURGE_PLAY ICON_SURGE_CODE).x : ImGui::CalcTextSize(ICON_SURGE_PLAY).x;
+                ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
                 if (projectState == ProjectState::Edit)
                 {
-                    if (ImGui::Button(ICON_SURGE_PLAY))
+                    if (ImGuiAux::Button(ICON_SURGE_PLAY))
                     {
                         mEditor->OnRuntimeStart();
                     }
                 }
                 else if (projectState == ProjectState::Play)
                 {
-                    if (ImGui::Button(ICON_SURGE_STOP))
+                    if (ImGuiAux::Button(ICON_SURGE_STOP))
                     {
                         mEditor->OnRuntimeEnd();
+                    }
+                }
+
+                if (projectState == ProjectState::Edit)
+                {
+                    ImGui::SameLine();
+                    ScriptEngine* scriptEngine = Core::GetScriptEngine();
+                    if (!scriptEngine->GetCompiler()->IsCompiling())
+                    {
+                        if (ImGuiAux::Button(ICON_SURGE_CODE))
+                            Core::GetScriptEngine()->CompileScripts();
+                        ImGuiAux::DelayedToolTip("Recompile scripts");
+                    }
+                    else
+                    {
+                        ImGuiAux::Spinner("##comilation status", 6.0f, 2.0f);
                     }
                 }
 
@@ -87,7 +106,6 @@ namespace Surge
                 {
                     String activeProjectName = editor->GetActiveProject().GetMetadata().Name;
                     ImGui::SetCursorPosX(windowWidth - 200);
-
                     ImGui::Text(activeProjectName.c_str());
 
                     ImGuiContext& g = *GImGui;
@@ -101,7 +119,11 @@ namespace Surge
                     const ImGuiID id = ImGui::GetCurrentWindow()->GetID(label);
                     bool hovered = false;
                     if (ImGui::ButtonBehavior(rect, id, &hovered, nullptr, 0))
+                    {
                         editor->GetActiveProject().Destroy();
+                        Window* window = Core::GetWindow();
+                        window->RestoreFromMaximize();
+                    }
                     ImGuiAux::DelayedToolTip("Click for opening ProjectBrowser");
                     if (hovered)
                         drawList->AddRect(rect.Min, rect.Max, ImGui::ColorConvertFloat4ToU32(ImGuiAux::Colors::Silver), 0.8f, ImDrawCornerFlags_All, 1.0f);
@@ -142,7 +164,7 @@ namespace Surge
                     }
 
                     if (pressed)
-                        PlatformMisc::RequestExit();
+                        Platform::RequestExit();
 
                     buttonRect.Min.x -= buttonSize;
                     buttonRect.Max.x -= buttonSize;

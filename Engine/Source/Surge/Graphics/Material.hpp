@@ -1,14 +1,17 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "Surge/Core/Buffer.hpp"
+#include "Surge/Core/String.hpp"
 #include "Surge/Graphics/Shader/Shader.hpp"
 #include "Surge/Graphics/Shader/ReflectionData.hpp"
 #include "Surge/Graphics/Interface/UniformBuffer.hpp"
 #include "Surge/Graphics/Interface/Texture.hpp"
+#include "Surge/Graphics/Interface/RenderCommandBuffer.hpp"
+#include "Surge/Graphics/Interface/GraphicsPipeline.hpp"
 
 namespace Surge
 {
-    class Material : public RefCounted
+    class SURGE_API Material : public RefCounted
     {
     public:
         Material() = default;
@@ -88,7 +91,7 @@ namespace Surge
 
         Vector<Pair<Uint, Texture2D*>> mUpdatePendingTextures;
 
-        CallbackID mShaderReloadID;
+        UUID mShaderReloadID;
     };
 
 } // namespace Surge

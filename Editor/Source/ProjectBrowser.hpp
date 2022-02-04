@@ -1,7 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "Surge/Core/Defines.hpp"
-#include "Surge/Project/Project.hpp"
+#include "Surge/Core/Project/Project.hpp"
 
 namespace Surge
 {

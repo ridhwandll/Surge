@@ -25,7 +25,7 @@ namespace Surge
         glm::mat4 Transform;
     };
 
-    class Scene;
+    class SURGE_API Scene;
     struct RendererData
     {
         Ref<RenderCommandBuffer> RenderCmdBuffer;
@@ -52,7 +52,7 @@ namespace Surge
         glm::mat4 ViewProjection;
     };
 
-    class Renderer
+    class SURGE_API Renderer
     {
     public:
         Renderer() = default;

@@ -6,7 +6,7 @@
 
 namespace Surge
 {
-    class VulkanVertexBuffer : public VertexBuffer
+    class SURGE_API VulkanVertexBuffer : public VertexBuffer
     {
     public:
         VulkanVertexBuffer() = default;

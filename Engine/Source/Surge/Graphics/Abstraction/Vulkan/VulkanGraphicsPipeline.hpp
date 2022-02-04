@@ -6,7 +6,7 @@
 
 namespace Surge
 {
-    class VulkanGraphicsPipeline : public GraphicsPipeline
+    class SURGE_API VulkanGraphicsPipeline : public GraphicsPipeline
     {
     public:
         VulkanGraphicsPipeline(const GraphicsPipelineSpecification& pipelineSpec);
@@ -29,7 +29,7 @@ namespace Surge
         VkPipeline mPipeline = VK_NULL_HANDLE;
         VkPipelineLayout mPipelineLayout = VK_NULL_HANDLE;
         VkDescriptorSetLayout mEmptyLayout;
-        CallbackID mShaderReloadID;
+        UUID mShaderReloadID;
     };
 
 } // namespace Surge

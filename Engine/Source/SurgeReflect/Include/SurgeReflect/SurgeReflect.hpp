@@ -2,7 +2,7 @@
 #pragma once
 #include "SurgeReflect/SurgeReflectRegistry.hpp"
 #include "SurgeReflect/Type.hpp"
-#include <assert.h>
+#include "Surge/Core/Defines.hpp"
 
 #define SURGE_REFLECTION_ENABLE                         \
 private:                                                \
@@ -31,10 +31,10 @@ private:                                                \
 namespace SurgeReflect
 {
     template <typename T>
-    const Class* GetReflection()
+    Class* GetReflection()
     {
         std::string className = std::string(TypeTraits::GetClassName<T>());
-        const Class* clazz = Registry::Get()->GetClass(className);
+        Class* clazz = Registry::Get()->GetClass(className);
         if (!clazz->IsSetup())
         {
             SG_ASSERT_INTERNAL("The class is not registered/setup in reflection engine! Maybe you forgot to Register the class?");
@@ -44,7 +44,20 @@ namespace SurgeReflect
     }
 
     template <typename T>
-    const Class* GetReflectionIfExists()
+    Class* GetReflectionFromRegistry(Registry* reg)
+    {
+        std::string className = std::string(TypeTraits::GetClassName<T>());
+        Class* clazz = reg->GetClass(className);
+        if (!clazz->IsSetup())
+        {
+            SG_ASSERT_INTERNAL("The class is not registered/setup in reflection engine! Maybe you forgot to Register the class?");
+            reg->RemoveClass(className);
+        }
+        return clazz;
+    }
+
+    template <typename T>
+    Class* GetReflectionIfExists()
     {
         std::string className = std::string(TypeTraits::GetClassName<T>());
         const Class* clazz = Registry::Get()->GetIfExists(className);

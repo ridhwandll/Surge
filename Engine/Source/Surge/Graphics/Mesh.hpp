@@ -41,7 +41,7 @@ namespace Surge
         Uint V1, V2, V3;
     };
 
-    class Mesh : public RefCounted
+    class SURGE_API Mesh : public RefCounted
     {
     public:
         Mesh(const Path& filepath);

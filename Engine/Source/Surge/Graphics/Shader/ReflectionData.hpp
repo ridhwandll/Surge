@@ -6,12 +6,12 @@
 
 namespace Surge
 {
-    enum class ShaderType;
+    enum class SURGE_API ShaderType;
 
     // Represents Textures
     struct ShaderResource
     {
-        enum class Usage
+        enum class SURGE_API Usage
         {
             Sampled,
             Storage
@@ -44,7 +44,7 @@ namespace Surge
     // Represents a ConstantBuffer
     struct ShaderBuffer
     {
-        enum class Usage
+        enum class SURGE_API Usage
         {
             Storage,
             Uniform
@@ -76,7 +76,7 @@ namespace Surge
         ShaderType ShaderStages {}; // Specify what shader stages the buffer is being used for
     };
 
-    class ShaderReflectionData
+    class SURGE_API ShaderReflectionData
     {
     public:
         ShaderReflectionData() = default;
@@ -113,6 +113,6 @@ namespace Surge
 
         // Stage inputs, per shader stage
         HashMap<ShaderType, std::map<Uint /*location*/, ShaderStageInput /*Data*/>> mStageInputs {};
-        friend class ShaderReflector;
+        friend class SURGE_API ShaderReflector;
     };
 } // namespace Surge

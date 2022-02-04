@@ -5,7 +5,7 @@
 
 namespace Surge
 {
-    class WindowsWindow : public Window
+    class SURGE_API WindowsWindow : public Window
     {
     public:
         WindowsWindow(const WindowDesc& windowData);

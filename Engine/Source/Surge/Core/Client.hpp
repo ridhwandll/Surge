@@ -1,6 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
-#include "Surge/Events/Event.hpp"
+#include "Surge/Core/Project/Project.hpp"
+#include "Surge/Core/Events/Event.hpp"
 #include "Surge/Core/Window/Window.hpp"
 
 namespace Surge
@@ -11,7 +12,7 @@ namespace Surge
         bool EnableImGui = true;
     };
 
-    class Client
+    class SURGE_API Client
     {
     public:
         Client() = default;
@@ -22,9 +23,13 @@ namespace Surge
         virtual void OnEvent(Event& e) {};
         virtual void OnImGuiRender() {};
         virtual void OnShutdown() {};
+        Project& GetActiveProject() { return mActiveProject; }
 
         void SetOptions(const ClientOptions& appCreateInfo) { mClientOptions = appCreateInfo; }
         const ClientOptions& GeClientOptions() const { return mClientOptions; }
+
+    protected:
+        Project mActiveProject;
 
     private:
         ClientOptions mClientOptions;

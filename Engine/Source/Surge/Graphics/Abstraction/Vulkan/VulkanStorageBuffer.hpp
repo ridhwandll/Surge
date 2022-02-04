@@ -6,7 +6,7 @@
 
 namespace Surge
 {
-    class VulkanStorageBuffer : public StorageBuffer
+    class SURGE_API VulkanStorageBuffer : public StorageBuffer
     {
     public:
         VulkanStorageBuffer(Uint size, GPUMemoryUsage memoryUsage);

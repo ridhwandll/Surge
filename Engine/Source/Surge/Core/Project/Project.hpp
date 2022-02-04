@@ -1,6 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "Surge/ECS/Scene.hpp"
+#include <functional>
 
 namespace Surge
 {
@@ -10,7 +11,7 @@ namespace Surge
         Play
     };
 
-    struct ProjectMetadata
+    struct SURGE_API ProjectMetadata
     {
         ProjectMetadata() = default;
         ProjectMetadata(const String& name, const Path& path);
@@ -24,13 +25,13 @@ namespace Surge
         Vector<SceneMetadata> SceneMetadatas; // "Relative" Path to the scene
     };
 
-    // The idea behing Project is:-
+    // The idea behind Project is:-
     // - It will contain settings for the engine subsystems(RenderEngine, ScriptEngine, PhysicsEngine, AudioEngine etc.)
     // - A Project can have many scenes, more like a scene container
     // - Contains the ordered array of Scenes to play, manage scene transitions
     // TODO: Add Support for re-ordering scenes
 
-    class Project
+    class SURGE_API Project
     {
     public:
         Project();

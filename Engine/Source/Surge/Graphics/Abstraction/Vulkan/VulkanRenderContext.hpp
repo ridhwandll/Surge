@@ -12,7 +12,7 @@
 
 namespace Surge
 {
-    class VulkanRenderContext : public RenderContext
+    class SURGE_API VulkanRenderContext : public RenderContext
     {
     public:
         virtual void Initialize(Window* window, bool enableImGui = true) override;
@@ -35,6 +35,7 @@ namespace Surge
         const Vector<VkDescriptorPool>& GetNonResetableDescriptorPools() const { return mNonResetableDescriptorPools; }
 
         virtual void* GetImGuiTextureID(const Ref<Image2D>& image) const;
+        virtual void* GetImGuiContext() { return mImGuiContext.GetContext(); }
 
     private:
         Vector<const char*> GetRequiredInstanceExtensions();
@@ -55,8 +56,8 @@ namespace Surge
         Vector<VkDescriptorPool> mNonResetableDescriptorPools;
 
         GPUInfo mGPUInfo;
-        friend class VulkanImGuiContext;
-        friend class VulkanDevice;
+        friend class SURGE_API VulkanImGuiContext;
+        friend class SURGE_API VulkanDevice;
     };
 
     template <typename T>

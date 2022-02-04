@@ -39,7 +39,7 @@ namespace Surge
 
         // Setup Dear ImGui context
         IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
+        mImGuiContext = ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO();
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;   // Enable Docking
         io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows

@@ -6,7 +6,7 @@
 
 namespace Surge
 {
-    class VertexBuffer : public RefCounted
+    class SURGE_API VertexBuffer : public RefCounted
     {
     public:
         VertexBuffer() = default;

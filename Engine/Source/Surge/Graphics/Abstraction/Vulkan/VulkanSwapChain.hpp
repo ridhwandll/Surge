@@ -5,7 +5,7 @@
 
 namespace Surge
 {
-    class VulkanSwapChain
+    class SURGE_API VulkanSwapChain
     {
     public:
         VulkanSwapChain() = default;

@@ -1,5 +1,6 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Panels/SceneHierarchyPanel.hpp"
+#include "Surge/Core/Core.hpp"
 #include "Surge/ECS/Components.hpp"
 #include "Surge/Core/Input/Input.hpp"
 #include <imgui.h>

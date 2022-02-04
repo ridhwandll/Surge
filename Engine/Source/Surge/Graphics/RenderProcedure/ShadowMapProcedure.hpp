@@ -7,17 +7,18 @@
 
 namespace Surge
 {
-    enum class CascadeCount
+    enum class SURGE_API CascadeCount
     {
         TWO = 2,
         THREE = 3,
         FOUR = 4
     };
-    enum class ShadowQuality
+    enum class SURGE_API ShadowQuality
     {
         Low = 0,
         Medium = 1,
-        Ultra = 2
+        Ultra = 2,
+        Epic = 3
     };
 
     FORCEINLINE Uint CascadeCountToUInt(CascadeCount c)
@@ -25,7 +26,7 @@ namespace Surge
         return static_cast<Uint>(c);
     }
 
-    class ShadowMapProcedure : public RenderProcedure
+    class SURGE_API ShadowMapProcedure : public RenderProcedure
     {
     public:
         ShadowMapProcedure();

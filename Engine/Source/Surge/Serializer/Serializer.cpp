@@ -90,8 +90,7 @@ namespace Surge
                 }
                 else if (type.EqualTo<UUID>())
                 {
-                    uint64_t destination;
-                    std::memcpy(&destination, reinterpret_cast<const uint64_t*>(source), size);
+                    uint64_t destination = *reinterpret_cast<const uint64_t*>(source);
                     out[name] = destination;
                     offset += size;
                     continue;
@@ -116,6 +115,17 @@ namespace Surge
                     destination.resize(size);
                     std::memcpy(reinterpret_cast<void*>(destination.data()), reinterpret_cast<const String*>(source)->c_str(), size);
                     out[name] = destination;
+                    offset += size;
+                    continue;
+                }
+                else if (type.EqualTo<Path>())
+                {
+                    const Path* src = reinterpret_cast<const Path*>(source);
+                    size = src->Size();
+                    auto k = sizeof(Path);
+                    auto relativePath = std::filesystem::relative(src->Str(), e.GetScene()->GetParentProject()->GetMetadata().ProjPath.Str()).string();
+                    out[name] = relativePath;
+
                     offset += size;
                     continue;
                 }
@@ -146,7 +156,7 @@ namespace Surge
                     const Ref<Mesh>* mesh = reinterpret_cast<const Ref<Mesh>*>(source);
                     String path;
                     if (*mesh)
-                        path = std::filesystem::relative((*mesh)->GetPath()).string();
+                        path = std::filesystem::relative((*mesh)->GetPath().Str()).string();
 
                     out[name] = path;
                     offset += size;
@@ -191,7 +201,7 @@ namespace Surge
 
         String result = outJson.dump(4);
         FILE* f;
-        errno_t e = fopen_s(&f, path.c_str(), "w");
+        errno_t e = fopen_s(&f, path, "w");
         if (f)
         {
             fwrite(result.c_str(), sizeof(char), result.size(), f);
@@ -241,7 +251,7 @@ namespace Surge
                     std::memcpy(dst, &source, size);
                 }
             }
-            else if (type.EqualTo<UUID>())
+            else if (type.EqualTo<UUID>() || type.EqualTo<ScriptID>())
             {
                 const uint64_t source = inJson[name];
                 uint64_t* dst = reinterpret_cast<uint64_t*>(destination);
@@ -263,6 +273,16 @@ namespace Surge
                 String* src = reinterpret_cast<String*>(destination);
                 src->resize(size);
                 std::memcpy(src->data(), source.c_str(), size);
+            }
+            else if (type.EqualTo<Path>())
+            {
+                const String source = inJson[name];
+                size = source.size();
+
+                Path* src = reinterpret_cast<Path*>(destination);
+                *src = Path(fmt::format("{0}/{1}", e.GetScene()->GetParentProject()->GetMetadata().ProjPath.Str(), source));
+
+                size = src->Size();
             }
             else if (type.EqualTo<glm::vec3>())
             {
@@ -314,7 +334,8 @@ namespace Surge
     void Serializer::Deserialize(const Path& path, Scene* out)
     {
         SG_ASSERT_NOMSG(out);
-        out->GetRegistry().clear();
+        auto& registry = out->GetRegistry();
+        registry.clear();
 
         String jsonContents = Filesystem::ReadFile<String>(path);
 
@@ -328,6 +349,15 @@ namespace Surge
             out->CreateEntity(newEntity, "");
             DeserializeEntity(parsedJson["Scene"], newEntity, i);
         }
+
+        { // Create all the scripts
+            const auto& view = registry.view<IDComponent, ScriptComponent>();
+            for (auto& entity : view)
+            {
+                const auto& [id, script] = view.get<IDComponent, ScriptComponent>(entity);
+                script.ScriptEngineID = Core::GetScriptEngine()->CreateScript(script.ScriptPath, id.ID);
+            }
+        }
     }
 
     ///////////
@@ -340,6 +370,7 @@ namespace Surge
         nlohmann::json outJson = nlohmann::json();
 
         outJson["Name"] = in->Name;
+        outJson["UUID"] = in->ProjectID.Get();
         outJson["ProjPath"] = in->ProjPath;
         outJson["InternalDirectory"] = in->InternalDirectory;
         outJson["ProjectMetadataPath"] = in->ProjectMetadataPath;
@@ -354,8 +385,8 @@ namespace Surge
             sceneNode[idx]["Name"] = sceneMetadata.Name;
             String relativeScenePath;
 
-            std::filesystem::path path(sceneMetadata.ScenePath);
-            path.is_absolute() ? relativeScenePath = std::filesystem::relative(sceneMetadata.ScenePath, in->ProjPath).string() : relativeScenePath = sceneMetadata.ScenePath;
+            std::filesystem::path path(sceneMetadata.ScenePath.Str());
+            path.is_absolute() ? relativeScenePath = std::filesystem::relative(sceneMetadata.ScenePath.Str(), in->ProjPath.Str()).string() : relativeScenePath = sceneMetadata.ScenePath.Str();
             sceneNode[idx]["Path"] = relativeScenePath;
             index++;
         }
@@ -363,7 +394,7 @@ namespace Surge
 
         String result = outJson.dump(4);
         FILE* f;
-        errno_t e = fopen_s(&f, path.c_str(), "w");
+        errno_t e = fopen_s(&f, path, "w");
         if (f)
         {
             fwrite(result.c_str(), sizeof(char), result.size(), f);
@@ -378,9 +409,11 @@ namespace Surge
         nlohmann::json inJson = jsonContents.empty() ? nlohmann::json() : nlohmann::json::parse(jsonContents);
 
         out->Name = inJson["Name"];
-        out->ProjPath = inJson["ProjPath"];
-        out->InternalDirectory = inJson["InternalDirectory"];
-        out->ProjectMetadataPath = inJson["ProjectMetadataPath"];
+        if (inJson.contains("UUID"))
+            out->ProjectID = inJson["UUID"].get<uint64_t>();
+        out->ProjPath = inJson["ProjPath"].get<String>();
+        out->InternalDirectory = inJson["InternalDirectory"].get<String>();
+        out->ProjectMetadataPath = inJson["ProjectMetadataPath"].get<String>();
         out->ActiveSceneIndex = inJson["ActiveSceneIndex"];
 
         nlohmann::json& sceneNode = inJson["Scenes"];

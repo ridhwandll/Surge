@@ -66,8 +66,8 @@ namespace Surge
                     proc->SetCascadeCount(static_cast<CascadeCount>(i + 2));
                 });
 
-                const char* shadowQualityStrings[] = {"Low", "Medium", "Ultra"};
-                ImGuiAux::TComboBox("Shadow Quality", shadowQualityStrings, 3, static_cast<int>(proc->GetShadowQuality()), [&](int i) {
+                const char* shadowQualityStrings[] = {"Low", "Medium", "Ultra", "Epic"};
+                ImGuiAux::TComboBox("Shadow Quality", shadowQualityStrings, 4, static_cast<int>(proc->GetShadowQuality()), [&](int i) {
                     proc->SetShadowQuality(static_cast<ShadowQuality>(i));
                 });
 

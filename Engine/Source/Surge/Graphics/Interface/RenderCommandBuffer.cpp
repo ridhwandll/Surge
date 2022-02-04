@@ -4,8 +4,8 @@
 
 namespace Surge
 {
-    Ref<RenderCommandBuffer> RenderCommandBuffer::Create(bool createFromSwapchain, Uint size, const String& debugName)
+    Ref<RenderCommandBuffer> RenderCommandBuffer::Create(bool createFromSwapchain, Uint size)
     {
-        return Ref<VulkanRenderCommandBuffer>::Create(createFromSwapchain, size, debugName);
+        return Ref<VulkanRenderCommandBuffer>::Create(createFromSwapchain, size);
     }
 } // namespace Surge

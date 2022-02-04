@@ -7,7 +7,7 @@
 
 namespace Surge
 {
-    class DescriptorSet : public RefCounted
+    class SURGE_API DescriptorSet : public RefCounted
     {
     public:
         DescriptorSet() = default;

@@ -6,7 +6,7 @@
 
 namespace Surge
 {
-    class VulkanImage2D : public Image2D
+    class SURGE_API VulkanImage2D : public Image2D
     {
     public:
         VulkanImage2D(const ImageSpecification& specification);
@@ -38,6 +38,6 @@ namespace Surge
         VmaAllocation mImageMemory;
 
         VkDescriptorImageInfo mDescriptorInfo;
-        friend class VulkanTexture2D;
+        friend class SURGE_API VulkanTexture2D;
     };
 } // namespace Surge

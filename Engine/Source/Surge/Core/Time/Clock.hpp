@@ -1,19 +1,29 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "Surge/Core/Defines.hpp"
+#include <chrono>
 
-namespace Surge::Clock
+namespace Surge
 {
-    // Starts the internal timer. Initializes Life and Delta to current time
-    void Start();
+    class SURGE_API Clock
+    {
+    public:
+        // Starts the timer. Initializes Life and Delta to current time
+        void Start();
 
-    // Returns the time (in seconds) since the engine was initialized
-    float GetLife();
+        // Returns the time (in seconds) since the engine was initialized
+        float GetLife();
 
-    // Returns the time since the last frame
-    float GetSeconds();
-    float GetMilliseconds();
+        // Returns the delta time since the last frame
+        float GetSeconds();
+        float GetMilliseconds();
 
-    // Updates the internal timer. Increments Life and refreshes Delta
-    void Update();
-} // namespace Surge::Clock
+        // Updates the timer. Increments Life and refreshes Delta
+        void Update();
+
+    private:
+        std::chrono::high_resolution_clock::time_point mStart;
+        std::chrono::high_resolution_clock::time_point mThen;
+        std::chrono::high_resolution_clock::time_point mNow;
+    };
+} // namespace Surge

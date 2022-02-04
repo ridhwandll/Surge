@@ -35,12 +35,10 @@ namespace Surge
     {
         Destroy();
         mMetadata = ProjectMetadata(name, path);
-
         // Add a default scene
         Ref<Scene> scene = AddScene("Default", fmt::format("{0}", fmt::format("{0}/Default.surge", mMetadata.ProjPath)));
         Serializer::Deserialize<Scene>("Engine/Assets/Scenes/Default.surge", scene.Raw());
         Serializer::Serialize<Scene>(scene->GetMetadata().ScenePath, scene.Raw());
-
         mIsValid = true;
     }
 
@@ -48,7 +46,6 @@ namespace Surge
     {
         Destroy();
         mMetadata = metadata;
-
         bool success = Filesystem::CreateOrEnsureDirectory(mMetadata.InternalDirectory);
         SG_ASSERT(success, "Cannot create directory!");
         Filesystem::CreateOrEnsureFile(mMetadata.ProjectMetadataPath);
@@ -66,14 +63,13 @@ namespace Surge
             {
                 // We don't use Project::AddScene here, as that adds the scene to the metadata
                 // As in this scope we only read from the already filled metadata
-                Ref<Scene> scene = Ref<Scene>::Create(sceneMetadata, false);
+                Ref<Scene> scene = Ref<Scene>::Create(this, sceneMetadata, false);
                 mScenes.push_back(scene);
                 Serializer::Deserialize<Scene>(sceneMetadata.ScenePath, scene.Raw());
             }
         }
 
-        // Write the project metadata to file
-        Serializer::Serialize<ProjectMetadata>(mMetadata.ProjectMetadataPath, &mMetadata);
+        Serializer::Serialize<ProjectMetadata>(mMetadata.ProjectMetadataPath, &mMetadata); // Write the project metadata to file
         mIsValid = true;
     }
 
@@ -84,11 +80,12 @@ namespace Surge
         {
             // Create the runtime scene
             auto& runtimeScene = mRuntimeSceneStorage[i];
-            runtimeScene = Ref<Scene>::Create(mScenes[i]->GetMetadata().Name, mScenes[i]->GetMetadata().ScenePath, true);
+            runtimeScene = Ref<Scene>::Create(this, mScenes[i]->GetMetadata().Name, mScenes[i]->GetMetadata().ScenePath, true);
             mScenes[i]->CopyTo(runtimeScene.Raw()); // Copy the scene
             runtimeScene->OnRuntimeStart();
         }
         Core::GetRenderer()->SetSceneContext(mRuntimeSceneStorage[mMetadata.ActiveSceneIndex]);
+        Core::GetScriptEngine()->OnRuntimeStart(GetActiveScene());
     }
 
     void Project::Update(EditorCamera& camera)
@@ -100,6 +97,7 @@ namespace Surge
                 break;
             case Surge::ProjectState::Play:
                 mRuntimeSceneStorage[mMetadata.ActiveSceneIndex]->Update();
+                Core::GetScriptEngine()->OnUpdate();
                 break;
         }
     }
@@ -111,12 +109,13 @@ namespace Surge
             scene->OnRuntimeEnd();
         }
         mRuntimeSceneStorage.clear();
+        Core::GetScriptEngine()->OnRuntimeEnd();
         Core::GetRenderer()->SetSceneContext(mScenes[mMetadata.ActiveSceneIndex]);
     }
 
     Ref<Scene> Project::AddScene(const SceneMetadata& metadata)
     {
-        Ref<Scene> newScene = Ref<Scene>::Create(metadata, false);
+        Ref<Scene> newScene = Ref<Scene>::Create(this, metadata, false);
         mScenes.push_back(newScene);
         mMetadata.SceneMetadatas.push_back(newScene->GetMetadata());
         Serializer::Serialize<Scene>(metadata.ScenePath, newScene.Raw());
@@ -126,7 +125,7 @@ namespace Surge
 
     Ref<Scene> Project::AddScene(const String& name, const Path& path)
     {
-        Ref<Scene> newScene = Ref<Scene>::Create(name, path, false);
+        Ref<Scene> newScene = Ref<Scene>::Create(this, name, path, false);
         mScenes.push_back(newScene);
         mMetadata.SceneMetadatas.push_back(newScene->GetMetadata());
         Serializer::Serialize<Scene>(path, newScene.Raw());
@@ -168,6 +167,8 @@ namespace Surge
         Serializer::Serialize<ProjectMetadata>(mMetadata.ProjectMetadataPath, &mMetadata);
 
         Ref<Scene>& activatedScene = GetScene(sceneindex);
+        Core::GetScriptEngine()->OnSceneChange(activatedScene.Raw());
+
         for (auto& func : mOnActiveSceneChangeCallbacks)
             func(activatedScene);
 

@@ -3,7 +3,7 @@
 
 namespace Surge
 {
-    class RefCounted
+    class SURGE_API RefCounted
     {
     public:
         void IncRefCount() const { mRefCount++; }
@@ -17,7 +17,7 @@ namespace Surge
     };
 
     template <typename T>
-    class Ref
+    class SURGE_API Ref
     {
     public:
         Ref() : mInstance(nullptr) {}

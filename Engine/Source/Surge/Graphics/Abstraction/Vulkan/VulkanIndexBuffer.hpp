@@ -6,7 +6,7 @@
 
 namespace Surge
 {
-    class VulkanIndexBuffer : public IndexBuffer
+    class SURGE_API VulkanIndexBuffer : public IndexBuffer
     {
     public:
         VulkanIndexBuffer() = default;

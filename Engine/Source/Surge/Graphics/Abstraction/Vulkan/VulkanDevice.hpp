@@ -13,14 +13,14 @@ namespace Surge
         int32_t TransferQueue = -1;
     };
 
-    enum class VulkanQueueType
+    enum class SURGE_API VulkanQueueType
     {
         Graphics = 0,
         Compute,
         Transfer
     };
 
-    class VulkanDevice
+    class SURGE_API VulkanDevice
     {
     public:
         VulkanDevice() = default;

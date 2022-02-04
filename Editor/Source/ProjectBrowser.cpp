@@ -1,10 +1,11 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "ProjectBrowser.hpp"
+#include "Surge/Core/Core.hpp"
+#include "Surge/Utility/Platform.hpp"
 #include "Surge/Utility/FileDialogs.hpp"
 #include "Surge/Serializer/Serializer.hpp"
 #include "Surge/Utility/Filesystem.hpp"
-#include "Surge/Project/Project.hpp"
-#include "Panels/SceneHierarchyPanel.hpp"
+#include "Surge/Core/Project/Project.hpp"
 #include "Utility/ImGuiAux.hpp"
 #include <json/json.hpp>
 #include <imgui_stdlib.h>
@@ -16,7 +17,7 @@ namespace Surge
 {
     void ProjectBrowserWindow::Initialize()
     {
-        mPersistantStoragePath = PlatformMisc::GetPersistantStoragePath();
+        mPersistantStoragePath = Platform::GetPersistantStoragePath();
         Filesystem::CreateOrEnsureFile(fmt::format("{0}/{1}", mPersistantStoragePath, PROJECT_DATA_FILENAME));
         LoadProjectsFromPersistantStorage();
         for (const PersistantProjectData& proj : mPersistantProjectData)
@@ -61,7 +62,7 @@ namespace Surge
                     ImGui::TableNextRow(0, 50.0f);
 
                     {
-                        ImGuiAux::ScopedColor color = ImGuiAux::ScopedColor({ImGuiCol_Text}, proj.Valid ? ImGuiAux::Colors::Silver : ImGuiAux::Colors::Red);
+                        ImGuiAux::ScopedColor color = ImGuiAux::ScopedColor({ImGuiCol_Text}, proj.Valid ? ImGuiAux::Colors::White : ImGuiAux::Colors::Red);
                         ImGui::TableNextColumn();
                         ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[2]);
                         ImGui::TextUnformatted(proj.Name.c_str());
@@ -137,13 +138,23 @@ namespace Surge
                     ProjectMetadata metadata;
                     Serializer::Deserialize<ProjectMetadata>(mProjectPathBuffer, &metadata);
 
-                    PersistantProjectData& pp = mPersistantProjectData.emplace_back();
-                    pp.AbsolutePath = metadata.ProjPath;
-                    pp.Name = metadata.Name;
-                    pp.CreationDateString = fmt::format("{:%d/%m/%Y}", dateTimeNow);
+                    bool load = true;
+                    for (auto& projectData : mPersistantProjectData)
+                    {
+                        if (metadata.ProjPath == projectData.AbsolutePath)
+                            load = false;
+                    }
 
-                    WriteProjectsToPersistantStorage();
-                    LoadProjectsFromPersistantStorage();
+                    if (load)
+                    {
+                        PersistantProjectData& pp = mPersistantProjectData.emplace_back();
+                        pp.AbsolutePath = metadata.ProjPath.Str();
+                        pp.Name = metadata.Name;
+                        pp.CreationDateString = fmt::format("{:%d/%m/%Y}", dateTimeNow);
+
+                        WriteProjectsToPersistantStorage();
+                        LoadProjectsFromPersistantStorage();
+                    }
                 }
             }
         }
@@ -248,7 +259,7 @@ namespace Surge
         }
         result = j.dump(4);
         FILE* f = nullptr;
-        fopen_s(&f, projectsPersistantDataPath.c_str(), "w");
+        fopen_s(&f, projectsPersistantDataPath, "w");
         if (f)
         {
             fwrite(result.c_str(), sizeof(char), result.size(), f);
