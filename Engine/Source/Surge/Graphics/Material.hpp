@@ -6,6 +6,8 @@
 #include "Surge/Graphics/Shader/ReflectionData.hpp"
 #include "Surge/Graphics/Interface/UniformBuffer.hpp"
 #include "Surge/Graphics/Interface/Texture.hpp"
+#include "Surge/Graphics/Interface/RenderCommandBuffer.hpp"
+#include "Surge/Graphics/Interface/GraphicsPipeline.hpp"
 
 namespace Surge
 {

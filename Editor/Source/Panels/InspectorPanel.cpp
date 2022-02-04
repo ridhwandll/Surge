@@ -3,13 +3,11 @@
 #include "Surge/ECS/Components.hpp"
 #include "Utility/ImGuiAux.hpp"
 #include "Surge/Utility/FileDialogs.hpp"
-
+#include "Surge/Core/Core.hpp"
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <imgui_stdlib.h>
 #include <IconsFontAwesome.hpp>
-#include "Surge/Core/Project/Project.hpp"
-#include "Editor.hpp"
 #include <filesystem>
 
 namespace Surge
@@ -289,7 +287,7 @@ namespace Surge
         {
             ScriptComponent& component = entity.GetComponent<ScriptComponent>();
             DrawComponent<ScriptComponent>(entity, "Script", [&component, &entity]() {
-                const ProjectMetadata& metadata = static_cast<Editor*>(Core::GetClient())->GetActiveProject().GetMetadata();
+                const ProjectMetadata& metadata = Core::GetClient()->GetActiveProject().GetMetadata();
                 const String scriptPath = component.ScriptPath ? std::filesystem::relative(component.ScriptPath.Str(), metadata.ProjPath.Str()).string() : "";
                 if (ImGuiAux::TButton("Path", scriptPath.empty() ? "Open..." : scriptPath.c_str()))
                 {

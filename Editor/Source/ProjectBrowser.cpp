@@ -1,11 +1,11 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "ProjectBrowser.hpp"
+#include "Surge/Core/Core.hpp"
 #include "Surge/Utility/Platform.hpp"
 #include "Surge/Utility/FileDialogs.hpp"
 #include "Surge/Serializer/Serializer.hpp"
 #include "Surge/Utility/Filesystem.hpp"
 #include "Surge/Core/Project/Project.hpp"
-#include "Panels/SceneHierarchyPanel.hpp"
 #include "Utility/ImGuiAux.hpp"
 #include <json/json.hpp>
 #include <imgui_stdlib.h>

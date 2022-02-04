@@ -3,8 +3,10 @@
 #include "Surge/Scripting/Compiler/CompilerMSVC.hpp"
 #include "SurgeReflect/SurgeReflectRegistry.hpp"
 #include "Surge/Scripting/SurgeBehaviour.hpp"
+#include "Surge/Utility/Filesystem.hpp"
 #include "Surge/ECS/Scene.hpp"
 
+#define SCRIPT_BINARY_FOLDER_NAME "ScriptBinaries"
 namespace Surge
 {
     using CreateScriptFN = SurgeBehaviour* (*)(Entity& e);
@@ -22,7 +24,7 @@ namespace Surge
     {
         ScriptID id = UUID();
         ScriptInstance newScriptInstance = {};
-        newScriptInstance.ScriptPath = scriptPath;
+        newScriptInstance.ScriptSourcePath = scriptPath;
         newScriptInstance.ParentEntityID = entityID;
         newScriptInstance.Reflection = nullptr; // Filled later
         newScriptInstance.Script = nullptr;     // Filled later
@@ -51,15 +53,16 @@ namespace Surge
 
         for (auto& [scriptID, scriptInstance] : mScripts)
         {
+            Path scriptBinaryDir = GetScriptBinaryDir();
             // TODO: Don't harcode the .dll extension
-            String libName = fmt::format("{0}/{1}.dll", scriptInstance.ScriptPath.ParentPath(), scriptInstance.ScriptPath.FileName());
+            String libName = fmt::format("{0}/{1}.dll", scriptBinaryDir, scriptInstance.ScriptSourcePath.FileName());
             scriptInstance.LibHandle = Platform::LoadSharedLibrary(libName);
 
             if (scriptInstance.LibHandle == NULL)
             {
                 CompileInfo opt;
-                opt.InputFile = scriptInstance.ScriptPath;
-                mCompiler->CompileAndLink(scriptInstance.ScriptPath.ParentPath(), opt);
+                opt.InputFile = scriptInstance.ScriptSourcePath;
+                mCompiler->CompileAndLink(scriptBinaryDir, opt);
                 scriptInstance.LibHandle = Platform::LoadSharedLibrary(libName);
             }
             CreateScriptFN scriptCreateFN = reinterpret_cast<CreateScriptFN>(Platform::GetFunction(scriptInstance.LibHandle, "CreateScript"));
@@ -126,6 +129,13 @@ namespace Surge
         }
     }
 
+    Surge::Path ScriptEngine::GetScriptBinaryDir()
+    {
+        Path res = Core::GetClient()->GetActiveProject().GetMetadata().InternalDirectory / SCRIPT_BINARY_FOLDER_NAME;
+        Filesystem::CreateOrEnsureDirectory(res);
+        return res;
+    }
+
     void ScriptEngine::DestroyScript(ScriptID& handle)
     {
         if (!handle)
@@ -146,8 +156,8 @@ namespace Surge
         for (auto [scriptID, scriptInstance] : mScripts)
         {
             CompileInfo opt;
-            opt.InputFile = scriptInstance.ScriptPath;
-            mCompiler->CompileAndLinkAsync(scriptInstance.ScriptPath.ParentPath(), opt);
+            opt.InputFile = scriptInstance.ScriptSourcePath;
+            mCompiler->CompileAndLinkAsync(GetScriptBinaryDir(), opt);
         }
     }
 

@@ -104,7 +104,7 @@ namespace Surge::ImGuiAux
 
     void DrawRectAroundWidget(const glm::vec4& color, float thickness = 1.5f, float rounding = 1.0f);
     void DockSpace();
-
+    bool Spinner(const char* label, float radius, float thickness);
     bool PropertyGridHeader(const String& name, bool openByDefault = true, const glm::vec2& size = {4.5f, 4.5f}, bool spacing = false);
 
     void TextCentered(const char* text);
@@ -122,7 +122,7 @@ namespace Surge::ImGuiAux
         const char* currentString = stringArray[currentStringIndexInArray];
         if (ImGui::BeginCombo("##cbox", currentString))
         {
-            for (int i = 0; i < stringArraySize; i++)
+            for (Uint i = 0; i < stringArraySize; i++)
             {
                 const bool isSelected = currentString == stringArray[i];
                 if (ImGui::Selectable(stringArray[i], isSelected))

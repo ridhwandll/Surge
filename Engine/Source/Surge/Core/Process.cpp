@@ -54,27 +54,27 @@ namespace Surge
 #endif
     }
 
-    static int WaitProcess(ProcessID PID)
+    static int WaitProcess(ProcessID pid)
     {
 #if defined(SURGE_WINDOWS)
         BOOL result;
         DWORD exitCode;
-        result = GetExitCodeProcess(PID, &exitCode);
+        result = GetExitCodeProcess(pid, &exitCode);
         while (exitCode == STILL_ACTIVE)
         {
-            result = GetExitCodeProcess(PID, &exitCode);
+            result = GetExitCodeProcess(pid, &exitCode);
             Sleep(1);
         }
 
         SURGE_GET_WIN32_LAST_ERROR
-        CloseHandle(PID);
+        CloseHandle(pid);
 
         return result ? static_cast<int>(exitCode) : -1;
 
 #elif defined(SURGE_LINUX) || defined(SURGE_APPLE)
 #error "Linix is not supported yet"
         int status;
-        waitpid(PID, &status, 0);
+        waitpid(pid, &status, 0);
         return status;
 #endif
     }

@@ -34,7 +34,9 @@ namespace Surge
         ImGui::PushStyleColor(ImGuiCol_Button, {0.12f, 0.12f, 0.12f, 1.0f});
         if (ImGui::Begin("##dummy", NULL, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoDecoration))
         {
-            ImGuiAux::Image(mIcon->GetImage2D(), {20, 20});
+            constexpr float iconSize = 20.0f;
+            ImGuiAux::Image(mIcon->GetImage2D(), {iconSize * 2, iconSize * 2});
+            ImGuiAux::ShiftCursorY(iconSize);
             ImGui::SameLine();
 
             // Only show the File, View and Play button when there is an active project
@@ -64,6 +66,7 @@ namespace Surge
                     ImGui::EndPopup();
                 }
 
+                ImGuiAux::ShiftCursorY(-iconSize);
                 ProjectState projectState = mEditor->GetActiveProject().GetState();
                 float windowWidth = ImGui::GetWindowSize().x;
                 float textWidth = projectState == ProjectState::Edit ? ImGui::CalcTextSize(ICON_SURGE_PLAY ICON_SURGE_CODE).x : ImGui::CalcTextSize(ICON_SURGE_PLAY).x;
@@ -86,11 +89,18 @@ namespace Surge
                 if (projectState == ProjectState::Edit)
                 {
                     ImGui::SameLine();
-                    if (ImGuiAux::Button(ICON_SURGE_CODE))
-                        Core::GetScriptEngine()->CompileScripts();
+                    ScriptEngine* scriptEngine = Core::GetScriptEngine();
+                    if (!scriptEngine->GetCompiler()->IsCompiling())
+                    {
+                        if (ImGuiAux::Button(ICON_SURGE_CODE))
+                            Core::GetScriptEngine()->CompileScripts();
+                        ImGuiAux::DelayedToolTip("Recompile scripts");
+                    }
+                    else
+                    {
+                        ImGuiAux::Spinner("##comilation status", 6.0f, 2.0f);
+                    }
                 }
-
-                ImGuiAux::DelayedToolTip("Recompile scripts");
 
                 ImGui::SameLine();
                 {

@@ -2,6 +2,7 @@
 #pragma once
 #include "Surge/Core/Memory.hpp"
 #include "Surge/Core/Buffer.hpp"
+#include "Surge/Graphics/RenderContext.hpp"
 
 namespace Surge
 {

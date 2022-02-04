@@ -1,11 +1,12 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
-#include "Surge/Core/Core.hpp"
+#include "Surge/Core/Defines.hpp"
 #include "Surge/Core/Memory.hpp"
 #include "Surge/Core/UUID.hpp"
 #include "Surge/Graphics/Camera/EditorCamera.hpp"
 #include "Surge/Graphics/Camera/RuntimeCamera.hpp"
 #include <entt.hpp>
+#include "Components.hpp"
 
 namespace Surge
 {

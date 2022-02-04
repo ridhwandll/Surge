@@ -2,13 +2,13 @@
 #include "Panels/PerformancePanel.hpp"
 #include "Surge/Core/Core.hpp"
 #include "Surge/Graphics/RenderContext.hpp"
+#include "Surge/Graphics/RenderProcedure/ShadowMapProcedure.hpp"
 #include "Surge/Utility/Filesystem.hpp"
-#include <imgui.h>
 #include "Editor.hpp"
 #include "SceneHierarchyPanel.hpp"
 #include "Surge/ECS/Components.hpp"
 #include "Utility/ImGuiAux.hpp"
-#include "Surge/Graphics/RenderProcedure/ShadowMapProcedure.hpp"
+#include <imgui.h>
 #include <filesystem>
 
 namespace Surge
@@ -108,7 +108,7 @@ namespace Surge
                 const auto& scripts = Core::GetScriptEngine()->GetAllScripts();
                 for (auto& script : scripts)
                 {
-                    if (ImGui::TreeNode(fmt::format("{0} - {1}", script.first, std::filesystem::relative(script.second.ScriptPath.Str(), editor->GetActiveProject().GetMetadata().ProjPath.Str()).string()).c_str()))
+                    if (ImGui::TreeNode(fmt::format("{0} - {1}", script.first, std::filesystem::relative(script.second.ScriptSourcePath.Str(), editor->GetActiveProject().GetMetadata().ProjPath.Str()).string()).c_str()))
                         ImGui::TreePop();
                 }
 

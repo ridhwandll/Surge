@@ -100,6 +100,45 @@ namespace Surge
         return res;
     }
 
+    bool ImGuiAux::Spinner(const char* label, float radius, float thickness)
+    {
+        ImGuiWindow* window = ImGui::GetCurrentWindow();
+        if (window->SkipItems)
+            return false;
+
+        ImGuiContext& g = *GImGui;
+        const ImGuiStyle& style = g.Style;
+        const ImGuiID id = window->GetID(label);
+
+        ImVec2 pos = window->DC.CursorPos;
+        ImVec2 size((radius)*2, (radius + style.FramePadding.y) * 2);
+
+        const ImRect bb(pos, ImVec2(pos.x + size.x, pos.y + size.y));
+        ImGui::ItemSize(bb, style.FramePadding.y);
+        if (!ImGui::ItemAdd(bb, id))
+            return false;
+
+        // Render
+        window->DrawList->PathClear();
+
+        const int numSegments = 30;
+        const int start = static_cast<int>(glm::abs(ImSin(static_cast<float>(g.Time) * 1.8f) * (numSegments - 5)));
+
+        const float aMin = IM_PI * 2.0f * static_cast<float>(start) / static_cast<float>(numSegments);
+        const float aMax = IM_PI * 2.0f * (static_cast<float>(numSegments) - 3) / static_cast<float>(numSegments);
+
+        const ImVec2 centre = ImVec2(pos.x + radius, pos.y + radius + style.FramePadding.y);
+
+        for (int i = 0; i < numSegments; i++)
+        {
+            const float a = aMin + (static_cast<float>(i) / static_cast<float>(numSegments)) * (aMax - aMin);
+            window->DrawList->PathLineTo(ImVec2(centre.x + ImCos(a + static_cast<float>(g.Time) * 8) * radius, centre.y + ImSin(a + static_cast<float>(g.Time * 8)) * radius));
+        }
+
+        window->DrawList->PathStroke(4293097241, false, thickness);
+        return true;
+    }
+
     void ImGuiAux::RenamingMechanism::Update(String& name, const std::function<void(const String& newName)>& onRenameEnd)
     {
         if (ImGui::IsWindowHovered() && Input::IsKeyPressed(Key::F2))

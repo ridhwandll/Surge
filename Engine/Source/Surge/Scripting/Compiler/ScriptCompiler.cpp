@@ -7,7 +7,9 @@ namespace Surge
     {
         std::wstring compileCmd = BuildCMDLineString(binaryDirectory, options);
         Log<Severity::Info>("[{0}: Compilation started]", GetName());
+        mIsCompiling = true;
         int exitCode = Process::ResultOf(compileCmd);
+        mIsCompiling = false;
         Log<Severity::Info>("[{0}: Compilation ended with exit code: {1}]", GetName(), exitCode);
     }
 

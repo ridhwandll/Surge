@@ -1,6 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "Surge/ECS/Scene.hpp"
+#include <functional>
 
 namespace Surge
 {
@@ -24,7 +25,7 @@ namespace Surge
         Vector<SceneMetadata> SceneMetadatas; // "Relative" Path to the scene
     };
 
-    // The idea behing Project is:-
+    // The idea behind Project is:-
     // - It will contain settings for the engine subsystems(RenderEngine, ScriptEngine, PhysicsEngine, AudioEngine etc.)
     // - A Project can have many scenes, more like a scene container
     // - Contains the ordered array of Scenes to play, manage scene transitions

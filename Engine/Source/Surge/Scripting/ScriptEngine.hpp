@@ -11,7 +11,7 @@ namespace Surge
     class Scene;
     struct SURGE_API ScriptInstance
     {
-        Path ScriptPath; // Relative to project
+        Path ScriptSourcePath; // Relative to project
         SurgeReflect::Class* Reflection;
         SurgeBehaviour* Script;
         UUID ParentEntityID;
@@ -44,6 +44,8 @@ namespace Surge
         void OnUpdate();
         void OnRuntimeEnd();
         void OnSceneChange(Scene* activatedScene);
+
+        Path GetScriptBinaryDir();
 
     private:
         ScriptCompiler* mCompiler;

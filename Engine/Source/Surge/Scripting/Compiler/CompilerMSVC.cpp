@@ -10,7 +10,7 @@
 #define HOST "Hostx86"
 #endif // _WIN64
 
-#define INT_DIRECTORY "Intermediate"
+#define INT_DIRECTORY_NAME "Intermediate"
 namespace Surge
 {
     static Path FindProgramFilesX86Dir()
@@ -77,7 +77,7 @@ namespace Surge
 
     std::wstring CompilerMSVC::BuildCMDLineString(const Path& binaryDirectory, const CompileInfo& options) const
     {
-        Filesystem::CreateOrEnsureDirectory(binaryDirectory / INT_DIRECTORY);
+        Filesystem::CreateOrEnsureDirectory(binaryDirectory / INT_DIRECTORY_NAME);
 
         String fileName = Filesystem::GetNameWithoutExtension(options.InputFile);
         std::wstring inputFileName = std::wstring(fileName.begin(), fileName.end());
@@ -135,7 +135,7 @@ namespace Surge
 
         // Input File
         compileCmd += L" /Tp \"" + options.InputFile.WStr() + L"\"";
-        compileCmd += L" /Fo\"" + (binaryDirectory / INT_DIRECTORY).WStr() + L"/" + inputFileName + L"\"";
+        compileCmd += L" /Fo\"" + (binaryDirectory / INT_DIRECTORY_NAME).WStr() + L"/" + inputFileName + L"\"";
 
         //
         // Link
@@ -153,18 +153,12 @@ namespace Surge
             compileCmd += L" /LIBPATH:\"" + (mMSVCDir / "lib" / "x64").WStr() + L"\"";
             compileCmd += L" /LIBPATH:\"" + (WindowsSDKLibraryDir / "um" / "x64").wstring() + L"\"";
             compileCmd += L" /LIBPATH:\"" + (WindowsSDKLibraryDir / "ucrt" / "x64").wstring() + L"\"";
-            compileCmd += L" \"Advapi32.lib\"";
             compileCmd += L" \"shell32.lib\"";
 
             // Add Surge Libs |"Libraries" folder is generated at build time via CMake
             Path exeLibFolder = Path(Platform::GetCurrentExecutablePath()).ParentPath() / "Libraries";
             compileCmd += L" /LIBPATH:\"" + exeLibFolder.WStr() + L"\"";
-
-            for (auto& dir : std::filesystem::directory_iterator(exeLibFolder.Str()))
-            {
-                auto fileName = dir.path().filename().wstring();
-                compileCmd += L" \"" + fileName + L"\"";
-            }
+            compileCmd += L" \"Surge.lib\"";
         }
 
         // Miscellaneous options
