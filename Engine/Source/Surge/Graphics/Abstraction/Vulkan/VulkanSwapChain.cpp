@@ -56,11 +56,13 @@ namespace Surge
 
         // Selecting the best swapchain format
         VkSurfaceFormatKHR pickedFormat = availableFormats[0]; // Default one is `availableFormats[0]`
+        /*
         for (const VkSurfaceFormatKHR& availableFormat : availableFormats)
         {
             if (availableFormat.format == VK_FORMAT_R8G8B8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
                 pickedFormat = availableFormat;
         }
+        */
 
         // Getting all swapchain presentModes
         Uint availablePresentModeCount = 0;
