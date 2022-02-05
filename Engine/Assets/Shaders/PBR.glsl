@@ -446,6 +446,23 @@ vec2 SamplePoissonDisk(uint index)
   return gPoissonDisk[index % 64];
 }
 
+// Interleaved gradient noise from:
+// http://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare
+float interleavedGradientNoise(vec2 uvs)
+{
+  const vec3 magic = vec3(0.06711056, 0.00583715, 52.9829189);
+  return fract(magic.z * fract(dot(uvs, magic.xy)));
+}
+
+// Create a rotation matrix with the noise function above.
+mat2 randomRotation(vec2 uvs)
+{
+  float theta = 2.0 * PI * interleavedGradientNoise(uvs);
+  float sinTheta = sin(theta);
+  float cosTheta = cos(theta);
+  return mat2(cosTheta, sinTheta, -sinTheta, cosTheta);
+}
+
 float GetShadowBias()
 {
     const float minBias = 0.002;
@@ -496,9 +513,11 @@ float PCFDirectionalLight(int cascade, vec3 shadowCoords, float radius)
     float sum = 0.0;
     vec2 texelSize = 1.0 / textureSize(ShadowMap1, 0);
 
+    mat2 rot = randomRotation(gl_FragCoord.xy);
+
     for (int i = 0; i < PCF_SAMPLES; i++)
     {
-        vec2 offset = gPoissonDisk[i] * texelSize * radius;
+        vec2 offset = rot * gPoissonDisk[i] * texelSize * radius;
         float z = SampleShadowMap(cascade, shadowCoords.xy * 0.5 + 0.5 + offset).x;
         sum += shadowCoords.z - bias > z ? 0.0 : 1.0;
     }
@@ -516,15 +535,17 @@ float CalcBlockerDistance(int cascade, vec3 shadowCoords, DirectionalLight light
     vec2 texel = 1.0 / textureSize(ShadowMap1, 0).xy;
     float blockerDistances = 0.0;
     float numBlockerDistances = 0.0;
-    float receiverDepth = 0.5 * shadowCoords.z + 0.5;
+    float receiverDepth = shadowCoords.z;
+
+    mat2 rot = randomRotation(gl_FragCoord.xy);
 
     float searchWidth = CalculateSearchWidth(receiverDepth, light);
     for (uint i = 0; i < PCF_SAMPLES; i++)
     {
-      vec2 disk = SamplePoissonDisk(i);
+      vec2 disk = rot * SamplePoissonDisk(i) * searchWidth;
 
       float blockerDepth = SampleShadowMap(cascade, shadowCoords.xy * 0.5 + 0.5 + disk * texel).r;
-      if (blockerDepth < shadowCoords.z - bias)
+      if (blockerDepth < receiverDepth - bias)
       {
         numBlockerDistances += 1.0;
         blockerDistances += blockerDepth;
@@ -539,7 +560,7 @@ float CalcBlockerDistance(int cascade, vec3 shadowCoords, DirectionalLight light
 
 float CalcPCFKernelSize(int cascade, vec3 shadowCoords, DirectionalLight light)
 {
-    float receiverDepth = 0.5 * shadowCoords.z + 0.5;
+    float receiverDepth = shadowCoords.z;
     float blockerDepth = CalcBlockerDistance(cascade, shadowCoords, light);
 
     float kernelSize = 1.0;
