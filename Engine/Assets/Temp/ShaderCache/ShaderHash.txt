@@ -2,7 +2,7 @@
     "DepthDebug.glsl.Pixel.spv": 662732738,
     "DepthDebug.glsl.Vertex.spv": -957311201,
     "LightCulling.glsl.Compute.spv": -999735523,
-    "PBR.glsl.Pixel.spv": -284455569,
+    "PBR.glsl.Pixel.spv": -558417968,
     "PBR.glsl.Vertex.spv": -595709282,
     "PreDepth.glsl.Pixel.spv": 28989053,
     "PreDepth.glsl.Vertex.spv": -158880289,
