@@ -11,6 +11,7 @@ namespace Surge
         int exitCode = Process::ResultOf(compileCmd);
         mIsCompiling = false;
         Log<Severity::Info>("[{0}: Compilation ended with exit code: {1}]", GetName(), exitCode);
+        mCompileStatus = exitCode == 0 ? true : false;
     }
 
     void ScriptCompiler::CompileAndLinkAsync(const Path& binaryDirectory, const CompileInfo& options)

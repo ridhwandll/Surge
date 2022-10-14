@@ -40,6 +40,7 @@ namespace Surge
         Serializer::Deserialize<Scene>("Engine/Assets/Scenes/Default.surge", scene.Raw());
         Serializer::Serialize<Scene>(scene->GetMetadata().ScenePath, scene.Raw());
         mIsValid = true;
+        Core::GetScriptEngine()->CompileScripts();
     }
 
     void Project::Invalidate(const ProjectMetadata& metadata)
@@ -71,6 +72,7 @@ namespace Surge
 
         Serializer::Serialize<ProjectMetadata>(mMetadata.ProjectMetadataPath, &mMetadata); // Write the project metadata to file
         mIsValid = true;
+        Core::GetScriptEngine()->CompileScripts();
     }
 
     void Project::OnRuntimeStart()
@@ -97,7 +99,7 @@ namespace Surge
                 break;
             case Surge::ProjectState::Play:
                 mRuntimeSceneStorage[mMetadata.ActiveSceneIndex]->Update();
-                Core::GetScriptEngine()->OnUpdate();
+                Core::GetScriptEngine()->OnUpdate(GetActiveScene());
                 break;
         }
     }
@@ -108,8 +110,8 @@ namespace Surge
         {
             scene->OnRuntimeEnd();
         }
+        Core::GetScriptEngine()->OnRuntimeEnd(GetActiveScene());
         mRuntimeSceneStorage.clear();
-        Core::GetScriptEngine()->OnRuntimeEnd();
         Core::GetRenderer()->SetSceneContext(mScenes[mMetadata.ActiveSceneIndex]);
     }
 

@@ -5,7 +5,7 @@
 
 namespace Surge
 {
-    using ScriptID = UUID;
+    using ScriptID = HashCode;
 
     class SurgeBehaviour;
     class Scene;
@@ -13,8 +13,7 @@ namespace Surge
     {
         Path ScriptSourcePath; // Relative to project
         SurgeReflect::Class* Reflection;
-        SurgeBehaviour* Script;
-        UUID ParentEntityID;
+        Vector<Pair<SurgeBehaviour*, UUID>> ScriptAndParentEntityIDs;
         void* LibHandle;
     };
 
@@ -31,7 +30,7 @@ namespace Surge
         void CompileScripts();
 
         // Script Manipulation
-        ScriptID CreateScript(const Path& scriptPath, const UUID& entityID);
+        ScriptID CreateScript(Path& scriptPath, const UUID& entityID);
         void DestroyScript(ScriptID& handle);
         const ScriptInstance& GetScript(const ScriptID& handle) const;
         const auto& GetAllScripts() const { return mScripts; }
@@ -41,12 +40,12 @@ namespace Surge
     private:
         // Function called by Surge::Project
         void OnRuntimeStart(Scene* scene);
-        void OnUpdate();
-        void OnRuntimeEnd();
+        void OnUpdate(Scene* scene);
+        void OnRuntimeEnd(Scene* scene);
         void OnSceneChange(Scene* activatedScene);
 
         Path GetScriptBinaryDir();
-
+        bool HasDuplicate(ScriptID scriptID);
     private:
         ScriptCompiler* mCompiler;
         HashMap<ScriptID, ScriptInstance> mScripts; // Mapped as <ScriptID - ScriptInstance>

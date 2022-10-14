@@ -46,4 +46,10 @@ namespace Surge
         {                                                              \
             return ::SurgeReflect::GetReflection<CLASS_NAME>();        \
         }                                                              \
-    }
+    }                                                                  \
+    SURGE_REFLECT_CLASS_REGISTER_BEGIN(CLASS_NAME)                     \
+    .AddFunction<&CLASS_NAME::OnStart>("OnStart")                      \
+    .AddFunction<&CLASS_NAME::OnUpdate>("OnUpdate")                    \
+    .AddFunction<&CLASS_NAME::OnDestroy>("OnDestroy")                  \
+    SURGE_REFLECT_CLASS_REGISTER_END(CLASS_NAME)                       \
+

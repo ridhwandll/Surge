@@ -251,7 +251,7 @@ namespace Surge
                     std::memcpy(dst, &source, size);
                 }
             }
-            else if (type.EqualTo<UUID>() || type.EqualTo<ScriptID>())
+            else if (type.EqualTo<UUID>())
             {
                 const uint64_t source = inJson[name];
                 uint64_t* dst = reinterpret_cast<uint64_t*>(destination);

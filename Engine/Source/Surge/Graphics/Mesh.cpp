@@ -115,7 +115,7 @@ namespace Surge
             for (Uint i = 0; i < scene->mNumMaterials; i++)
             {
                 aiMaterial* assimpMaterial = scene->mMaterials[i];
-                String materialName = assimpMaterial->GetName().C_Str();
+                const String& materialName = assimpMaterial->GetName().C_Str();
 
                 Ref<Material> material = Material::Create("PBR", materialName.empty() ? "NoName" : materialName);
                 mMaterials[i] = material;

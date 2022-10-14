@@ -5,6 +5,7 @@
 #include "Surge/Scripting/SurgeBehaviour.hpp"
 #include "Surge/Utility/Filesystem.hpp"
 #include "Surge/ECS/Scene.hpp"
+#include "Surge/Core/Hash.hpp"
 
 #define SCRIPT_BINARY_FOLDER_NAME "ScriptBinaries"
 namespace Surge
@@ -20,15 +21,22 @@ namespace Surge
         Log<Severity::Info>("ScriptEngine initialized with compiler: {0}", mCompiler->GetName());
     }
 
-    ScriptID ScriptEngine::CreateScript(const Path& scriptPath, const UUID& entityID)
+    ScriptID ScriptEngine::CreateScript(Path& scriptPath, const UUID& entityID)
     {
-        ScriptID id = UUID();
-        ScriptInstance newScriptInstance = {};
-        newScriptInstance.ScriptSourcePath = scriptPath;
-        newScriptInstance.ParentEntityID = entityID;
-        newScriptInstance.Reflection = nullptr; // Filled later
-        newScriptInstance.Script = nullptr;     // Filled later
-        mScripts[id] = newScriptInstance;
+        Hash hasher;
+        ScriptID id = hasher.Generate<String>(scriptPath);
+        if (!HasDuplicate(id))
+        {
+            ScriptInstance newScriptInstance = {};
+            newScriptInstance.ScriptSourcePath = scriptPath;
+            newScriptInstance.ScriptAndParentEntityIDs.push_back({nullptr, entityID});
+            newScriptInstance.Reflection = nullptr; // Filled later
+            mScripts[id] = newScriptInstance;
+        }
+        else
+        {
+            mScripts[id].ScriptAndParentEntityIDs.push_back({nullptr, entityID});
+        }
         return id;
     }
 
@@ -68,48 +76,78 @@ namespace Surge
             CreateScriptFN scriptCreateFN = reinterpret_cast<CreateScriptFN>(Platform::GetFunction(scriptInstance.LibHandle, "CreateScript"));
             GetReflectionFN getReflectionFN = reinterpret_cast<GetReflectionFN>(Platform::GetFunction(scriptInstance.LibHandle, "GetReflection"));
 
-            scriptInstance.Script = scriptCreateFN(scene->FindEntityByUUID(scriptInstance.ParentEntityID));
-            scriptInstance.Reflection = getReflectionFN();
-
+            for (auto& sc : scriptInstance.ScriptAndParentEntityIDs)
+            {
+                sc.Data1 = scriptCreateFN(scene->FindEntityByUUID(sc.Data2));
+                scriptInstance.Reflection = getReflectionFN();
+                SG_ASSERT_NOMSG(sc.Data1);
+            }
             SG_ASSERT_NOMSG(scriptInstance.LibHandle);
             SG_ASSERT_NOMSG(scriptInstance.Reflection);
-            SG_ASSERT_NOMSG(scriptInstance.Script);
+        }
 
+        auto view = scene->GetRegistry().view<ScriptComponent>();
+        for (auto& entity : view)
+        {
+            auto& script = view.get<ScriptComponent>(entity);
+            auto& scriptInstance = mScripts[script.ScriptEngineID];
             if (scriptInstance.Reflection->GetFunction("OnStart"))
             {
-                scriptInstance.Script->OnStart();
+                for (auto& sc : scriptInstance.ScriptAndParentEntityIDs)
+                    sc.Data1->OnStart();
             }
-        }
+        }        
     }
 
-    void ScriptEngine::OnUpdate()
+    void ScriptEngine::OnUpdate(Scene* scene)
     {
-        for (auto [scriptID, scriptInstance] : mScripts)
+        auto view = scene->GetRegistry().view<ScriptComponent>();
+        for (auto& entity : view)
         {
+            auto& script = view.get<ScriptComponent>(entity);
+            auto& scriptInstance = mScripts[script.ScriptEngineID];
             if (scriptInstance.Reflection->GetFunction("OnUpdate"))
             {
-                scriptInstance.Script->OnUpdate();
+                for (auto& sc : scriptInstance.ScriptAndParentEntityIDs)
+                {
+                    sc.Data1->OnUpdate();
+                }
             }
         }
     }
 
-    void ScriptEngine::OnRuntimeEnd()
+    void ScriptEngine::OnRuntimeEnd(Scene* scene)
     {
+        // Call Destroy function of every script
+        auto view = scene->GetRegistry().view<ScriptComponent>();
+        for (auto& entity : view)
+        {
+            auto& script = view.get<ScriptComponent>(entity);
+            auto& scriptInstance = mScripts[script.ScriptEngineID];
+            if (scriptInstance.Reflection->GetFunction("OnDestroy"))
+            {
+                for (auto& sc : scriptInstance.ScriptAndParentEntityIDs)
+                    sc.Data1->OnDestroy();
+            }
+        }        
+
         SurgeReflect::Registry* reflection = SurgeReflect::Registry::Get();
         for (auto [scriptID, scriptInstance] : mScripts)
         {
+            for (auto& sc : scriptInstance.ScriptAndParentEntityIDs)
+            {
+                SG_ASSERT_NOMSG(sc.Data1);
+            }
+
             SG_ASSERT_NOMSG(scriptInstance.LibHandle);
             SG_ASSERT_NOMSG(scriptInstance.Reflection);
-            SG_ASSERT_NOMSG(scriptInstance.Script);
 
             const String& className = scriptInstance.Reflection->GetName();
-            if (scriptInstance.Reflection->GetFunction("OnDestroy"))
-            {
-                scriptInstance.Script->OnDestroy();
-            }
             reflection->RemoveClass(className);
             DestroyScriptFN scriptDestroyFN = reinterpret_cast<DestroyScriptFN>(Platform::GetFunction(scriptInstance.LibHandle, "DestroyScript"));
-            scriptDestroyFN(scriptInstance.Script);
+            for (auto& sc : scriptInstance.ScriptAndParentEntityIDs)
+                scriptDestroyFN(sc.Data1);
+
             Platform::UnloadSharedLibrary(scriptInstance.LibHandle);
             scriptInstance.LibHandle = nullptr;
         }
@@ -134,6 +172,14 @@ namespace Surge
         Path res = Core::GetClient()->GetActiveProject().GetMetadata().InternalDirectory / SCRIPT_BINARY_FOLDER_NAME;
         Filesystem::CreateOrEnsureDirectory(res);
         return res;
+    }
+
+    bool ScriptEngine::HasDuplicate(ScriptID scriptID)
+    {
+        if (mScripts.find(scriptID) == mScripts.end())
+            return false;
+
+        return true;
     }
 
     void ScriptEngine::DestroyScript(ScriptID& handle)

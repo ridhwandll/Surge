@@ -22,11 +22,12 @@ namespace Surge
         virtual void CompileAndLinkAsync(const Path& binaryDirectory, const CompileInfo& options);
         virtual const String& GetName() const = 0;
         virtual void Shutdown() = 0;
-        bool IsCompiling() const { return mIsCompiling; }
-
+        const std::atomic_bool& IsCompiling() const { return mIsCompiling; }
+        const std::atomic_bool& GetCompileStatus() const { return mCompileStatus; }
     protected:
         virtual std::wstring BuildCMDLineString(const Path& binaryDirectory, const CompileInfo& options) const = 0;
         std::atomic_bool mIsCompiling = false;
+        std::atomic_bool mCompileStatus = false;
         Vector<std::future<void>> mFutures;
     };
 

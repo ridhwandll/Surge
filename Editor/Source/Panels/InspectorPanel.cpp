@@ -129,7 +129,7 @@ namespace Surge
                         flags |= ImGuiTreeNodeFlags_SpanFullWidth;
 
                         // TODO: remove std::to_string hack
-                        bool open = ImGuiAux::TSelectable(fmt::format("{0} (ID: {1})", materials[i]->GetName(), std::to_string(*(int*)&materials[i])).c_str());
+                        bool open = ImGuiAux::TSelectable(fmt::format("{0} ({1})", materials[i]->GetName(), std::to_string(glm::abs(*(int*)&materials[i]))).c_str());
 
                         if (selectedMatIndex == i)
                             ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32({0.1f, 0.1f, 0.1f, 1.0f}));

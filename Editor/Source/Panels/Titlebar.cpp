@@ -69,25 +69,14 @@ namespace Surge
                 ImGuiAux::ShiftCursorY(-iconSize);
                 ProjectState projectState = mEditor->GetActiveProject().GetState();
                 float windowWidth = ImGui::GetWindowSize().x;
-                float textWidth = projectState == ProjectState::Edit ? ImGui::CalcTextSize(ICON_SURGE_PLAY ICON_SURGE_CODE).x : ImGui::CalcTextSize(ICON_SURGE_PLAY).x;
-                ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
+                float textWidth = projectState == ProjectState::Edit ? ImGui::CalcTextSize(ICON_SURGE_PLAY ICON_SURGE_CODE ICON_SURGE_CHECK).x : ImGui::CalcTextSize(ICON_SURGE_PLAY).x;
+                ImGui::SetCursorPosX((windowWidth - (textWidth + 10)) * 0.5f);
                 if (projectState == ProjectState::Edit)
                 {
                     if (ImGuiAux::Button(ICON_SURGE_PLAY))
                     {
                         mEditor->OnRuntimeStart();
                     }
-                }
-                else if (projectState == ProjectState::Play)
-                {
-                    if (ImGuiAux::Button(ICON_SURGE_STOP))
-                    {
-                        mEditor->OnRuntimeEnd();
-                    }
-                }
-
-                if (projectState == ProjectState::Edit)
-                {
                     ImGui::SameLine();
                     ScriptEngine* scriptEngine = Core::GetScriptEngine();
                     if (!scriptEngine->GetCompiler()->IsCompiling())
@@ -98,7 +87,25 @@ namespace Surge
                     }
                     else
                     {
-                        ImGuiAux::Spinner("##comilation status", 6.0f, 2.0f);
+                        ImGuiAux::Spinner("##compilation status", 6.0f, 2.0f);
+                    }
+                    ImGui::SameLine();
+                    if (scriptEngine->GetCompiler()->GetCompileStatus())
+                    {
+                        ImGui::TextUnformatted(ICON_SURGE_CHECK);
+                        ImGuiAux::DelayedToolTip("Your scripts are ready to execute!");
+                    }
+                    else
+                    {
+                        ImGui::TextUnformatted(ICON_SURGE_TIMES);
+                        ImGuiAux::DelayedToolTip("There is error in your script\nplease check console for debug information.");
+                    }
+                }
+                else if (projectState == ProjectState::Play)
+                {
+                    if (ImGuiAux::Button(ICON_SURGE_STOP))
+                    {
+                        mEditor->OnRuntimeEnd();
                     }
                 }
 
