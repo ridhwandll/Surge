@@ -12,6 +12,7 @@
 #include "Surge/Graphics/RHI/Vulkan/VulkanFramebuffer.hpp"
 #include "Surge/Graphics/RHI/Vulkan/VulkanImGui.hpp"
 #include "Surge/Graphics/RHI/Vulkan/VulkanDescriptorSet.hpp"
+#include "Surge/Graphics/RHI/Vulkan/VulkanUploader.hpp"
 
 #include <volk.h>
 #include <vk_mem_alloc.h>
@@ -43,6 +44,15 @@ namespace Surge
         void EndFrame(const FrameContext& ctx);
         void Resize();
 
+        // Android destroys the native window when the app is backgrounded, the surface + swapchain must follow it
+        void OnSurfaceDestroyed();
+        void OnSurfaceCreated(Window* window);
+
+        // Returns true if presentation is paced by the RHI (Swappy), false if the caller has to limit the frame rate itself
+        bool SetTargetFrameRate(float fps);
+
+        bool IsFormatSupported(ImageFormat format) const;
+
         const RHIStats& GetStats();
 
         BufferHandle CreateBuffer(const BufferDesc& desc);
@@ -59,6 +69,7 @@ namespace Surge
         FramebufferHandle CreateFramebuffer(const FramebufferDesc& desc);
         void DestroyFramebuffer(FramebufferHandle h);
         void ResizeFramebuffer(FramebufferHandle h, Uint width, Uint height, bool resizeImages);
+        void RecreateFramebuffer(FramebufferHandle h, const FramebufferDesc& desc); // Same handle, new attachments/load-store ops (must stay render pass compatible)
         const FramebufferDesc& GetDesc(FramebufferHandle h) const;
 
         PipelineHandle CreatePipeline(const PipelineDesc& desc);
@@ -96,8 +107,9 @@ namespace Surge
         // slot maps to layout(set = N) in GLSL
         void CmdBindDescriptorSet(const FrameContext& ctx, PipelineHandle pipeline, DescriptorSetHandle setHandle, DescriptorSetSlot slot);
 
-        VkCommandBuffer BeginOneTimeCommands() const;
-        void EndOneTimeCommands(VkCommandBuffer cmd) const;
+        VulkanUploader& GetUploader() const { return mUploader; }
+        VkPipelineCache GetPipelineCache() const { return mPipelineCache; }
+        void* GetNativeWindowHandle() const { return mWindow ? mWindow->GetNativeWindowHandle() : nullptr; }
 
         void SetDebugName(VkObjectType objType, uint64_t objectHandle, const String& name) const { mDebugger.SetDebugName(*this, objType, objectHandle, name); }
 
@@ -141,10 +153,14 @@ namespace Surge
         void ResizeInternal();
         void CreateDescriptorPools();
 
+        void CreatePipelineCache();
+        void DestroyPipelineCache();
+
         Vector<const char*> GetRequiredInstanceExtensions();
         Vector<const char*> GetRequiredInstanceLayers();
 
         void FlushDeletionQueue(Uint frameIndex);
+        void DeferImGuiTextureDestroy(ImTextureID& id);
 
         // Which slot's deletion queue may free a resource destroyed right now
         // While recording: the current slot, its fence also covers this frame's commands
@@ -170,6 +186,11 @@ namespace Surge
 
         VkInstance mInstance { VK_NULL_HANDLE };
         VkSurfaceKHR mSurface { VK_NULL_HANDLE };
+        Window* mWindow = nullptr;
+
+        mutable VulkanUploader mUploader; // Mutable: WaitIdle() (const) has to submit pending uploads first
+        VkPipelineCache mPipelineCache = VK_NULL_HANDLE;
+        float mTargetFrameRate = 60.0f;
 
         Vector<VkDescriptorPool> mVkDescriptorPools;
         Vector<VkDescriptorPool> mNonResetableVkDescriptorPools;
@@ -191,6 +212,7 @@ namespace Surge
             Vector<PipelineEntry> Pipelines;
             Vector<SamplerEntry> Samplers;
             Vector<DescriptorSetEntry> DescriptorSets;
+            Vector<ImTextureID> ImGuiTextures; // Descriptor sets owned by the ImGui Vulkan backend
         };
         std::array<DeferredDeletes, RHISettings::FRAMES_IN_FLIGHT> mDeletionQueues;
         bool mIsShuttingDown = false;

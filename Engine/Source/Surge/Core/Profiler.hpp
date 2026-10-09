@@ -19,7 +19,7 @@
 #define PROFILE_RELEASE 0
 
 #ifdef SURGE_RELEASE
-    #ifdef PROFILE_RELEASE
+    #if PROFILE_RELEASE // (#ifdef was always true: PROFILE_RELEASE is defined as 0, which shipped Optick and its network server in Release)
         #define PROFILE_SURGE 1
         #define USE_OPTICK 1
         #include <optick.h>

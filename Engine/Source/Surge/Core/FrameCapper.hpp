@@ -10,31 +10,24 @@ namespace Surge
     public:
         FrameCapper(float targetFPS = 60.0f)
         {
-#ifndef SURGE_PLATFORM_ANDROID
             SetTargetFPS(targetFPS);
-#endif
         }
 
         void SetTargetFPS(float fps)
         {
-#ifndef SURGE_PLATFORM_ANDROID
             if(fps > 0.0f)
                 mTargetFrameTime = std::chrono::duration<double, std::milli>(1000.0 / fps);
             else
                 mTargetFrameTime = std::chrono::duration<double, std::milli>(0.0);
-#endif
         }
 
         void BeginFrame()
         {
-#ifndef SURGE_PLATFORM_ANDROID
             mFrameStartTime = std::chrono::high_resolution_clock::now();
-#endif
         }
 
         void EndFrameAndCap()
         {
-#ifndef SURGE_PLATFORM_ANDROID
             if(mTargetFrameTime.count() <= 0.0)
                 return; // Uncapped
 
@@ -59,12 +52,9 @@ namespace Surge
                         break;
                 }
             }
-#endif
         }
-#ifndef SURGE_PLATFORM_ANDROID
     private:
         std::chrono::time_point<std::chrono::high_resolution_clock> mFrameStartTime;
         std::chrono::duration<double, std::milli> mTargetFrameTime;
-#endif
     };
 }

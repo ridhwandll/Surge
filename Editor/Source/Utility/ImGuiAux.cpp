@@ -12,6 +12,26 @@ namespace Surge
         drawList->AddRect(rect.Min, rect.Max, ImGui::ColorConvertFloat4ToU32(ImVec4(color.x, color.y, color.z, color.w)), rounding, ImDrawFlags_RoundCornersAll, thickness);
     }
 
+    void ImGuiAux::ItemTooltip(const char* text)
+    {
+        if(!ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal | ImGuiHoveredFlags_Stationary | ImGuiHoveredFlags_AllowWhenDisabled))
+            return;
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 6.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 4.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 1.0f);
+        ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.11f, 0.11f, 0.11f, 0.97f));
+        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.22f, 0.22f, 0.22f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.9f, 0.9f, 1.0f)); // Callers may have a tinted text color pushed (title bar in play mode)
+        if(ImGui::BeginTooltip())
+        {
+            ImGui::TextUnformatted(text);
+            ImGui::EndTooltip();
+        }
+        ImGui::PopStyleColor(3);
+        ImGui::PopStyleVar(3);
+    }
+
     void ImGuiAux::TextCentered(const char* text)
     {
         float windowWidth = ImGui::GetWindowSize().x;
@@ -20,12 +40,12 @@ namespace Surge
         ImGui::TextUnformatted(text);
     }
 
-    void ImGuiAux::DockSpace(float titleBarHeight)
+    void ImGuiAux::DockSpace(float titleBarHeight, const std::function<void(ImGuiID, ImVec2)>& buildLayout, bool rebuildLayout, float bottomBarHeight)
     {
         ImGuiViewport* viewport = ImGui::GetMainViewport();
 
         ImVec2 dockspacePos = ImVec2(viewport->WorkPos.x, viewport->WorkPos.y + titleBarHeight);
-        ImVec2 dockspaceSize = ImVec2(viewport->WorkSize.x, viewport->WorkSize.y - titleBarHeight);
+        ImVec2 dockspaceSize = ImVec2(viewport->WorkSize.x, viewport->WorkSize.y - titleBarHeight - bottomBarHeight);
 
         ImGui::SetNextWindowPos(dockspacePos);
         ImGui::SetNextWindowSize(dockspaceSize);
@@ -45,6 +65,8 @@ namespace Surge
         ImGui::PopStyleVar(3);
 
         ImGuiID dockspaceID = ImGui::GetID("SurgeEditorDockspace");
+        if(buildLayout && (rebuildLayout || !ImGui::DockBuilderGetNode(dockspaceID)))
+            buildLayout(dockspaceID, dockspaceSize);
         ImGui::DockSpace(dockspaceID, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
 
         ImGui::End();

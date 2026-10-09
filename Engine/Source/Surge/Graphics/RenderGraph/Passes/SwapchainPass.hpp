@@ -6,12 +6,11 @@ namespace Surge
 {
     /*
     * SwapchainPass:
-    * Reads : blackBoard.FinalImage
-    * 
-    * if RHISettings::RENDER_TO_SWAPCHAIN == TRUE
-    *    Writes: Swapchain
-    * else
-    *    Writes: Nothing
+    * if RHISettings::RENDER_TO_SWAPCHAIN == TRUE (Player)
+    *    Reads : Nothing (PostProcess + UIOverlay already render into the swapchain group)
+    * else (Editor)
+    *    Reads : blackBoard.FinalImage (displayed by ImGui)
+    * Writes: Nothing
     */
 
     class GraphicsRHI;
@@ -27,9 +26,6 @@ namespace Surge
         void OnImGuiRender([[maybe_unused]] FrameBlackboard& blackBoard) override {};
         void Shutdown(FrameBlackboard& blackBoard) override;
     private:
-        GraphicsRHI* mRHI;
-        FramebufferHandle mFramebuffer;
-        PipelineHandle mPresentPipeline;
-        DescriptorSetHandle mPresentSet;
+        GraphicsRHI* mRHI = nullptr;
     };
 }

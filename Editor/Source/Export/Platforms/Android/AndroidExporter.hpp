@@ -18,6 +18,7 @@ namespace Surge
         String KeyPass;      // empty = same as keystore password
         AndroidPackageFormat Format = AndroidPackageFormat::APK;
         int MinApi = 29;
+        int TargetApi = 36; // Google Play rejects new apps/updates below its yearly minimum (API 36 since Aug 2026)
         int Orientation = 0;    // index into AndroidExporter::ORIENTATIONS
         bool Immersive = true;  // hide system bars (swipe shows them transiently)
         bool UseCutout = true;  // draw under the notch / camera cut-out
@@ -59,6 +60,10 @@ namespace Surge
         static constexpr AndroidApiLevel API_LEVELS[] = {
             {29, "API 29 (Android 10)"}, {30, "API 30 (Android 11)"},
             {31, "API 31 (Android 12)"}, {33, "API 33 (Android 13)"}, {34, "API 34 (Android 14)"},
+        };
+
+        static constexpr AndroidApiLevel TARGET_API_LEVELS[] = {
+            {35, "API 35 (Android 15)"}, {36, "API 36 (Android 16) - Google Play minimum"},
         };
 
         static ExportPlatform GetStaticPlatform() { return ExportPlatform::ANDROID; }

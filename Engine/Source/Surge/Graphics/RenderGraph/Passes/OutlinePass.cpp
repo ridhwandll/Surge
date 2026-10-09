@@ -79,7 +79,8 @@ namespace Surge
 
     void OutlinePass::Resize(Uint width, Uint height, FrameBlackboard& blackBoard)
     {
-        Core::AddFrameEndCallback([this, width, height, blackBoard]() { mRHI->ResizeFramebuffer(blackBoard.OutlineFramebuffer, width, height); }); // (Player)
+        const FramebufferHandle framebuffer = blackBoard.OutlineFramebuffer;
+        Core::AddFrameEndCallback([this, width, height, framebuffer]() { mRHI->ResizeFramebuffer(framebuffer, width, height); });
     }
 
     void OutlinePass::OnImGuiRender(FrameBlackboard&) {}

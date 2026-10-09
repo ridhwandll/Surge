@@ -6,12 +6,14 @@
 #include "Surge/ECS/Components/ScriptComponent.hpp"
 
 #include "Utility/ImGuiAux.hpp"
+#include "History/SceneCommands.hpp"
 #include "Editor.hpp"
 #include "Surge/Asset/AssetManager.hpp"
 #include "Surge/Graphics/HighLevel/DefaultMeshes.hpp"
 #include "Surge/Graphics/HighLevel/Mesh.hpp"
 #include <imgui.h>
 #include <imgui_internal.h>
+#include <imgui_stdlib.h>
 #include <algorithm>
 
 #define IMGUI_ENTITY_PAYLOAD "ENTITY_PAYLOAD"
@@ -47,6 +49,11 @@ namespace Surge
             Editor* editor = static_cast<Editor*>(Core::GetClient());
             mHierarchyHovered = ImGui::IsWindowHovered();
             mHierarchyFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+
+            if(!mRenamingEntity || mRenamingEntity != mSelectedEntity)
+                mRenamingEntity = {}; // Selection moved on, or the entity is gone
+            if((mHierarchyFocused || mHierarchyHovered) && mSelectedEntity && !mRenamingEntity && !ImGui::GetIO().WantTextInput && ImGui::IsKeyPressed(ImGuiKey_F2, false))
+                StartRename(mSelectedEntity);
 
             ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f);
 
@@ -222,6 +229,7 @@ namespace Surge
                 });
                 ImGui::EndTable();
             }
+            mRevealSelection = false;
 
             ImGui::PopStyleVar(3);
 
@@ -264,13 +272,22 @@ namespace Surge
         bool isSearching = strlen(sSearchBuffer) > 0;
         bool hasChildren = (rel.FirstChild != entt::null) && !isSearching;
 
-        ImGuiTreeNodeFlags flags = (isSelectedEntity ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick
+        const bool isRenaming = mRenamingEntity == e;
+
+        // Double-click focuses the camera, the arrow opens the node
+        ImGuiTreeNodeFlags flags = (isSelectedEntity ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_OpenOnArrow
             | ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_DrawLinesFull;
 
         if(!hasChildren)
             flags |= ImGuiTreeNodeFlags_Leaf;
+        if(isRenaming)
+            flags |= ImGuiTreeNodeFlags_AllowOverlap; // The rename field sits on top of the row
+
+        if(mRevealSelection && hasChildren && !isSelectedEntity && mSelectedEntity && SceneEditUtils::IsDescendantOf(mSelectedEntity, e))
+            ImGui::SetNextItemOpen(true);
 
         bool opened = false;
+        const char* label = isRenaming ? "" : name.c_str();
 
         ImGui::TableNextRow();
         ImGui::TableNextColumn();
@@ -283,12 +300,15 @@ namespace Surge
             ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImGuiAux::Colors::ThemeColor2);
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
 
-            opened = ImGui::TreeNodeEx(reinterpret_cast<void*>(static_cast<uint64_t>(static_cast<Uint>(e.Raw()))), flags, "%s", name.c_str());
+            opened = ImGui::TreeNodeEx(reinterpret_cast<void*>(static_cast<uint64_t>(static_cast<Uint>(e.Raw()))), flags, "%s", label);
 
             ImGui::PopStyleColor(4);
         }
         else
-            opened = ImGui::TreeNodeEx(reinterpret_cast<void*>(static_cast<uint64_t>(static_cast<Uint>(e.Raw()))), flags, "%s", name.c_str());
+            opened = ImGui::TreeNodeEx(reinterpret_cast<void*>(static_cast<uint64_t>(static_cast<Uint>(e.Raw()))), flags, "%s", label);
+
+        if(isSelectedEntity && mRevealSelection && !ImGui::IsItemVisible())
+            ImGui::SetScrollHereY(0.5f);
 
         if(ImGui::BeginDragDropSource())
         {
@@ -315,7 +335,9 @@ namespace Surge
             mSceneContext->SetSelectedEntity(mSelectedEntity);
             ImGui::SetWindowFocus("Inspector");
         }
-\
+        if(ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && !isRenaming)
+            static_cast<Editor*>(Core::GetClient())->FocusEntity(e);
+
         if(ImGuiAux::BeginStyledPopupContextItem())
         {
             ImFont* boldFont = ImGui::GetIO().Fonts->Fonts[1];
@@ -327,6 +349,29 @@ namespace Surge
             ImGuiAux::StyledSeparator();
 
             Editor* editor = static_cast<Editor*>(Core::GetClient());
+            if(ImGuiAux::StyledMenuItem("Rename", "F2"))
+            {
+                editor->SelectEntity(e); // Renames are recorded through the selection tracker
+                StartRename(e);
+            }
+            if(ImGuiAux::StyledMenuItem("Focus", "F"))
+                editor->FocusEntity(e);
+            if(ImGuiAux::StyledMenuItem("Create Empty Child"))
+            {
+                // Creating entities while the registry is being iterated is not safe
+                Entity parent = e;
+                Core::AddFrameEndCallback([editor, parent]() {
+                    if(!parent)
+                        return;
+
+                    Entity child;
+                    parent.GetScene()->CreateEntity(child, "Entity");
+                    parent.GetScene()->SetParent(child, parent);
+                    editor->OnEntityCreated(child);
+                });
+            }
+            ImGuiAux::StyledSeparator();
+
             if(rel.Parent != entt::null)
             {
                 if(ImGuiAux::StyledMenuItem("Unparent"))
@@ -351,6 +396,9 @@ namespace Surge
                 editor->DeleteEntity(e); // Only queues the destruction
             ImGuiAux::EndStyledPopup();
         }
+
+        if(isRenaming)
+            DrawRenameField(e);
 
         ImGui::TableNextColumn();
 
@@ -383,6 +431,40 @@ namespace Surge
             }
             ImGui::TreePop();
         }
+    }
+
+    void SceneHierarchyPanel::StartRename(Entity entity)
+    {
+        if(!entity)
+            return;
+
+        mRenamingEntity = entity;
+        mRenameBuffer = entity.GetComponent<NameComponent>().Name;
+        mFocusRename = true;
+        mRenameGraceFrames = 3;
+    }
+
+    void SceneHierarchyPanel::DrawRenameField(Entity& e)
+    {
+        ImGui::SameLine();
+        if(mFocusRename)
+        {
+            ImGui::SetKeyboardFocusHere();
+            mFocusRename = false;
+        }
+
+        ImGui::SetNextItemWidth(-FLT_MIN);
+        ImGui::InputText("##RenameEntity", &mRenameBuffer, ImGuiInputTextFlags_AutoSelectAll);
+
+        // Enter or clicking elsewhere applies, Esc cancels
+        if(ImGui::IsItemDeactivated())
+        {
+            if(!ImGui::IsKeyPressed(ImGuiKey_Escape, false) && !mRenameBuffer.empty())
+                e.GetComponent<NameComponent>().Name = mRenameBuffer;
+            mRenamingEntity = {};
+        }
+        else if(!ImGui::IsItemActive() && --mRenameGraceFrames < 0)
+            mRenamingEntity = {}; // Never got the keyboard focus
     }
 
     void SceneHierarchyPanel::Shutdown()

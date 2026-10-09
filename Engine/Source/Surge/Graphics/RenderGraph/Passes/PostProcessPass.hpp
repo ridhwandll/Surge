@@ -14,7 +14,8 @@ namespace Surge
     class PostProcessPass : public RenderPass
     {
     public:
-        PostProcessPass() { mName = "PostProcessPass"; mGroup = PassGroup::POST_PROCESS; }
+        // Player (RHISettings::RENDER_TO_SWAPCHAIN): renders straight into the swapchain render pass, no FinalImage round trip
+        PostProcessPass() { mName = "PostProcessPass"; mGroup = RHISettings::RENDER_TO_SWAPCHAIN ? PassGroup::SWAPCHAIN : PassGroup::POST_PROCESS; }
         virtual ~PostProcessPass() = default;
     
         void Setup(GraphicsRHI* rhi, FrameBlackboard& blackBoard) override;

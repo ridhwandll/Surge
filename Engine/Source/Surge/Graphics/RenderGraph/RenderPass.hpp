@@ -28,6 +28,12 @@ namespace Surge
 
         virtual void Setup(GraphicsRHI* rhi, FrameBlackboard& blackBoard) = 0;
         virtual void Execute(const FrameContext& ctx, const FrameBlackboard& blackboard) = 0;
+
+        // Called for every enabled pass before any render pass of the frame begins: culling, instance/uniform uploads, Descriptor updates or framebuffer reconfiguration that must not happen inside a render pass
+        virtual void Prepare([[maybe_unused]] const FrameContext& ctx, [[maybe_unused]] FrameBlackboard& blackboard) {}
+
+        // Groups whose passes all report no work this frame are skipped entirely (no render pass begin/clear/store)
+        virtual bool HasWork([[maybe_unused]] const FrameBlackboard& blackboard) const { return true; }
         virtual void Resize(Uint width, Uint height, FrameBlackboard& blackBoard) = 0;
         virtual void OnImGuiRender(FrameBlackboard& blackBoard) = 0;
         virtual void Shutdown(FrameBlackboard& blackBoard) = 0;
@@ -42,7 +48,7 @@ namespace Surge
     protected:
         
     protected:
-        // Each pass sets this in constructor
+        // Each pass sets these in constructor
         String mName;
         PassGroup mGroup;
 

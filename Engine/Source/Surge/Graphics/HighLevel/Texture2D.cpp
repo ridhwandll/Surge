@@ -8,7 +8,9 @@ namespace Surge
     Texture2D::Texture2D(const TextureSpecification& spec)
     {
         Renderer* renderer = Core::GetRenderer();
-        const bool isCompressed = (spec.Format == ImageFormat::ASTC4x4_SRGB || spec.Format == ImageFormat::ASTC4x4_UNORM || spec.Format == ImageFormat::BC7_SRGB || spec.Format == ImageFormat::BC7_UNORM);
+        const bool isCompressed = spec.Format == ImageFormat::ASTC4x4_SRGB || spec.Format == ImageFormat::ASTC4x4_UNORM ||
+                                  spec.Format == ImageFormat::BC7_SRGB || spec.Format == ImageFormat::BC7_UNORM ||
+                                  spec.Format == ImageFormat::ETC2_RGBA8_SRGB || spec.Format == ImageFormat::ETC2_RGBA8_UNORM;
         const bool hasMips = !spec.Mips.empty();
 
         SG_ASSERT(isCompressed || spec.Content, "Texture2D: Uncompressed textures must have Content data! Use Mips for compressed textures!");

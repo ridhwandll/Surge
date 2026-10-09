@@ -8,14 +8,18 @@
 #include "Export/Platforms/Windows/WindowsExporter.hpp"
 #include "Surge/Core/Core.hpp"
 #include "Surge/Utility/Platform.hpp"
+#include "StatusBar/EditorStatusBar.hpp"
 #include "Editor.hpp"
 
 #include <json/json.hpp>
 #include <algorithm>
+#include <format>
 #include <fstream>
 
 namespace Surge
 {
+    static constexpr const char* STATUS_TASK_KEY = "Export";
+
     ExportManager::ExportManager()
     {
         Register<WindowsExporter>();
@@ -63,6 +67,15 @@ namespace Surge
         {
             mCookScheduled = true;
             Core::AddFrameEndCallback([this]() { StartWorker(); });
+        }
+
+        if(IsExportBusy(state))
+        {
+            const ExportStatus status = mSession.GetStatus();
+            String detail = status.CancelRequested ? "Cancelling..." : status.StepName;
+            if(!status.CancelRequested && !status.StepDetail.empty())
+                detail += ": " + status.StepDetail;
+            EditorStatusBar::Get().SetTask(STATUS_TASK_KEY, std::format("Exporting for {}", GetExporter(mRunPlatform)->GetDisplayName()), status.Progress, detail);
         }
 
         if(!mFinishHandled && IsExportFinished(state))
@@ -219,6 +232,25 @@ namespace Surge
         mFinishHandled = true;
         JoinWorker(); // Already done, the state is its last write
         mTask.reset();
+
+        const ExportStatus status = mSession.GetStatus();
+        const char* platformName = GetExporter(mRunPlatform)->GetDisplayName();
+        EditorStatusBar& statusBar = EditorStatusBar::Get();
+        statusBar.EndTask(STATUS_TASK_KEY);
+        switch(state)
+        {
+            case ExportState::SUCCEEDED:
+                if(!status.ResultWarning.empty())
+                    statusBar.Notify(Severity::Warn, std::format("{} export finished, but: {}", platformName, status.ResultWarning), 8.0f);
+                else
+                    statusBar.Notify(Severity::Info, std::format("{} export finished in {}: {}", platformName, ExportUtils::FormatDuration(status.ElapsedSeconds), status.ArtifactPath), 8.0f);
+                break;
+            case ExportState::FAILED:
+                statusBar.Notify(Severity::Error, std::format("{} export failed: {}", platformName, status.FailureSummary.empty() ? "see the Console" : status.FailureSummary), 10.0f);
+                break;
+            case ExportState::CANCELLED: statusBar.Notify(Severity::Warn, std::format("{} export cancelled", platformName)); break;
+            default: break;
+        }
 
         if(state == ExportState::SUCCEEDED)
         {

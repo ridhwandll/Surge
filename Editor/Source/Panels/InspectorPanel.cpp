@@ -26,6 +26,7 @@
 #include "Surge/Utility/Filesystem.hpp"
 #include "Surge/Utility/Platform.hpp"
 #include "Surge/Audio/AudioEngine.hpp"
+#include <optional>
 
 namespace Surge
 {
@@ -184,6 +185,66 @@ namespace Surge
     template <typename T>
     constexpr bool HasActiveProperty_v<T, std::void_t<decltype(std::declval<T>().Active)>> = true;
 
+    // Right-click on the Transform header, edits go through the selection tracker like any other field (undoable)
+    static void DrawTransformContextMenu(TransformComponent& transform)
+    {
+        struct CopiedTransform
+        {
+            glm::vec3 Position, Rotation, Scale;
+        };
+        static std::optional<CopiedTransform> sClipboard;
+
+        ImGuiAux::StyledPopupVars::Push();
+        if(ImGui::BeginPopupContextItem("TransformContext"))
+        {
+            {
+                ImGuiAux::ScopedBoldFont font;
+                ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "TRANSFORM");
+            }
+            ImGuiAux::StyledSeparator();
+
+            bool changed = false;
+            if(ImGuiAux::StyledMenuItem("Reset"))
+            {
+                transform.Position = glm::vec3(0.0f);
+                transform.Rotation = glm::vec3(0.0f);
+                transform.Scale = glm::vec3(1.0f);
+                changed = true;
+            }
+            if(ImGuiAux::StyledMenuItem("Reset Position"))
+            {
+                transform.Position = glm::vec3(0.0f);
+                changed = true;
+            }
+            if(ImGuiAux::StyledMenuItem("Reset Rotation"))
+            {
+                transform.Rotation = glm::vec3(0.0f);
+                changed = true;
+            }
+            if(ImGuiAux::StyledMenuItem("Reset Scale"))
+            {
+                transform.Scale = glm::vec3(1.0f);
+                changed = true;
+            }
+
+            ImGuiAux::StyledSeparator();
+            if(ImGuiAux::StyledMenuItem("Copy"))
+                sClipboard = CopiedTransform { transform.Position, transform.Rotation, transform.Scale };
+            if(ImGuiAux::StyledMenuItem("Paste", nullptr, nullptr, sClipboard.has_value()))
+            {
+                transform.Position = sClipboard->Position;
+                transform.Rotation = sClipboard->Rotation;
+                transform.Scale = sClipboard->Scale;
+                changed = true;
+            }
+
+            if(changed)
+                transform.MarkDirty();
+            ImGui::EndPopup();
+        }
+        ImGuiAux::StyledPopupVars::Pop();
+    }
+
     template <typename XComponent, bool IsRemoveable = true, typename Func>
     static void DrawComponent(Entity& entity, const String& name, Func&& function)
     {
@@ -200,6 +261,8 @@ namespace Surge
         const bool open = ImGui::TreeNodeEx((void*)hash, treeNodeFlags, "%s", name.c_str());
 
         XComponent& component = entity.GetComponent<XComponent>();
+        if constexpr (std::is_same_v<XComponent, TransformComponent>)
+            DrawTransformContextMenu(component);
         bool removeComponent = false;
 
         const float optionsBtnSize = lineHeight;

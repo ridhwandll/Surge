@@ -10,6 +10,11 @@ namespace Surge
         return {};
     }
 
+    Vector<String> FileDialog::OpenFiles(const char*)
+    {
+        return {};
+    }
+
     String FileDialog::SaveFile(const char*, const char*)
     {
         return {};

@@ -20,6 +20,7 @@ namespace Surge::VulkanUtils
 
     VkFormat ImageFormatToVkFormat(ImageFormat format);
     bool IsDepthFormat(ImageFormat format);
+    bool IsCompressedFormat(ImageFormat format); // Block compressed (BC/ASTC/ETC2), mips must be pre-baked
     VkImageUsageFlags ToVkImageUsage(ImageUsage usage, bool transient);
 
     VkImageAspectFlags GetVkImageAspectFlags(ImageFormat format);

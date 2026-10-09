@@ -84,6 +84,24 @@ namespace Surge::ScriptBinding
             return ToTypedLuaObject(s, widget);
         });
 
+        // Pointer queries in raw window coordinates (Input.GetTouch(i).Position, Input.GetMousePosition())
+        canvasType.set_function("WidgetAt", [](UICanvasComponent& canvas, float x, float y, sol::this_state s) -> sol::object {
+            UI::Widget* widget = canvas.RuntimeCanvasID ? Core::GetRenderer()->GetUIManager().WidgetAt(canvas.RuntimeCanvasID, x, y) : nullptr;
+            return ToTypedLuaObject(s, widget);
+        });
+        canvasType.set_function("ScreenToCanvas", [](UICanvasComponent& canvas, float x, float y) -> glm::vec2 {
+            return Core::GetRenderer()->GetUIManager().ScreenToCanvas(canvas.RuntimeCanvasID, x, y);
+        });
+        canvasType.set_function("GetCanvasSize", [](UICanvasComponent& canvas) -> glm::vec2 {
+            return Core::GetRenderer()->GetUIManager().GetCanvasSize(canvas.RuntimeCanvasID);
+        });
+
+        sol::table uiTable = lua["UI"].get_or_create<sol::table>();
+        uiTable.set_function("IsPointerOverUI", [](float x, float y) { return Core::GetRenderer()->GetUIManager().IsPointerOverUI(x, y); });
+        uiTable.set_function("WidgetAt", [](float x, float y, sol::this_state s) -> sol::object {
+            return ToTypedLuaObject(s, Core::GetRenderer()->GetUIManager().WidgetAt(x, y));
+        });
+
         //sol::factories enables this in Lua: `local widget = UIWidget.new()`
         lua.new_usertype<UI::Widget>("UIWidget", sol::factories([]() { return Ref<UI::Widget>::Create(); }),
                                      "AddChild", [](UI::Widget& parent, UI::Widget* child) {

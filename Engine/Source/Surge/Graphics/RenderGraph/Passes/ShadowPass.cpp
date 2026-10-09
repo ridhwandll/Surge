@@ -4,7 +4,9 @@
 #include "Surge/Core/Profiler.hpp"
 #include "Surge/Graphics/Renderer/Renderer.hpp"
 
+#include "SurgeMath/Frustum.hpp"
 #include <glm/gtc/matrix_transform.hpp>
+#include <imgui.h>
 
 namespace Surge
 {
@@ -84,6 +86,122 @@ namespace Surge
 
         for(Uint i = 0; i < MAX_SHADOW_CASCADE_COUNT; i++)
             mImageWrites.push_back(blackBoard.ShadowMap[i]);
+
+        // All cascade pipelines share one layout, so one instance set binds to any of them
+        for(Uint i = 0; i < RHISettings::FRAMES_IN_FLIGHT; i++)
+            EnsureInstanceCapacity(i, 1024);
+
+        mInstanceSet = mRHI->CreateDescriptorSet(mShadowPipelines[0], DescriptorSetSlot::ZERO, DescriptorUpdateFrequency::DYNAMIC, "ShadowInstances [Set0]");
+        for(Uint i = 0; i < RHISettings::FRAMES_IN_FLIGHT; i++)
+        {
+            DescriptorWrite write = {};
+            write.Binding = 0;
+            write.Type = DescriptorType::STORAGE_BUFFER;
+            write.Buffer = mInstanceBuffers[i];
+            write.BufferRange = sizeof(glm::mat4) * mInstanceCapacity[i];
+            mRHI->UpdateDescriptorSet(mInstanceSet, &write, 1, i);
+        }
+
+        mCasterTransforms.reserve(1024);
+        mDrawItems.reserve(1024);
+        mInstanceData.reserve(1024);
+    }
+
+    void ShadowPass::EnsureInstanceCapacity(Uint frameIndex, Uint instanceCount)
+    {
+        if(instanceCount <= mInstanceCapacity[frameIndex] && !mInstanceBuffers[frameIndex].IsNull())
+            return;
+
+        Uint capacity = std::max(mInstanceCapacity[frameIndex], 1024u);
+        while(capacity < instanceCount)
+            capacity *= 2;
+
+        if(!mInstanceBuffers[frameIndex].IsNull())
+            mRHI->DestroyBuffer(mInstanceBuffers[frameIndex]);
+
+        BufferDesc desc = {};
+        desc.Usage = BufferUsage::STORAGE;
+        desc.HostVisible = true;
+        desc.Size = sizeof(glm::mat4) * capacity;
+        desc.DebugName = std::format("ShadowInstances Frame: {}", frameIndex);
+        mInstanceBuffers[frameIndex] = mRHI->CreateBuffer(desc);
+
+        const bool resized = mInstanceCapacity[frameIndex] != 0;
+        mInstanceCapacity[frameIndex] = capacity;
+        if(resized)
+        {
+            DescriptorWrite write = {};
+            write.Binding = 0;
+            write.Type = DescriptorType::STORAGE_BUFFER;
+            write.Buffer = mInstanceBuffers[frameIndex];
+            write.BufferRange = sizeof(glm::mat4) * capacity;
+            mRHI->UpdateDescriptorSet(mInstanceSet, &write, 1, frameIndex);
+        }
+    }
+
+    void ShadowPass::BuildCascadeDraws(const FrameContext& ctx, const FrameBlackboard& bb, Uint cascadeCount)
+    {
+        SURGE_PROFILE_FUNC("ShadowPass::BuildCascadeDraws");
+
+        // World transforms of every shadow casting submesh, computed once and shared by all cascades
+        mCasterTransforms.clear();
+        for(const MeshSubmitCmd& cmd : bb.MeshList)
+        {
+            if(!cmd.DropShadow)
+                continue;
+
+            for(const Submesh& submesh : cmd.Mesh_->GetSubmeshes())
+                mCasterTransforms.push_back(cmd.Transform * submesh.Transform);
+        }
+        mCasterCount = static_cast<Uint>(mCasterTransforms.size());
+
+        mInstanceData.clear();
+        for(Uint cascade = 0; cascade < cascadeCount; cascade++)
+        {
+            // Only what the light's ortho box can see, anything outside would be clipped by the rasterizer anyway
+            const Frustum lightFrustum(mLightViewProjections[cascade]);
+
+            mDrawItems.clear();
+            Uint transformIndex = 0;
+            for(const MeshSubmitCmd& cmd : bb.MeshList)
+            {
+                if(!cmd.DropShadow)
+                    continue;
+
+                const Vector<Submesh>& submeshes = cmd.Mesh_->GetSubmeshes();
+                for(Uint i = 0; i < static_cast<Uint>(submeshes.size()); i++, transformIndex++)
+                {
+                    if(lightFrustum.IntersectsAABB(submeshes[i].BoundingBox, mCasterTransforms[transformIndex]))
+                        mDrawItems.push_back({ cmd.Mesh_, i, transformIndex });
+                }
+            }
+
+            std::sort(mDrawItems.begin(), mDrawItems.end(), [](const ShadowDrawItem& a, const ShadowDrawItem& b)
+            {
+                if(a.Mesh_ != b.Mesh_) return a.Mesh_ < b.Mesh_;
+                return a.SubmeshIndex < b.SubmeshIndex;
+            });
+
+            Vector<ShadowDraw>& draws = mCascadeDraws[cascade];
+            draws.clear();
+            for(const ShadowDrawItem& item : mDrawItems)
+            {
+                const Uint instanceIndex = static_cast<Uint>(mInstanceData.size());
+                mInstanceData.push_back(mCasterTransforms[item.TransformIndex]);
+
+                if(!draws.empty() && draws.back().Mesh_ == item.Mesh_ && draws.back().SubmeshIndex == item.SubmeshIndex)
+                    draws.back().InstanceCount++;
+                else
+                    draws.push_back({ item.Mesh_, item.SubmeshIndex, instanceIndex, 1 });
+            }
+            mCascadeVisible[cascade] = static_cast<Uint>(mDrawItems.size());
+        }
+
+        if(mInstanceData.empty())
+            return;
+
+        EnsureInstanceCapacity(ctx.FrameIndex, static_cast<Uint>(mInstanceData.size()));
+        mRHI->UploadBuffer(mInstanceBuffers[ctx.FrameIndex], mInstanceData.data(), static_cast<Uint>(sizeof(glm::mat4) * mInstanceData.size()), 0);
     }
 
     void ShadowPass::Execute(const FrameContext& ctx, const FrameBlackboard& blackBoard)
@@ -105,33 +223,37 @@ namespace Surge
         }
         mRHI->UploadBuffer(blackBoard.ShadowUBOs[ctx.FrameIndex], &shadowData, sizeof(ShadowUBO));
 
+        BuildCascadeDraws(ctx, blackBoard, cascadeCount);
+
         for(Uint cascade = 0; cascade < cascadeCount; cascade++)
         {
-            // ShadowPass manages its own renderpass unlike other passes
+            // ShadowPass manages its own renderpass unlike other passes, an empty cascade is still cleared so stale depth never shadows anything
             mRHI->CmdBeginRenderPass(ctx, mShadowPassFramebuffer[cascade]);
-            mRHI->CmdBindPipeline(ctx, mShadowPipelines[cascade]);
 
-            const float cascadeScale = 1.0f / (static_cast<float>(cascade) + 1.0f);
-            const float currentConstant = mDepthBiasConstant * cascadeScale;
-            const float currentSlope = mDepthBiasSlope * cascadeScale;
-            mRHI->CmdSetDepthBias(ctx, currentConstant, mDepthBiasClamp, currentSlope);
-
-            for(const MeshSubmitCmd& cmd : blackBoard.MeshList)
+            const Vector<ShadowDraw>& draws = mCascadeDraws[cascade];
+            if(!draws.empty())
             {
-                if(!cmd.DropShadow)
-                    continue;
+                mRHI->CmdBindPipeline(ctx, mShadowPipelines[cascade]);
+                mRHI->CmdBindDescriptorSet(ctx, mShadowPipelines[cascade], mInstanceSet, DescriptorSetSlot::ZERO);
 
-                const Mesh& mesh = *cmd.Mesh_;
-                mRHI->CmdBindVertexBuffer(ctx, mesh.GetVertexBuffer());
-                mRHI->CmdBindIndexBuffer(ctx, mesh.GetIndexBuffer());
+                const float cascadeScale = 1.0f / (static_cast<float>(cascade) + 1.0f);
+                const float currentConstant = mDepthBiasConstant * cascadeScale;
+                const float currentSlope = mDepthBiasSlope * cascadeScale;
+                mRHI->CmdSetDepthBias(ctx, currentConstant, mDepthBiasClamp, currentSlope);
+                mRHI->CmdPushConstants(ctx, mShadowPipelines[cascade], ShaderType::VERTEX | ShaderType::FRAGMENT, 0, sizeof(glm::mat4), &mLightViewProjections[cascade]);
 
-                const Submesh* submeshes = mesh.GetSubmeshes().data();
-                for(Uint i = 0; i < mesh.GetSubmeshes().size(); i++)
+                const Mesh* boundMesh = nullptr;
+                for(const ShadowDraw& draw : draws)
                 {
-                    const Submesh& submesh = submeshes[i];
-                    glm::mat4 pushConstants[2] = { cmd.Transform * submesh.Transform, mLightViewProjections[cascade] };
-                    mRHI->CmdPushConstants(ctx, mShadowPipelines[cascade], ShaderType::VERTEX | ShaderType::FRAGMENT, 0, sizeof(glm::mat4) * 2, pushConstants);
-                    mRHI->CmdDrawIndexed(ctx, submesh.IndexCount, 1, submesh.BaseIndex, submesh.BaseVertex, 0);
+                    if(draw.Mesh_ != boundMesh)
+                    {
+                        mRHI->CmdBindVertexBuffer(ctx, draw.Mesh_->GetVertexBuffer());
+                        mRHI->CmdBindIndexBuffer(ctx, draw.Mesh_->GetIndexBuffer());
+                        boundMesh = draw.Mesh_;
+                    }
+
+                    const Submesh& submesh = draw.Mesh_->GetSubmeshes()[draw.SubmeshIndex];
+                    mRHI->CmdDrawIndexed(ctx, submesh.IndexCount, draw.InstanceCount, submesh.BaseIndex, submesh.BaseVertex, draw.FirstInstance);
                 }
             }
             mRHI->CmdEndRenderPass(ctx, mShadowPassFramebuffer[cascade]);
@@ -159,6 +281,7 @@ namespace Surge
         ImGui::SliderInt("Cascade Count", &blackBoard.ShadowSettings_.CascadeCount, 2, MAX_SHADOW_CASCADE_COUNT);
         ImGui::SliderFloat("Cascade Split Lambda", &blackBoard.ShadowSettings_.CascadeSplitLambda, 0.0f, 1.0f, "%.3f");
         ImGui::Text("CascadeSplits: %f | %f | %f", mCascadeEnds[0], mCascadeEnds[1], mCascadeEnds[2]);
+        ImGui::Text("Casters: %u | Visible per cascade: %u | %u | %u", mCasterCount, mCascadeVisible[0], mCascadeVisible[1], mCascadeVisible[2]);
     }
 
     void ShadowPass::Shutdown(FrameBlackboard& blackBoard)
@@ -171,6 +294,10 @@ namespace Surge
             mRHI->DestroyImage(blackBoard.ShadowMap[i]);
             mRHI->DestroyPipeline(mShadowPipelines[i]);
         }
+
+        mRHI->DestroyDescriptorSet(mInstanceSet);
+        for(Uint i = 0; i < RHISettings::FRAMES_IN_FLIGHT; i++)
+            mRHI->DestroyBuffer(mInstanceBuffers[i]);
     }
 
     // (Rid)Visualization: https://gemini.google.com/share/13d9f8dfbf32

@@ -33,6 +33,39 @@ namespace Surge
         return String();
     }
 
+    Vector<String> FileDialog::OpenFiles(const char* filter)
+    {
+        // Multi-selection result: "folder\0file1\0file2\0\0", or a single full path when one file was picked
+        Vector<CHAR> buffer(32 * 1024, 0);
+        OPENFILENAMEA ofn;
+        ZeroMemory(&ofn, sizeof(OPENFILENAME));
+        ofn.lStructSize = sizeof(OPENFILENAME);
+        ofn.hwndOwner = static_cast<HWND>(Core::GetWindow()->GetNativeWindowHandle());
+        ofn.lpstrFile = buffer.data();
+        ofn.nMaxFile = static_cast<DWORD>(buffer.size());
+        ofn.lpstrFilter = filter;
+        ofn.nFilterIndex = 1;
+        ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR | OFN_EXPLORER | OFN_ALLOWMULTISELECT;
+
+        Vector<String> result;
+        if(GetOpenFileNameA(&ofn) != TRUE)
+            return result;
+
+        const String first = buffer.data();
+        const CHAR* cursor = buffer.data() + first.size() + 1;
+        if(*cursor == '\0')
+            result.push_back(first);
+        else
+        {
+            for(; *cursor != '\0'; cursor += strlen(cursor) + 1)
+                result.push_back(first + "/" + cursor);
+        }
+
+        for(String& path : result)
+            std::replace(path.begin(), path.end(), '\\', '/');
+        return result;
+    }
+
     String FileDialog::SaveFile(const char* filter, const char* defaultName)
     {
         OPENFILENAMEA ofn;

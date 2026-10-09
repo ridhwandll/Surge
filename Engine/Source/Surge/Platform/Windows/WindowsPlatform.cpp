@@ -36,7 +36,7 @@ namespace Surge
         std::wstring filepath = roamingFilePath;
         std::replace(filepath.begin(), filepath.end(), L'\\', L'/');
         std::transform(filepath.begin(), filepath.end(), std::back_inserter(resultantPath), [](wchar_t c) { return (char)c; });
-        resultantPath += "/Surge Engine";
+        resultantPath += "/SurgeEngine";
 
         if (!sPersistantDirectoryExists)
             sPersistantDirectoryExists = Filesystem::CreateOrEnsureDirectories(resultantPath);
@@ -68,6 +68,24 @@ namespace Surge
 
         if(shouldUninitialize)
             CoUninitialize();
+    }
+
+    bool Platform::MoveToRecycleBin(const String& path)
+    {
+        // SHFileOperation wants an absolute, backslashed, double null terminated list
+        std::error_code error;
+        String from = std::filesystem::absolute(path, error).string();
+        if(error)
+            return false;
+        std::replace(from.begin(), from.end(), '/', '\\');
+        from.push_back('\0');
+
+        SHFILEOPSTRUCTA operation = {};
+        operation.hwnd = static_cast<HWND>(Core::GetWindow()->GetNativeWindowHandle());
+        operation.wFunc = FO_DELETE;
+        operation.pFrom = from.c_str();
+        operation.fFlags = FOF_ALLOWUNDO | FOF_NOCONFIRMATION | FOF_SILENT | FOF_NOERRORUI;
+        return SHFileOperationA(&operation) == 0 && !operation.fAnyOperationsAborted;
     }
 
     void Platform::OpenInExplorer(const String& path)

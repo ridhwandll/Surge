@@ -252,7 +252,7 @@ namespace Surge
         pipelineInfo.layout = entry.Layout;
         pipelineInfo.renderPass = renderPass;
         pipelineInfo.subpass = 0;
-        VK_CALL(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &entry.Pipeline));
+        VK_CALL(vkCreateGraphicsPipelines(device, rhi.GetPipelineCache(), 1, &pipelineInfo, nullptr, &entry.Pipeline));
 
         vkDestroyShaderModule(device, vertModule, nullptr);
         vkDestroyShaderModule(device, fragModule, nullptr);
@@ -310,7 +310,7 @@ namespace Surge
         pipelineInfo.stage.module = computeModule;
         pipelineInfo.stage.pName = "main";
         pipelineInfo.layout = entry.Layout;
-        VK_CALL(vkCreateComputePipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &entry.Pipeline));
+        VK_CALL(vkCreateComputePipelines(device, rhi.GetPipelineCache(), 1, &pipelineInfo, nullptr, &entry.Pipeline));
 
         vkDestroyShaderModule(device, computeModule, nullptr);
 

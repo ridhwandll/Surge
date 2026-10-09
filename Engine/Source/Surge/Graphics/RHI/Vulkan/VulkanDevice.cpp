@@ -2,6 +2,7 @@
 #include "VulkanDevice.hpp"
 #include "VulkanDebugger.hpp"
 #include "Surge/Core/Logger/Logger.hpp"
+#include "VulkanFramePacing.hpp"
 
 namespace Surge
 {
@@ -84,6 +85,15 @@ namespace Surge
             
         Vector<const char*> requiredDeviceExtensions{ VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
+        // Framepacing (Swappy on Android) asks for optional extensions such as VK_GOOGLE_display_timing
+        Vector<String> framePacingExtensions = VulkanFramePacing::GetRequiredDeviceExtensions(mGPU, deviceExtensions);
+        for(const String& ext : framePacingExtensions)
+        {
+            const bool alreadyRequested = std::any_of(requiredDeviceExtensions.begin(), requiredDeviceExtensions.end(), [&](const char* e) { return ext == e; });
+            if(!alreadyRequested)
+                requiredDeviceExtensions.push_back(ext.c_str());
+        }
+
         VkDeviceCreateInfo deviceInfo{};
         deviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
@@ -110,6 +120,15 @@ namespace Surge
         else
             enabledFeatures.wideLines = VK_TRUE;
 
+        // Block compressed textures, sampling ASTC/ETC2/BC images is invalid unless the matching feature is enabled
+        mSupportsASTC = deviceFeatures.textureCompressionASTC_LDR == VK_TRUE;
+        mSupportsETC2 = deviceFeatures.textureCompressionETC2 == VK_TRUE;
+        mSupportsBC = deviceFeatures.textureCompressionBC == VK_TRUE;
+        enabledFeatures.textureCompressionASTC_LDR = deviceFeatures.textureCompressionASTC_LDR;
+        enabledFeatures.textureCompressionETC2 = deviceFeatures.textureCompressionETC2;
+        enabledFeatures.textureCompressionBC = deviceFeatures.textureCompressionBC;
+        Log<Severity::Info>("Texture compression support: ASTC: {}, ETC2: {}, BC: {}", mSupportsASTC, mSupportsETC2, mSupportsBC);
+
         deviceInfo.pEnabledFeatures = &enabledFeatures;
         deviceInfo.queueCreateInfoCount = 1;
         deviceInfo.pQueueCreateInfos = &queueInfo;
@@ -121,6 +140,7 @@ namespace Surge
         // Get the graphics queue
         // TODO: Move queue to a separate file and support multiple queues (graphics, compute, transfer)
         vkGetDeviceQueue(mDevice, mGraphicsQueueIndex, 0, &mQueue);
+        VulkanFramePacing::OnDeviceCreated(mDevice, mQueue, static_cast<Uint>(mGraphicsQueueIndex));
 
         //Vulkan Memory Alloctor (VMA)
         VmaDeviceMemoryCallbacks memCallbacks = {};
@@ -128,7 +148,7 @@ namespace Surge
         memCallbacks.pfnFree = OnVmaFree;
         memCallbacks.pUserData = &mGPUMemoryStats;
 
-        VmaVulkanFunctions vmaVulkanFunc = {}; // Zero initialize everything else!
+        VmaVulkanFunctions vmaVulkanFunc = {};
         vmaVulkanFunc.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
         vmaVulkanFunc.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
 
@@ -148,6 +168,7 @@ namespace Surge
     void VulkanDevice::Destroy()
     {
         vkDeviceWaitIdle(mDevice);
+        VulkanFramePacing::OnDeviceDestroyed(mDevice);
         vmaDestroyAllocator(mVmaAllocator);
         vkDestroyDevice(mDevice, nullptr);
     }
@@ -164,9 +185,7 @@ namespace Surge
 
             // On UMA mobile memoryHeapCount may be 1 with no DEVICE_LOCAL
             if (isDeviceLocal || props.memoryHeapCount == 1)
-            {
                 mGPUMemoryStats.BudgetBytes += budgets[i].budget;
-            }
         }
     }
 }

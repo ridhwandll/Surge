@@ -1,40 +1,33 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #ifdef SURGE_PLATFORM_ANDROID
 #include "Surge/Core/Input/Input.hpp"
-#include "Surge/Platform/Android/AndroidWindow.hpp"
+#include "Surge/Core/Input/InputState.hpp"
 
 namespace Surge
 {
-    // Android has no keyboard; key queries always return false
-    bool Input::IsKeyPressed(Key)
-    {
-        //Log<Severity::Warn>("Android has no keyboard so bool Input::IsKeyPressed(Key) is always return false!");
-        return false;
-    }
+    // Android can't be polled: keyboard, mouse and touch state is built from the events AndroidWindow emits.
+    // The primary touch drives the emulated mouse (left button + position), a real mouse drives it too
+    bool Input::IsKeyPressed(Key key) { return InputState::IsKeyDown(key); }
 
-    // Primary touch maps to left mouse button
-    bool Input::IsMouseButtonPressed(Mouse button)
-    {
-        if (button == Mouse::ButtonLeft)
-            return Android::IsTouchDown();
-
-        return false;
-    }
+    bool Input::IsMouseButtonPressed(Mouse button) { return InputState::IsMouseButtonDown(button); }
 
     Pair<float, float> Input::GetMousePosition()
     {
-        return {Android::GetTouchX(), Android::GetTouchY()};
+        const glm::vec2 position = InputState::GetMousePosition();
+        return {position.x, position.y};
     }
 
-    float Input::GetMouseX() { return Android::GetTouchX(); }
+    float Input::GetMouseX() { return InputState::GetMousePosition().x; }
 
-    float Input::GetMouseY() { return Android::GetTouchY(); }
+    float Input::GetMouseY() { return InputState::GetMousePosition().y; }
 
     void Input::SetCursorMode(CursorMode)
     {
-        // No cursor on Android
-        //Log<Severity::Warn>("Android has no mouse, you cant do Input::SetCursorMode(CursorMode) on your finger!");
+        // No cursor to lock on Android
     }
+
+    // Gamepads and touches are event driven on Android (AndroidWindow), nothing to poll
+    void InputState::PlatformBeginFrame() {}
 
 } // namespace Surge
 

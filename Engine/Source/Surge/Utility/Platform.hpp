@@ -22,6 +22,9 @@ namespace Surge::Platform
     // If VSCode is installed and available in the system's PATH, this will open the specified workspace and file in VSCode. If the workspacePath is empty, it will only open the file.
     void OpenInVSCode(const String& workspacePath, const String& path);
 
+    // Moves a file or folder (with its contents) to the OS recycle bin so it can be restored. False when it could not be moved
+    bool MoveToRecycleBin(const String& path);
+
     glm::vec2 GetScreenSize();
 
     // Sets/Gets it for the current process only. No registry.

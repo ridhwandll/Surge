@@ -71,6 +71,7 @@ namespace Surge
         }
 
         Ref<Material> GetMaterialAtIndex(Uint index) const;
+        const Material* GetMaterialPtrAtIndex(Uint index) const; // Render loops: no refcount traffic
 
         const Vector<Ref<Material>>& GetMaterials() const { return mGLTFMaterials; }
         const Vector<Ref<Material>>& GetMaterialOverrides() const { return mMaterialOverrides; }

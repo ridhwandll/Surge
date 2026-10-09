@@ -13,7 +13,8 @@ namespace Surge
         Export,
         UIEditor,
         Console,
-        History
+        History,
+        AssetRegistry
     };
 
     constexpr const char* PanelCodeToString(PanelCode code)
@@ -23,12 +24,13 @@ namespace Surge
             case PanelCode::Viewport: return "Viewport";
             case PanelCode::SceneHierarchy: return "Hierarchy";
             case PanelCode::Inspector: return "Inspector";
-            case PanelCode::ContentBrowser: return "ContentBrowser & AssetRegistry";
+            case PanelCode::ContentBrowser: return "Content Browser";
             case PanelCode::MaterialEditor: return "MaterialEditor";
             case PanelCode::Export: return "Export";
             case PanelCode::UIEditor: return "UI Editor";
             case PanelCode::Console: return "Console";
             case PanelCode::History: return "History";
+            case PanelCode::AssetRegistry: return "Asset Registry";
         }
         return nullptr;
     }

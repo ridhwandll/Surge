@@ -129,6 +129,8 @@ namespace Surge::VulkanUtils
         case ImageFormat::ASTC4x4_UNORM: return VK_FORMAT_ASTC_4x4_UNORM_BLOCK;
         case ImageFormat::BC7_SRGB: return VK_FORMAT_BC7_SRGB_BLOCK;
         case ImageFormat::BC7_UNORM: return VK_FORMAT_BC7_UNORM_BLOCK;
+        case ImageFormat::ETC2_RGBA8_SRGB: return VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK;
+        case ImageFormat::ETC2_RGBA8_UNORM: return VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
 
         default:
             SG_ASSERT_INTERNAL("Unsupported TextureFormat !");
@@ -136,6 +138,22 @@ namespace Surge::VulkanUtils
         return VK_FORMAT_UNDEFINED;
     }
 
+
+    bool IsCompressedFormat(ImageFormat format)
+    {
+        switch (format)
+        {
+        case ImageFormat::ASTC4x4_SRGB:
+        case ImageFormat::ASTC4x4_UNORM:
+        case ImageFormat::BC7_SRGB:
+        case ImageFormat::BC7_UNORM:
+        case ImageFormat::ETC2_RGBA8_SRGB:
+        case ImageFormat::ETC2_RGBA8_UNORM:
+            return true;
+        default:
+            return false;
+        }
+    }
 
     bool IsDepthFormat(ImageFormat format)
     {

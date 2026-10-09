@@ -2,6 +2,7 @@
 #pragma once
 #include "Surge/Core/String.hpp"
 #include <mutex>
+#include <atomic>
 #include <format>
 #include <ctime>
 
@@ -51,11 +52,24 @@ namespace Surge
         sLogSink = { callback, userData };
     }
 
-    template <Severity severity = Severity::Trace, typename... Args>
-    void Log(const std::string& fmtMsg, Args&&... args)
-    {
-        std::lock_guard<std::mutex> lock(sLogMutex);
+    // Messages below this severity are dropped before any formatting/locking (Player Release raises it to Warn)
+    inline std::atomic<Severity> sMinLogSeverity = Severity::Trace;
+    inline void SetMinLogSeverity(Severity severity) { sMinLogSeverity.store(severity, std::memory_order_relaxed); }
+    inline Severity GetMinLogSeverity() { return sMinLogSeverity.load(std::memory_order_relaxed); }
 
+    // Trace and Debug are stripped at compile time in Release builds
+    template <Severity severity>
+    constexpr bool IsLogSeverityCompiledIn()
+    {
+#ifdef SURGE_RELEASE
+        return severity != Severity::Trace && severity != Severity::Debug;
+#else
+        return true;
+#endif
+    }
+
+    inline void LogMessage(Severity severity, const String& message)
+    {
         std::time_t now = std::time(nullptr);
         std::tm ltm{};
 #ifdef _WIN32
@@ -63,10 +77,9 @@ namespace Surge
 #else
         localtime_r(&now, &ltm);
 #endif
+        const String finalMsg = std::format("[{:02}:{:02}:{:02}] {}", ltm.tm_hour, ltm.tm_min, ltm.tm_sec, message);
 
-        // Format message
-        std::string message = std::vformat(fmtMsg, std::make_format_args(args...));
-        String finalMsg = std::format("[{:02}:{:02}:{:02}] {}", ltm.tm_hour, ltm.tm_min, ltm.tm_sec, message);
+        std::lock_guard<std::mutex> lock(sLogMutex);
 
         // Output
 #ifdef SURGE_PLATFORM_ANDROID
@@ -101,5 +114,22 @@ namespace Surge
 
         if(sLogSink.Callback)
             sLogSink.Callback(severity, message, ltm, sLogSink.UserData);
+    }
+
+    template <Severity severity = Severity::Trace, typename... Args>
+    void Log(const std::string& fmtMsg, Args&&... args)
+    {
+        if constexpr (IsLogSeverityCompiledIn<severity>())
+        {
+            if(severity < sMinLogSeverity.load(std::memory_order_relaxed))
+                return;
+
+            LogMessage(severity, std::vformat(fmtMsg, std::make_format_args(args...)));
+        }
+        else
+        {
+            ((void)args, ...);
+            (void)fmtMsg;
+        }
     }
 } // namespace Surge

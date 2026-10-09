@@ -24,7 +24,7 @@ layout(push_constant) uniform PushConstants
     vec4 BloomTint;   // rgb: tint * intensity
     vec2 BloomTexelSize;
     int BloomMode;    // 0 = off, 1 = bilinear, 2 = 9 tap tent
-    float _pad1;
+    int OutlineMode;  // 0 = nothing outlined (mask not rendered this frame), 1 = on
 } pc;
 
 void main()
@@ -75,7 +75,7 @@ layout(push_constant) uniform PushConstants
     vec4 BloomTint;   // rgb: tint * intensity
     vec2 BloomTexelSize;
     int BloomMode;    // 0 = off, 1 = bilinear, 2 = 9 tap tent
-    float _pad1;
+    int OutlineMode;  // 0 = nothing outlined (mask not rendered this frame), 1 = on
 } pc;
 
 // FXAA
@@ -246,7 +246,7 @@ void main()
     if (pc.AOMode != 0)
     {
         float ao = SampleAmbientOcclusion();
-        if (pc.AOMode == 2)
+        if (pc.AOMode == 2) // AO Only (visualization)
         {
             outColor = vec4(vec3(ao), 1.0);
             return;
@@ -263,9 +263,9 @@ void main()
     LDRColor += FilmGrain();
     LDRColor = clamp(LDRColor, 0.0, 1.0); // (Rid) Stops negative grain values from breaking the pow() function below
 
-    LDRColor = pow(LDRColor, vec3(1.0 / 2.2)); //Gamma
+    LDRColor = pow(LDRColor, vec3(1.0 / 2.2)); // Gamma
 
-    vec3 finalColor = mix(LDRColor, pc.ColorThickness.rgb, CalculateOutline()); // Outlines
+    vec3 finalColor = pc.OutlineMode != 0 ? mix(LDRColor, pc.ColorThickness.rgb, CalculateOutline()) : LDRColor; // Outlines
 
     outColor = vec4(finalColor, 1.0);
 }

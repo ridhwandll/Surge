@@ -9,14 +9,20 @@
 #include "Surge/Graphics/RHI/Vulkan/VulkanUtils.hpp"
 #include "Surge/Graphics/RHI/Vulkan/VulkanImage.hpp"
 
+#include "Surge/Graphics/RHI/Vulkan/VulkanFramePacing.hpp"
+
 #include "Surge/Core/Core.hpp"
 #include "Surge/Core/Logger/Logger.hpp"
+#include "Surge/Utility/Platform.hpp"
+#include <cstdio>
 
 #ifdef SURGE_PLATFORM_ANDROID
 #include <android/native_window.h>
 #endif
 #include "Backends/imgui_impl_vulkan.h"
 #include <SurgeReflect/Enum.hpp>
+
+#define SURGE_VK_PIPELINE_CACHE_FILE "SurgeVkPipelineCache.bin"
 
 #define LOG_OBJ_CREATION_DELETION 0
 #if LOG_OBJ_CREATION_DELETION
@@ -84,9 +90,12 @@ namespace Surge
     {
         SCOPED_TIMER("VulkanRHI::Initialize");
 
+        mWindow = window;
         CreateInstance();
         CreateSurface(window);
         mDevice.Initialize(mInstance, mSurface);
+        mUploader.Initialize(*this);
+        CreatePipelineCache();
         mFrame.Initialize(*this, RHISettings::FRAMES_IN_FLIGHT);
         mSwapchain.Initialize(*this, window->GetSize().x, window->GetSize().y);
 
@@ -102,7 +111,10 @@ namespace Surge
 
     void VulkanRHI::WaitIdle() const
     {
+        // Pending uploads are part of "all GPU work", submit them so the wait covers them too
+        mUploader.Flush(*this);
         vkDeviceWaitIdle(mDevice.GetDevice());
+        mUploader.Collect(*this);
     }
 
     void VulkanRHI::Shutdown()
@@ -136,15 +148,18 @@ namespace Surge
 
         mFrame.Shutdown(*this);
         mSwapchain.Shutdown(*this);
+        mUploader.Shutdown(*this);
+        DestroyPipelineCache();
         ENABLE_IF_VK_VALIDATION(mDebugger.EndDiagnostics(mInstance));
         mDevice.Destroy();
-        vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
+        DestroySurface();
         vkDestroyInstance(mInstance, nullptr);
     }
 
     void VulkanRHI::BeginFrame(FrameContext& outCtx)
     {
         SURGE_PROFILE_FUNC("VulkanRHI::BeginFrame");
+        SG_ASSERT(mSurface != VK_NULL_HANDLE, "VulkanRHI::BeginFrame: no surface (the app is in the background), do not render until OnSurfaceCreated()");
         mStats.Reset();
 
         if (mImGuiContext.IsInitialized())
@@ -165,6 +180,7 @@ namespace Surge
         }
 
         FlushDeletionQueue(currentFrameIndex);
+        mUploader.Collect(*this); // Recycle staging memory of uploads the GPU has finished
 
         // Ask swapchain which IMAGE is available
         // This is unpredictable, diver may return any index
@@ -210,6 +226,9 @@ namespace Surge
         const PerFrame& frame = mFrame.GetCurrentVkFrame();
         vkEndCommandBuffer(frame.CmdBuffer);
 
+        // Uploads recorded since the last frame go first, the frame's commands may use them (same queue, submission order)
+        mUploader.Flush(*this);
+
         //Log<Severity::Debug>("-------------Ending CPU frame: FrameIndex: {}-------------", ctx.FrameIndex);
         // Submit: frame slot semaphores sync with swapchain image
         // Wait on AcquireSemaphore -> GPU waits until compositor releases the image
@@ -241,13 +260,82 @@ namespace Surge
 
     void VulkanRHI::Resize()
     {
-#ifdef SURGE_PLATFORM_ANDROID
-        // TODO: Android destroys and creates surface when window is minimized!
-        //VulkanRHI& rhi = Core::GetRenderer()->GetRHI()->GetBackendRHI();
-        //vkDestroySurfaceKHR(rhi.GetInstance(), rhi.GetSurface(), nullptr);
-        //CreateSurface(Core::GetWindow());
-#endif
+        if(mSurface == VK_NULL_HANDLE)
+            return; // Backgrounded, the swapchain is rebuilt in OnSurfaceCreated()
+
         ResizeInternal();
+    }
+
+    void VulkanRHI::OnSurfaceDestroyed()
+    {
+        if(mSurface == VK_NULL_HANDLE)
+            return;
+
+        Log<Severity::Info>("[VulkanRHI] Surface destroyed, releasing the swapchain");
+        WaitIdle();
+        DestroySwapchainFramebuffers();
+        mSwapchain.Shutdown(*this);
+        DestroySurface();
+    }
+
+    void VulkanRHI::OnSurfaceCreated(Window* window)
+    {
+        mWindow = window;
+        if(mSurface != VK_NULL_HANDLE)
+            return; // Still valid (the window was never terminated), a regular resize handles size changes
+
+        Log<Severity::Info>("[VulkanRHI] Surface created, rebuilding the swapchain");
+        CreateSurface(window);
+
+        VkBool32 presentSupported = VK_FALSE;
+        vkGetPhysicalDeviceSurfaceSupportKHR(mDevice.GetGPU(), static_cast<Uint>(mDevice.GetQueueIndex()), mSurface, &presentSupported);
+        SG_ASSERT(presentSupported == VK_TRUE, "VulkanRHI: the graphics queue cannot present to the new surface!");
+
+        const VkFormat previousFormat = mSwapchain.GetDimensions().Format;
+        mSwapchain.Initialize(*this, static_cast<Uint>(window->GetSize().x), static_cast<Uint>(window->GetSize().y));
+
+        // Every swapchain-targeted pipeline was built against mRenderPass, a different surface format would need all of them rebuilt
+        if(previousFormat != VK_FORMAT_UNDEFINED && previousFormat != mSwapchain.GetDimensions().Format)
+            Log<Severity::Error>("[VulkanRHI] Surface format changed after recreation, swapchain pipelines may be incompatible!");
+
+        CreateSwapchainFramebuffers();
+        SetTargetFrameRate(mTargetFrameRate);
+    }
+
+    bool VulkanRHI::SetTargetFrameRate(float fps)
+    {
+        mTargetFrameRate = fps;
+        VulkanFramePacing::SetTargetFrameRate(mDevice.GetDevice(), mSwapchain.GetSwapchain(), fps);
+        return mSwapchain.IsFramePacingActive();
+    }
+
+    bool VulkanRHI::IsFormatSupported(ImageFormat format) const
+    {
+        const VkFormat vkFormat = VulkanUtils::ImageFormatToVkFormat(format);
+        switch(vkFormat)
+        {
+            case VK_FORMAT_ASTC_4x4_SRGB_BLOCK:
+            case VK_FORMAT_ASTC_4x4_UNORM_BLOCK:
+                if(!mDevice.SupportsASTC())
+                    return false;
+                break;
+            case VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK:
+            case VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK:
+                if(!mDevice.SupportsETC2())
+                    return false;
+                break;
+            case VK_FORMAT_BC7_SRGB_BLOCK:
+            case VK_FORMAT_BC7_UNORM_BLOCK:
+                if(!mDevice.SupportsBC())
+                    return false;
+                break;
+            default:
+                break;
+        }
+
+        VkFormatProperties props = {};
+        vkGetPhysicalDeviceFormatProperties(mDevice.GetGPU(), vkFormat, &props);
+        return (props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT) != 0;
     }
 
     const RHIStats& VulkanRHI::GetStats()
@@ -324,7 +412,7 @@ namespace Surge
         VK_RHI_LOG(Log<Severity::Info>("Destroying texture with handle index {0} and generation {1}", h.Index, h.Generation));
 
         if(entry->Desc.GenerateImGuiID && mImGuiContext.IsInitialized())
-            mImGuiContext.DestroyImage(entry->ImGuiID);
+            DeferImGuiTextureDestroy(entry->ImGuiID);
 
         mDeletionQueues[GetDeletionQueueIndex()].Images.push_back(std::move(*entry));
         mTexturePool.Free(h);
@@ -351,7 +439,7 @@ namespace Surge
         SG_ASSERT(!desc.InitialData && !desc.MipUploads, "RecreateImage: initial data uploads are not supported, the image content is undefined after recreation");
 
         if (entry->Desc.GenerateImGuiID && mImGuiContext.IsInitialized())
-            DestroyImGuiImage(h);
+            DeferImGuiTextureDestroy(entry->ImGuiID);
 
         mDeletionQueues[GetDeletionQueueIndex()].Images.push_back(std::move(*entry));
 
@@ -388,15 +476,13 @@ namespace Surge
 
     void VulkanRHI::ResizeFramebuffer(FramebufferHandle h, Uint width, Uint height, bool resizeImages)
     {
-        WaitIdle();
         FramebufferEntry* entry = mFramebufferPool.Get(h);
         if (!entry)
             return;
 
-        // We dont use deletion queque here because we need to destroy the old framebuffer immediately to free up the memory for the new resized attachments
-        // The old framebuffer will be destroyed after WaitIdle() so we are sure the GPU is not using it anymore.
-        FramebufferEntry oldEntry = *entry;
-        VulkanFramebuffer::Destroy(*this, oldEntry);
+        // No GPU drain: the old VkFramebuffer (and the old attachments via RecreateImage) go through the deletion queue
+        // and are destroyed once the frames that may still reference them have retired
+        mDeletionQueues[GetDeletionQueueIndex()].Framebuffers.push_back(*entry);
 
         // Resize the attached Textures
         if(resizeImages)
@@ -413,8 +499,16 @@ namespace Surge
         desc.Height = height;
 
         *entry = VulkanFramebuffer::Create(*this, desc, mRenderPassCache, mTexturePool);
+    }
 
-        //EnqueueDeletion([this, oldEntry]() mutable { VulkanFramebuffer::Destroy(*this, oldEntry); });
+    void VulkanRHI::RecreateFramebuffer(FramebufferHandle h, const FramebufferDesc& desc)
+    {
+        FramebufferEntry* entry = mFramebufferPool.Get(h);
+        if (!entry)
+            return;
+
+        mDeletionQueues[GetDeletionQueueIndex()].Framebuffers.push_back(*entry);
+        *entry = VulkanFramebuffer::Create(*this, desc, mRenderPassCache, mTexturePool);
     }
 
     const FramebufferDesc& VulkanRHI::GetDesc(FramebufferHandle h) const
@@ -792,38 +886,6 @@ namespace Surge
         }
     }
 
-    VkCommandBuffer VulkanRHI::BeginOneTimeCommands() const
-    {
-        VkCommandBufferAllocateInfo allocInfo = {};
-        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.commandPool = mFrame.GetFrame(0).CmdPool;
-        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = 1;
-
-        VkCommandBuffer cmd;
-        vkAllocateCommandBuffers(mDevice, &allocInfo, &cmd);
-
-        VkCommandBufferBeginInfo beginInfo = {};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-        vkBeginCommandBuffer(cmd, &beginInfo);
-        return cmd;
-    }
-
-    void VulkanRHI::EndOneTimeCommands(VkCommandBuffer cmd) const
-    {
-        vkEndCommandBuffer(cmd);
-
-        VkSubmitInfo submitInfo = {};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &cmd;
-
-        vkQueueSubmit(mDevice.GetQueue(), 1, &submitInfo, VK_NULL_HANDLE);
-        vkQueueWaitIdle(mDevice.GetQueue());
-        vkFreeCommandBuffers(mDevice.GetDevice(), mFrame.GetFrame(0).CmdPool, 1, &cmd);
-    }
-
     ImTextureID VulkanRHI::AddImGuiImage(ImageHandle h)
     {
         if (!mImGuiContext.IsInitialized())
@@ -861,7 +923,15 @@ namespace Surge
         ImageEntry* entry = mTexturePool.Get(h);
         SG_ASSERT(entry, "VulkanRHI::DestroyImGuiImage: invalid TextureHandle");
         SG_ASSERT(entry->Desc.GenerateImGuiID, "VulkanRHI::DestroyImGuiImage: Texture was not created with GenerateImGuiID flag!");
-        mImGuiContext.DestroyImage(entry->ImGuiID);
+        DeferImGuiTextureDestroy(entry->ImGuiID);
+    }
+
+    void VulkanRHI::DeferImGuiTextureDestroy(ImTextureID& id)
+    {
+        // ImGui_ImplVulkan_RemoveTexture frees the descriptor set immediately, frames in flight may still sample it
+        if(id)
+            mDeletionQueues[GetDeletionQueueIndex()].ImGuiTextures.push_back(id);
+        id = 0;
     }
 
     void VulkanRHI::ShowPoolDebugImGuiWindow()
@@ -1138,6 +1208,77 @@ namespace Surge
 #endif
     }
 
+    void VulkanRHI::CreatePipelineCache()
+    {
+        // Pipelines are compiled by the driver on every launch unless we hand it back its own cache blob from last time
+        // The blob is only reused if its header matches this exact GPU + driver build, anything else is ignored
+        const String path = Platform::GetPersistantStoragePath() + "/ " + SURGE_VK_PIPELINE_CACHE_FILE;
+
+        Vector<Byte> data;
+        if(FILE* f = std::fopen(path.c_str(), "rb"))
+        {
+            std::fseek(f, 0, SEEK_END);
+            const long size = std::ftell(f);
+            std::fseek(f, 0, SEEK_SET);
+            if(size > 0)
+            {
+                data.resize(static_cast<size_t>(size));
+                if(std::fread(data.data(), 1, data.size(), f) != data.size())
+                    data.clear();
+            }
+            std::fclose(f);
+        }
+
+        VkPhysicalDeviceProperties props = {};
+        vkGetPhysicalDeviceProperties(mDevice.GetGPU(), &props);
+
+        bool valid = data.size() > sizeof(VkPipelineCacheHeaderVersionOne);
+        if(valid)
+        {
+            VkPipelineCacheHeaderVersionOne header = {};
+            memcpy(&header, data.data(), sizeof(header));
+            valid = header.headerVersion == VK_PIPELINE_CACHE_HEADER_VERSION_ONE && header.vendorID == props.vendorID &&
+                    header.deviceID == props.deviceID && memcmp(header.pipelineCacheUUID, props.pipelineCacheUUID, VK_UUID_SIZE) == 0;
+        }
+
+        VkPipelineCacheCreateInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+        info.initialDataSize = valid ? data.size() : 0;
+        info.pInitialData = valid ? data.data() : nullptr;
+        VK_CALL(vkCreatePipelineCache(mDevice.GetDevice(), &info, nullptr, &mPipelineCache));
+
+        if(valid)
+            Log<Severity::Info>("[VulkanRHI] Pipeline cache loaded from disk ({} KB)", data.size() / 1024);
+        else
+            Log<Severity::Info>("[VulkanRHI] No usable pipeline cache on disk, pipelines are compiled cold this launch");
+    }
+
+    void VulkanRHI::DestroyPipelineCache()
+    {
+        if(mPipelineCache == VK_NULL_HANDLE)
+            return;
+
+        size_t size = 0;
+        if(vkGetPipelineCacheData(mDevice.GetDevice(), mPipelineCache, &size, nullptr) == VK_SUCCESS && size > 0)
+        {
+            Vector<Byte> data(size);
+            if(vkGetPipelineCacheData(mDevice.GetDevice(), mPipelineCache, &size, data.data()) == VK_SUCCESS)
+            {
+                const String path = Platform::GetPersistantStoragePath() + "/ " + SURGE_VK_PIPELINE_CACHE_FILE;
+                if(FILE* f = std::fopen(path.c_str(), "wb"))
+                {
+                    std::fwrite(data.data(), 1, size, f);
+                    std::fclose(f);
+                }
+                else
+                    Log<Severity::Warn>("[VulkanRHI] Could not write the pipeline cache to {}", path);
+            }
+        }
+
+        vkDestroyPipelineCache(mDevice.GetDevice(), mPipelineCache, nullptr);
+        mPipelineCache = VK_NULL_HANDLE;
+    }
+
     void VulkanRHI::DestroySurface()
     {
         if (mSurface != VK_NULL_HANDLE)
@@ -1338,12 +1479,17 @@ namespace Surge
     {
         SURGE_PROFILE_FUNC("VulkanRHI::FlushDeletionQueue(Uint frameIndex)");
         auto& q = mDeletionQueues[frameIndex];
+        for(auto& e : q.Framebuffers) VulkanFramebuffer::Destroy(*this, e); // Before images, they reference their views
         for(auto& e : q.Buffers) VulkanBuffer::Destroy(*this, e);
         for(auto& e : q.Images) VulkanImage::Destroy(*this, e);
-        for(auto& e : q.Framebuffers) VulkanFramebuffer::Destroy(*this, e);
         for(auto& e : q.Pipelines) VulkanPipeline::Destroy(*this, e);
         for(auto& e : q.Samplers) vkDestroySampler(mDevice, e.Sampler, nullptr);
         for(auto& e : q.DescriptorSets) VulkanDescriptorSet::Destroy(*this, e);
+        if(mImGuiContext.IsInitialized())
+        {
+            for(ImTextureID id : q.ImGuiTextures)
+                mImGuiContext.DestroyImage(id);
+        }
         q = {};
     }
 }

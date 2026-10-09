@@ -4,7 +4,7 @@ plugins {
 
 // Export Panel contract
 // The editor's Export Panel invokes Gradle with these -P properties (all optional, so building from Android Studio keeps working with the defaults below):
-//   -PsurgeAppName, -PsurgeApplicationId, -PsurgeVersionName, -PsurgeVersionCode, -PsurgeMinSdk
+//   -PsurgeAppName, -PsurgeApplicationId, -PsurgeVersionName, -PsurgeVersionCode, -PsurgeMinSdk, -PsurgeTargetSdk
 // Signing secrets are passed through environment variables, never on the command line:
 //   SURGE_KEYSTORE_PATH, SURGE_KEYSTORE_PASS, SURGE_KEY_ALIAS, SURGE_KEY_PASS
 
@@ -17,6 +17,7 @@ def surgeApplicationId = surgeProp('surgeApplicationId', 'com.ridt.surgeplayer')
 def surgeVersionName = surgeProp('surgeVersionName', '1.0')
 def surgeVersionCode = surgeProp('surgeVersionCode', '1').toInteger()
 def surgeMinSdk = surgeProp('surgeMinSdk', '29').toInteger()
+def surgeTargetSdk = surgeProp('surgeTargetSdk', '36').toInteger()
 def surgeOrientation = surgeProp('surgeOrientation', 'landscape') // android:screenOrientation value
 def surgeImmersive = surgeProp('surgeImmersive', 'true')
 def surgeCutout = surgeProp('surgeCutout', 'true')
@@ -29,16 +30,37 @@ if (surgeMinSdk < 29) {
 
 def surgeKeystorePath = System.getenv('SURGE_KEYSTORE_PATH')
 
+// Swappy (Android Frame Pacing) is consumed as a plain static library, not through Prefab: the package also ships a shared
+// 'swappy' module that requires c++_shared, which makes Prefab reject the whole package for our c++_static build
+// Its Java side is empty (the helper dex is embedded in the native library), so only the native files are needed
+configurations {
+    surgeSwappy
+}
+def surgeSwappyDir = layout.buildDirectory.dir('surge-swappy').get().asFile
+tasks.register('extractSwappy', Copy) {
+    from({ zipTree(configurations.surgeSwappy.singleFile) }) {
+        include 'prefab/modules/swappy_static/include/**'
+        include 'prefab/modules/swappy_static/libs/android.arm64-v8a/**'
+        eachFile { it.path = it.path.replaceFirst('prefab/modules/swappy_static/', '') }
+        includeEmptyDirs = false
+    }
+    into surgeSwappyDir
+}
+tasks.configureEach { task ->
+    if (task.name.startsWith('configureCMake') || task.name.startsWith('buildCMake') || task.name.startsWith('generateJsonModel'))
+        task.dependsOn 'extractSwappy'
+}
+
 android {
     namespace = 'com.surgetechnologies.surgeplayer'
-    compileSdk 33
+    compileSdk Math.max(36, surgeTargetSdk)
 
     ndkVersion = "27.3.13750724"
 
     defaultConfig {
         applicationId = surgeApplicationId
         minSdk surgeMinSdk //Android 10 is must as we need Vulkan 1.1
-        targetSdk = 33
+        targetSdk = surgeTargetSdk
         versionCode = surgeVersionCode
         versionName = surgeVersionName
         resValue "string", "app_name", surgeAppName
@@ -63,6 +85,7 @@ android {
                 cppFlags += "-Wall -Wextra"
                 arguments += "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
                 arguments += "-DANDROID_STL=c++_static"
+                arguments += "-DSURGE_SWAPPY_ROOT=" + surgeSwappyDir.absolutePath.replace('\\', '/')
             }
         }
     }
@@ -142,4 +165,7 @@ dependencies {
 
     // Provides androidx.startup.InitializationProvider
     implementation "androidx.startup:startup-runtime:1.1.1"
+
+    // Android Frame Pacing (Swappy) for VulkanFramePacing.cpp, see 'extractSwappy' below
+    surgeSwappy "androidx.games:games-frame-pacing:2.1.3@aar"
 }

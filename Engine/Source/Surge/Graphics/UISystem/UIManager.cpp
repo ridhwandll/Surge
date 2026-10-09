@@ -61,8 +61,11 @@ namespace Surge::UI
 
         if(mHoveredWidget && IsInTree(mHoveredWidget.get(), root.get()))
             mHoveredWidget = nullptr;
-        if(mPressedWidget && IsInTree(mPressedWidget.get(), root.get()))
-            mPressedWidget = nullptr;
+        for(PointerPress& press : mPointerPresses)
+        {
+            if(press.Pressed && IsInTree(press.Pressed.get(), root.get()))
+                press.Pressed = nullptr;
+        }
 
         root->Destroy();
         root = nullptr;
@@ -118,7 +121,7 @@ namespace Surge::UI
 
         // No OnHoverExit here: this runs during teardown, Lua callbacks must not fire anymore
         mHoveredWidget = nullptr;
-        mPressedWidget = nullptr;
+        mPointerPresses.clear();
 
         for(Canvas& canvas : mCanvases)
         {
@@ -226,39 +229,106 @@ namespace Surge::UI
         }
     }
 
-    bool Manager::ProcessMouseButton(float rawX, float rawY, bool isDown)
+    bool Manager::ProcessPointerDown(int64_t pointerID, float rawX, float rawY)
     {
-        SURGE_PROFILE_FUNC("Surge::UI::Manager::ProcessMouseButton");
+        SURGE_PROFILE_FUNC("Surge::UI::Manager::ProcessPointerDown");
 
         const glm::vec2 uiPos = ScreenToUI(rawX, rawY);
-        const bool inside = mUIVisible && IsInsideViewport(uiPos);
-
-        if(isDown)
-        {
-            // Ignore clicks that happen completely outside the game viewport
-            if(!inside)
-                return false;
-
-            Widget* hit = HitTest(uiPos.x, uiPos.y);
-            if(!hit)
-                return false;
-
-            mPressedWidget = Ref<Widget>(hit);
-            mPressedWidget->OnMouseDown();
-            return true;
-        }
-
-        // Release must always be handled, even outside the viewport, otherwise the pressed widget stays stuck in the pressed state
-        if(!mPressedWidget)
+        // Ignore presses that happen completely outside the game viewport
+        if(!mUIVisible || !IsInsideViewport(uiPos))
             return false;
 
-        Widget* hit = inside ? HitTest(uiPos.x, uiPos.y) : nullptr;
-        if(hit == mPressedWidget.get())
-            mPressedWidget->OnMouseUp();
-        else
-            mPressedWidget->CancelPress(); // Hover exit was already reported by ProcessMouseMove, don't fire it twice
+        Widget* hit = HitTest(uiPos.x, uiPos.y);
+        if(!hit)
+            return false;
 
-        mPressedWidget = nullptr;
+        for(PointerPress& press : mPointerPresses)
+        {
+            if(press.PointerID == pointerID) // Missed release of this pointer
+            {
+                if(press.Pressed)
+                    press.Pressed->CancelPress();
+                press.Pressed = Ref<Widget>(hit);
+                hit->OnMouseDown();
+                return true;
+            }
+        }
+
+        mPointerPresses.push_back({ pointerID, Ref<Widget>(hit) });
+        hit->OnMouseDown();
         return true;
+    }
+
+    bool Manager::ProcessPointerUp(int64_t pointerID, float rawX, float rawY, bool canceled)
+    {
+        SURGE_PROFILE_FUNC("Surge::UI::Manager::ProcessPointerUp");
+
+        // Release must always be handled, even outside the viewport, otherwise the pressed widget stays stuck in the pressed state
+        for(auto it = mPointerPresses.begin(); it != mPointerPresses.end(); ++it)
+        {
+            if(it->PointerID != pointerID)
+                continue;
+
+            Ref<Widget> pressed = it->Pressed;
+            mPointerPresses.erase(it);
+            if(!pressed)
+                return true;
+
+            // Another finger still holds the same widget: keep it pressed, that finger decides about the click
+            for(const PointerPress& other : mPointerPresses)
+            {
+                if(other.Pressed.get() == pressed.get())
+                    return true;
+            }
+
+            const glm::vec2 uiPos = ScreenToUI(rawX, rawY);
+            const bool inside = !canceled && mUIVisible && IsInsideViewport(uiPos);
+            Widget* hit = inside ? HitTest(uiPos.x, uiPos.y) : nullptr;
+            if(hit == pressed.get())
+                pressed->OnMouseUp();
+            else
+                pressed->CancelPress(); // Hover exit was already reported by ProcessMouseMove, don't fire it twice
+            return true;
+        }
+        return false;
+    }
+
+    Widget* Manager::WidgetAt(float rawX, float rawY)
+    {
+        const glm::vec2 uiPos = ScreenToUI(rawX, rawY);
+        if(!mUIVisible || !IsInsideViewport(uiPos))
+            return nullptr;
+        return HitTest(uiPos.x, uiPos.y);
+    }
+
+    Widget* Manager::WidgetAt(uint64_t owner, float rawX, float rawY)
+    {
+        Canvas* canvas = FindCanvas(owner);
+        const glm::vec2 uiPos = ScreenToUI(rawX, rawY);
+        if(!canvas || !canvas->Visible || !mUIVisible || !IsInsideViewport(uiPos))
+            return nullptr;
+
+        for(Widget* root : { canvas->ScriptRoot.get(), canvas->LayoutRoot.get() })
+        {
+            if(!root)
+                continue;
+            if(Widget* hit = root->HitTest(uiPos.x, uiPos.y))
+                return hit;
+        }
+        return nullptr;
+    }
+
+    glm::vec2 Manager::ScreenToCanvas(uint64_t owner, float rawX, float rawY)
+    {
+        Canvas* canvas = FindCanvas(owner);
+        const float scale = canvas ? GetCanvasScale(*canvas) : 1.0f;
+        return ScreenToUI(rawX, rawY) / (scale > 0.0f ? scale : 1.0f);
+    }
+
+    glm::vec2 Manager::GetCanvasSize(uint64_t owner)
+    {
+        Canvas* canvas = FindCanvas(owner);
+        const float scale = canvas ? GetCanvasScale(*canvas) : 1.0f;
+        return mTargetResolution / (scale > 0.0f ? scale : 1.0f);
     }
 }

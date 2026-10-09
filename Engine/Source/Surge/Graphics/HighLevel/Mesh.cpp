@@ -9,6 +9,21 @@ namespace Surge
 {
     Mesh::Mesh(MeshSpecification&& spec)
     {
+        // Culling relies on per-submesh bounds, rebuild them from the vertices (meshes created in code never fill them)
+        for(Submesh& submesh : spec.Submeshes)
+        {
+            submesh.BoundingBox.Reset();
+            const Uint end = std::min(submesh.BaseVertex + submesh.VertexCount, static_cast<Uint>(spec.Vertices.size()));
+            for(Uint v = submesh.BaseVertex; v < end; v++)
+            {
+                submesh.BoundingBox.Min = glm::min(submesh.BoundingBox.Min, spec.Vertices[v].Position);
+                submesh.BoundingBox.Max = glm::max(submesh.BoundingBox.Max, spec.Vertices[v].Position);
+            }
+
+            if(submesh.BoundingBox.Min.x > submesh.BoundingBox.Max.x) // No vertices, never culled
+                submesh.BoundingBox = AABB(glm::vec3(-FLT_MAX * 0.5f), glm::vec3(FLT_MAX * 0.5f));
+        }
+
         Scope<GraphicsRHI>& rhi = Core::GetRenderer()->GetRHI();
         BufferDesc vbDesc = {};
         vbDesc.Size = static_cast<Uint>(spec.Vertices.size()) * sizeof(Vertex);
@@ -55,8 +70,8 @@ namespace Surge
 
     Mesh::~Mesh()
     {
+        // Destroy* is deferred until the GPU has retired every frame that may still use the buffers, no device drain needed
         Scope<GraphicsRHI>& rhi = Core::GetRenderer()->GetRHI();
-        rhi->WaitIdle();
         rhi->DestroyBuffer(mVertexBuffer);
         rhi->DestroyBuffer(mIndexBuffer);
     }
@@ -64,6 +79,16 @@ namespace Surge
     Ref<Mesh> Mesh::Create(MeshSpecification&& spec)
     {
         return Ref<Mesh>::Create(std::move(spec));
+    }
+
+    const Material* Mesh::GetMaterialPtrAtIndex(Uint index) const
+    {
+        SG_ASSERT(index < mGLTFMaterials.size(), "Material index out of range!");
+
+        if(index < mMaterialOverrides.size() && mMaterialOverrides[index])
+            return mMaterialOverrides[index].Raw();
+
+        return mGLTFMaterials[index].Raw();
     }
 
     Ref<Material> Mesh::GetMaterialAtIndex(Uint index) const

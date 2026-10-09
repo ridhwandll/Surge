@@ -18,7 +18,8 @@ namespace Surge
     class UIOverlayPass : public RenderPass
     {
     public:
-        UIOverlayPass() { mName = "UIOverlayPass"; mGroup = PassGroup::UI_OVERLAY; }
+        // Player (RHISettings::RENDER_TO_SWAPCHAIN): drawn inside the swapchain render pass right after PostProcess
+        UIOverlayPass() { mName = "UIOverlayPass"; mGroup = RHISettings::RENDER_TO_SWAPCHAIN ? PassGroup::SWAPCHAIN : PassGroup::UI_OVERLAY; }
         virtual ~UIOverlayPass() = default;
 
         void Setup(GraphicsRHI* rhi, FrameBlackboard& blackBoard) override;
@@ -28,7 +29,6 @@ namespace Surge
         void Shutdown(FrameBlackboard& blackBoard) override;
 
     public:
-        // Lower limits specifically for UI
         static constexpr Uint MAX_UI_QUADS_TOTAL = 10000;
         static constexpr Uint MAX_UI_QUADS_PER_BATCH = 2500;
         static constexpr Uint MAX_UI_QUAD_BATCHES = 50;

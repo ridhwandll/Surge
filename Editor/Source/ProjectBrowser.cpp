@@ -480,8 +480,8 @@ namespace Surge
         sTempProjectBuffer.StartScene = newScene->GetID();
 
         // Setup editor context with the new project and scene
+        editor->SetCurrentProject(sTempProjectBuffer, sCreateProjectPath);
         editor->LoadScene(std::move(newScene));
-        editor->SetCurrentProject(sTempProjectBuffer);
 
         Serializer::SerializeProject(sCreateProjectPath, &sTempProjectBuffer);
         SerializeRecentProject(sTempProjectBuffer.Name, sCreateProjectPath);
@@ -505,13 +505,9 @@ namespace Surge
         mAssetManager->Initialize(assetManagerPath);
         editor->GetPanelManager().GetPanel<ContentBrowserPanel>()->OnAssetManagerInit();
 
-        // Load the start scene of the opened project
-        Ref<Scene> loadedScene = mAssetManager->Load<Scene>(openedProject.StartScene);
-        SG_ASSERT(loadedScene, "Failed to load start scene!");
-
-        // Setup editor context with the new project and scene
-        editor->LoadScene(std::move(loadedScene));
-        editor->SetCurrentProject(openedProject);
+        // Setup editor context with the opened project, then reopen the scene that was open last time (start scene otherwise)
+        editor->SetCurrentProject(openedProject, sOpenProjectPath);
+        editor->LoadStartupScene();
 
         SerializeRecentProject(openedProject.Name, sOpenProjectPath);
 

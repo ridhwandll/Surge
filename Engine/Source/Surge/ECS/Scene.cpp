@@ -13,8 +13,6 @@
 #include "Surge/ScriptEngine/ScriptAsset.hpp"
 #include "Surge/Graphics/UISystem/UILayout.hpp"
 
-#include "Jolt/Physics/Body/BodyManager.h"
-#include "Jolt/Physics/PhysicsSystem.h"
 #include <regex>
 #include "Surge/Audio/AudioEngine.hpp"
 #include "Surge/Audio/Audio.hpp"
@@ -160,7 +158,7 @@ namespace Surge
         }
     }
 
-    void Scene::UpdateRendering(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix, const glm::vec2& cameraNearFar)
+    void Scene::UpdateRendering(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix, const glm::vec2& cameraNearFar, const std::function<void(Scene&)>* editorDraw)
     {
         SURGE_PROFILE_FUNC("Scene::UpdateRendering");
 
@@ -208,13 +206,6 @@ namespace Surge
                 {
                     glm::vec3 dirLightDir = transform.GetTransform()[2];
                     gpuLight.PositionType = glm::vec4(dirLightDir, 0.0f); // w = 0.0f for dir light
-
-                    if(!mIsRunning)
-                    {
-                        glm::vec3 forwardDir = glm::normalize(glm::vec3(transform.GetTransform()[2]));
-                        glm::vec4 debugColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
-                        renderer->SubmitDirLightDebug(transform.Position, forwardDir, debugColor);
-                    }
                 }
                 else if(light.Type == LightType::POINT)
                     gpuLight.PositionType = glm::vec4((glm::vec3)transform.GetTransform()[3], 1.0f); // w = 1.0f for point lights
@@ -261,107 +252,10 @@ namespace Surge
 
         }
 
-        // DEBUG
-        if(sSelectedEntity && mRenderDebug)
-        {
-            if(const MeshComponent* meshComp = sSelectedEntity.TryGetComponent<MeshComponent>())
-            {
-                if(meshComp->MeshAsset)
-                {
-                    Ref<Mesh> mesh = meshComp->MeshAsset.As<Mesh>();
-                    if(mesh) //Asset might be missing/corrupted, so check before submitting
-                    {
-                        const glm::mat4& transform = sSelectedEntity.GetComponent<TransformComponent>().GetTransform();
-                        renderer->SubmitMeshOutline(transform, mesh.Raw());
-                    }
-                }
-            }
+        // Editor-only debug geometry (selection outline, colliders)
+        if(editorDraw && *editorDraw)
+            (*editorDraw)(*this);
 
-            // No Collider showing for MeshColliderComponent
-            if(mRegistry.any_of<BoxColliderComponent, SphereColliderComponent, CapsuleColliderComponent, CylinderColliderComponent, ConvexColliderComponent, MeshColliderComponent>(sSelectedEntity))
-            {
-                bool showCollider = false;
-                if(sSelectedEntity.HasComponent<BoxColliderComponent>())
-                    showCollider = sSelectedEntity.GetComponent<BoxColliderComponent>().ShowCollider;
-                else if(sSelectedEntity.HasComponent<SphereColliderComponent>())
-                    showCollider = sSelectedEntity.GetComponent<SphereColliderComponent>().ShowCollider;
-                else if(sSelectedEntity.HasComponent<CapsuleColliderComponent>())
-                    showCollider = sSelectedEntity.GetComponent<CapsuleColliderComponent>().ShowCollider;
-                else if(sSelectedEntity.HasComponent<CylinderColliderComponent>())
-                    showCollider = sSelectedEntity.GetComponent<CylinderColliderComponent>().ShowCollider;
-                else if(sSelectedEntity.HasComponent<ConvexColliderComponent>())
-                    showCollider = sSelectedEntity.GetComponent<ConvexColliderComponent>().ShowCollider;
-                else if(sSelectedEntity.HasComponent<MeshColliderComponent>())
-                    showCollider = sSelectedEntity.GetComponent<MeshColliderComponent>().ShowCollider;
-
-                if(showCollider)
-                {
-                    auto& transformComp = sSelectedEntity.GetComponent<TransformComponent>();
-                    static JPH::ShapeRefC sTempShape = nullptr;
-
-                    JPH::ShapeRefC shape;
-                    if(sSelectedEntity.HasComponent<ConvexColliderComponent>())
-                    {
-                        ConvexColliderComponent& convexComp = sSelectedEntity.GetComponent<ConvexColliderComponent>();
-                        if(!sTempShape || convexComp.IsDirty)
-                        {
-                            sTempShape = Core::GetPhysics()->CreateShape(sSelectedEntity);
-                            convexComp.IsDirty = false;
-                        }
-                        shape = sTempShape;
-                    }
-                    else
-                        shape = Core::GetPhysics()->CreateShape(sSelectedEntity);
-
-                    if(shape)
-                    {
-                        JPH::Vec3 comOffset = shape->GetCenterOfMass();
-                        JPH::Vec3 joltPosition = JPH::Vec3(transformComp.Position.x, transformComp.Position.y, transformComp.Position.z);
-
-                        glm::quat q = glm::quat(glm::radians(transformComp.Rotation));
-                        JPH::Quat joltRotation = JPH::Quat(q.x, q.y, q.z, q.w);
-
-                        joltPosition = joltPosition + joltRotation * comOffset;
-                        JPH::RMat44 joltTransform = JPH::RMat44::sRotationTranslation(joltRotation, joltPosition);
-
-                        JPH::DebugRenderer* debugRenderer = Core::GetPhysics()->GetDebugRenderer();
-                        shape->Draw(debugRenderer, joltTransform, JPH::Vec3::sReplicate(1.0f), JPH::Color::sGreen, false, true);
-                    }
-                }
-            }
-            if(sSelectedEntity.HasComponent<AudioSourceComponent>())
-            {
-                auto& audioSrc = sSelectedEntity.GetComponent<AudioSourceComponent>();
-                auto& transform = sSelectedEntity.GetComponent<TransformComponent>();
-
-                if(audioSrc.IsSpatialized)
-                {
-                    const int segments = 32;
-                    const float pi = 3.14159265359f;
-
-                    // LIFT the circles 0.1f units above the entity so they don't clip into the floor!
-                    glm::vec3 center = transform.Position + glm::vec3(0.0f, 0.1f, 0.0f);
-
-                    for(int i = 0; i < segments; ++i)
-                    {
-                        float theta1 = (float)i / segments * 2.0f * pi;
-                        float theta2 = (float)(i + 1) / segments * 2.0f * pi;
-
-                        // Min distance (green circle)
-                        glm::vec3 minP0 = center + glm::vec3(std::cos(theta1) * audioSrc.MinDistance, 0.0f, std::sin(theta1) * audioSrc.MinDistance);
-                        glm::vec3 minP1 = center + glm::vec3(std::cos(theta2) * audioSrc.MinDistance, 0.0f, std::sin(theta2) * audioSrc.MinDistance);
-
-                        renderer->SubmitLine(minP0, minP1, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
-
-                        // Max distance (Red circle)
-                        glm::vec3 maxP0 = center + glm::vec3(std::cos(theta1) * audioSrc.MaxDistance, 0.0f, std::sin(theta1) * audioSrc.MaxDistance);
-                        glm::vec3 maxP1 = center + glm::vec3(std::cos(theta2) * audioSrc.MaxDistance, 0.0f, std::sin(theta2) * audioSrc.MaxDistance);
-
-                        renderer->SubmitLine(maxP0, maxP1, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-                    }
-                }
-            }
-        }
         renderer->EndFrame();
     }
 
@@ -381,26 +275,36 @@ namespace Surge
         }
     }
 
-    void Scene::Update(EditorCamera& camera)
+    void Scene::Update(EditorCamera& camera, const std::function<void(Scene&)>& editorDraw)
     {
         SURGE_PROFILE_FUNC("Scene::Update(Editor)");
 
+        UpdateSimulation();
+        UpdateTransforms();
+        UpdateRendering(camera.GetViewMatrix(), camera.GetProjectionMatrix(), camera.GetNearAndFarPlane(), &editorDraw);
+        ProcessPendingEntityDestructions();
+    }
+
+    void Scene::UpdateSimulation()
+    {
+        if(mIsPaused)
+        {
+            if(mStepFrames == 0)
+                return;
+            mStepFrames--;
+        }
+
+        // Order matters here
         UpdateAudio();
         UpdatePhysics();
         UpdateScripts();
-        UpdateTransforms();
-        UpdateRendering(camera.GetViewMatrix(), camera.GetProjectionMatrix(), camera.GetNearAndFarPlane());
-        ProcessPendingEntityDestructions();
     }
 
     void Scene::Update()
     {
         SURGE_PROFILE_FUNC("Scene::Update()");
 
-        // Order matters here
-        UpdateAudio();
-        UpdatePhysics();
-        UpdateScripts();
+        UpdateSimulation();
         UpdateTransforms();
 
         Pair<RuntimeCamera*, glm::mat4> camera = GetMainCameraEntity();

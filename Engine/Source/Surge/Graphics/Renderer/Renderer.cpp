@@ -37,7 +37,6 @@ namespace Surge
         mShaderManager.Load("OutlineMask.glsl");
         mShaderManager.Load("PreethamSky.glsl");
         mShaderManager.Load("Shadow.glsl");
-        mShaderManager.Load("Present.glsl");
         mShaderManager.Load("AOLinearDepth.glsl");
         mShaderManager.Load("GTAO.glsl");
         mShaderManager.Load("AOBlur.glsl");
@@ -191,39 +190,19 @@ namespace Surge
         mGraph.ForceResize(width, height);
     }
 
-    void Renderer::SubmitDirLightDebug(const glm::vec3& origin, const glm::vec3& forward, const glm::vec4& color)
+    void Renderer::SetRenderScale(float scale)
     {
-        const float mainLineLength = 3.0f;
-        const float parallelLineLength = 2.0f;
-        const float radius = 0.75f;
+        FrameBlackboard& blackBoard = mGraph.GetBlackboard();
+        const float clamped = glm::clamp(scale, RenderScaleSettings::MIN_SCALE, RenderScaleSettings::MAX_SCALE);
+        if(clamped == blackBoard.RenderScale)
+            return;
 
-        glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
-        if(glm::abs(glm::dot(forward, worldUp)) > 0.999f)
-            worldUp = glm::vec3(0.0f, 0.0f, 1.0f);
+        blackBoard.RenderScale = clamped;
 
-        glm::vec3 right = glm::normalize(glm::cross(forward, worldUp));
-        glm::vec3 up = glm::normalize(glm::cross(right, forward));
-
-        glm::vec3 mainEnd = origin + (forward * mainLineLength);
-        SubmitLine(origin, mainEnd, color);
-
-        glm::vec3 offsets[4] = {
-            up * radius,          // Top
-            -up * radius,         // Bottom
-            right * radius,       // Right
-            -right * radius       // Left
-        };
-
-        for(int i = 0; i < 4; i++)
-        {
-            glm::vec3 rayStart = origin + offsets[i];
-            glm::vec3 rayEnd = rayStart + (forward * parallelLineLength);
-            SubmitLine(rayStart, rayEnd, color);
-            glm::vec3 nextRayStart = origin + offsets[(i + 1) % 4];
-            SubmitLine(rayStart, nextRayStart, color);
-            glm::vec3 arrowBase = mainEnd - (forward * 0.5f);
-            SubmitLine(mainEnd, arrowBase + offsets[i] * 0.5f, color);
-        }
+        glm::uvec2 size = mScreenSize;
+        if(size.x == 0 || size.y == 0)
+            size = glm::uvec2(Core::GetWindow()->GetSize());
+        mGraph.ForceResize(size.x, size.y);
     }
 
     void Renderer::Shutdown()
@@ -251,9 +230,20 @@ namespace Surge
     void Renderer::OnEvent(Event& e)
     {
         EventDispatcher dispatcher(e);
+        // Hover follows the mouse and the primary touch (mouse events synthesized from touch), presses come from the left mouse
+        // button and from every touch, the synthesized clicks are skipped so a tap is not processed twice
         dispatcher.Dispatch<MouseMovedEvent>([&](MouseMovedEvent& e) { mUIManager.ProcessMouseMove(e.GetX(), e.GetY()); });
-        dispatcher.Dispatch<MouseButtonPressedEvent>([&](MouseButtonPressedEvent& e) { mUIManager.ProcessMouseButton(e.GetX(), e.GetY(), true); });
-        dispatcher.Dispatch<MouseButtonReleasedEvent>([&](MouseButtonReleasedEvent& e) { mUIManager.ProcessMouseButton(e.GetX(), e.GetY(), false); });
+        dispatcher.Dispatch<MouseButtonPressedEvent>([&](MouseButtonPressedEvent& e) {
+            if(!e.IsFromTouch() && e.GetMouseButton() == static_cast<MouseCode>(Mouse::ButtonLeft))
+                mUIManager.ProcessPointerDown(UI::Manager::MOUSE_POINTER_ID, e.GetX(), e.GetY());
+        });
+        dispatcher.Dispatch<MouseButtonReleasedEvent>([&](MouseButtonReleasedEvent& e) {
+            if(!e.IsFromTouch() && e.GetMouseButton() == static_cast<MouseCode>(Mouse::ButtonLeft))
+                mUIManager.ProcessPointerUp(UI::Manager::MOUSE_POINTER_ID, e.GetX(), e.GetY(), false);
+        });
+        dispatcher.Dispatch<TouchPressedEvent>([&](TouchPressedEvent& e) { mUIManager.ProcessPointerDown(e.GetPointerID(), e.GetX(), e.GetY()); });
+        dispatcher.Dispatch<TouchReleasedEvent>([&](TouchReleasedEvent& e) { mUIManager.ProcessPointerUp(e.GetPointerID(), e.GetX(), e.GetY(), e.IsCanceled()); });
+        dispatcher.Dispatch<WindowLostFocusEvent>([&](WindowLostFocusEvent&) { mUIManager.ProcessPointerUp(UI::Manager::MOUSE_POINTER_ID, -1.0f, -1.0f, true); });
     }
 
 } // namespace Surge

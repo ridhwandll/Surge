@@ -71,6 +71,13 @@ namespace Surge::UI
         glm::vec2 UIToScreen(const glm::vec2& uiPos) const { return mViewportOffset + uiPos / mTargetResolution * mViewportSize; }
         size_t GetCanvasCount() const { return mCanvases.size(); }
 
+        // Pointer queries, positions in raw OS window coordinates (the space of mouse/touch events and Input::GetTouch)
+        Widget* WidgetAt(float rawX, float rawY);                 // Topmost interactable widget of all visible canvases, nullptr if none
+        Widget* WidgetAt(uint64_t owner, float rawX, float rawY); // Same, restricted to one canvas
+        bool IsPointerOverUI(float rawX, float rawY) { return WidgetAt(rawX, rawY) != nullptr; }
+        glm::vec2 ScreenToCanvas(uint64_t owner, float rawX, float rawY); // Canvas units, the units Offset/Size are authored in
+        glm::vec2 GetCanvasSize(uint64_t owner);                          // Visible canvas area in canvas units (width depends on the aspect)
+
     private:
         struct Canvas
         {
@@ -108,7 +115,13 @@ namespace Surge::UI
         // Called by the Renderer
         void ExtractRenderData(FrameBlackboard& blackboard);
         void ProcessMouseMove(float rawX, float rawY);
-        bool ProcessMouseButton(float rawX, float rawY, bool isDown);
+        bool ProcessMouseButton(float rawX, float rawY, bool isDown) { return isDown ? ProcessPointerDown(MOUSE_POINTER_ID, rawX, rawY) : ProcessPointerUp(MOUSE_POINTER_ID, rawX, rawY, false); }
+
+        // Every pointer (mouse, each touch) presses its own widget: holding one button never blocks another finger
+        static constexpr int64_t MOUSE_POINTER_ID = -1;
+        bool ProcessPointerDown(int64_t pointerID, float rawX, float rawY);
+        bool ProcessPointerUp(int64_t pointerID, float rawX, float rawY, bool canceled);
+        float GetCanvasScale(const Canvas& canvas) const { return canvas.Scaler.ComputeScale(mTargetResolution); }
 
     private:
         Vector<Canvas> mCanvases; // Sorted by SortOrder
@@ -118,8 +131,13 @@ namespace Surge::UI
         CanvasScaler mEditorPreviewScaler;
 
         // Trackers, Refs so a widget removed while hovered/pressed can never dangle
+        struct PointerPress
+        {
+            int64_t PointerID;
+            Ref<Widget> Pressed;
+        };
         Ref<Widget> mHoveredWidget;
-        Ref<Widget> mPressedWidget;
+        Vector<PointerPress> mPointerPresses;
         bool mUIVisible = true;
 
         glm::vec2 mViewportOffset = { 0.0f, 0.0f };

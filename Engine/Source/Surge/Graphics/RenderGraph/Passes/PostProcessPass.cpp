@@ -22,31 +22,40 @@ namespace Surge
         fsDesc.Depth.WriteEnable = false;
         fsDesc.Stencil.Enable = false;
 
-        ImageDesc colorDesc = {};
-        colorDesc.Width = size.x;
-        colorDesc.Height = size.y;
-        colorDesc.Format = ImageFormat::RGBA8_UNORM;
-        colorDesc.Usage = ImageUsage::COLOR_ATTACHMENT | ImageUsage::SAMPLED;
-        colorDesc.DebugName = "FinalImage";
-        colorDesc.Sampler = blackBoard.DefaultSampler;
-        colorDesc.GenerateImGuiID = true;
-        blackBoard.FinalImage = mRHI->CreateImage(colorDesc);
+        if(RHISettings::RENDER_TO_SWAPCHAIN)
+        {
+            // Tonemap + post straight into the swapchain image (the UI is drawn on top in the same render pass)
+            // Saves a full-screen RGBA8 write + read and the separate present copy, the biggest bandwidth cost on tile based GPUs
+            fsDesc.TargetSwapchain = true;
+        }
+        else
+        {
+            ImageDesc colorDesc = {};
+            colorDesc.Width = size.x;
+            colorDesc.Height = size.y;
+            colorDesc.Format = ImageFormat::RGBA8_UNORM;
+            colorDesc.Usage = ImageUsage::COLOR_ATTACHMENT | ImageUsage::SAMPLED;
+            colorDesc.DebugName = "FinalImage";
+            colorDesc.Sampler = blackBoard.DefaultSampler;
+            colorDesc.GenerateImGuiID = true;
+            blackBoard.FinalImage = mRHI->CreateImage(colorDesc);
 
-        FramebufferAttachment colorAttachment = {};
-        colorAttachment.Handle = blackBoard.FinalImage;
-        colorAttachment.Load = LoadOp::CLEAR;
-        colorAttachment.Store = StoreOp::STORE;
+            FramebufferAttachment colorAttachment = {};
+            colorAttachment.Handle = blackBoard.FinalImage;
+            colorAttachment.Load = LoadOp::CLEAR;
+            colorAttachment.Store = StoreOp::STORE;
 
-        FramebufferDesc fbDesc = {};
-        fbDesc.ColorAttachments[0] = colorAttachment;
-        fbDesc.ColorAttachmentCount = 1;
-        fbDesc.HasDepth = false;
-        fbDesc.Width = size.x;
-        fbDesc.Height = size.y;
-        fbDesc.DebugName = "PostProcessFramebuffer";
-        blackBoard.PostProcessFramebuffer = mRHI->CreateFramebuffer(fbDesc);
-        fsDesc.TargetSwapchain = false;
-        fsDesc.TargetFramebuffer = blackBoard.PostProcessFramebuffer;
+            FramebufferDesc fbDesc = {};
+            fbDesc.ColorAttachments[0] = colorAttachment;
+            fbDesc.ColorAttachmentCount = 1;
+            fbDesc.HasDepth = false;
+            fbDesc.Width = size.x;
+            fbDesc.Height = size.y;
+            fbDesc.DebugName = "PostProcessFramebuffer";
+            blackBoard.PostProcessFramebuffer = mRHI->CreateFramebuffer(fbDesc);
+            fsDesc.TargetSwapchain = false;
+            fsDesc.TargetFramebuffer = blackBoard.PostProcessFramebuffer;
+        }
 
         mFullscreenPipeline = rhi->CreatePipeline(fsDesc);
         mPostProcessDescriptorSet = mRHI->CreateDescriptorSet(mFullscreenPipeline, DescriptorSetSlot::ZERO, DescriptorUpdateFrequency::DYNAMIC, "SceneInputs");
@@ -57,7 +66,8 @@ namespace Surge
         mImageReads.push_back(blackBoard.AOImage);
         mImageReads.push_back(blackBoard.AOLinearDepth);
         mImageReads.push_back(blackBoard.BloomImage);
-        mImageWrites.push_back(blackBoard.FinalImage);
+        if(!RHISettings::RENDER_TO_SWAPCHAIN)
+            mImageWrites.push_back(blackBoard.FinalImage);
     }
 
     void PostProcessPass::Execute(const FrameContext& ctx, const FrameBlackboard& blackBoard)
@@ -69,7 +79,7 @@ namespace Surge
         writes[0].Binding = 0;
         writes[0].Type = DescriptorType::TEXTURE;
         writes[0].Texture = blackBoard.MainPassColorImage;
-        writes[0].Sampler = blackBoard.DefaultSampler;
+        writes[0].Sampler = blackBoard.LinearClampSampler; // Bilinear upscale when the scene renders below output resolution
         writes[1].Binding = 1;
         writes[1].Type = DescriptorType::TEXTURE;
         writes[1].Texture = blackBoard.OutlineMask;
@@ -109,12 +119,15 @@ namespace Surge
             glm::vec4 BloomTint; // rgb: tint * intensity
             glm::vec2 BloomTexelSize;
             int BloomMode; // 0 = off, 1 = bilinear, 2 = 9 tap tent
-            float _pad1;
+            int OutlineMode; // 0 = nothing outlined this frame, 1 = on
         };
         static_assert(sizeof(PostProcessPushConstants) == 112, "PostProcessPushConstants must match the push_constant block in PostProcess.glsl");
         PostProcessPushConstants pc = {};
         pc.ColorThickness = glm::vec4(blackBoard.PostProcessSettings_.OutlineColor, blackBoard.PostProcessSettings_.OutlineThickness);
-        pc.ScreenResolution = glm::vec2(static_cast<float>(ctx.Width), static_cast<float>(ctx.Height));
+        // Texel size of the scene image (FXAA/outline taps), it is smaller than the output with a render scale < 1
+        const ImageDesc& sceneDesc = mRHI->GetDesc(blackBoard.MainPassColorImage);
+        pc.ScreenResolution = glm::vec2(static_cast<float>(sceneDesc.Width), static_cast<float>(sceneDesc.Height));
+        pc.OutlineMode = blackBoard.OutlineList.empty() ? 0 : 1;
         pc.VignetteIntensity = blackBoard.PostProcessSettings_.VignetteIntensity;
         pc.VignetteSoftness = blackBoard.PostProcessSettings_.VignetteSoftness;
         pc.Grain = blackBoard.PostProcessSettings_.Grain;
@@ -138,7 +151,11 @@ namespace Surge
 
     void PostProcessPass::Resize(Uint width, Uint height, FrameBlackboard& blackBoard)
     {
-        Core::AddFrameEndCallback([this, width, height, blackBoard]() { mRHI->ResizeFramebuffer(blackBoard.PostProcessFramebuffer, width, height); }); // (Player)
+        if(RHISettings::RENDER_TO_SWAPCHAIN)
+            return; // The swapchain is resized by the RHI
+
+        const FramebufferHandle framebuffer = blackBoard.PostProcessFramebuffer;
+        Core::AddFrameEndCallback([this, width, height, framebuffer]() { mRHI->ResizeFramebuffer(framebuffer, width, height); });
     }
 
     void PostProcessPass::OnImGuiRender(FrameBlackboard& blackBoard)

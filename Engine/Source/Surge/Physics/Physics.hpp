@@ -72,12 +72,18 @@ namespace Surge
         float GetInterpolationAlpha() const { return mInterpolationAlpha; }
         void GetDebugStats(int& outActiveBodies, int& outTotalBodies);
 
+        // Paused: Update() no longer simulates, RequestStep() runs exactly one fixed tick on the next Update() (Editor pause/step)
+        void SetPaused(bool paused) { mPaused = paused; mStepRequested = false; }
+        bool IsPaused() const { return mPaused; }
+        void RequestStep() { mStepRequested = true; }
+
         ContactListener& GetContactListener() { return mContactListener; }
 
         JPH::PhysicsSystem* Get() { return mPhysicsSystem; }
         JPH::DebugRenderer* GetDebugRenderer() { return mDebugRenderer; }
     private:
         glm::quat GetRotationQuat(RigidBodyID rbID) const;
+        void Simulate(); // One FIXED_TIMESTEP, snapshots the previous transforms for interpolation first
 
         JPH::PhysicsSystem* mPhysicsSystem;
         JPH::JobSystemThreadPool* mJobSystem;
@@ -89,6 +95,8 @@ namespace Surge
 
         float mInterpolationAlpha = 0.0f;
         float mAccumulatedTime = 0.0f;
+        bool mPaused = false;
+        bool mStepRequested = false;
 
         void* mBPLayerInterface;
         void* mObjVsBPLayerFilter;

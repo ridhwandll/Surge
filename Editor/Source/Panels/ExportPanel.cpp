@@ -329,6 +329,26 @@ namespace Surge
                 ImGui::EndCombo();
             }
 
+            // Target API
+            RowLabel("Target API level");
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            const char* targetPreview = "Custom";
+            for(const AndroidApiLevel& api : AndroidExporter::TARGET_API_LEVELS)
+                if(api.Level == a.TargetApi)
+                    targetPreview = api.Name;
+            if(ImGui::BeginCombo("##AndTargetApi", targetPreview))
+            {
+                for(const AndroidApiLevel& api : AndroidExporter::TARGET_API_LEVELS)
+                    if(ImGui::Selectable(api.Name, api.Level == a.TargetApi))
+                        a.TargetApi = api.Level;
+                ImGui::EndCombo();
+            }
+            if(a.TargetApi < 36)
+            {
+                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + sLabelWidth);
+                ImGui::TextColored(kWarn, "Google Play rejects new apps and updates below API 36");
+            }
+
             RowLabel("Architecture");
             ImGui::TextDisabled("ARM64-v8a");
 

@@ -35,7 +35,11 @@ namespace Surge
 
     struct ShadowSettings
     {
+#ifdef SURGE_PLATFORM_ANDROID
+        int CascadeCount = 2; // Each cascade is a full shadow render pass, 2 is the mobile budget
+#else
         int CascadeCount = MAX_SHADOW_CASCADE_COUNT;
+#endif
         float CascadeSplitLambda = 0.9f;
         bool ShowCascades = false;
     };
@@ -102,7 +106,9 @@ namespace Surge
         {
             AmbientOcclusionSettings settings;
 #ifdef SURGE_PLATFORM_ANDROID
+            // 4 extra render passes + a stored full-res depth buffer, opt-in on mobile
             settings.ApplyQualityPreset(AOQuality::LOW);
+            settings.Enable = false;
 #else
             settings.ApplyQualityPreset(AOQuality::ULTRA);
 #endif
@@ -112,7 +118,7 @@ namespace Surge
 
     enum class BloomQuality : uint8_t
     {
-        LOW,    // Fragment, 4 mips, dual filter (5/8 taps), bilinear composite (Mobile default)
+        LOW,    // Fragment, 3 mips, dual filter (5/8 taps), bilinear composite (Mobile default)
         MEDIUM, // Fragment, 5 mips, 13 tap down + 9 tap tent up, anti flicker
         HIGH,   // Compute, 6 mips, 13 tap down + 9 tap tent up, anti flicker
         ULTRA   // Compute, 8 mips, 13 tap down + 9 tap tent up, anti flicker (Desktop default)
@@ -128,7 +134,7 @@ namespace Surge
 
         // Driven by Quality via ApplyQualityPreset(), can be tweaked individually afterwards
         bool UseCompute = false;           // Falls back to the fragment path if the device queue has no compute support
-        int MipCount = 4;                  // 2 - 8, clamped further so the smallest mip stays >= 2px
+        int MipCount = 3;                  // 2 - 8, clamped further so the smallest mip stays >= 2px
         bool HighQualityFilter = false;    // 13 tap downsample + 9 tap tent upsample, otherwise ARM dual filter
         bool AntiFlicker = false;          // Karis average on the first downsample, kills fireflies from tiny HDR highlights
         bool HighQualityComposite = false; // 9 tap tent when upscaling the half res bloom in PostProcess
@@ -145,7 +151,7 @@ namespace Surge
             Quality = quality;
             switch(quality)
             {
-                case BloomQuality::LOW:    UseCompute = false; MipCount = 4; HighQualityFilter = false; AntiFlicker = false; HighQualityComposite = false; break;
+                case BloomQuality::LOW:    UseCompute = false; MipCount = 3; HighQualityFilter = false; AntiFlicker = false; HighQualityComposite = false; break;
                 case BloomQuality::MEDIUM: UseCompute = false; MipCount = 5; HighQualityFilter = true;  AntiFlicker = true;  HighQualityComposite = true;  break;
                 case BloomQuality::HIGH:   UseCompute = true;  MipCount = 6; HighQualityFilter = true;  AntiFlicker = true;  HighQualityComposite = true;  break;
                 case BloomQuality::ULTRA:  UseCompute = true;  MipCount = 8; HighQualityFilter = true;  AntiFlicker = true;  HighQualityComposite = true;  break;
@@ -161,6 +167,23 @@ namespace Surge
             settings.ApplyQualityPreset(BloomQuality::ULTRA);
 #endif
             return settings;
+        }
+    };
+
+    // Resolution of the 3D scene (main pass, AO, bloom) relative to the output, UI and post-processing stay at full resolution
+    // Mobile panels are 1080p-1440p+, rendering the scene at 0.8x saves ~36% of the per-pixel cost for a barely visible softening
+    struct RenderScaleSettings
+    {
+        static constexpr float MIN_SCALE = 0.5f;
+        static constexpr float MAX_SCALE = 1.0f;
+
+        static float PlatformDefault()
+        {
+#ifdef SURGE_PLATFORM_ANDROID
+            return 0.8f;
+#else
+            return 1.0f;
+#endif
         }
     };
 
@@ -194,6 +217,16 @@ namespace Surge
     struct LightSubmitCmd // Pushed by Renderer::SubmitLight()
     {
         Light GPULight; // Pre-converted from LightComponent at submit time
+    };
+
+    // Forward lighting budget: every lit pixel loops over these, so only the most relevant lights reach the shader
+    struct LightingSettings
+    {
+#ifdef SURGE_PLATFORM_ANDROID
+        Uint MaxLights = 8;
+#else
+        Uint MaxLights = 64;
+#endif
     };
 
     struct QuadSubmitCmd // Pushed by Renderer::SubmitQuad()
@@ -247,6 +280,7 @@ namespace Surge
     {
         // Written by Renderer::BeginFrame()
         float ScreenWidth, ScreenHeight;
+        float RenderScale = RenderScaleSettings::PlatformDefault();
         glm::vec3 CameraPosition;
         glm::mat4 ViewMatrix;
         glm::mat4 ProjectionMatrix;
@@ -292,6 +326,8 @@ namespace Surge
         // GI & skybox
         Environnment Env;
 
+        LightingSettings Lighting;
+
         // Screen Space options
         PostProcessSettings PostProcessSettings_;
         AmbientOcclusionSettings AOSettings = AmbientOcclusionSettings::PlatformDefault();
@@ -310,6 +346,13 @@ namespace Surge
         Vector<QuadSubmitCmd> UISpriteList;
         Vector<TextSubmitCmd> UITextList;
         Vector<UIDrawItem> UIDrawOrder;
+
+        // Size of the scene targets (main pass, AO, bloom) for a given output size
+        glm::uvec2 GetSceneSize(Uint outputWidth, Uint outputHeight) const
+        {
+            const float scale = glm::clamp(RenderScale, RenderScaleSettings::MIN_SCALE, RenderScaleSettings::MAX_SCALE);
+            return glm::max(glm::uvec2(glm::vec2(static_cast<float>(outputWidth), static_cast<float>(outputHeight)) * scale + 0.5f), glm::uvec2(1));
+        }
 
         void ClearLists()
         {

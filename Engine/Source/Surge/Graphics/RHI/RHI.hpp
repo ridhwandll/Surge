@@ -29,6 +29,10 @@ namespace Surge
         void EndFrame(const FrameContext& ctx) { mBackendRHI.EndFrame(ctx); }
 
         void Resize([[maybe_unused]] Uint width, [[maybe_unused]] Uint height) { mBackendRHI.Resize(); }
+        void OnSurfaceDestroyed() { mBackendRHI.OnSurfaceDestroyed(); }
+        void OnSurfaceCreated(Window* window) { mBackendRHI.OnSurfaceCreated(window); }
+        bool SetTargetFrameRate(float fps) { return mBackendRHI.SetTargetFrameRate(fps); } // true = the RHI paces presentation itself
+        bool IsFormatSupported(ImageFormat format) const { return mBackendRHI.IsFormatSupported(format); }
         const RHIStats& GetStats() { return mBackendRHI.GetStats(); }
 
         // Buffer
@@ -48,6 +52,7 @@ namespace Surge
         FramebufferHandle CreateFramebuffer(const FramebufferDesc& desc) { return mBackendRHI.CreateFramebuffer(desc); }
         void DestroyFramebuffer(FramebufferHandle h) { mBackendRHI.DestroyFramebuffer(h); }
         void ResizeFramebuffer(FramebufferHandle h, Uint newWidth, Uint newHeight, bool resizeImages = true) { mBackendRHI.ResizeFramebuffer(h, newWidth, newHeight, resizeImages); }
+        void RecreateFramebuffer(FramebufferHandle h, const FramebufferDesc& desc) { mBackendRHI.RecreateFramebuffer(h, desc); }
         const FramebufferDesc& GetDesc(FramebufferHandle h) const { return mBackendRHI.GetDesc(h); }
 
         // Pipeline

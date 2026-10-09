@@ -30,6 +30,11 @@ namespace Surge
         VmaAllocator GetAllocator() const { return mVmaAllocator; }
         int32_t GetQueueIndex() const { return mGraphicsQueueIndex; }
         bool SupportsCompute() const { return mSupportsCompute; } // Compute dispatches are recorded on the graphics queue
+
+        // Block compressed texture families that were found AND enabled on the device
+        bool SupportsASTC() const { return mSupportsASTC; }
+        bool SupportsETC2() const { return mSupportsETC2; }
+        bool SupportsBC() const { return mSupportsBC; }
         
         operator VkDevice() const { return mDevice; }
     private:
@@ -41,6 +46,9 @@ namespace Surge
         VkQueue mQueue = VK_NULL_HANDLE;
         int32_t mGraphicsQueueIndex = -1;
         bool mSupportsCompute = false;
+        bool mSupportsASTC = false;
+        bool mSupportsETC2 = false;
+        bool mSupportsBC = false;
 
         VmaAllocator mVmaAllocator = VK_NULL_HANDLE;
         GPUMemoryStats mGPUMemoryStats;

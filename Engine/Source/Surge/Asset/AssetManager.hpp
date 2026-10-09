@@ -187,7 +187,8 @@ namespace Surge
         // Updates the relative path of an already registered asset. This is used when renaming/moving source files on disk.
         // @param id                 AssetID of the asset to update
         // @param newRelativePath    New path relative to the assets directory
-        void UpdateAssetPath(AssetID id, const String& newRelativePath);
+        // serialize = false lets a batch (moving a folder) write the registry once at the end with SerializeRegistry()
+        void UpdateAssetPath(AssetID id, const String& newRelativePath, bool serialize = true);
 
         const AssetMetadata& GetMetadata(AssetID id);
         const String& GetAssetsDirectory() { return sAssetsDirectory; }

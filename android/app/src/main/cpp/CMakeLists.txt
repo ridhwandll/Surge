@@ -69,6 +69,16 @@ endfunction()
 # External packages / NDK system libraries
 find_package(game-activity REQUIRED CONFIG) # GameActivity (provided via Prefab)
 
+# Swappy (Android Frame Pacing): static library + headers extracted from the games-frame-pacing AAR by build.gradle (extractSwappy)
+if (NOT SURGE_SWAPPY_ROOT OR NOT EXISTS "${SURGE_SWAPPY_ROOT}/libs/android.arm64-v8a/libswappy_static.a")
+    message(FATAL_ERROR "[Surge] Swappy not found in '${SURGE_SWAPPY_ROOT}', build through Gradle (it extracts games-frame-pacing)")
+endif()
+add_library(swappy_static STATIC IMPORTED)
+set_target_properties(swappy_static PROPERTIES
+    IMPORTED_LOCATION "${SURGE_SWAPPY_ROOT}/libs/android.arm64-v8a/libswappy_static.a"
+    INTERFACE_INCLUDE_DIRECTORIES "${SURGE_SWAPPY_ROOT}/include"
+)
+
 set(ANDROID_SYSTEM_LIBS android log vulkan)
 
 # Vendor libraries
@@ -189,6 +199,7 @@ target_compile_definitions(Surge
 
 target_link_libraries(Surge PUBLIC
     game-activity::game-activity_static
+    swappy_static
     ${SURGE_VENDOR_LIBS}
     ${ANDROID_SYSTEM_LIBS}
 )

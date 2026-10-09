@@ -89,7 +89,8 @@ namespace Surge
 #endif
 
         result = ma_engine_init(&config, sAudioEngine);
-        SG_ASSERT(result == MA_SUCCESS, "Failed to initialize miniaudio!");
+        if(result != MA_SUCCESS)
+            Log<Severity::Error>("[AudioEngine] Failed to initialize miniaudio! ({})", static_cast<int>(result));
 
         Log<Severity::Info>("AudioEngine initialized");
     }
@@ -98,6 +99,18 @@ namespace Surge
     {
         ma_engine_uninit(sAudioEngine);
         delete sAudioEngine;
+    }
+
+    void AudioEngine::Suspend()
+    {
+        if(ma_engine_stop(sAudioEngine) != MA_SUCCESS)
+            Log<Severity::Warn>("[AudioEngine] Failed to suspend the audio device");
+    }
+
+    void AudioEngine::Resume()
+    {
+        if(ma_engine_start(sAudioEngine) != MA_SUCCESS)
+            Log<Severity::Warn>("[AudioEngine] Failed to resume the audio device");
     }
 
     Surge::AudioID AudioEngine::CreateAudio(const String& filepath, bool isStreaming, bool isSpatialized)

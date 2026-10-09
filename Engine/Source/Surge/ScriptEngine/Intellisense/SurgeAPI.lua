@@ -66,6 +66,129 @@ function Input.GetMouseY() end
 ---@param cursorMode number
 function Input.SetCursorMode(cursorMode) end
 
+--- True only in the frame the key went down / up.
+---@param key number
+---@return boolean
+function Input.WasKeyPressed(key) end
+---@param key number
+---@return boolean
+function Input.WasKeyReleased(key) end
+
+--- True only in the frame the mouse button went down / up (the primary touch also drives Mouse.ButtonLeft).
+---@param button number
+---@return boolean
+function Input.WasMouseButtonPressed(button) end
+---@param button number
+---@return boolean
+function Input.WasMouseButtonReleased(button) end
+
+--- Mouse wheel notches scrolled this frame (+ = away from the user).
+---@return number
+function Input.GetMouseScrollDelta() end
+
+-- Touch -----------------------------------------------------------------------
+-- Positions are window pixels (same space as Input.GetMousePosition), convert them with
+-- UICanvasComponent:ScreenToCanvas() to place UI. On desktop the left mouse button is a touch
+-- (IsMouse = true) unless Input.SetMouseTouchEmulation(false).
+
+--- Number of touches this frame (including the ones that ENDED/CANCELED this frame).
+---@return number
+function Input.GetTouchCount() end
+
+--- Touch by 1-based index (1 .. Input.GetTouchCount()), nil if out of range. Returns a copy.
+---@param index number
+---@return Touch|nil
+function Input.GetTouch(index) end
+
+--- Touch by its ID (stable while the finger is down), nil if there is none this frame.
+---@param id number
+---@return Touch|nil
+function Input.GetTouchByID(id) end
+
+--- All touches of this frame as an array.
+---@return Touch[]
+function Input.GetTouches() end
+
+--- The device has a touch screen.
+---@return boolean
+function Input.IsTouchSupported() end
+
+--- Left mouse button acts as a touch (default true).
+---@param enabled boolean
+function Input.SetMouseTouchEmulation(enabled) end
+---@return boolean
+function Input.IsMouseTouchEmulationEnabled() end
+
+-- Gamepads (XInput on Windows, USB/Bluetooth controllers on Android) ---------------
+-- index is 1-based (1 .. Input.MaxGamepads). Sticks: -1..1, +X right, +Y down. Triggers: 0..1.
+
+---@type number
+Input.MaxGamepads = 4
+
+---@param index number
+---@return boolean
+function Input.IsGamepadConnected(index) end
+---@param index number
+---@param button number GamepadButton
+---@return boolean
+function Input.IsGamepadButtonPressed(index, button) end
+---@param index number
+---@param button number GamepadButton
+---@return boolean
+function Input.WasGamepadButtonPressed(index, button) end
+---@param index number
+---@param button number GamepadButton
+---@return boolean
+function Input.WasGamepadButtonReleased(index, button) end
+--- Deadzones applied.
+---@param index number
+---@param axis number GamepadAxis
+---@return number
+function Input.GetGamepadAxis(index, axis) end
+
+--- Android back button: always reported as Key.Escape. true (default) = it also closes the app,
+--- false = the game handles it (e.g. pause / go back a screen).
+---@param exits boolean
+function Input.SetBackButtonExitsApp(exits) end
+---@return boolean
+function Input.DoesBackButtonExitApp() end
+
+---@class Touch
+---@field ID number Stable while the contact lasts (smallest free index: 0, 1, 2...)
+---@field Phase number TouchPhase
+---@field Position Vec2 Window pixels
+---@field StartPosition Vec2
+---@field Delta Vec2 Movement since the previous frame
+---@field X number
+---@field Y number
+---@field Pressure number
+---@field Duration number Seconds since the touch began
+---@field IsMouse boolean Emulated by the left mouse button
+local Touch = {}
+
+--- BEGAN in the first frame, ENDED/CANCELED in the last one (a tap shorter than a frame still gets both).
+TouchPhase = {
+    BEGAN = 0,
+    MOVED = 1,
+    STATIONARY = 2,
+    ENDED = 3,
+    CANCELED = 4
+}
+
+GamepadButton = {
+    A = 0, B = 1, X = 2, Y = 3,
+    LeftShoulder = 4, RightShoulder = 5,
+    Back = 6, Start = 7, Guide = 8,
+    LeftThumb = 9, RightThumb = 10,
+    DPadUp = 11, DPadDown = 12, DPadLeft = 13, DPadRight = 14
+}
+
+GamepadAxis = {
+    LeftX = 0, LeftY = 1,
+    RightX = 2, RightY = 3,
+    LeftTrigger = 4, RightTrigger = 5
+}
+
 -- ==============================================================================
 -- ENUMS & CODES
 -- ==============================================================================
@@ -441,6 +564,21 @@ function Math.HexToRGB(hex) end
 -- UI SYSTEM
 -- ==============================================================================
 
+---@class UI
+UI = {}
+
+--- Is there an interactable widget (button, ...) of any visible canvas under this window position?
+---@param x number
+---@param y number
+---@return boolean
+function UI.IsPointerOverUI(x, y) end
+
+--- Topmost interactable widget of any visible canvas at this window position, or nil.
+---@param x number
+---@param y number
+---@return UIWidget|UIButton|UIText|UIImage|UIImageButton|nil
+function UI.WidgetAt(x, y) end
+
 --- Sets the root widget of the UI built in code. Pass nil to clear.
 --- Called from a UICanvasComponent script it attaches to that canvas (drawn above its layout), otherwise to a global canvas.
 ---@param root UIWidget|nil
@@ -776,6 +914,22 @@ local UICanvasComponent = {}
 ---@param name string
 ---@return UIWidget|UIButton|UIText|UIImage|UIImageButton|nil
 function UICanvasComponent:FindWidget(name) end
+
+--- Topmost interactable widget of this canvas at a window position (e.g. a touch position), or nil.
+---@param x number
+---@param y number
+---@return UIWidget|UIButton|UIText|UIImage|UIImageButton|nil
+function UICanvasComponent:WidgetAt(x, y) end
+
+--- Window position -> canvas units (the units widget Offset/Size are authored in, (0,0) = top left).
+---@param x number
+---@param y number
+---@return Vec2
+function UICanvasComponent:ScreenToCanvas(x, y) end
+
+--- Visible canvas size in canvas units (the height matches the reference resolution when matching height).
+---@return Vec2
+function UICanvasComponent:GetCanvasSize() end
 
 ---@class AudioSourceComponent
 ---@field Active boolean

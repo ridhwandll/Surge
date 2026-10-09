@@ -5,11 +5,91 @@
 #include <imgui.h>
 #include <dwmapi.h>
 #include <windowsx.h>
+#include <shellapi.h>
+#include <algorithm>
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace Surge
 {
+    // Windows synthesizes mouse messages from touch/pen contacts (for apps that only understand the mouse), those carry this
+    // signature in their extra info. The contact itself is reported as Touch*Event (WM_POINTER*), so these are flagged
+    static bool IsMouseMessageFromTouch()
+    {
+        constexpr LPARAM SIGNATURE_MASK = 0xFFFFFF00;
+        constexpr LPARAM MI_WP_SIGNATURE = 0xFF515700;
+        return (GetMessageExtraInfo() & SIGNATURE_MASK) == MI_WP_SIGNATURE;
+    }
+
+    // WM_POINTER* for touch and pen contacts -> Touch*Event. Returns false for the mouse (it keeps using WM_*BUTTON*)
+    static bool HandlePointerMessage(const std::function<void(Event&)>& callback, HWND hWnd, UINT msg, WPARAM wParam)
+    {
+        const UINT32 pointerId = GET_POINTERID_WPARAM(wParam);
+
+        // Capture lost: pointer info may already be gone, cancel the contact (no-op if this id isn't a touch)
+        if (msg == WM_POINTERCAPTURECHANGED)
+        {
+            POINT cursor = {};
+            GetCursorPos(&cursor);
+            ScreenToClient(hWnd, &cursor);
+            if (callback)
+            {
+                TouchReleasedEvent event(static_cast<int64_t>(pointerId), static_cast<float>(cursor.x), static_cast<float>(cursor.y), true);
+                callback(event);
+            }
+            return true;
+        }
+
+        POINTER_INPUT_TYPE type = PT_POINTER;
+        if (!GetPointerType(pointerId, &type) || (type != PT_TOUCH && type != PT_PEN))
+            return false;
+
+        POINTER_INFO info = {};
+        if (!GetPointerInfo(pointerId, &info))
+            return false;
+
+        POINT p = info.ptPixelLocation;
+        ScreenToClient(hWnd, &p);
+        const float x = static_cast<float>(p.x);
+        const float y = static_cast<float>(p.y);
+        const int64_t id = static_cast<int64_t>(pointerId);
+
+        float pressure = 1.0f;
+        if (type == PT_TOUCH)
+        {
+            POINTER_TOUCH_INFO touchInfo = {};
+            if (GetPointerTouchInfo(pointerId, &touchInfo) && (touchInfo.touchMask & TOUCH_MASK_PRESSURE) && touchInfo.pressure > 0)
+                pressure = static_cast<float>(touchInfo.pressure) / 1024.0f;
+        }
+
+        if (!callback)
+            return true;
+
+        switch (msg)
+        {
+            case WM_POINTERDOWN:
+            {
+                TouchPressedEvent event(id, x, y, pressure);
+                callback(event);
+                break;
+            }
+            case WM_POINTERUPDATE:
+            {
+                if (!IS_POINTER_INCONTACT_WPARAM(wParam)) // Pen hovering above the screen
+                    break;
+                TouchMovedEvent event(id, x, y, pressure);
+                callback(event);
+                break;
+            }
+            case WM_POINTERUP:
+            {
+                TouchReleasedEvent event(id, x, y, (info.pointerFlags & POINTER_FLAG_CANCELED) != 0);
+                callback(event);
+                break;
+            }
+        }
+        return true;
+    }
 
     WindowsWindow::WindowsWindow(const WindowDesc& windowData)
     {
@@ -79,6 +159,10 @@ namespace Surge
             SetWindowText(mWin32Window, GetWindowTitle().c_str());
             frameCount = 0;
         }
+
+        // Nothing to draw while minimized, sleep until the OS sends us something instead of spinning the main loop
+        if (IsIconic(mWin32Window))
+            WaitMessage();
 
         MSG msg;
         while (PeekMessageA(&msg, nullptr, 0, 0, PM_REMOVE))
@@ -190,6 +274,11 @@ namespace Surge
         return windowTitle;
     }
 
+    void WindowsWindow::SetFileDropEnabled(bool enabled)
+    {
+        DragAcceptFiles(mWin32Window, enabled ? TRUE : FALSE);
+    }
+
     LRESULT WindowsWindow::WindowProcWithoutImGui(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     {
         if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
@@ -264,10 +353,56 @@ namespace Surge
                 data->mEventCallback(event);
                 break;
             }
+            case WM_POINTERDOWN:
+            case WM_POINTERUPDATE:
+            case WM_POINTERUP:
+            case WM_POINTERCAPTURECHANGED:
+            {
+                // Touch/pen contacts become touches, DefWindowProc still synthesizes the mouse messages (ImGui/Editor need them)
+                WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+                if (data)
+                    HandlePointerMessage(data->mEventCallback, hWnd, msg, wParam);
+                return DefWindowProc(hWnd, msg, wParam, lParam);
+            }
+            case WM_DROPFILES:
+            {
+                WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+                HDROP drop = reinterpret_cast<HDROP>(wParam);
+                if(data && data->mEventCallback)
+                {
+                    const UINT count = DragQueryFileA(drop, 0xFFFFFFFF, nullptr, 0);
+                    Vector<String> paths;
+                    paths.reserve(count);
+                    for(UINT i = 0; i < count; i++)
+                    {
+                        String path(DragQueryFileA(drop, i, nullptr, 0), '\0');
+                        DragQueryFileA(drop, i, path.data(), static_cast<UINT>(path.size() + 1));
+                        std::replace(path.begin(), path.end(), '\\', '/');
+                        paths.push_back(std::move(path));
+                    }
+
+                    POINT point = {};
+                    DragQueryPoint(drop, &point);
+                    FilesDroppedEvent event(std::move(paths), static_cast<float>(point.x), static_cast<float>(point.y));
+                    data->mEventCallback(event);
+                }
+                DragFinish(drop);
+                return 0;
+            }
+            case WM_KILLFOCUS:
+            {
+                WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+                if (data && data->mEventCallback)
+                {
+                    WindowLostFocusEvent event;
+                    data->mEventCallback(event);
+                }
+                return DefWindowProc(hWnd, msg, wParam, lParam);
+            }
             case WM_MOUSEMOVE:
             {
                 WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
-                MouseMovedEvent event((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam));
+                MouseMovedEvent event((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), IsMouseMessageFromTouch());
                 data->mEventCallback(event);
                 break;
             }
@@ -281,42 +416,42 @@ namespace Surge
             case WM_LBUTTONDOWN:
             {
                 WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
-                MouseButtonPressedEvent event((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), static_cast<MouseCode>(VK_LBUTTON));
+                MouseButtonPressedEvent event((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), static_cast<MouseCode>(VK_LBUTTON), IsMouseMessageFromTouch());
                 data->mEventCallback(event);
                 break;
             }
             case WM_LBUTTONUP:
             {
                 WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
-                MouseButtonReleasedEvent event((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), static_cast<MouseCode>(VK_LBUTTON));
+                MouseButtonReleasedEvent event((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), static_cast<MouseCode>(VK_LBUTTON), IsMouseMessageFromTouch());
                 data->mEventCallback(event);
                 break;
             }
             case WM_MBUTTONDOWN:
             {
                 WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
-                MouseButtonPressedEvent event((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), static_cast<MouseCode>(VK_MBUTTON));
+                MouseButtonPressedEvent event((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), static_cast<MouseCode>(VK_MBUTTON), IsMouseMessageFromTouch());
                 data->mEventCallback(event);
                 break;
             }
             case WM_MBUTTONUP:
             {
                 WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
-                MouseButtonReleasedEvent event((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), static_cast<MouseCode>(VK_MBUTTON));
+                MouseButtonReleasedEvent event((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), static_cast<MouseCode>(VK_MBUTTON), IsMouseMessageFromTouch());
                 data->mEventCallback(event);
                 break;
             }
             case WM_RBUTTONDOWN:
             {
                 WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
-                MouseButtonPressedEvent event((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), static_cast<MouseCode>(VK_RBUTTON));
+                MouseButtonPressedEvent event((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), static_cast<MouseCode>(VK_RBUTTON), IsMouseMessageFromTouch());
                 data->mEventCallback(event);
                 break;
             }
             case WM_RBUTTONUP:
             {
                 WindowsWindow* data = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
-                MouseButtonReleasedEvent event((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), static_cast<MouseCode>(VK_RBUTTON));
+                MouseButtonReleasedEvent event((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), static_cast<MouseCode>(VK_RBUTTON), IsMouseMessageFromTouch());
                 data->mEventCallback(event);
                 break;
             }

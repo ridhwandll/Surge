@@ -131,6 +131,26 @@ namespace Surge
         UpdateCameraView();
     }
 
+    void EditorCamera::SetCameraSpeed(float speed)
+    {
+        mSpeed = glm::clamp(speed, 0.0005f, 2.0f);
+        mLastSpeed = 0.0f;
+    }
+
+    void EditorCamera::SetView(const glm::vec3& focalPoint, float distance, float pitch, float yaw)
+    {
+        mFocalPoint = focalPoint;
+        mDistance = std::max(distance, 1.0f);
+        mPitch = pitch;
+        mYaw = yaw;
+        mPitchDelta = 0.0f;
+        mYawDelta = 0.0f;
+        mPositionDelta = glm::vec3(0.0f);
+        mCameraMode = CameraMode::Arcball;
+        mPosition = CalculatePosition();
+        UpdateCameraView();
+    }
+
     Pair<float, float> EditorCamera::PanSpeed() const
     {
         const float x = std::min(float(mViewportWidth) / 1000.0f, 2.2f);

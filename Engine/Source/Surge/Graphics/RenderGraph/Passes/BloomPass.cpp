@@ -45,7 +45,8 @@ namespace Surge
         mRHI = rhi;
         mSceneColor = blackBoard.MainPassColorImage;
         mLinearClampSampler = blackBoard.LinearClampSampler;
-        mFullSize = Core::GetWindow()->GetSize();
+        const glm::vec2 windowSize = Core::GetWindow()->GetSize();
+        mFullSize = blackBoard.GetSceneSize(static_cast<Uint>(windowSize.x), static_cast<Uint>(windowSize.y)); // Same as the main pass color
 
         if(mRHI->SupportsCompute())
         {
@@ -212,7 +213,7 @@ namespace Surge
 
     void BloomPass::Rebuild(const ChainConfig& config)
     {
-        mRHI->WaitIdle();
+        // Every Destroy* is deferred by the RHI until in-flight frames retire, no device drain needed
         DestroyChain();
         BuildChain(config);
         mRebuildPending = false;
@@ -345,7 +346,8 @@ namespace Surge
             return;
 
         const BloomSettings* settings = &blackBoard.Bloom;
-        Core::AddFrameEndCallback([this, width, height, settings]() { mFullSize = { width, height }; Rebuild(ComputeConfig(*settings)); });
+        const glm::uvec2 sceneSize = blackBoard.GetSceneSize(width, height);
+        Core::AddFrameEndCallback([this, sceneSize, settings]() { mFullSize = sceneSize; Rebuild(ComputeConfig(*settings)); });
     }
 
     void BloomPass::OnImGuiRender(FrameBlackboard& blackBoard)

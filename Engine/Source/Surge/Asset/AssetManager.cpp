@@ -215,7 +215,7 @@ namespace Surge
         return UUID::INVALID;
     }
 
-    void AssetManager::UpdateAssetPath([[maybe_unused]] AssetID id, [[maybe_unused]] const String& newRelativePath)
+    void AssetManager::UpdateAssetPath([[maybe_unused]] AssetID id, [[maybe_unused]] const String& newRelativePath, [[maybe_unused]] bool serialize)
     {
 #ifdef SURGE_PLATFORM_ANDROID
         Log<Severity::Error>("[AssetManager] UpdateAssetPath is an Editor function. APK assets are readonly!");
@@ -224,7 +224,8 @@ namespace Surge
         if(it != mAssetRegistry.end())
         {
             it->second.RelativePath = newRelativePath;
-            SerializeRegistry();
+            if(serialize)
+                SerializeRegistry();
         }
 #endif
     }

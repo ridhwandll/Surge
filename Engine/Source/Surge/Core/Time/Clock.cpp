@@ -34,4 +34,10 @@ namespace Surge
         mNow = std::chrono::high_resolution_clock::now();
     }
 
+    void Clock::ResetDelta()
+    {
+        mNow = std::chrono::high_resolution_clock::now();
+        mThen = mNow;
+    }
+
 } // namespace Surge

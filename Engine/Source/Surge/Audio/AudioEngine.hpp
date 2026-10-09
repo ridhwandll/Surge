@@ -14,6 +14,10 @@ namespace Surge
         void Initialize();
         void Shutdown();
 
+        // Stops/restarts the audio device, used while the app is in the background
+        void Suspend();
+        void Resume();
+
         AudioID CreateAudio(const String& filepath, bool isStreaming, bool isSpatialized);
         void DestroyAudio(AudioID audioId);
 

@@ -8,13 +8,18 @@ layout(location = 4) in vec2 aTexCoord;
 
 layout(push_constant) uniform ShadowPushConstant
 {
-    mat4 Transform;
     mat4 LightSpaceTransform; // View Projection matrix from lights perspective
 } pc;
 
+// Per-instance transforms written by ShadowPass (all cascades back to back), gl_InstanceIndex includes firstInstance
+layout(std430, set = 0, binding = 0) readonly buffer InstanceData
+{
+    mat4 Transforms[];
+} uInstances;
+
 void main()
 {
-    gl_Position = pc.LightSpaceTransform * pc.Transform * vec4(aPosition, 1.0);
+    gl_Position = pc.LightSpaceTransform * uInstances.Transforms[gl_InstanceIndex] * vec4(aPosition, 1.0);
 }
 
 //SURGE:[Shader: Fragment]

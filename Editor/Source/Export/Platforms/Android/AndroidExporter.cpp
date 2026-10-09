@@ -146,6 +146,7 @@ namespace Surge
                 cmd += " " + Quote("-PsurgeVersionName=" + ExportUtils::VersionString(b, false));
                 cmd += " -PsurgeVersionCode=" + std::to_string(std::max(1, b.Build));
                 cmd += " -PsurgeMinSdk=" + std::to_string(a.MinApi);
+                cmd += " -PsurgeTargetSdk=" + std::to_string(a.TargetApi);
                 cmd += String(" -PsurgeOrientation=") + AndroidExporter::ORIENTATIONS[orientation].Value;
                 cmd += String(" -PsurgeImmersive=") + (a.Immersive ? "true" : "false");
                 cmd += String(" -PsurgeCutout=") + (a.UseCutout ? "true" : "false");
@@ -196,6 +197,7 @@ namespace Surge
             {"KeyAlias", a.KeyAlias},
             {"Format", static_cast<int>(a.Format)},
             {"MinApi", a.MinApi},
+            {"TargetApi", a.TargetApi},
             {"Orientation", a.Orientation},
             {"Immersive", a.Immersive},
             {"UseCutout", a.UseCutout},
@@ -220,6 +222,7 @@ namespace Surge
         ExportSettingsIO::Read(in, "KeyAlias", a.KeyAlias);
         ExportSettingsIO::Read(in, "Format", format);
         ExportSettingsIO::Read(in, "MinApi", a.MinApi);
+        ExportSettingsIO::Read(in, "TargetApi", a.TargetApi);
         ExportSettingsIO::Read(in, "Orientation", a.Orientation);
         ExportSettingsIO::Read(in, "Immersive", a.Immersive);
         ExportSettingsIO::Read(in, "UseCutout", a.UseCutout);

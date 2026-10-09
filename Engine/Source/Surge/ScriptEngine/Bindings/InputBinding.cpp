@@ -2,6 +2,7 @@
 #include "InputBinding.hpp"
 #include "Surge/Core/Input/Input.hpp"
 #include "Surge/ScriptEngine/Lua.hpp"
+#include "BindingUtils.hpp"
 #include <glm/vec2.hpp>
 
 namespace Surge::ScriptBinding
@@ -58,6 +59,80 @@ namespace Surge::ScriptBinding
         inputTable["GetMouseY"] = &Input::GetMouseY;
         inputTable["SetCursorMode"] = &Input::SetCursorMode;
         inputTable["GetMousePosition"] = []() -> glm::vec2 { auto pos = Input::GetMousePosition(); return glm::vec2(pos.Data1, pos.Data2);};
+        inputTable["WasKeyPressed"] = &Input::WasKeyPressed;
+        inputTable["WasKeyReleased"] = &Input::WasKeyReleased;
+        inputTable["WasMouseButtonPressed"] = &Input::WasMouseButtonPressed;
+        inputTable["WasMouseButtonReleased"] = &Input::WasMouseButtonReleased;
+        inputTable["GetMouseScrollDelta"] = &Input::GetMouseScrollDelta;
+
+        // Touch: Lua indices are 1-based (Input.GetTouch(1) .. Input.GetTouch(Input.GetTouchCount())), touches are copied
+        lua.new_enum("TouchPhase",
+                     "BEGAN", TouchPhase::BEGAN,
+                     "MOVED", TouchPhase::MOVED,
+                     "STATIONARY", TouchPhase::STATIONARY,
+                     "ENDED", TouchPhase::ENDED,
+                     "CANCELED", TouchPhase::CANCELED
+        );
+        lua.new_usertype<Touch>("Touch", sol::no_constructor,
+                                "ID", sol::readonly_property([](const Touch& t) { return t.ID; }),
+                                "Phase", sol::readonly_property([](const Touch& t) { return t.Phase; }),
+                                "Position", sol::readonly_property([](const Touch& t) { return t.Position; }),
+                                "StartPosition", sol::readonly_property([](const Touch& t) { return t.StartPosition; }),
+                                "Delta", sol::readonly_property([](const Touch& t) { return t.Delta; }),
+                                "X", sol::readonly_property([](const Touch& t) { return t.Position.x; }),
+                                "Y", sol::readonly_property([](const Touch& t) { return t.Position.y; }),
+                                "Pressure", sol::readonly_property([](const Touch& t) { return t.Pressure; }),
+                                "Duration", sol::readonly_property([](const Touch& t) { return t.Duration; }),
+                                "IsMouse", sol::readonly_property([](const Touch& t) { return t.IsMouse; }),
+                                STRICT_READ(Touch)
+        );
+        inputTable["GetTouchCount"] = &Input::GetTouchCount;
+        inputTable["GetTouch"] = [](int index, sol::this_state s) -> sol::object {
+            if(index < 1 || static_cast<Uint>(index) > Input::GetTouchCount())
+                return sol::make_object(s, sol::lua_nil);
+            return sol::make_object(s, Input::GetTouch(static_cast<Uint>(index - 1)));
+        };
+        inputTable["GetTouchByID"] = [](int32_t id, sol::this_state s) -> sol::object {
+            const Touch* touch = Input::FindTouch(id);
+            return touch ? sol::make_object(s, *touch) : sol::make_object(s, sol::lua_nil);
+        };
+        inputTable["GetTouches"] = [](sol::this_state s) -> sol::table {
+            sol::state_view lua(s);
+            const Uint count = Input::GetTouchCount();
+            sol::table touches = lua.create_table(static_cast<int>(count), 0);
+            for(Uint i = 0; i < count; i++)
+                touches[i + 1] = Input::GetTouch(i);
+            return touches;
+        };
+        inputTable["IsTouchSupported"] = &Input::IsTouchSupported;
+        inputTable["SetMouseTouchEmulation"] = &Input::SetMouseTouchEmulation;
+        inputTable["IsMouseTouchEmulationEnabled"] = &Input::IsMouseTouchEmulationEnabled;
+
+        // Gamepads: Lua indices are 1-based (1 .. Input.MaxGamepads)
+        lua.new_enum("GamepadButton",
+                     "A", GamepadButton::A, "B", GamepadButton::B, "X", GamepadButton::X, "Y", GamepadButton::Y,
+                     "LeftShoulder", GamepadButton::LeftShoulder, "RightShoulder", GamepadButton::RightShoulder,
+                     "Back", GamepadButton::Back, "Start", GamepadButton::Start, "Guide", GamepadButton::Guide,
+                     "LeftThumb", GamepadButton::LeftThumb, "RightThumb", GamepadButton::RightThumb,
+                     "DPadUp", GamepadButton::DPadUp, "DPadDown", GamepadButton::DPadDown,
+                     "DPadLeft", GamepadButton::DPadLeft, "DPadRight", GamepadButton::DPadRight
+        );
+        lua.new_enum("GamepadAxis",
+                     "LeftX", GamepadAxis::LeftX, "LeftY", GamepadAxis::LeftY,
+                     "RightX", GamepadAxis::RightX, "RightY", GamepadAxis::RightY,
+                     "LeftTrigger", GamepadAxis::LeftTrigger, "RightTrigger", GamepadAxis::RightTrigger
+        );
+        inputTable["MaxGamepads"] = Input::MAX_GAMEPADS;
+        auto padIndex = [](int index) -> Uint { return index >= 1 ? static_cast<Uint>(index - 1) : Input::MAX_GAMEPADS; };
+        inputTable["IsGamepadConnected"] = [padIndex](int index) { return Input::IsGamepadConnected(padIndex(index)); };
+        inputTable["IsGamepadButtonPressed"] = [padIndex](int index, GamepadButton b) { return Input::IsGamepadButtonPressed(padIndex(index), b); };
+        inputTable["WasGamepadButtonPressed"] = [padIndex](int index, GamepadButton b) { return Input::WasGamepadButtonPressed(padIndex(index), b); };
+        inputTable["WasGamepadButtonReleased"] = [padIndex](int index, GamepadButton b) { return Input::WasGamepadButtonReleased(padIndex(index), b); };
+        inputTable["GetGamepadAxis"] = [padIndex](int index, GamepadAxis a) { return Input::GetGamepadAxis(padIndex(index), a); };
+
+        // Android back button (reported as Key.Escape): false = the game handles it, the app no longer closes
+        inputTable["SetBackButtonExitsApp"] = &Input::SetBackButtonExitsApp;
+        inputTable["DoesBackButtonExitApp"] = &Input::DoesBackButtonExitApp;
     }
 }
 

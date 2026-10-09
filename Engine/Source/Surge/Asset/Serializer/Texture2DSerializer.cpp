@@ -4,6 +4,8 @@
 #include "Surge/Utility/Filesystem.hpp"
 #include "Surge/Graphics/RHI/RHIDescs.hpp"
 #include "Surge/Asset/AssetManager.hpp"
+#include "Surge/Graphics/Renderer/Renderer.hpp"
+#include "SurgeReflect/Enum.hpp"
 #include "AssetStamp.hpp"
 
 #include <basisu/transcoder/basisu_transcoder.h>
@@ -46,6 +48,46 @@ namespace Surge
         return Texture2D::Create(spec);
     }
 
+    struct TranscodeTarget
+    {
+        basist::transcoder_texture_format Format;
+        ImageFormat SRGB;
+        ImageFormat UNORM;
+        bool IsBlockCompressed; // 16 bytes per 4x4 block, otherwise 4 bytes per pixel (RGBA32)
+    };
+
+    // Preferred hardware format per platform, falling back to what the GPU actually supports
+    // Android: ASTC 4x4 -> ETC2 RGBA (guaranteed on GLES3-class/Vulkan Android GPUs) -> RGBA32
+    // Desktop: BC7 -> RGBA32
+    static const TranscodeTarget& SelectTranscodeTarget()
+    {
+        static const TranscodeTarget sTarget = []()
+        {
+            Scope<GraphicsRHI>& rhi = Core::GetRenderer()->GetRHI();
+            const TranscodeTarget candidates[] = {
+#ifdef SURGE_PLATFORM_ANDROID
+                { basist::transcoder_texture_format::cTFASTC_4x4_RGBA, ImageFormat::ASTC4x4_SRGB, ImageFormat::ASTC4x4_UNORM, true },
+                { basist::transcoder_texture_format::cTFETC2_RGBA, ImageFormat::ETC2_RGBA8_SRGB, ImageFormat::ETC2_RGBA8_UNORM, true },
+#else
+                { basist::transcoder_texture_format::cTFBC7_RGBA, ImageFormat::BC7_SRGB, ImageFormat::BC7_UNORM, true },
+#endif
+            };
+
+            for(const TranscodeTarget& candidate : candidates)
+            {
+                if(rhi->IsFormatSupported(candidate.SRGB) && rhi->IsFormatSupported(candidate.UNORM))
+                {
+                    Log<Severity::Info>("[Texture2DSerializer] Transcoding KTX2 textures to {}", SurgeReflect::EnumToString(candidate.UNORM).data());
+                    return candidate;
+                }
+            }
+
+            Log<Severity::Warn>("[Texture2DSerializer] No supported block compressed format, textures are transcoded to uncompressed RGBA8 (4x memory)");
+            return TranscodeTarget{ basist::transcoder_texture_format::cTFRGBA32, ImageFormat::RGBA8_SRGB, ImageFormat::RGBA8_UNORM, false };
+        }();
+        return sTarget;
+    }
+
     TextureSpecification Texture2DSerializer::LoadFromKTX2(const Vector<Byte>& ktx2Data, const String& debugStr, bool raw)
     {
         const Byte* ktx2Start = raw ? ktx2Data.data() : ktx2Data.data() + sizeof(AssetStamp);
@@ -67,15 +109,9 @@ namespace Surge
         TextureSpecification spec;
         spec.DebugName = Filesystem::GetFilenameWithExt(debugStr);
 
-#ifdef SURGE_PLATFORM_ANDROID
-        // Transcode to hardware ASTC 4x4
-        const basist::transcoder_texture_format transcoderFmt = basist::transcoder_texture_format::cTFASTC_4x4_RGBA;
-        spec.Format = isSRGB ? ImageFormat::ASTC4x4_SRGB : ImageFormat::ASTC4x4_UNORM;
-#else
-        // Transcode to hardware BC7
-        const basist::transcoder_texture_format transcoderFmt = basist::transcoder_texture_format::cTFBC7_RGBA;
-        spec.Format = isSRGB ? ImageFormat::BC7_SRGB : ImageFormat::BC7_UNORM;
-#endif
+        const TranscodeTarget& target = SelectTranscodeTarget();
+        const basist::transcoder_texture_format transcoderFmt = target.Format;
+        spec.Format = isSRGB ? target.SRGB : target.UNORM;
         spec.GenerateMips = false;
 
         const Uint targetMips = ktx2.get_levels();
@@ -86,11 +122,12 @@ namespace Surge
             basist::ktx2_image_level_info info = {};
             ktx2.get_image_level_info(info, level, 0, 0);
 
-            const Uint blockCount = info.m_total_blocks;
-            const Uint levelBytes = blockCount * 16;
+            // Block formats: output size in 16 byte blocks, RGBA32: output size in pixels
+            const Uint outputUnits = target.IsBlockCompressed ? info.m_total_blocks : info.m_orig_width * info.m_orig_height;
+            const Uint levelBytes = target.IsBlockCompressed ? outputUnits * 16 : outputUnits * 4;
             Vector<Byte> levelData(levelBytes);
 
-            if(!ktx2.transcode_image_level(level, 0, 0, levelData.data(), blockCount, transcoderFmt))
+            if(!ktx2.transcode_image_level(level, 0, 0, levelData.data(), outputUnits, transcoderFmt))
             {
                 Log<Severity::Error>("[Texture2DSerializer] Block transcode failed at level {} for {}", level, debugStr);
                 return {};

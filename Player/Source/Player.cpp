@@ -39,6 +39,11 @@ namespace Surge
 
     void Player::OnInitialize()
     {
+#ifdef SURGE_RELEASE
+        // Shipping builds only report problems, Info logs would cost a format + logcat write each
+        SetMinLogSeverity(Severity::Warn);
+#endif
+
         mRenderer = Core::GetRenderer();
         mAssetManager = Core::GetAssetManager();
         mRenderer->ShowInternalImGui(false);

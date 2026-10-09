@@ -1,6 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Surge/Graphics/RHI/Vulkan/VulkanSwapchain.hpp"
 #include "Surge/Graphics/RHI/Vulkan/VulkanRHI.hpp"
+#include "Surge/Graphics/RHI/Vulkan/VulkanFramePacing.hpp"
 #include "Surge/Core/Profiler.hpp"
 
 namespace Surge
@@ -39,7 +40,7 @@ namespace Surge
         present.pSwapchains = &mSwapchain;
         present.pImageIndices = &imageIndex;
 
-        return vkQueuePresentKHR(queue, &present);
+        return VulkanFramePacing::QueuePresent(queue, present);
     }
 
     void VulkanSwapchain::Create(const VulkanRHI& rhi, Uint width, Uint height)
@@ -125,8 +126,11 @@ namespace Surge
             }
 
             mFrames.clear();
+            VulkanFramePacing::OnSwapchainDestroyed(device, oldSwapchain);
             vkDestroySwapchainKHR(device, oldSwapchain, nullptr);
         }
+
+        mFramePacingActive = VulkanFramePacing::OnSwapchainCreated(gpu, device, mSwapchain, rhi.GetNativeWindowHandle());
 
         mDimensions = { swapchainSize.width, swapchainSize.height, format.format };
 
@@ -175,6 +179,7 @@ namespace Surge
 
         if (mSwapchain != VK_NULL_HANDLE)
         {
+            VulkanFramePacing::OnSwapchainDestroyed(device, mSwapchain);
             vkDestroySwapchainKHR(device, mSwapchain, nullptr);
             mSwapchain = VK_NULL_HANDLE;
         }

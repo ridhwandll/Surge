@@ -136,33 +136,17 @@ namespace Surge
         ImageEntry* entry = rhi.mTexturePool.Get(h);
         SG_ASSERT(entry, "UploadTextureData: invalid TextureHandle");
         SG_ASSERT(data && size > 0, "UploadTextureData: data is null or size is 0");
-        VmaAllocator allocator = rhi.GetAllocator();
+        VulkanUploader& uploader = rhi.GetUploader();
+        const VulkanUploader::StagingAllocation staging = uploader.AllocateStaging(rhi, size);
+        memcpy(staging.MappedData, data, size);
 
-        VkBufferCreateInfo stagingInfo{};
-        stagingInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        stagingInfo.size = size;
-
-        stagingInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-        VmaAllocationCreateInfo stagingAllocInfo = {};
-        stagingAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-        stagingAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-        stagingAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT; // TODO(Rid) Do we need this requiredFlags?
-
-        VkBuffer stagingBuffer = VK_NULL_HANDLE;
-        VmaAllocation stagingAllocation {};
-        VmaAllocationInfo stagingResultInfo;
-
-        VK_CALL(vmaCreateBuffer(allocator, &stagingInfo, &stagingAllocInfo, &stagingBuffer, &stagingAllocation, &stagingResultInfo));
-        SG_ASSERT(stagingResultInfo.pMappedData != nullptr, "Staging buffer failed to map");
-        memcpy(stagingResultInfo.pMappedData, data, size);
-
-        const VkCommandBuffer cb = rhi.BeginOneTimeCommands();
+        const VkCommandBuffer cb = uploader.GetCommandBuffer(rhi);
 
         // Transition all mip levels to TRANSFER_DST
         TransitionLayout(cb, *entry, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
         VkBufferImageCopy region = {};
-        region.bufferOffset = 0;
+        region.bufferOffset = staging.Offset;
         region.bufferRowLength = 0;
         region.bufferImageHeight = 0;
         region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -171,19 +155,15 @@ namespace Surge
         region.imageSubresource.layerCount = 1;
         region.imageOffset = { 0, 0, 0 };
         region.imageExtent = { entry->Desc.Width, entry->Desc.Height, 1 };
-        vkCmdCopyBufferToImage(cb, stagingBuffer, entry->Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+        vkCmdCopyBufferToImage(cb, staging.Buffer, entry->Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
         if(entry->Desc.MipLevel > 1)
         {
-            SG_ASSERT(entry->Desc.Format != ImageFormat::ASTC4x4_SRGB && entry->Desc.Format != ImageFormat::ASTC4x4_UNORM && entry->Desc.Format != ImageFormat::BC7_SRGB && entry->Desc.Format != ImageFormat::BC7_UNORM, "[VulkanImage] UploadData: cannot generate mips for compressed format {}! Use ImageDesc::MipUploads with pre-baked levels!", SurgeReflect::EnumToString(entry->Desc.Format).data());
+            SG_ASSERT(!VulkanUtils::IsCompressedFormat(entry->Desc.Format), "[VulkanImage] UploadData: cannot generate mips for compressed format {}! Use ImageDesc::MipUploads with pre-baked levels!", SurgeReflect::EnumToString(entry->Desc.Format).data());
             GenerateMipmaps(rhi, cb, *entry); // Leaves all levels at SHADER_READ_ONLY_OPTIMAL
         }
         else
             TransitionLayout(cb, *entry, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-        rhi.EndOneTimeCommands(cb);
-        vmaDestroyBuffer(rhi.GetAllocator(), stagingBuffer, stagingAllocation);
-        vkQueueWaitIdle(rhi.GetQueue());
     }
 
     void VulkanImage::TransitionLayout(VkCommandBuffer cmd, ImageEntry& entry, VkImageLayout newLayout)
@@ -319,50 +299,25 @@ namespace Surge
         SG_ASSERT(mips && mipCount > 0, "UploadMips: null or empty mip data");
         SG_ASSERT(mipCount == entry->Desc.MipLevel, "UploadMips: mipCount ({}) != ImageDesc.MipLevel ({})", mipCount, entry->Desc.MipLevel);
 
-        VmaAllocator allocator = rhi.GetAllocator();
-
-        // Staging buffer
-        Uint totalSize = 0;
+        // Every level goes into one staging allocation, each level offset stays 16 byte aligned (block size of BC7/ASTC/ETC2)
+        auto alignUp = [](VkDeviceSize value) { return (value + 15) & ~VkDeviceSize(15); };
+        VkDeviceSize totalSize = 0;
         for(Uint i = 0; i < mipCount; i++)
-            totalSize += mips[i].Size;
+            totalSize = alignUp(totalSize) + mips[i].Size;
 
-        VkBufferCreateInfo stagingInfo{};
-        stagingInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        stagingInfo.size = totalSize;
-        stagingInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        VulkanUploader& uploader = rhi.GetUploader();
+        const VulkanUploader::StagingAllocation staging = uploader.AllocateStaging(rhi, totalSize);
 
-        VmaAllocationCreateInfo stagingAllocInfo = {};
-        stagingAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-        stagingAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-        stagingAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-
-        VkBuffer stagingBuffer = VK_NULL_HANDLE;
-        VmaAllocation stagingAllocation = {};
-        VmaAllocationInfo stagingResult = {};
-
-        VK_CALL(vmaCreateBuffer(allocator, &stagingInfo, &stagingAllocInfo, &stagingBuffer, &stagingAllocation, &stagingResult));
-        SG_ASSERT(stagingResult.pMappedData, "UploadMips: staging buffer map failed");
-
-        // Copy all levels into staging buffer
-        Uint offset = 0;
-        for(Uint i = 0; i < mipCount; i++)
-        {
-            memcpy(static_cast<uint8_t*>(stagingResult.pMappedData) + offset, mips[i].Data, mips[i].Size);
-            offset += mips[i].Size;
-        }
-
-        const VkCommandBuffer cb = rhi.BeginOneTimeCommands();
-
-        TransitionLayout(cb, *entry, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-
-        // One copy region per mip level
         Vector<VkBufferImageCopy> regions(mipCount);
-        offset = 0;
+        VkDeviceSize offset = 0;
         for(Uint i = 0; i < mipCount; i++)
         {
+            offset = alignUp(offset);
+            memcpy(static_cast<uint8_t*>(staging.MappedData) + offset, mips[i].Data, mips[i].Size);
+
             VkBufferImageCopy& r = regions[i];
             r = {};
-            r.bufferOffset = offset;
+            r.bufferOffset = staging.Offset + offset;
             r.bufferRowLength = 0;
             r.bufferImageHeight = 0;
             r.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -373,13 +328,13 @@ namespace Surge
             r.imageExtent = { mips[i].Width, mips[i].Height, 1 };
             offset += mips[i].Size;
         }
-        vkCmdCopyBufferToImage(cb, stagingBuffer, entry->Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipCount, regions.data());
+
+        const VkCommandBuffer cb = uploader.GetCommandBuffer(rhi);
+        TransitionLayout(cb, *entry, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+        vkCmdCopyBufferToImage(cb, staging.Buffer, entry->Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipCount, regions.data());
 
         TransitionLayout(cb, *entry, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-        rhi.EndOneTimeCommands(cb);
-        vmaDestroyBuffer(allocator, stagingBuffer, stagingAllocation);
-        vkQueueWaitIdle(rhi.GetQueue());
     }
 
     void VulkanImage::GenerateMipmaps(VulkanRHI& rhi, VkCommandBuffer cmd, ImageEntry& entry)

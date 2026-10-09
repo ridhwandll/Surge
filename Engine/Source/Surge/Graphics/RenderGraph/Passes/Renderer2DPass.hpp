@@ -28,13 +28,17 @@ namespace Surge
         static constexpr Uint MAX_QUAD_BATCHES_PER_FRAME = 32; //32 batches max, thus 512 unique textures max, incerease if needed
         static constexpr Uint MAX_TEX_SLOTS_PER_BATCH = 16; // TODO: Query from RHI caps
 
-        // 1 draw call for ALL lines
         static constexpr Uint MAX_LINES_TOTAL = 300000;
-        static constexpr Uint MAX_LINES_PER_BATCH = 300000;
-        static constexpr Uint MAX_LINE_BATCHES_PER_FRAME = MAX_LINES_TOTAL / MAX_LINES_PER_BATCH; // = 1
+        static constexpr Uint MAX_LINES_PER_BATCH = 16384; // CPU staging of one batch (~0.9 MB), not of the whole frame
+        static constexpr Uint MAX_LINE_BATCHES_PER_FRAME = (MAX_LINES_TOTAL + MAX_LINES_PER_BATCH - 1) / MAX_LINES_PER_BATCH;
+
+        // Vertex buffers start empty and grow (power of two) to what a frame actually submits, up to the MAX_* limits above
+        // A Player that never draws debug lines never allocates the line buffers
+        static constexpr Uint MIN_VERTEX_CAPACITY = 4096;
     private:
         void FlushQuadBatch();
         void FlushLineBatch();
+        void EnsureVertexCapacity(BufferHandle& buffer, Uint& capacity, Uint requiredVertices, Uint stride, const char* debugName, Uint frameIndex);
 
     public: //TODO MAKE PRIVATE
         //Quads
@@ -128,6 +132,7 @@ namespace Surge
         QuadBatchData mCurrentQuadBatch;
         PipelineHandle m2DQuadPipeline;
         BufferHandle mQuadVB[RHISettings::FRAMES_IN_FLIGHT];
+        Uint mQuadVBCapacity[RHISettings::FRAMES_IN_FLIGHT] = {}; // In vertices
         BufferHandle mQuadIB;
         DescriptorSetHandle mFrameDescriptorSet;
 
@@ -143,6 +148,7 @@ namespace Surge
         LineBatchData mCurrentLineBatch;
         PipelineHandle m2DLinePipeline;
         BufferHandle mLineVB[RHISettings::FRAMES_IN_FLIGHT];
+        Uint mLineVBCapacity[RHISettings::FRAMES_IN_FLIGHT] = {}; // In vertices
 
         // Text
         PipelineHandle m2DTextPipeline;

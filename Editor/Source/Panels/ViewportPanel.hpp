@@ -2,11 +2,13 @@
 #pragma once
 #include "Panels/IPanel.hpp"
 #include "Panels/SceneHierarchyPanel.hpp"
+#include "Picking/ScenePicker.hpp"
 #include <glm/glm.hpp>
 #include <Imgui/imgui.h>
 
 namespace Surge
 {
+    struct EditorSettings;
     class ViewportPanel : public IPanel
     {
     public:
@@ -28,12 +30,20 @@ namespace Surge
         void SetSceneName();
 
     private:
+        void HandleSelectionClick(Entity& selectedEntity, bool manipulatorActive, const ImVec2& viewportMin, const ImVec2& viewportSize);
+        void DrawToolbar(EditorSettings& settings); // Gizmo mode/space/snapping + camera settings, next to the aspect combo
+
+    private:
         PanelCode mCode;
         glm::vec2 mViewportSize = glm::vec2(0.0f);
-        int mGizmoType = -1;
         bool mGizmoInUse = false;
         bool mIsViewportHovered = false;
         bool mIsViewportFocused = false;
+
+        // Click selection, a press only selects when released without dragging
+        ScenePicker mPicker;
+        ImVec2 mPickPressPos = { 0.0f, 0.0f };
+        bool mPickPending = false;
 
         bool mIsFullscreen = false;
         bool mRestoreScreenPosBeforeFullscreen = false;

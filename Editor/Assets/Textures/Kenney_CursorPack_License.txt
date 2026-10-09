@@ -1,0 +1,24 @@
+
+
+Cursor Pack (1.1)
+
+Created/distributed by Kenney (www.kenney.nl)
+Creation date: 05-06-2024
+
+------------------------------
+
+License: (Creative Commons Zero, CC0)
+http://creativecommons.org/publicdomain/zero/1.0/
+
+This content is free to use in personal, educational and commercial projects.
+Support us by crediting Kenney or www.kenney.nl (this is not mandatory)
+
+------------------------------
+
+Donate:   http://support.kenney.nl
+Patreon:  http://patreon.com/kenney/
+
+Follow on Twitter for updates:
+http://twitter.com/KenneyNL
+Used for: ToolSelect.png (pointer_a), ToolMove.png (resize_a_cross), ToolRotate.png (rotate_cw), ToolScale.png (resize_b_diagonal), ToolUniversal.png (target_round_a)
+Trimmed to their content and re-centered at a uniform size in the 64x64 canvas.

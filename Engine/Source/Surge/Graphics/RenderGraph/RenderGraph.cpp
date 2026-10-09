@@ -3,7 +3,7 @@
 #include "Surge/Core/Core.hpp"
 #include "Surge/Graphics/RHI/RHI.hpp"
 #include "Surge/Graphics/RHI/Vulkan/VulkanUtils.hpp"
-#include <set>
+#include "Surge/Core/Profiler.hpp"
 
 namespace Surge
 {
@@ -51,16 +51,6 @@ namespace Surge
         uiOverlayGroup.Framebuffer = mBlackboard.UIOverlayFramebuffer;
         mainGroup.Framebuffer = mBlackboard.MainPassFramebuffer;
 
-        DeriveBarrierBetweenExecutionGroups(shadowGroup, mainGroup);
-        DeriveBarrierBetweenExecutionGroups(mainGroup, aoGroup);
-        DeriveBarrierBetweenExecutionGroups(mainGroup, postProcessGroup);
-        DeriveBarrierBetweenExecutionGroups(aoGroup, postProcessGroup);
-        DeriveBarrierBetweenExecutionGroups(mainGroup, bloomGroup);
-        DeriveBarrierBetweenExecutionGroups(bloomGroup, postProcessGroup);
-        DeriveBarrierBetweenExecutionGroups(outlineGroup, postProcessGroup);
-        DeriveBarrierBetweenExecutionGroups(postProcessGroup, uiOverlayGroup);
-        DeriveBarrierBetweenExecutionGroups(uiOverlayGroup, swapchainGroup);
-
         SortByDependencies(shadowGroup.Passes);
         SortByDependencies(mainGroup.Passes);
         SortByDependencies(aoGroup.Passes);
@@ -69,6 +59,11 @@ namespace Surge
         SortByDependencies(postProcessGroup.Passes);
         SortByDependencies(uiOverlayGroup.Passes);
         SortByDependencies(swapchainGroup.Passes);
+
+        // Execution order. Passes may move between groups (e.g. PostProcess/UI render straight into the swapchain in the Player),
+        // so barriers are derived from the actual order instead of fixed group pairs
+        Vector<ExecutionGroup*> ordered = { &outlineGroup, &shadowGroup, &mainGroup, &aoGroup, &bloomGroup, &postProcessGroup, &uiOverlayGroup, &swapchainGroup };
+        DeriveBarriers(ordered);
 
         // Build final groups
         if(!outlineGroup.Passes.empty())
@@ -99,10 +94,30 @@ namespace Surge
 
     void RenderGraph::Execute(FrameContext& ctx)
     {
+        SURGE_PROFILE_FUNC("RenderGraph::Execute");
+
+        for(auto& pass : mPasses)
+        {
+            if(pass->IsEnabled())
+                pass->Prepare(ctx, mBlackboard);
+        }
+
         for (const ExecutionGroup& group : mCompiledGraph.Groups)
         {
             for(const ImageBarrier& barrier : group.BarriersBeforeGroup)
                 mRHI->CmdTransitionImageLayout(ctx, barrier.Handle, barrier.NewUsage);
+
+            // An empty group would still clear + store its attachments, which costs a full-screen write on tile based GPUs
+            // The swapchain group always runs (it presents), self managed groups decide inside Execute
+            if (!group.ManagesOwnExecution && !group.IsSwapchain)
+            {
+                bool hasWork = false;
+                for(RenderPass* pass : group.Passes)
+                    hasWork |= pass->IsEnabled() && pass->HasWork(mBlackboard);
+
+                if(!hasWork)
+                    continue;
+            }
 
             if (!group.ManagesOwnExecution)
                 group.IsSwapchain ? mRHI->CmdBeginSwapchainRenderpass(ctx) : mRHI->CmdBeginRenderPass(ctx, group.Framebuffer);
@@ -200,34 +215,34 @@ namespace Surge
         }
     }
 
-    void RenderGraph::DeriveBarrierBetweenExecutionGroups(ExecutionGroup& writeGroup, ExecutionGroup& readGroup)
+    void RenderGraph::DeriveBarriers(Vector<ExecutionGroup*>& orderedGroups)
     {
-        // (Rid) Derive barriers between groups
-        // These hell for loop basically answers:
-        // Does any pass in a group write an image that any pass in b group reads? If so, that image needs a barrier between them
-        // Example: MainScene -> Swapchain: FinalImage color -> shader read
-        std::set<ImageHandle> barrierAdded;
-        for(RenderPass* a : writeGroup.Passes)
+        // Images written by an executed group and not yet transitioned for sampling
+        // Example: MainScene writes MainPassColorImage -> Bloom reads it -> barrier before Bloom, PostProcess later reads it without another one
+        Vector<ImageHandle> pendingWrites;
+        auto contains = [](const Vector<ImageHandle>& list, ImageHandle h) { return std::find(list.begin(), list.end(), h) != list.end(); };
+
+        for(ExecutionGroup* group : orderedGroups)
         {
-            for(RenderPass* b : readGroup.Passes)
+            for(RenderPass* pass : group->Passes)
             {
-                for(ImageHandle write : a->GetImageWrites())
+                for(ImageHandle read : pass->GetImageReads())
                 {
-                    for(ImageHandle read : b->GetImageReads())
-                    {
-                        if(write == read && !barrierAdded.count(write))
-                        {
-                            readGroup.BarriersBeforeGroup.push_back({ write, ImageUsage::SAMPLED });
-                            barrierAdded.insert(write);
-#if 0
-                            const ImageDesc& writeDesc = mRHI->GetDesc(write);
-                            Log<Severity::Warn>("-----------IMAGE BARRIER-----------");
-                            Log<Severity::Warn>("Image: {}", writeDesc.DebugName);
-                            Log<Severity::Warn>("[After executing {} pass | Before executing {} pass]", writeGroup.Name, readGroup.Name);
-                            Log<Severity::Warn>("From: {} -> To: SAMPLED", VulkanUtils::TextureUsageToString(writeDesc.Usage)); //TODO: Remove
-#endif
-                        }
-                    }
+                    auto itr = std::find(pendingWrites.begin(), pendingWrites.end(), read);
+                    if(itr == pendingWrites.end())
+                        continue;
+
+                    group->BarriersBeforeGroup.push_back({ read, ImageUsage::SAMPLED });
+                    pendingWrites.erase(itr);
+                }
+            }
+
+            for(RenderPass* pass : group->Passes)
+            {
+                for(ImageHandle write : pass->GetImageWrites())
+                {
+                    if(!contains(pendingWrites, write))
+                        pendingWrites.push_back(write);
                 }
             }
         }

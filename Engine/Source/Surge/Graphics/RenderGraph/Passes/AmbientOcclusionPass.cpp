@@ -46,7 +46,8 @@ namespace Surge
         mSceneDepth = blackBoard.MainPassDepthImage;
         mPointClampSampler = blackBoard.PointClampSampler;
 
-        mFullSize = Core::GetWindow()->GetSize();
+        const glm::vec2 windowSize = Core::GetWindow()->GetSize();
+        mFullSize = blackBoard.GetSceneSize(static_cast<Uint>(windowSize.x), static_cast<Uint>(windowSize.y)); // Same as the main pass depth
         mAOSize = ComputeAOSize(blackBoard.AOSettings.ResolutionScale);
 
         ImageDesc imageDesc = {};
@@ -246,7 +247,7 @@ namespace Surge
     void AmbientOcclusionPass::RecreateTargets(float resolutionScale)
     {
         // Images are shared between framebuffers (mAO), so resize them once here and rebuild the framebuffers without touching their images
-        mRHI->WaitIdle();
+        // Old images/framebuffers go through the RHI deletion queue, no device drain needed
         mAOSize = ComputeAOSize(resolutionScale);
 
         mRHI->ResizeImage(mLinearDepth, mAOSize.x, mAOSize.y);
@@ -271,7 +272,8 @@ namespace Surge
             return;
 
         AmbientOcclusionSettings* settings = &blackBoard.AOSettings;
-        Core::AddFrameEndCallback([this, width, height, settings]() { mFullSize = { width, height }; RecreateTargets(settings->ResolutionScale); });
+        const glm::uvec2 sceneSize = blackBoard.GetSceneSize(width, height);
+        Core::AddFrameEndCallback([this, sceneSize, settings]() { mFullSize = sceneSize; RecreateTargets(settings->ResolutionScale); });
     }
 
     void AmbientOcclusionPass::OnImGuiRender(FrameBlackboard& blackBoard)

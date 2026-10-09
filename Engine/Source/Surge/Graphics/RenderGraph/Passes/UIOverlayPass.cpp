@@ -17,23 +17,22 @@ namespace Surge
 
         glm::uvec2 size = Core::GetWindow()->GetSize();
 
-        //auto ctx =  mRHI->GetBackendRHI().BeginOneTimeCommands();
-        //mRHI->GetBackendRHI().CmdTransitionImageLayout(ctx, blackBoard.FinalImage, ImageUsage::COLOR_ATTACHMENT);
-        //mRHI->GetBackendRHI().EndOneTimeCommands(ctx);
+        if(!RHISettings::RENDER_TO_SWAPCHAIN)
+        {
+            FramebufferAttachment colorAttachment = {};
+            colorAttachment.Handle = blackBoard.FinalImage;
+            colorAttachment.Load = LoadOp::LOAD;
+            colorAttachment.Store = StoreOp::STORE;
 
-        FramebufferAttachment colorAttachment = {};
-        colorAttachment.Handle = blackBoard.FinalImage;
-        colorAttachment.Load = LoadOp::LOAD;
-        colorAttachment.Store = StoreOp::STORE;
-
-        FramebufferDesc fbDesc = {};
-        fbDesc.ColorAttachments[0] = colorAttachment;
-        fbDesc.ColorAttachmentCount = 1;
-        fbDesc.HasDepth = false;
-        fbDesc.Width = size.x;
-        fbDesc.Height = size.y;
-        fbDesc.DebugName = "UIOverlayFramebuffer";
-        blackBoard.UIOverlayFramebuffer = mRHI->CreateFramebuffer(fbDesc);
+            FramebufferDesc fbDesc = {};
+            fbDesc.ColorAttachments[0] = colorAttachment;
+            fbDesc.ColorAttachmentCount = 1;
+            fbDesc.HasDepth = false;
+            fbDesc.Width = size.x;
+            fbDesc.Height = size.y;
+            fbDesc.DebugName = "UIOverlayFramebuffer";
+            blackBoard.UIOverlayFramebuffer = mRHI->CreateFramebuffer(fbDesc);
+        }
 
         // Setup VB and IB for UI Quads
         Vector<Uint> indices(MAX_UI_QUAD_INDICES);
@@ -80,8 +79,8 @@ namespace Surge
         pd.Blend.DstAlpha = BlendFactor::ONE_MINUS_SRC_ALPHA;
         pd.Depth.TestEnable = false;
         pd.Depth.WriteEnable = false;
-        pd.TargetFramebuffer = blackBoard.UIOverlayFramebuffer;
-        pd.TargetSwapchain = false;
+        pd.TargetFramebuffer = RHISettings::RENDER_TO_SWAPCHAIN ? FramebufferHandle::Invalid() : blackBoard.UIOverlayFramebuffer;
+        pd.TargetSwapchain = RHISettings::RENDER_TO_SWAPCHAIN;
         mUIPipeline = mRHI->CreatePipeline(pd);
 
         mWhiteImage = blackBoard.WhiteImage;
@@ -104,8 +103,11 @@ namespace Surge
             }
         }
 
-        mImageReads.push_back(blackBoard.FinalImage);
-        mImageWrites.push_back(blackBoard.FinalImage);
+        if(!RHISettings::RENDER_TO_SWAPCHAIN)
+        {
+            mImageReads.push_back(blackBoard.FinalImage);
+            mImageWrites.push_back(blackBoard.FinalImage);
+        }
     }
 
     void UIOverlayPass::Execute(const FrameContext& ctx, const FrameBlackboard& blackboard)
@@ -382,8 +384,12 @@ namespace Surge
 
     void UIOverlayPass::Resize(Uint width, Uint height, FrameBlackboard& blackBoard)
     {
+        if(RHISettings::RENDER_TO_SWAPCHAIN)
+            return;
+
         constexpr bool resizeFinalImage = false; // We do not own the FinalImage, so we DO NOT Resize it
-        Core::AddFrameEndCallback([this, width, height, &blackBoard]() { mRHI->ResizeFramebuffer(blackBoard.UIOverlayFramebuffer, width, height, resizeFinalImage); });
+        const FramebufferHandle framebuffer = blackBoard.UIOverlayFramebuffer;
+        Core::AddFrameEndCallback([this, width, height, framebuffer]() { mRHI->ResizeFramebuffer(framebuffer, width, height, resizeFinalImage); });
     }
 
     void UIOverlayPass::OnImGuiRender(FrameBlackboard&) {}
@@ -399,6 +405,7 @@ namespace Surge
             mRHI->DestroyBuffer(mQuadVB[i]);
 
         mRHI->DestroyBuffer(mQuadIB);
-        mRHI->DestroyFramebuffer(blackBoard.UIOverlayFramebuffer);
+        if(!blackBoard.UIOverlayFramebuffer.IsNull())
+            mRHI->DestroyFramebuffer(blackBoard.UIOverlayFramebuffer);
     }
 }

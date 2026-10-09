@@ -320,6 +320,8 @@ namespace IMGUIZMO_NAMESPACE
         HATCHED_AXIS_LINES,
         TEXT,
         TEXT_SHADOW,
+        OUTLINE,          // SURGE: dark rim drawn under the handles
+        INFO_BACKGROUND,  // SURGE: background of the value readout while manipulating
         COUNT
     };
 
@@ -335,6 +337,8 @@ namespace IMGUIZMO_NAMESPACE
         float ScaleLineCircleSize;        // Size of circle at the end of lines for scale gizmo
         float HatchedAxisLineThickness;   // Thickness of hatched axis lines
         float CenterCircleSize;           // Size of circle at the center of the translate/scale gizmo
+        float OutlineThickness;           // SURGE: Thickness of the dark rim around the handles (0 = no rim)
+        float InfoRounding;               // SURGE: Corner rounding of the value readout background
 
         ImVec4 Colors[COLOR::COUNT];
     };

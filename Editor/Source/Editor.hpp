@@ -7,6 +7,8 @@
 #include "ProjectBrowser.hpp"
 #include "History/EditorHistory.hpp"
 #include "History/SceneCommands.hpp"
+#include "Gizmos/SceneGizmos.hpp"
+#include "Settings/EditorSettings.hpp"
 
 #include "Asset/AssetImporter.hpp"
 #include <functional>
@@ -14,6 +16,18 @@
 namespace Surge
 {
     class ViewportPanel;
+
+    // Viewport toolbar icons
+    enum class ToolIcon
+    {
+        SELECT,
+        MOVE,
+        ROTATE,
+        SCALE,
+        UNIVERSAL,
+        COUNT
+    };
+
     class Renderer;
     class Editor : public Surge::Client
     {
@@ -32,15 +46,36 @@ namespace Surge
         void OnRuntimeStart();
         void OnRuntimeEnd();
 
+        // Play mode pause: the runtime scene keeps rendering, physics/scripts/audio stop. StepFrame() pauses first if needed
+        bool IsPaused() const { return mRuntimeScene && mRuntimeScene->IsPaused(); }
+        void SetPaused(bool paused);
+        void StepFrame();
+
         void LoadScene(Ref<Scene>&& scene);
-        void SetCurrentProject(const Project& project) { mCurrentProject = project; }
+        void SetCurrentProject(const Project& project, const Path& projectFile); // Also loads the project's editor settings
         const Project& GetCurrentProject() const { return mCurrentProject; }
+        void LoadStartupScene(); // The scene that was open last time, the project's start scene otherwise
+        void CloseProject();     // Back to the Project Browser (asks first when there are unsaved changes)
+
+        // Scene files
+        void NewScene();
+        void OpenScene(AssetID sceneID); // Asks first when there are unsaved changes
+        void SaveSceneAs(const String& relativePath); // Relative to the Assets folder, the editor switches to the new file
+        void SetStartScene(AssetID sceneID);          // Writes the project file
+
+        EditorSettings& GetSettings() { return mSettings; }
+        void FocusEntity(Entity entity);
+        void RequestResetLayout() { mResetLayoutRequested = true; }
+        ImageHandle GetToolIcon(ToolIcon icon) const { return mToolIcons[static_cast<size_t>(icon)]; }
+        ImageHandle LoadEditorIcon(const String& path); // Mipmapped, sampled with GetIconSampler(): for images drawn smaller than their source, caller destroys it
+        SamplerHandle GetIconSampler() const { return mIconSampler; }
 
         const AssetImporter& GetAssetImporter() const { return mAssetImporter; }
         AssetImporter& GetAssetImporter() { return mAssetImporter; }
         Ref<Scene> GetCurrentScene() { return mActiveScene; }
         PanelManager& GetPanelManager() { return mPanelManager; }
         EditorCamera& GetCamera() { return mCamera; }
+        SceneGizmos& GetGizmos() { return mGizmos; }
 
         // Scene editing: every operation below is recorded into the undo history while in edit mode
         Scene* GetContextScene() { return mRuntimeScene ? mRuntimeScene.Raw() : mActiveScene.Raw(); } // The scene the panels show
@@ -69,20 +104,28 @@ namespace Surge
         void HandleShortcuts();
         void DrawCustomTitlebar(const char* title, float titleBarHeight, bool showMenuItems = true);
         void DrawEditMenu();
+        void DrawFileMenu();
+        void DrawPlaybackControls(float availableWidth, float rowTop, float rowBottom); // Centered as one group
         void DrawConsoleCounters(float rightEdgeX, float y);
         void RenderEditorSettings();
         void RenderShortcutsWindow();
+        void RenderSaveSceneAsPopup();
         void SelectEntityByUUID(UUID id);
         void QueueHistoryStep(std::function<bool(EditorHistory&, UUID&)> step); // Runs at the frame end, then restores the selection
         void RefreshCameraViewports();
+        void SaveSettings(); // Captures the camera view first
     private:
         bool mShowTitlebar = true;
-        bool mShowAxes = true;
         bool mShowShortcutsWindow = false;
+        bool mResetLayoutRequested = false;
+        bool mOpenSaveSceneAsPopup = false;
+        String mSaveSceneAsPath;
         ImageHandle mEngineLogo;
         ImageHandle mMinimize;
         ImageHandle mMaximize;
         ImageHandle mClose;
+        SamplerHandle mIconSampler; // Linear + mipmapped, icons are drawn well below their source size
+        ImageHandle mToolIcons[static_cast<size_t>(ToolIcon::COUNT)];
 
         Ref<Scene> mRuntimeScene;
 
@@ -96,5 +139,15 @@ namespace Surge
 
         EditorHistory mHistory;
         EntityTreeSnapshot mClipboard;
+
+        SceneGizmos mGizmos;
+        std::function<void(Scene&)> mSceneDebugDraw;
+
+        Ref<Scene> mRetiredScene;          // The scene LoadScene() replaced, kept alive until the next OnUpdate()
+        Vector<AssetID> mScenesToUnload;   // Scenes whose unsaved edits were discarded, dropped from the asset cache next OnUpdate()
+
+        Path mProjectFilePath;
+        EditorSettings mSettings;
+        EditorSettingsStore mSettingsStore;
     };
 } // namespace Surge

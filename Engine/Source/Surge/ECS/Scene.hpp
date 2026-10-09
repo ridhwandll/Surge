@@ -9,6 +9,7 @@
 #include "Surge/Asset/Asset.hpp"
 
 #include <entt.hpp>
+#include <functional>
 
 namespace Surge
 {
@@ -29,7 +30,8 @@ namespace Surge
 
         void OnRuntimeStart();
         void Update(); // Runtime Update
-        void Update(EditorCamera& camera); // EditorView Update
+        // EditorView Update, editorDraw runs after the scene was submitted and before the frame ends (editor-only debug geometry)
+        void Update(EditorCamera& camera, const std::function<void(Scene&)>& editorDraw = nullptr);
         void OnRuntimeEnd();
 
         void CopyTo(Scene* other);
@@ -49,10 +51,13 @@ namespace Surge
 
         void OnResize(float width, float height);
 
-        void SetRenderDebug(bool renderDebug) { mRenderDebug = renderDebug; }
-        bool IsRenderDebug() const { return mRenderDebug; }
         void SetRunning(bool isRunning) { mIsRunning = isRunning; }
         bool IsRunning() const { return mIsRunning; }
+
+        // A paused scene keeps rendering but skips audio/physics sync/scripts, Step() simulates that many frames while paused (Editor)
+        void SetPaused(bool paused) { mIsPaused = paused; mStepFrames = 0; }
+        bool IsPaused() const { return mIsPaused; }
+        void Step(Uint frames = 1) { mStepFrames = frames; }
 
         Entity GetEntityByName(const String& name);
 
@@ -62,10 +67,11 @@ namespace Surge
         Pair<RuntimeCamera*, glm::mat4> GetMainCameraEntity(); // Camera - CameraTransform(view = glm::inverse(CameraTransform))
     private:
         void UpdateTransforms();
+        void UpdateSimulation(); // Audio, physics sync and scripts, honors the pause/step state
         void UpdateScripts();
         void UpdatePhysics();
         void UpdateAudio();
-        void UpdateRendering(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix, const glm::vec2& cameraNearFar);
+        void UpdateRendering(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix, const glm::vec2& cameraNearFar, const std::function<void(Scene&)>* editorDraw = nullptr);
         void ProcessPendingEntityDestructions();
 
     private:
@@ -78,8 +84,9 @@ namespace Surge
         void OnAudioSourceComponentDestroyed(entt::registry& registry, entt::entity entity);
 
     private:
-        bool mRenderDebug = false;
         bool mIsRunning = false;
+        bool mIsPaused = false;
+        Uint mStepFrames = 0;
         entt::registry mRegistry;
         Vector<entt::entity> mEntitiesToDestroy;
     };

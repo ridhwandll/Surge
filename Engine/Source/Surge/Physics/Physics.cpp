@@ -232,25 +232,42 @@ namespace Surge
 
     void Physics::Update(float deltaTime)
     {
+        if(mPaused)
+        {
+            if(mStepRequested)
+            {
+                Simulate();
+                mStepRequested = false;
+                mAccumulatedTime = 0.0f;
+                mInterpolationAlpha = 1.0f; // Show the state that was just simulated, not the blend towards it
+            }
+            return;
+        }
+
         float frameTime = std::min(deltaTime, 0.25f); // Prevent the "Spiral of Death": clamp spike delta times (e.g., loading freezes, OS pauses)
         mAccumulatedTime += frameTime;
 
         while(mAccumulatedTime >= FIXED_TIMESTEP)
         {
-            for(auto& [id, data] : mBodies)
-            {
-                if(!data.Active)
-                    continue;
-
-                data.PreviousPosition = GetPosition(id);
-                data.PreviousRotation = GetRotationQuat(id);
-            }
-
-            mPhysicsSystem->Update(FIXED_TIMESTEP, COLLISION_SUBSTEPS, mTempAllocator, mJobSystem);
+            Simulate();
             mAccumulatedTime -= FIXED_TIMESTEP;
         }
 
         mInterpolationAlpha = mAccumulatedTime / FIXED_TIMESTEP;
+    }
+
+    void Physics::Simulate()
+    {
+        for(auto& [id, data] : mBodies)
+        {
+            if(!data.Active)
+                continue;
+
+            data.PreviousPosition = GetPosition(id);
+            data.PreviousRotation = GetRotationQuat(id);
+        }
+
+        mPhysicsSystem->Update(FIXED_TIMESTEP, COLLISION_SUBSTEPS, mTempAllocator, mJobSystem);
     }
 
     void Physics::Shutdown()

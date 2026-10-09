@@ -54,9 +54,14 @@ namespace Surge
         }
 
         void OnWindowResize(Uint width, Uint height);
+        void OnSurfaceDestroyed() { mRHI->OnSurfaceDestroyed(); }
+        void OnSurfaceCreated(Window* window) { mRHI->OnSurfaceCreated(window); }
         void ForceResize(Uint width, Uint height);
+
+        // Scene resolution relative to the output (0.5 - 1.0), UI and post-processing stay at full resolution
+        void SetRenderScale(float scale);
+        float GetRenderScale() const { return mGraph.GetBlackboard().RenderScale; }
         void ShowInternalImGui(bool show) { mGraph.ShowInternalImGui(show); }
-        void SubmitDirLightDebug(const glm::vec3& origin, const glm::vec3& forward, const glm::vec4& color);
         void ShowUI(bool show) { mGraph.GetBlackboard().ShowUI = show; }
 
         const UI::Manager& GetUIManager() const { return mUIManager; }
@@ -67,7 +72,12 @@ namespace Surge
 
         ImageHandle GetWhiteTexture() const { return mGraph.GetBlackboard().WhiteImage; }
         ImageHandle GetFinalImage() const { return mGraph.GetBlackboard().FinalImage; }
-        FramebufferHandle GetFinalFramebuffer() const { return mGraph.GetBlackboard().MainPassFramebuffer; }
+        // Output resolution framebuffer (the main pass may be smaller with a render scale < 1)
+        FramebufferHandle GetFinalFramebuffer() const
+        {
+            const FrameBlackboard& bb = mGraph.GetBlackboard();
+            return bb.PostProcessFramebuffer.IsNull() ? bb.MainPassFramebuffer : bb.PostProcessFramebuffer;
+        }
         uint64_t GetFinalImageImGuiID() const
         {
             SG_ASSERT(!RHISettings::RENDER_TO_SWAPCHAIN, "Renderer is rendering to swapchain, cannot get Renderer's final image for ImGui rendering! Set ClientOptions::RenderFinalImageToSwapchain to false");
@@ -89,7 +99,7 @@ namespace Surge
     private:
         FrameContext mCurrentFrameCtx;
 
-        glm::uvec2 mScreenSize;
+        glm::uvec2 mScreenSize = { 0, 0 };
         RenderGraph mGraph;
 
         UI::Manager mUIManager;

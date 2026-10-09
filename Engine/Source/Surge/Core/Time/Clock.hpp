@@ -21,6 +21,9 @@ namespace Surge
         // Updates the timer. Increments Life and refreshes Delta
         void Update();
 
+        // Zeroes the next delta, used after the app was suspended so the first frame back does not see the whole pause as dt
+        void ResetDelta();
+
     private:
         std::chrono::high_resolution_clock::time_point mStart;
         std::chrono::high_resolution_clock::time_point mThen;

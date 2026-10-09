@@ -638,6 +638,8 @@ namespace IMGUIZMO_NAMESPACE
         ScaleLineCircleSize = 6.0f;
         HatchedAxisLineThickness = 6.0f;
         CenterCircleSize = 6.0f;
+        OutlineThickness = 1.0f;
+        InfoRounding = 4.0f;
 
         // initialize default colors
         Colors[DIRECTION_X] = ImVec4(0.666f, 0.000f, 0.000f, 1.000f);
@@ -655,6 +657,8 @@ namespace IMGUIZMO_NAMESPACE
         Colors[HATCHED_AXIS_LINES] = ImVec4(0.000f, 0.000f, 0.000f, 0.500f);
         Colors[TEXT] = ImVec4(1.000f, 1.000f, 1.000f, 1.000f);
         Colors[TEXT_SHADOW] = ImVec4(0.000f, 0.000f, 0.000f, 1.000f);
+        Colors[OUTLINE] = ImVec4(0.000f, 0.000f, 0.000f, 0.550f);
+        Colors[INFO_BACKGROUND] = ImVec4(0.060f, 0.060f, 0.060f, 0.850f);
     }
 
     struct Context
@@ -801,6 +805,66 @@ namespace IMGUIZMO_NAMESPACE
     {
         IM_ASSERT(idx < COLOR::COUNT);
         return ImGui::ColorConvertFloat4ToU32(gContext.mStyle.Colors[idx]);
+    }
+
+    // SURGE: Outlined primitives, the dark rim keeps the handles readable over bright and dark scenes alike
+    static bool HasOutline() { return gContext.mStyle.OutlineThickness > 0.f; }
+
+    static void AddLineRim(ImDrawList* drawList, const ImVec2& a, const ImVec2& b, float thickness)
+    {
+        if(HasOutline())
+            drawList->AddLine(a, b, GetColorU32(OUTLINE), thickness + gContext.mStyle.OutlineThickness * 2.f);
+    }
+
+    static void AddOutlinedLine(ImDrawList* drawList, const ImVec2& a, const ImVec2& b, ImU32 col, float thickness)
+    {
+        AddLineRim(drawList, a, b, thickness);
+        drawList->AddLine(a, b, col, thickness);
+    }
+
+    static void AddOutlinedPolyline(ImDrawList* drawList, const ImVec2* points, int count, ImU32 col, float thickness, ImDrawFlags flags)
+    {
+        if(HasOutline())
+            drawList->AddPolyline(points, count, GetColorU32(OUTLINE), flags, thickness + gContext.mStyle.OutlineThickness * 2.f);
+        drawList->AddPolyline(points, count, col, flags, thickness);
+    }
+
+    static void AddOutlinedCircleFilled(ImDrawList* drawList, const ImVec2& center, float radius, ImU32 col, int segments = 0)
+    {
+        if(HasOutline())
+            drawList->AddCircleFilled(center, radius + gContext.mStyle.OutlineThickness, GetColorU32(OUTLINE), segments);
+        drawList->AddCircleFilled(center, radius, col, segments);
+    }
+
+    static void AddOutlinedCircle(ImDrawList* drawList, const ImVec2& center, float radius, ImU32 col, int segments, float thickness)
+    {
+        if(HasOutline())
+            drawList->AddCircle(center, radius, GetColorU32(OUTLINE), segments, thickness + gContext.mStyle.OutlineThickness * 2.f);
+        drawList->AddCircle(center, radius, col, segments, thickness);
+    }
+
+    static void AddOutlinedBoxFilled(ImDrawList* drawList, const ImVec2& center, float halfSize, ImU32 col)
+    {
+        const float rim = HasOutline() ? gContext.mStyle.OutlineThickness : 0.f;
+        if(rim > 0.f)
+            drawList->AddRectFilled(center - ImVec2(halfSize + rim, halfSize + rim), center + ImVec2(halfSize + rim, halfSize + rim), GetColorU32(OUTLINE), 2.f);
+        drawList->AddRectFilled(center - ImVec2(halfSize, halfSize), center + ImVec2(halfSize, halfSize), col, 1.5f);
+    }
+
+    static void DrawInfoText(ImDrawList* drawList, const ImVec2& anchor, const char* text)
+    {
+        const ImVec2 padding(6.f, 3.f);
+        const ImVec2 textSize = ImGui::CalcTextSize(text);
+        const ImVec2 min(anchor.x + 14.f, anchor.y + 14.f);
+        const ImVec2 max(min.x + textSize.x + padding.x * 2.f, min.y + textSize.y + padding.y * 2.f);
+        drawList->AddRectFilled(min, max, GetColorU32(INFO_BACKGROUND), gContext.mStyle.InfoRounding);
+        drawList->AddText(min + padding, GetColorU32(TEXT), text);
+    }
+
+    static ImU32 ScaleAlpha(ImU32 col, float factor)
+    {
+        const ImU32 alpha = (ImU32)((float)((col >> IM_COL32_A_SHIFT) & 0xFF) * factor);
+        return (col & ~IM_COL32_A_MASK) | (alpha << IM_COL32_A_SHIFT);
     }
 
     static ImVec2 worldToPos(const vec_t& worldPos, const matrix_t& mat, ImVec2 position = ImVec2(gContext.mX, gContext.mY), ImVec2 size = ImVec2(gContext.mWidth, gContext.mHeight))
@@ -1153,9 +1217,11 @@ namespace IMGUIZMO_NAMESPACE
                     colors[0] = (type == MT_MOVE_SCREEN) ? selectionColor : IM_COL32_WHITE;
                     for(int i = 0; i < 3; i++)
                     {
+                        // SURGE: a hovered plane stays translucent instead of turning into an opaque block
+                        const ImU32 selectionPlaneColor = ScaleAlpha(selectionColor, 0.5f);
                         colors[i + 1] = (type == (int)(MT_MOVE_X + i)) ? selectionColor : GetColorU32(DIRECTION_X + i);
-                        colors[i + 4] = (type == (int)(MT_MOVE_YZ + i)) ? selectionColor : GetColorU32(PLANE_X + i);
-                        colors[i + 4] = (type == MT_MOVE_SCREEN) ? selectionColor : colors[i + 4];
+                        colors[i + 4] = (type == (int)(MT_MOVE_YZ + i)) ? selectionPlaneColor : GetColorU32(PLANE_X + i);
+                        colors[i + 4] = (type == MT_MOVE_SCREEN) ? selectionPlaneColor : colors[i + 4];
                     }
                     break;
                 case ROTATE:
@@ -1350,7 +1416,8 @@ namespace IMGUIZMO_NAMESPACE
             }
             if(!gContext.mbUsing || usingAxis)
             {
-                drawList->AddPolyline(circlePos, circleMul * halfCircleSegmentCount + 1, colors[3 - axis], gContext.mStyle.RotationLineThickness, 0);
+                // SURGE: upstream passed the thickness as the flags argument (rings rendered as hairlines)
+                AddOutlinedPolyline(drawList, circlePos, circleMul * halfCircleSegmentCount + 1, colors[3 - axis], gContext.mStyle.RotationLineThickness, ImDrawFlags_None);
             }
 
             float radiusAxis = sqrtf((ImLengthSqr(worldToPos(gContext.mModel.v.position, gContext.mViewProjection) - circlePos[0])));
@@ -1361,7 +1428,7 @@ namespace IMGUIZMO_NAMESPACE
         }
         if(hasRSC && (!gContext.mbUsing || type == MT_ROTATE_SCREEN) && (!isMultipleAxesMasked && isNoAxesMasked))
         {
-            drawList->AddCircle(worldToPos(gContext.mModel.v.position, gContext.mViewProjection), gContext.mRadiusSquareCenter, colors[0], 64, gContext.mStyle.RotationOuterLineThickness);
+            AddOutlinedCircle(drawList, worldToPos(gContext.mModel.v.position, gContext.mViewProjection), gContext.mRadiusSquareCenter, colors[0], 96, gContext.mStyle.RotationOuterLineThickness);
         }
 
         if(gContext.mbUsing && (gContext.GetCurrentID() == gContext.mEditingID) && IsRotateType(type))
@@ -1380,13 +1447,14 @@ namespace IMGUIZMO_NAMESPACE
                 circlePos[i] = worldToPos(pos + gContext.mModel.v.position, gContext.mViewProjection);
             }
             drawList->AddConvexPolyFilled(circlePos, halfCircleSegmentCount + 1, GetColorU32(ROTATION_USING_FILL));
-            drawList->AddPolyline(circlePos, halfCircleSegmentCount + 1, GetColorU32(ROTATION_USING_BORDER), gContext.mStyle.RotationLineThickness, ImDrawFlags_Closed);
+            AddOutlinedLine(drawList, circlePos[0], circlePos[1], GetColorU32(ROTATION_USING_BORDER), gContext.mStyle.RotationLineThickness);
+            AddOutlinedLine(drawList, circlePos[0], circlePos[halfCircleSegmentCount], GetColorU32(ROTATION_USING_BORDER), gContext.mStyle.RotationLineThickness);
+            AddOutlinedPolyline(drawList, circlePos + 1, halfCircleSegmentCount, GetColorU32(ROTATION_USING_BORDER), gContext.mStyle.RotationLineThickness, ImDrawFlags_None);
+            AddOutlinedCircleFilled(drawList, circlePos[0], gContext.mStyle.CenterCircleSize * 0.75f, GetColorU32(ROTATION_USING_BORDER));
 
-            ImVec2 destinationPosOnScreen = circlePos[1];
             char tmps[512];
             ImFormatString(tmps, sizeof(tmps), rotationInfoMask[type - MT_ROTATE_X], (gContext.mRotationAngle / ZPI) * 180.f, gContext.mRotationAngle);
-            drawList->AddText(ImVec2(destinationPosOnScreen.x + 15, destinationPosOnScreen.y + 15), GetColorU32(TEXT_SHADOW), tmps);
-            drawList->AddText(ImVec2(destinationPosOnScreen.x + 14, destinationPosOnScreen.y + 14), GetColorU32(TEXT), tmps);
+            DrawInfoText(drawList, circlePos[halfCircleSegmentCount], tmps);
         }
     }
 
@@ -1448,18 +1516,20 @@ namespace IMGUIZMO_NAMESPACE
                     ImVec2 worldDirSSpaceNoScale = worldToPos(dirAxis * markerScale * gContext.mScreenFactor, gContext.mMVP);
                     ImVec2 worldDirSSpace = worldToPos((dirAxis * markerScale * scaleDisplay[i]) * gContext.mScreenFactor, gContext.mMVP);
 
+                    // SURGE: box handles with a rim, the original length stays visible as a ghost while scaling
+                    const float boxHalfSize = gContext.mStyle.ScaleLineCircleSize * 0.8f;
                     if(gContext.mbUsing && (gContext.GetCurrentID() == gContext.mEditingID))
                     {
                         ImU32 scaleLineColor = GetColorU32(SCALE_LINE);
                         drawList->AddLine(baseSSpace, worldDirSSpaceNoScale, scaleLineColor, gContext.mStyle.ScaleLineThickness);
-                        drawList->AddCircleFilled(worldDirSSpaceNoScale, gContext.mStyle.ScaleLineCircleSize, scaleLineColor);
+                        drawList->AddRectFilled(worldDirSSpaceNoScale - ImVec2(boxHalfSize, boxHalfSize), worldDirSSpaceNoScale + ImVec2(boxHalfSize, boxHalfSize), scaleLineColor, 1.5f);
                     }
 
                     if(!hasTranslateOnAxis || gContext.mbUsing)
                     {
-                        drawList->AddLine(baseSSpace, worldDirSSpace, colors[i + 1], gContext.mStyle.ScaleLineThickness);
+                        AddOutlinedLine(drawList, baseSSpace, worldDirSSpace, colors[i + 1], gContext.mStyle.ScaleLineThickness);
                     }
-                    drawList->AddCircleFilled(worldDirSSpace, gContext.mStyle.ScaleLineCircleSize, colors[i + 1]);
+                    AddOutlinedBoxFilled(drawList, worldDirSSpace, boxHalfSize, colors[i + 1]);
 
                     if(gContext.mAxisFactor[i] < 0.f)
                     {
@@ -1470,7 +1540,7 @@ namespace IMGUIZMO_NAMESPACE
         }
 
         // draw screen cirle
-        drawList->AddCircleFilled(gContext.mScreenSquareCenter, gContext.mStyle.CenterCircleSize, colors[0], 32);
+        AddOutlinedCircleFilled(drawList, gContext.mScreenSquareCenter, gContext.mStyle.CenterCircleSize, colors[0], 32);
 
         if(gContext.mbUsing && (gContext.GetCurrentID() == gContext.mEditingID) && IsScaleType(type))
         {
@@ -1487,8 +1557,7 @@ namespace IMGUIZMO_NAMESPACE
             //vec_t deltaInfo = gContext.mModel.v.position - gContext.mMatrixOrigin;
             int componentInfoIndex = (type - MT_SCALE_X) * 3;
             ImFormatString(tmps, sizeof(tmps), scaleInfoMask[type - MT_SCALE_X], scaleDisplay[translationInfoIndex[componentInfoIndex]]);
-            drawList->AddText(ImVec2(destinationPosOnScreen.x + 15, destinationPosOnScreen.y + 15), GetColorU32(TEXT_SHADOW), tmps);
-            drawList->AddText(ImVec2(destinationPosOnScreen.x + 14, destinationPosOnScreen.y + 14), GetColorU32(TEXT), tmps);
+            DrawInfoText(drawList, destinationPosOnScreen, tmps);
         }
     }
 
@@ -1549,13 +1618,13 @@ namespace IMGUIZMO_NAMESPACE
                     }
                     */
 #endif
-                    drawList->AddCircleFilled(worldDirSSpace, 12.f, colors[i + 1]);
+                    AddOutlinedCircleFilled(drawList, worldDirSSpace, 12.f, colors[i + 1]);
                 }
             }
         }
 
         // draw screen cirle
-        drawList->AddCircle(gContext.mScreenSquareCenter, 20.f, colors[0], 32, gContext.mStyle.CenterCircleSize);
+        AddOutlinedCircle(drawList, gContext.mScreenSquareCenter, 20.f, colors[0], 48, gContext.mStyle.CenterCircleSize);
 
         if(gContext.mbUsing && (gContext.GetCurrentID() == gContext.mEditingID) && IsScaleType(type))
         {
@@ -1572,8 +1641,7 @@ namespace IMGUIZMO_NAMESPACE
             //vec_t deltaInfo = gContext.mModel.v.position - gContext.mMatrixOrigin;
             int componentInfoIndex = (type - MT_SCALE_X) * 3;
             ImFormatString(tmps, sizeof(tmps), scaleInfoMask[type - MT_SCALE_X], scaleDisplay[translationInfoIndex[componentInfoIndex]]);
-            drawList->AddText(ImVec2(destinationPosOnScreen.x + 15, destinationPosOnScreen.y + 15), GetColorU32(TEXT_SHADOW), tmps);
-            drawList->AddText(ImVec2(destinationPosOnScreen.x + 14, destinationPosOnScreen.y + 14), GetColorU32(TEXT), tmps);
+            DrawInfoText(drawList, destinationPosOnScreen, tmps);
         }
     }
 
@@ -1612,19 +1680,21 @@ namespace IMGUIZMO_NAMESPACE
                     ImVec2 baseSSpace = worldToPos(dirAxis * 0.1f * gContext.mScreenFactor, gContext.mMVP);
                     ImVec2 worldDirSSpace = worldToPos(dirAxis * gContext.mScreenFactor, gContext.mMVP);
 
-                    drawList->AddLine(baseSSpace, worldDirSSpace, colors[i + 1], gContext.mStyle.TranslationLineThickness);
-
-                    // Arrow head begin
+                    // SURGE: slimmer arrow head, the shaft stops at its base and both get a rim
                     ImVec2 dir(origin - worldDirSSpace);
 
                     float d = sqrtf(ImLengthSqr(dir));
                     dir /= d; // Normalize
                     dir *= gContext.mStyle.TranslationLineArrowSize;
 
-                    ImVec2 ortogonalDir(dir.y, -dir.x); // Perpendicular vector
-                    ImVec2 a(worldDirSSpace + dir);
-                    drawList->AddTriangleFilled(worldDirSSpace - dir, a + ortogonalDir, a - ortogonalDir, colors[i + 1]);
-                    // Arrow head end
+                    const ImVec2 ortogonalDir(dir.y * 0.75f, -dir.x * 0.75f); // Perpendicular vector
+                    const ImVec2 arrowTip(worldDirSSpace - dir * 1.2f);
+                    const ImVec2 arrowBase(worldDirSSpace + dir * 1.2f);
+
+                    if(HasOutline())
+                        drawList->AddTriangle(arrowTip, arrowBase + ortogonalDir, arrowBase - ortogonalDir, GetColorU32(OUTLINE), gContext.mStyle.OutlineThickness * 2.f);
+                    AddOutlinedLine(drawList, baseSSpace, arrowBase, colors[i + 1], gContext.mStyle.TranslationLineThickness);
+                    drawList->AddTriangleFilled(arrowTip, arrowBase + ortogonalDir, arrowBase - ortogonalDir, colors[i + 1]);
 
                     if(gContext.mAxisFactor[i] < 0.f)
                     {
@@ -1643,13 +1713,14 @@ namespace IMGUIZMO_NAMESPACE
                         vec_t cornerWorldPos = (dirPlaneX * quadUV[j * 2] + dirPlaneY * quadUV[j * 2 + 1]) * gContext.mScreenFactor;
                         screenQuadPts[j] = worldToPos(cornerWorldPos, gContext.mMVP);
                     }
-                    drawList->AddPolyline(screenQuadPts, 4, GetColorU32(DIRECTION_X + i), 1.0f, ImDrawFlags_Closed);
+                    // SURGE: fill first so it doesn't cover half of the border
                     drawList->AddConvexPolyFilled(screenQuadPts, 4, colors[i + 4]);
+                    drawList->AddPolyline(screenQuadPts, 4, GetColorU32(DIRECTION_X + i), ImDrawFlags_Closed, 1.5f);
                 }
             }
         }
 
-        drawList->AddCircleFilled(gContext.mScreenSquareCenter, gContext.mStyle.CenterCircleSize, colors[0], 32);
+        AddOutlinedCircleFilled(drawList, gContext.mScreenSquareCenter, gContext.mStyle.CenterCircleSize, colors[0], 32);
 
         if(gContext.mbUsing && (gContext.GetCurrentID() == gContext.mEditingID) && IsTranslateType(type))
         {
@@ -1659,17 +1730,17 @@ namespace IMGUIZMO_NAMESPACE
             ImVec2 destinationPosOnScreen = worldToPos(gContext.mModel.v.position, gContext.mViewProjection);
             vec_t dif = { destinationPosOnScreen.x - sourcePosOnScreen.x, destinationPosOnScreen.y - sourcePosOnScreen.y, 0.f, 0.f };
             dif.Normalize();
-            dif *= 5.f;
-            drawList->AddCircle(sourcePosOnScreen, 6.f, translationLineColor);
-            drawList->AddCircle(destinationPosOnScreen, 6.f, translationLineColor);
-            drawList->AddLine(ImVec2(sourcePosOnScreen.x + dif.x, sourcePosOnScreen.y + dif.y), ImVec2(destinationPosOnScreen.x - dif.x, destinationPosOnScreen.y - dif.y), translationLineColor, 2.f);
+            dif *= 6.f;
+            AddOutlinedCircle(drawList, sourcePosOnScreen, 6.f, translationLineColor, 24, 1.5f);
+            AddOutlinedCircleFilled(drawList, destinationPosOnScreen, 3.f, translationLineColor, 16);
+            if(ImLengthSqr(destinationPosOnScreen - sourcePosOnScreen) > 144.f)
+                AddOutlinedLine(drawList, ImVec2(sourcePosOnScreen.x + dif.x, sourcePosOnScreen.y + dif.y), ImVec2(destinationPosOnScreen.x - dif.x, destinationPosOnScreen.y - dif.y), translationLineColor, 1.5f);
 
             char tmps[512];
             vec_t deltaInfo = gContext.mModel.v.position - gContext.mMatrixOrigin;
             int componentInfoIndex = (type - MT_MOVE_X) * 3;
             ImFormatString(tmps, sizeof(tmps), translationInfoMask[type - MT_MOVE_X], deltaInfo[translationInfoIndex[componentInfoIndex]], deltaInfo[translationInfoIndex[componentInfoIndex + 1]], deltaInfo[translationInfoIndex[componentInfoIndex + 2]]);
-            drawList->AddText(ImVec2(destinationPosOnScreen.x + 15, destinationPosOnScreen.y + 15), GetColorU32(TEXT_SHADOW), tmps);
-            drawList->AddText(ImVec2(destinationPosOnScreen.x + 14, destinationPosOnScreen.y + 14), GetColorU32(TEXT), tmps);
+            DrawInfoText(drawList, destinationPosOnScreen, tmps);
         }
     }
 

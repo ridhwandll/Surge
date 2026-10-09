@@ -50,7 +50,9 @@ namespace Surge
         ASTC4x4_SRGB,
         ASTC4x4_UNORM,
         BC7_SRGB,
-        BC7_UNORM
+        BC7_UNORM,
+        ETC2_RGBA8_SRGB,  // Fallback for Android GPUs without ASTC
+        ETC2_RGBA8_UNORM
     };
 
     enum class ImageUsage : Uint

@@ -14,8 +14,10 @@
 #include <imgui.h>
 #include <ImGuizmo.h>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/constants.hpp>
 #include "Surge/Graphics/UISystem/UIManager.hpp"
 #include "Utility/ImGuiAux.hpp"
+#include "Gizmos/GizmoIcons.hpp"
 
 namespace Surge
 {
@@ -27,14 +29,16 @@ namespace Surge
 
         ImGuizmo::Style& style = ImGuizmo::GetStyle();
 
-        style.CenterCircleSize = 4.0f;
-        style.TranslationLineThickness = 5.0f;
-        style.TranslationLineArrowSize = 9.0f;
-        style.RotationLineThickness = 4.0f;
-        style.RotationOuterLineThickness = 5.0f;
-        style.ScaleLineThickness = 5.0f;
-        style.ScaleLineCircleSize = 9.0f;
+        style.CenterCircleSize = 5.0f;
+        style.TranslationLineThickness = 3.5f;
+        style.TranslationLineArrowSize = 8.0f;
+        style.RotationLineThickness = 3.0f;
+        style.RotationOuterLineThickness = 3.0f;
+        style.ScaleLineThickness = 3.5f;
+        style.ScaleLineCircleSize = 8.0f;
         style.HatchedAxisLineThickness = 0.0f;
+        style.OutlineThickness = 1.25f;
+        style.InfoRounding = 4.0f;
 
         style.Colors[ImGuizmo::COLOR::DIRECTION_X] = ImVec4(0.984f, 0.200f, 0.200f, 0.95f);
         style.Colors[ImGuizmo::COLOR::PLANE_X] = ImVec4(0.984f, 0.200f, 0.200f, 0.25f);
@@ -48,7 +52,12 @@ namespace Surge
         style.Colors[ImGuizmo::COLOR::SELECTION] = ImVec4(1.000f, 0.659f, 0.000f, 1.00f);
         style.Colors[ImGuizmo::COLOR::TRANSLATION_LINE] = ImVec4(1.000f, 0.659f, 0.000f, 1.00f);
         style.Colors[ImGuizmo::COLOR::ROTATION_USING_BORDER] = ImVec4(1.000f, 0.659f, 0.000f, 1.00f);
-        style.Colors[ImGuizmo::COLOR::ROTATION_USING_FILL] = ImVec4(1.000f, 0.659f, 0.000f, 1.00f);
+        style.Colors[ImGuizmo::COLOR::ROTATION_USING_FILL] = ImVec4(1.000f, 0.659f, 0.000f, 0.25f);
+        style.Colors[ImGuizmo::COLOR::SCALE_LINE] = ImVec4(0.450f, 0.450f, 0.450f, 0.70f);
+        style.Colors[ImGuizmo::COLOR::INACTIVE] = ImVec4(0.600f, 0.600f, 0.600f, 0.60f);
+        style.Colors[ImGuizmo::COLOR::OUTLINE] = ImVec4(0.000f, 0.000f, 0.000f, 0.55f);
+        style.Colors[ImGuizmo::COLOR::INFO_BACKGROUND] = ImVec4(0.060f, 0.060f, 0.060f, 0.85f);
+        style.Colors[ImGuizmo::COLOR::TEXT] = ImVec4(0.920f, 0.920f, 0.920f, 1.00f);
     }
 
     void ViewportPanel::OnEvent(Event& e)
@@ -58,12 +67,9 @@ namespace Surge
 
         EventDispatcher dispatcher(e);
         dispatcher.Dispatch<KeyPressedEvent>([&](KeyPressedEvent& keyEvent) {
-
-            // Hit F to Focus
-            if(keyEvent.GetKeyCode() == Key::F && mSceneHierarchy->GetSelectedEntity())
-                (static_cast<Editor*>(Core::GetClient()))->GetCamera().Focus(mSceneHierarchy->GetSelectedEntity().GetComponent<TransformComponent>().GetTransform()[3]);
-
-            if(!Input::IsMouseButtonPressed(Mouse::ButtonRight))
+            // F (focus) lives in Editor::HandleShortcuts, it also works from the Hierarchy
+            EditorSettings& settings = static_cast<Editor*>(Core::GetClient())->GetSettings();
+            if(!Input::IsMouseButtonPressed(Mouse::ButtonRight) && !Input::IsKeyPressed(Key::LeftControl))
             {
                 switch(keyEvent.GetKeyCode())
                 {
@@ -90,31 +96,37 @@ namespace Surge
                     case Key::Q:
                     {
                         if(!mGizmoInUse)
-                            mGizmoType = -1;
+                            settings.GizmoOperation = -1;
                         break;
                     }
                     case Key::W:
                     {
                         if(!mGizmoInUse)
-                            mGizmoType = ImGuizmo::OPERATION::TRANSLATE;
+                            settings.GizmoOperation = ImGuizmo::OPERATION::TRANSLATE;
                         break;
                     }
                     case Key::E:
                     {
                         if(!mGizmoInUse)
-                            mGizmoType = ImGuizmo::OPERATION::ROTATE;
+                            settings.GizmoOperation = ImGuizmo::OPERATION::ROTATE;
                         break;
                     }
                     case Key::R:
                     {
                         if(!mGizmoInUse)
-                            mGizmoType = ImGuizmo::OPERATION::SCALE;
+                            settings.GizmoOperation = ImGuizmo::OPERATION::SCALE;
                         break;
                     }
                     case Key::T:
                     {
                         if(!mGizmoInUse)
-                            mGizmoType = ImGuizmo::OPERATION::UNIVERSAL;
+                            settings.GizmoOperation = ImGuizmo::OPERATION::UNIVERSAL;
+                        break;
+                    }
+                    case Key::X:
+                    {
+                        if(!mGizmoInUse)
+                            settings.GizmoWorldSpace = !settings.GizmoWorldSpace;
                         break;
                     }
                     default:
@@ -153,8 +165,10 @@ namespace Surge
             Editor* editor = static_cast<Editor*>(Core::GetClient());
             bool isPlaying = editor->IsPlaying();
 
+            EditorSettings& settings = editor->GetSettings();
+
             // Aspect Ratio
-            static int currentAspectMode = 0;
+            int& currentAspectMode = settings.AspectMode;
             constexpr const char* aspectRatios[] = { "Free Aspect", "16:9 Landscape", "9:16 Portrait", "21:9 Cinematic", "4:3 Classic" };
 
             ImVec2 availableSpace = ImGui::GetContentRegionAvail();
@@ -221,18 +235,8 @@ namespace Surge
                             static_cast<Editor*>(Core::GetClient())->GetPanelManager().GetPanel<UIEditorPanel>()->OpenLayout(droppedAssetID);
                             break;
                         case AssetType::SCENE:
-                        {
-                            Ref<Scene> droppedScene = assetManager->Load<Scene>(droppedAssetID);
-                            if(droppedScene)
-                            {
-                                auto* editor = static_cast<Editor*>(Core::GetClient());
-                                editor->ConfirmDiscardChanges("Open another scene", [this, editor, droppedScene]() mutable {
-                                    editor->LoadScene(std::move(droppedScene));
-                                    SetSceneName();
-                                });
-                            }
+                            editor->OpenScene(droppedAssetID);
                             break;
-                        }
                         case AssetType::MESH:
                         {
                             Ref<Mesh> droppedMesh = assetManager->Load<Mesh>(droppedAssetID);
@@ -260,6 +264,15 @@ namespace Surge
             if(!isPlaying)
                 uiEditingActive = editor->GetPanelManager().GetPanel<UIEditorPanel>()->OnViewportGUI(viewportBoundsMin, ImVec2(renderWidth, renderHeight));
 
+            // Editor gizmos: component icons, camera frustums, light/audio ranges
+            SceneGizmos& gizmos = editor->GetGizmos();
+            if(!isPlaying)
+            {
+                const EditorCamera& camera = editor->GetCamera();
+                const bool allowIconHover = mIsViewportHovered && !uiEditingActive && !ImGuizmo::IsUsing() && !ImGui::IsAnyItemHovered() && !Input::IsMouseButtonPressed(Mouse::ButtonRight);
+                gizmos.DrawOverlay(*editor->GetContextScene(), mSceneHierarchy->GetSelectedEntity(), camera.GetViewMatrix(), camera.GetProjectionMatrix(), camera.GetNearAndFarPlane().x, viewportBoundsMin, ImVec2(renderWidth, renderHeight), allowIconHover);
+            }
+
             // Overlays
             ImFont* boldFont = ImGui::GetIO().Fonts->Fonts[1];
             float padding = 3.0f;
@@ -282,10 +295,13 @@ namespace Surge
                     ImGui::EndCombo();
                 }
                 ImGui::PopStyleColor();
+
+                ImGui::SameLine(0.0f, 6.0f);
+                DrawToolbar(settings);
             }
 
             // Scene Name (* = unsaved changes)
-            const String sceneLabel = isPlaying ? String("RUNTIME") : (editor->GetHistory().IsDirty() ? mSceneName + " *" : mSceneName);
+            const String sceneLabel = isPlaying ? String(editor->IsPaused() ? "RUNTIME (PAUSED)" : "RUNTIME") : (editor->GetHistory().IsDirty() ? mSceneName + " *" : mSceneName);
             const char* displayText = sceneLabel.c_str();
             ImGui::PushFont(boldFont);
             ImDrawList* drawList = ImGui::GetWindowDrawList();
@@ -310,25 +326,28 @@ namespace Surge
                 glm::mat4 cameraProjection = camera.GetProjectionMatrix();
                 cameraProjection[1][1] *= -1;
 
-                // Set Gizmo bounds tightly to the pillarboxed area!
                 ImGuizmo::SetRect(viewportBoundsMin.x, viewportBoundsMin.y, renderWidth, renderHeight);
 
-                if(selectedEntity && mGizmoType > 0)
+                const bool manipulatorActive = selectedEntity && settings.GizmoOperation > 0;
+                if(manipulatorActive)
                 {
                     ImGuizmo::SetDrawlist();
 
                     TransformComponent& transformComponent = selectedEntity.GetComponent<TransformComponent>();
                     glm::mat4 transform = transformComponent.GetTransform();
 
-                    // Snapping
-                    const bool snap = Input::IsKeyPressed(Key::LeftControl);
-                    float snapValue = 0.5f;
-                    if(mGizmoType == ImGuizmo::OPERATION::ROTATE)
-                        snapValue = 45.0f;
+                    // Snapping, holding Ctrl inverts the toolbar toggle
+                    const bool snap = settings.SnapEnabled != Input::IsKeyPressed(Key::LeftControl);
+                    float snapValue = settings.SnapTranslate;
+                    if(settings.GizmoOperation == ImGuizmo::OPERATION::ROTATE)
+                        snapValue = settings.SnapRotate;
+                    else if(settings.GizmoOperation == ImGuizmo::OPERATION::SCALE)
+                        snapValue = settings.SnapScale;
 
                     float snapValues[3] = { snapValue, snapValue, snapValue };
+                    const ImGuizmo::MODE space = settings.GizmoWorldSpace ? ImGuizmo::WORLD : ImGuizmo::LOCAL;
                     ImGuizmo::SetGizmoSizeClipSpace(0.15f);
-                    ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), static_cast<ImGuizmo::OPERATION>(mGizmoType), ImGuizmo::LOCAL, glm::value_ptr(transform), nullptr, snap ? snapValues : nullptr);
+                    ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), static_cast<ImGuizmo::OPERATION>(settings.GizmoOperation), space, glm::value_ptr(transform), nullptr, snap ? snapValues : nullptr);
 
                     if(ImGuizmo::IsUsing())
                     {
@@ -357,7 +376,11 @@ namespace Surge
                     else
                         mGizmoInUse = false;
                 }
+
+                HandleSelectionClick(selectedEntity, manipulatorActive, viewportBoundsMin, ImVec2(renderWidth, renderHeight));
             }
+            else
+                mPickPending = false;
         }
         else
         {
@@ -368,6 +391,154 @@ namespace Surge
 
         ImGui::End();
         ImGui::PopStyleVar();
+    }
+
+    void ViewportPanel::HandleSelectionClick(Entity& selectedEntity, bool manipulatorActive, const ImVec2& viewportMin, const ImVec2& viewportSize)
+    {
+        const ImVec2 mouse = ImGui::GetMousePos();
+        if(ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+        {
+            // The manipulator, overlay widgets and Alt (camera orbit) own the press
+            const bool insideImage = mouse.x >= viewportMin.x && mouse.y >= viewportMin.y && mouse.x < viewportMin.x + viewportSize.x && mouse.y < viewportMin.y + viewportSize.y;
+            const bool manipulatorHovered = manipulatorActive && (ImGuizmo::IsOver() || ImGuizmo::IsUsing());
+            mPickPending = mIsViewportHovered && insideImage && !manipulatorHovered && !ImGui::IsAnyItemHovered() && !Input::IsKeyPressed(Key::LeftAlt);
+            mPickPressPos = mouse;
+        }
+
+        if(!mPickPending || !ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+            return;
+
+        mPickPending = false;
+        const float dragX = mouse.x - mPickPressPos.x;
+        const float dragY = mouse.y - mPickPressPos.y;
+        if(mGizmoInUse || dragX * dragX + dragY * dragY > 16.0f) // Drag threshold (4px) to avoid accidental clicks while moving the camera
+            return;
+
+        Editor* editor = static_cast<Editor*>(Core::GetClient());
+        Entity picked = editor->GetGizmos().GetHoveredEntity(); // Icons are drawn on top of everything, so they win over the geometry behind them
+        if(!picked)
+        {
+            const EditorCamera& camera = editor->GetCamera();
+            const PickRay ray = ScenePicker::ScreenToRay({ mouse.x, mouse.y }, { viewportMin.x, viewportMin.y }, { viewportSize.x, viewportSize.y }, camera.GetViewMatrix(), camera.GetProjectionMatrix());
+            picked = mPicker.Pick(*editor->GetContextScene(), ray, camera.GetViewMatrix(), { mouse.x, mouse.y }, selectedEntity);
+        }
+
+        if(picked != selectedEntity)
+            editor->SelectEntity(picked); // Empty space clears the selection
+    }
+
+    void ViewportPanel::DrawToolbar(EditorSettings& settings)
+    {
+        struct Tool
+        {
+            ToolIcon Icon;
+            int Operation;
+            const char* Tooltip;
+        };
+        static constexpr Tool sTools[] = {
+            { ToolIcon::SELECT, -1, "Select only (Q)" },
+            { ToolIcon::MOVE, ImGuizmo::OPERATION::TRANSLATE, "Move (W)" },
+            { ToolIcon::ROTATE, ImGuizmo::OPERATION::ROTATE, "Rotate (E)" },
+            { ToolIcon::SCALE, ImGuizmo::OPERATION::SCALE, "Scale (R)" },
+            { ToolIcon::UNIVERSAL, ImGuizmo::OPERATION::UNIVERSAL, "Move + Rotate + Scale (T)" },
+        };
+        Editor* editor = static_cast<Editor*>(Core::GetClient());
+        Scope<GraphicsRHI>& rhi = Core::GetRenderer()->GetRHI();
+
+        // Highlighted like the selection in the Hierarchy
+        auto toggleButton = [](const char* label, bool active, const char* tooltip) -> bool {
+            if(active)
+            {
+                ImGui::PushStyleColor(ImGuiCol_Button, ImGuiAux::Colors::ThemeColor2);
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGuiAux::Colors::ThemeColor2);
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+            }
+            const bool pressed = ImGui::Button(label);
+            if(active)
+                ImGui::PopStyleColor(3);
+            ImGuiAux::ItemTooltip(tooltip);
+            return pressed;
+        };
+
+        ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(15, 15, 15, 200));
+        ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(15, 15, 15, 200));
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(2.0f, 0.0f));
+
+        // Tool icons, as tall as the aspect combo next to them
+        const float frameHeight = ImGui::GetFrameHeight();
+        const ImVec2 toolButtonSize(frameHeight * 1.15f, frameHeight);
+        for(const Tool& tool : sTools)
+        {
+            const bool active = settings.GizmoOperation == tool.Operation;
+            if(active)
+            {
+                ImGui::PushStyleColor(ImGuiCol_Button, ImGuiAux::Colors::ThemeColor2);
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGuiAux::Colors::ThemeColor2);
+            }
+
+            ImGui::PushID(tool.Operation);
+            const ImVec4 tint = active ? ImVec4(0.0f, 0.0f, 0.0f, 1.0f) : ImVec4(0.85f, 0.85f, 0.85f, 1.0f);
+            if(GizmoIcons::IconButton("##Tool", rhi->GetImGuiImage(editor->GetToolIcon(tool.Icon)), toolButtonSize, tint, 0.9f))
+                settings.GizmoOperation = tool.Operation;
+            ImGui::PopID();
+
+            if(active)
+                ImGui::PopStyleColor(2);
+            ImGuiAux::ItemTooltip(tool.Tooltip);
+            ImGui::SameLine();
+        }
+
+        ImGui::SameLine(0.0f, 8.0f);
+        if(toggleButton(settings.GizmoWorldSpace ? "World" : "Local", false, "Gizmo space: local / world (X)"))
+            settings.GizmoWorldSpace = !settings.GizmoWorldSpace;
+
+        ImGui::SameLine(0.0f, 8.0f);
+        if(toggleButton("Snap", settings.SnapEnabled, "Snapping, holding Ctrl inverts it"))
+            settings.SnapEnabled = !settings.SnapEnabled;
+        ImGui::SameLine();
+        if(ImGui::ArrowButton("##SnapSettings", ImGuiDir_Down))
+            ImGui::OpenPopup("SnapSettingsPopup");
+
+        ImGui::SameLine(0.0f, 8.0f);
+        if(toggleButton("Camera", false, "Editor camera settings"))
+            ImGui::OpenPopup("CameraSettingsPopup");
+
+        ImGui::PopStyleVar();
+        ImGui::PopStyleColor(2);
+
+        ImGuiAux::StyledPopupVars::Push();
+        if(ImGui::BeginPopup("SnapSettingsPopup"))
+        {
+            ImGui::SetNextItemWidth(120.0f);
+            ImGui::DragFloat("Move", &settings.SnapTranslate, 0.05f, 0.001f, 1000.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::SetNextItemWidth(120.0f);
+            ImGui::DragFloat("Rotate (deg)", &settings.SnapRotate, 1.0f, 0.01f, 360.0f, "%.1f", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::SetNextItemWidth(120.0f);
+            ImGui::DragFloat("Scale", &settings.SnapScale, 0.01f, 0.001f, 100.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::EndPopup();
+        }
+        if(ImGui::BeginPopup("CameraSettingsPopup"))
+        {
+            float speed = mEditorCam->GetCameraSpeed();
+            ImGui::SetNextItemWidth(160.0f);
+            if(ImGui::SliderFloat("Fly Speed", &speed, 0.0005f, 2.0f, "%.4f", ImGuiSliderFlags_Logarithmic))
+                mEditorCam->SetCameraSpeed(speed);
+            ImGui::TextDisabled("RMB + scroll changes it while flying");
+
+            if(ImGui::Button("Reset View"))
+                mEditorCam->SetView(glm::vec3(0.0f), glm::length(glm::vec3(-5.0f, 5.0f, 5.0f)), glm::quarter_pi<float>(), 3.0f * glm::quarter_pi<float>()); // EditorCamera's initial view
+            ImGui::SameLine();
+            if(ImGui::Button("Top"))
+                mEditorCam->SetView(mEditorCam->GetFocalPoint(), mEditorCam->GetDistance(), glm::half_pi<float>() - 0.01f, 0.0f);
+            ImGui::SameLine();
+            if(ImGui::Button("Front"))
+                mEditorCam->SetView(mEditorCam->GetFocalPoint(), mEditorCam->GetDistance(), 0.0f, 0.0f);
+            ImGui::SameLine();
+            if(ImGui::Button("Side"))
+                mEditorCam->SetView(mEditorCam->GetFocalPoint(), mEditorCam->GetDistance(), 0.0f, glm::half_pi<float>());
+            ImGui::EndPopup();
+        }
+        ImGuiAux::StyledPopupVars::Pop();
     }
 
     void ViewportPanel::Shutdown() {}

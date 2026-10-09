@@ -40,17 +40,7 @@ namespace Surge
             ibDesc.DebugName = "BatchIB";
             mQuadIB = mRHI->CreateBuffer(ibDesc);
 
-            // We allocate a large VBs[RHI_FRAMES_IN_FLIGHT] for max vertices across all batches, but we only fill the portion
-            // needed for the current batch each frame. This is to avoid GPU buffer creation stalls when flushing mid-frame after each batch is submitted.
-            BufferDesc vbDesc = {};
-            vbDesc.Size = sizeof(QuadVertex) * MAX_QUAD_VERTICES;
-            vbDesc.Usage = BufferUsage::VERTEX;
-            vbDesc.HostVisible = true;
-            for(Uint i = 0; i < RHISettings::FRAMES_IN_FLIGHT; i++)
-            {
-                vbDesc.DebugName = std::format("BatchVB Frame: {}", i);
-                mQuadVB[i] = mRHI->CreateBuffer(vbDesc);
-            }
+            // Quad/text vertex buffers (one per frame in flight) are created on first use and grow with demand, see EnsureVertexCapacity()
 
             mCurrentQuadBatch.Reset();
             // CPU side staging array for 1 batch fill this, then memcpy-ied to GPU buffer
@@ -117,15 +107,7 @@ namespace Surge
             desc.Depth.Op = CompareOp::LESS_OR_EQUAL;
             m2DLinePipeline = mRHI->CreatePipeline(desc);
 
-            BufferDesc vbDesc = {};
-            vbDesc.Size = sizeof(LineVertex) * MAX_LINE_VERTICES;
-            vbDesc.Usage = BufferUsage::VERTEX;
-            vbDesc.HostVisible = true;
-            for(Uint i = 0; i < RHISettings::FRAMES_IN_FLIGHT; i++)
-            {
-                vbDesc.DebugName = std::format("BatchLineVB Frame: {}", i);
-                mLineVB[i] = mRHI->CreateBuffer(vbDesc);
-            }
+            // Line vertex buffers are created on first use, see EnsureVertexCapacity()
             mCurrentLineBatch.VertexData.resize(MAX_LINES_PER_BATCH * 2);
         }
         {
@@ -145,10 +127,43 @@ namespace Surge
         mImageWrites.push_back(blackBoard.MainPassColorImage);
     }
 
+    void Renderer2DPass::EnsureVertexCapacity(BufferHandle& buffer, Uint& capacity, Uint requiredVertices, Uint stride, const char* debugName, Uint frameIndex)
+    {
+        if(requiredVertices == 0 || requiredVertices <= capacity)
+            return;
+
+        Uint newCapacity = std::max(capacity, MIN_VERTEX_CAPACITY);
+        while(newCapacity < requiredVertices)
+            newCapacity *= 2;
+
+        if(!buffer.IsNull())
+            mRHI->DestroyBuffer(buffer); // Deferred, this frame slot's previous use has retired
+
+        BufferDesc vbDesc = {};
+        vbDesc.Size = stride * newCapacity;
+        vbDesc.Usage = BufferUsage::VERTEX;
+        vbDesc.HostVisible = true;
+        vbDesc.DebugName = std::format("{} Frame: {}", debugName, frameIndex);
+        buffer = mRHI->CreateBuffer(vbDesc);
+        capacity = newCapacity;
+    }
+
     void Renderer2DPass::Execute(const FrameContext& ctx, const FrameBlackboard& blackboard)
     {
         SURGE_PROFILE_FUNC("Renderer2DPass::Execute");
         mCurrentFrameCtx = ctx;
+
+        // Size this frame's vertex buffers up front (quads and text share mQuadVB), the draws bind them once after all batches are written
+        {
+            Uint quadVertices = static_cast<Uint>(blackboard.QuadList.size()) * 4;
+            for(const TextSubmitCmd& txt : blackboard.TextList)
+                quadVertices += static_cast<Uint>(txt.Text.size()) * 4 * ((txt.EnableShadow && txt.ShadowColor.a > 0.001f) ? 2 : 1); // Upper bound, every char a glyph
+            quadVertices = std::min(quadVertices, MAX_QUAD_VERTICES);
+            EnsureVertexCapacity(mQuadVB[ctx.FrameIndex], mQuadVBCapacity[ctx.FrameIndex], quadVertices, sizeof(QuadVertex), "BatchVB", ctx.FrameIndex);
+
+            const Uint lineVertices = std::min(static_cast<Uint>(blackboard.LineList.size()) * 2, MAX_LINE_VERTICES);
+            EnsureVertexCapacity(mLineVB[ctx.FrameIndex], mLineVBCapacity[ctx.FrameIndex], lineVertices, sizeof(LineVertex), "BatchLineVB", ctx.FrameIndex);
+        }
 
         // ==========================================================================
         // QUADS
@@ -599,6 +614,13 @@ namespace Surge
             mRHI->UpdateDescriptorSet(mTexDescriptorSets[batchIndex], &write, 1, ctx.FrameIndex);
         }
 
+        if(mCurrentFrameVertexOffset + mCurrentQuadBatch.VertexCount > mQuadVBCapacity[ctx.FrameIndex])
+        {
+            Log<Severity::Error>("Renderer2DPass: quad vertex buffer overflow, batch dropped!");
+            mCurrentQuadBatch.Reset();
+            return;
+        }
+
         const Uint uploadOffsetInBytes = mCurrentFrameVertexOffset * sizeof(QuadVertex);
         const Uint uploadSizeInBytes = mCurrentQuadBatch.VertexCount * sizeof(QuadVertex);
         mRHI->UploadBuffer(mQuadVB[ctx.FrameIndex], mCurrentQuadBatch.VertexData.data(), uploadSizeInBytes, uploadOffsetInBytes);
@@ -612,6 +634,13 @@ namespace Surge
 
     void Renderer2DPass::FlushLineBatch()
     {
+        if(mCurrentLineVertexOffset + mCurrentLineBatch.VertexCount > mLineVBCapacity[mCurrentFrameCtx.FrameIndex])
+        {
+            Log<Severity::Error>("Renderer2DPass: line vertex buffer overflow, batch dropped!");
+            mCurrentLineBatch.Reset();
+            return;
+        }
+
         const Uint uploadOffsetInBytes = mCurrentLineVertexOffset * sizeof(LineVertex);
         const Uint uploadSizeInBytes = mCurrentLineBatch.VertexCount * sizeof(LineVertex);
         mRHI->UploadBuffer(mLineVB[mCurrentFrameCtx.FrameIndex], mCurrentLineBatch.VertexData.data(), uploadSizeInBytes, uploadOffsetInBytes);

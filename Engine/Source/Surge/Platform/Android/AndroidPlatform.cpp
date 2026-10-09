@@ -29,6 +29,11 @@ namespace Surge
         // What is this supposed to do on Android? We don't have a file explorer to open
     }
 
+    bool Platform::MoveToRecycleBin(const String&)
+    {
+        return false; // Editor only, APK assets are readonly
+    }
+
     void Platform::OpenInExplorer(const String&)
     {
         // Tf is this supposed to do on Android? We don't have a file explorer to open

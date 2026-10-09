@@ -42,6 +42,7 @@ namespace Surge
         const SwapchainDimensions& GetDimensions() const { return mDimensions; }
         Uint GetWidth() const { return mDimensions.Width; }
         Uint GetHeight() const { return mDimensions.Height; }
+        bool IsFramePacingActive() const { return mFramePacingActive; }
 
     private:
         void Create(const VulkanRHI& rhi, Uint width, Uint height);
@@ -53,5 +54,6 @@ namespace Surge
         VkSwapchainKHR mSwapchain = VK_NULL_HANDLE;
         SwapchainDimensions mDimensions = {};
         Vector<SwapchainFrame> mFrames;
+        bool mFramePacingActive = false;
     };
 }

@@ -28,8 +28,7 @@ struct Light
 // Push Constants
 layout(push_constant) uniform PushConstants
 {
-    mat4 Transform;
-    uint LightCount;
+    uint LightCount; // Already culled + capped on the CPU (FrameBlackboard::Lighting)
 } uMesh;
 
 // Set 0: Frame + Lights
@@ -84,11 +83,13 @@ layout(set = 2, binding = 3) uniform ShadowUBO
     float _pad0, pad1;
 } uShadowParams;
 
+// (Rid) Colors and material terms are mediump (RelaxedPrecision): mobile GPUs run fp16 math at up to twice the fp32 rate
+// Positions, normals and anything with a large range (specular power, attenuation) stay highp
 struct PBRParameters
 {
-    vec3 Albedo;
-    float Metallic;
-    float Roughness;
+    mediump vec3 Albedo;
+    mediump float Metallic;
+    mediump float Roughness;
     vec3 Normal;
     vec3 View;
 };
@@ -117,7 +118,7 @@ float SampleShadow(int cascade, vec3 shadowCoord)
     vec2 uv = shadowCoord.xy * 0.5 + 0.5;
     float depth = shadowCoord.z;
 
-    vec2 texelSize = vec2(1.0 / 2048.0);
+    vec2 texelSize = 1.0 / vec2(textureSize(uShadowMap0, 0)); // All cascades share one resolution
     float shadow = 0.0;
     for (int i = 0; i < 4; i++)
         shadow += SampleShadowMap(cascade, vec3(uv + poissonDisk[i] * texelSize, depth));
@@ -158,6 +159,8 @@ vec3 CalculateMobilePBR(Light light, vec3 N, vec3 V, vec3 fragPos)
     {
         vec3 dir = light.PositionType.xyz - fragPos;
         float dist = length(dir);
+        if (dist >= light.Radius)
+            return vec3(0.0); // The window function below is 0 past the radius, skip the BRDF entirely
         L = normalize(dir);
 
         float distanceSquare = dist * dist;
@@ -178,14 +181,14 @@ vec3 CalculateMobilePBR(Light light, vec3 N, vec3 V, vec3 fragPos)
     float alpha = clamp(gPBRParams.Roughness, 0.04, 1.0);
     float shininess = max(2.0 / (pow(alpha, 4.0)) - 2.0, 1.0);
 
-    vec3 f0 = vec3(0.04) * uMaterial.Reflectance;
-    vec3 specColor = mix(f0, gPBRParams.Albedo, gPBRParams.Metallic);
-    vec3 diffuseColor = gPBRParams.Albedo * (1.0 - gPBRParams.Metallic);
+    mediump vec3 f0 = vec3(0.04) * uMaterial.Reflectance;
+    mediump vec3 specColor = mix(f0, gPBRParams.Albedo, gPBRParams.Metallic);
+    mediump vec3 diffuseColor = gPBRParams.Albedo * (1.0 - gPBRParams.Metallic);
 
     float specNormalization = (shininess + 8.0) / (8.0 * 3.14159);
     float specularTerm = pow(dotNH, shininess) * specNormalization;
 
-    vec3 diffuse = (diffuseColor / 3.14159) * dotNL;
+    mediump vec3 diffuse = (diffuseColor / 3.14159) * dotNL;
     vec3 specular = specColor * specularTerm * dotNL;
 
     vec3 lightIntensity = light.Color.rgb * light.Intensity;
@@ -197,25 +200,25 @@ vec3 CalculateMobilePBR(Light light, vec3 N, vec3 V, vec3 fragPos)
 vec3 CalculateFastGI(vec3 N, vec3 V)
 {
     // Hemispherical diffuse ambient
-    float skyGroundWeight = N.y * 0.5 + 0.5;
-    vec3  rawSkyColor = mix(uLights.HorizonAmbient, uLights.SkyAmbient, max(N.y, 0.0));
-    vec3  totalAmbientDiffuse = mix(uLights.GroundAmbient, rawSkyColor, skyGroundWeight);
+    mediump float skyGroundWeight = N.y * 0.5 + 0.5;
+    mediump vec3  rawSkyColor = mix(uLights.HorizonAmbient, uLights.SkyAmbient, max(N.y, 0.0));
+    mediump vec3  totalAmbientDiffuse = mix(uLights.GroundAmbient, rawSkyColor, skyGroundWeight);
 
     // Metals have no diffuse
-    vec3 diffuseAmbient = totalAmbientDiffuse * gPBRParams.Albedo * (1.0 - gPBRParams.Metallic);
+    mediump vec3 diffuseAmbient = totalAmbientDiffuse * gPBRParams.Albedo * (1.0 - gPBRParams.Metallic);
 
     // Environment reflection direction
     vec3  R = reflect(-V, N);
-    float reflSkyWeight = R.y * 0.5 + 0.5;
-    vec3  rawReflColor = mix(uLights.HorizonAmbient, uLights.SkyAmbient, max(R.y, 0.0));
-    vec3  environmentRefl = mix(uLights.GroundAmbient, rawReflColor, reflSkyWeight);
+    mediump float reflSkyWeight = R.y * 0.5 + 0.5;
+    mediump vec3  rawReflColor = mix(uLights.HorizonAmbient, uLights.SkyAmbient, max(R.y, 0.0));
+    mediump vec3  environmentRefl = mix(uLights.GroundAmbient, rawReflColor, reflSkyWeight);
 
-    vec3 f0 = vec3(0.04) * uMaterial.Reflectance;
-    vec3 specColor = mix(f0, gPBRParams.Albedo, gPBRParams.Metallic);
+    mediump vec3 f0 = vec3(0.04) * uMaterial.Reflectance;
+    mediump vec3 specColor = mix(f0, gPBRParams.Albedo, gPBRParams.Metallic);
 
-    float smoothness = 1.0 - gPBRParams.Roughness;
-    vec3  ambientEnv = mix(totalAmbientDiffuse, environmentRefl, smoothness * smoothness);
-    vec3  specularAmbient = ambientEnv * specColor;
+    mediump float smoothness = 1.0 - gPBRParams.Roughness;
+    mediump vec3  ambientEnv = mix(totalAmbientDiffuse, environmentRefl, smoothness * smoothness);
+    mediump vec3  specularAmbient = ambientEnv * specColor;
 
     return (diffuseAmbient + specularAmbient);
 }
@@ -239,7 +242,7 @@ void main()
 {
     if (uMaterial.UseAlbedoMap == 1)
     {
-        vec4 tex = texture(AlbedoMap, vInput.TexCoord);
+        mediump vec4 tex = texture(AlbedoMap, vInput.TexCoord);
         gPBRParams.Albedo = tex.rgb * uMaterial.Albedo;
     }
     else
@@ -310,11 +313,11 @@ layout(set = 0, binding = 0) uniform FrameUBO
     float _pad;
 } uFrame;
 
-layout(push_constant) uniform PushConstants
+// Per-instance transforms written by GeometryPass in draw order, gl_InstanceIndex includes firstInstance in Vulkan
+layout(std430, set = 0, binding = 2) readonly buffer InstanceData
 {
-    mat4 Transform;
-    uint LightCount;
-} uMesh;
+    mat4 Transforms[];
+} uInstances;
 
 struct VertexOutput
 {
@@ -339,16 +342,19 @@ layout(set = 2, binding = 3) uniform ShadowUBO
 
 void main()
 {
-    vOutput.TexCoord = aTexCoord;
-    vOutput.WorldPos = (uMesh.Transform * vec4(aPosition, 1.0)).xyz;
-    vOutput.Tangent = mat3(uMesh.Transform) * normalize(aTangent);
-    vOutput.BiTangent = mat3(uMesh.Transform) * normalize(aBiTangent);
-    vOutput.Normal = mat3(uMesh.Transform) * normalize(aNormal);
+    mat4 model = uInstances.Transforms[gl_InstanceIndex];
+    vec4 worldPos = model * vec4(aPosition, 1.0);
 
-    vOutput.ViewSpacePos = vec3(uFrame.View * vec4(vOutput.WorldPos, 1.0));
+    vOutput.TexCoord = aTexCoord;
+    vOutput.WorldPos = worldPos.xyz;
+    vOutput.Tangent = mat3(model) * normalize(aTangent);
+    vOutput.BiTangent = mat3(model) * normalize(aBiTangent);
+    vOutput.Normal = mat3(model) * normalize(aNormal);
+
+    vOutput.ViewSpacePos = vec3(uFrame.View * worldPos);
 
     for(uint i = 0; i < MAX_CASCADE_COUNT; i++)
-        vOutput.LightSpaceVectors[i] = uShadowParams.LightSpaceMatrix[i] * vec4(vOutput.WorldPos, 1.0);
+        vOutput.LightSpaceVectors[i] = uShadowParams.LightSpaceMatrix[i] * worldPos;
 
-    gl_Position = uFrame.ViewProjection * uMesh.Transform * vec4(aPosition, 1.0);
+    gl_Position = uFrame.ViewProjection * worldPos;
 }

@@ -47,6 +47,10 @@ namespace Surge
         float GetPitch() const { return mPitch; }
         float GetYaw() const { return mYaw; }
         float GetCameraSpeed() const { return mSpeed; }
+        void SetCameraSpeed(float speed);
+
+        // Places the camera in orbit around focalPoint (pitch/yaw in radians), used to restore a saved editor view
+        void SetView(const glm::vec3& focalPoint, float distance, float pitch, float yaw);
         glm::vec2 GetNearAndFarPlane() const { return { mNearClip, mFarClip }; };
 
     private:

@@ -11,13 +11,6 @@
 
 namespace Surge
 {
-    namespace Android
-    {
-        float GetTouchX();
-        float GetTouchY();
-        bool IsTouchDown();
-    }
-
     class AndroidWindow : public Window
     {
     public:
@@ -31,7 +24,7 @@ namespace Surge
         virtual void RegisterEventCallback(std::function<void(Event&)> eventCallback) override { mEventCallback = eventCallback; }
 
         virtual bool IsWindowMaximized() const override { return false; }
-        virtual bool IsWindowMinimized() const override { return mWindowState == WindowState::MINIMIZED; }
+        virtual bool IsWindowMinimized() const override { return !IsVisible(); }
 
         virtual String GetTitle() const override { return mWindowData.Title; }
         virtual void SetTitle(const String& name) override { mWindowData.Title = name; }
@@ -42,33 +35,50 @@ namespace Surge
         virtual glm::vec2 GetSize() const override;
         virtual void SetSize(const glm::vec2& size) const override;
 
-        virtual WindowState GetWindowState() const override { return mWindowState; }
+        virtual WindowState GetWindowState() const override { return IsVisible() ? WindowState::NORMAL : WindowState::MINIMIZED; }
         virtual void ShowConsole(bool) const override {}
         virtual void* GetNativeWindowHandle() override { return static_cast<void*>(mNativeWindow); }
 
     private:
+        bool IsVisible() const { return mNativeWindow != nullptr && mResumed; }
+
         static void HandleAppCmd(android_app* app, int32_t cmd);
         static void HandleMotionEvent(AndroidWindow* window, const GameActivityMotionEvent* event);
         static void HandleKeyEvent(AndroidWindow* window, const GameActivityKeyEvent* event);
 
+        // Input helpers (AndroidWindow.cpp)
+        void Emit(Event& e) { if (mEventCallback) mEventCallback(e); }
+        void HandleTouchMotion(const GameActivityMotionEvent* event, int32_t actionMasked, Uint pointerIndex);
+        void HandleMouseMotion(const GameActivityMotionEvent* event, int32_t actionMasked, Uint pointerIndex);
+        void HandleGamepadMotion(const GameActivityMotionEvent* event);
+        void ReleaseAllPointers(); // Focus loss: cancel touches, release mouse buttons
+        int GamepadSlot(int32_t deviceId);
+
     private:
         std::function<void(Event&)> mEventCallback;
         ANativeWindow* mNativeWindow = nullptr;
-        WindowState mWindowState = WindowState::NORMAL;
+        bool mResumed = true; // APP_CMD_RESUME was already handled by android_main before the window existed
         bool mDestroyFired = false;
 
-        // Touch state for input polling
+        // Active touch contacts (pointer id + last position), the primary one also drives the emulated mouse
+        static constexpr uint32_t MAX_POINTERS = 16;
+        struct PointerState { int32_t ID; float X, Y; };
+        PointerState mPointers[MAX_POINTERS] = {};
+        uint32_t mPointerCount = 0;
+        int32_t mPrimaryPointer = -1;
 
-        float mTouchX = 0.0f;
-        float mTouchY = 0.0f;
-        bool  mTouchDown = false;
+        // Real mouse (USB/Bluetooth, DeX)
+        int32_t mMouseButtons = 0;
+        float mMouseX = 0.0f, mMouseY = 0.0f;
 
-        friend float Android::GetTouchX();
-        friend float Android::GetTouchY();
-        friend bool  Android::IsTouchDown();
+        // Gamepads: Android device id per Surge gamepad slot, last d-pad hat values
+        int32_t mGamepadDevices[4] = { -1, -1, -1, -1 };
+        float mGamepadHat[4][2] = {};
+
+        // Whether the current back press closes the app, decided when it goes down (the game may react to that press
+        // and change its mind, e.g. close a dialog, the release must still do what the press meant)
+        bool mBackExitsOnRelease = false;
     };
-
-    // Accessors used by AndroidInput.cpp
 
 } // namespace Surge
 

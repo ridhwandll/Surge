@@ -6,6 +6,7 @@
 #include "Surge/Utility/Platform.hpp"
 #include "Surge/Core/Profiler.hpp"
 #include "Surge/Core/FrameCapper.hpp"
+#include "Surge/Core/Input/InputState.hpp"
 
 #include "Surge/Graphics/Renderer/Renderer.hpp"
 #include "Surge/Asset/AssetManager.hpp"
@@ -36,18 +37,27 @@ namespace Surge::Core
         ScriptEngine* SurgeScriptEngine = nullptr;
         AudioEngine* SurgeAudioEngine = nullptr;
 
+#ifdef SURGE_PLATFORM_ANDROID
+        float FrameCap = 60.0f; // Mobile default: 60 fps, paced by the RHI (Swappy) when available
+#else
         float FrameCap = 144.0f; // 0.0f = uncapped
+#endif
+        FrameCapper SurgeFrameCapper;
         bool Running = false;
+        bool Suspended = false;
         Vector<std::function<void()>> FrameEndCallbacks;
     };
     static CoreData sCoreData;
 
     void OnEvent(Event& e)
     {
+        InputState::OnEvent(e); // (Rid) Order matters here, input state first, so the client/UI already see this event reflected in Input::
         sCoreData.SurgeClient->OnEvent(e);
         sCoreData.SurgeRenderer->OnEvent(e);
 
         EventDispatcher dispatcher(e);
+        dispatcher.Dispatch<Surge::WindowSurfaceDestroyedEvent>([](Surge::WindowSurfaceDestroyedEvent&) { sCoreData.SurgeRenderer->OnSurfaceDestroyed(); });
+        dispatcher.Dispatch<Surge::WindowSurfaceCreatedEvent>([](Surge::WindowSurfaceCreatedEvent&) { sCoreData.SurgeRenderer->OnSurfaceCreated(sCoreData.SurgeWindow); });
         dispatcher.Dispatch<Surge::WindowClosedEvent>([](Surge::WindowClosedEvent&) { sCoreData.Running = false; });
         dispatcher.Dispatch<Surge::WindowResizeEvent>([](Surge::WindowResizeEvent& e) { sCoreData.SurgeRenderer->OnWindowResize(e.GetWidth(), e.GetHeight()); });
     }
@@ -81,6 +91,7 @@ namespace Surge::Core
         // Renderer
         sCoreData.SurgeRenderer = new Renderer();
         sCoreData.SurgeRenderer->Initialize();
+        SetFrameCap(sCoreData.FrameCap);
 
         // Asset Manager
         sCoreData.SurgeAssetManager = new AssetManager();
@@ -102,9 +113,28 @@ namespace Surge::Core
         sCoreData.SurgeClient->OnInitialize();
     }
 
+    static void SetSuspended(bool suspended)
+    {
+        if (sCoreData.Suspended == suspended)
+            return;
+
+        sCoreData.Suspended = suspended;
+        if (suspended)
+        {
+            Log<Severity::Info>("[Core] Engine Suspended");
+            sCoreData.SurgeAudioEngine->Suspend();
+        }
+        else
+        {
+            Log<Severity::Info>("[Core] Engine Resumed");
+            sCoreData.SurgeAudioEngine->Resume();
+            sCoreData.SurgeClock.ResetDelta(); // The pause must not show up as one giant frame in physics/scripts
+        }
+    }
+
     void Run()
     {
-        FrameCapper frameCapper(sCoreData.FrameCap);
+        FrameCapper& frameCapper = sCoreData.SurgeFrameCapper;
         while (sCoreData.Running)
         {
             SURGE_PROFILE_FRAME("Core::Frame");
@@ -112,10 +142,15 @@ namespace Surge::Core
             frameCapper.BeginFrame();
 
             sCoreData.SurgeClock.Update();
+            InputState::BeginFrame(sCoreData.SurgeClock.GetSeconds()); // Per frame edges/touch phases, before the window pumps new events
             sCoreData.SurgeWindow->Update();
 
             if (sCoreData.SurgeWindow->GetWindowState() == WindowState::MINIMIZED)
+            {
+                SetSuspended(true);
                 continue;
+            }
+            SetSuspended(false);
 
             sCoreData.SurgePhysics->Update(sCoreData.SurgeClock.GetSeconds());
             sCoreData.SurgeClient->OnUpdate();
@@ -136,14 +171,17 @@ namespace Surge::Core
     {
         SCOPED_TIMER("Core::Shutdown");
 
+        // The window outlives the client/renderer and destroying it still sends messages (WM_KILLFOCUS, WM_SIZE...),
+        // which would reach Core::OnEvent with the client and renderer already deleted
+        sCoreData.SurgeWindow->RegisterEventCallback([](Event&) {});
+
         // TODO: Remove this
         sCoreData.SurgeRenderer->GetRHI()->WaitIdle();
 
         // NOTE(Rid): Order Matters here
         sCoreData.SurgeClient->OnShutdown();
         delete sCoreData.SurgeClient;
-        
-        // Assets before scripts: cached scenes hold Lua references (script environments) that must be released while the Lua state is alive
+
         sCoreData.SurgeAssetManager->Shutdown();
         delete sCoreData.SurgeAssetManager;
 
@@ -179,6 +217,13 @@ namespace Surge::Core
     AudioEngine* GetAudioEngine() { return sCoreData.SurgeAudioEngine; }
     Client* GetClient() { return sCoreData.SurgeClient; }
     Clock& GetClock() { return sCoreData.SurgeClock; }
-    void SetFrameCap(float fps) { sCoreData.FrameCap = fps; }
+    void SetFrameCap(float fps)
+    {
+        sCoreData.FrameCap = fps;
+
+        // When the RHI paces presentation itself (Swappy on Android) a CPU sleep on top would only add jitter
+        const bool rhiPaces = sCoreData.SurgeRenderer && sCoreData.SurgeRenderer->GetRHI()->SetTargetFrameRate(fps);
+        sCoreData.SurgeFrameCapper.SetTargetFPS(rhiPaces ? 0.0f : fps);
+    }
 
 } // namespace Surge::Core

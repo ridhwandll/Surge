@@ -63,34 +63,15 @@ namespace Surge
         }
         else if (desc.InitialData != nullptr && !desc.HostVisible)
         {
-            VkBufferCreateInfo stagingInfo{};
-            stagingInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-            stagingInfo.size = desc.Size;
-            stagingInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-
-            VmaAllocationCreateInfo stagingAllocInfo = {};
-            stagingAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-            stagingAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-
-            VkBuffer stagingBuffer;
-            VmaAllocation stagingAllocation;
-            VmaAllocationInfo stagingResultInfo;
-            stagingAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-
-            VK_CALL(vmaCreateBuffer(allocator, &stagingInfo, &stagingAllocInfo, &stagingBuffer, &stagingAllocation, &stagingResultInfo));
-            SG_ASSERT(stagingResultInfo.pMappedData != nullptr, "Staging buffer failed to map");
-
-            memcpy(stagingResultInfo.pMappedData, desc.InitialData, desc.Size);
-
-            const VkCommandBuffer cb = rhi.BeginOneTimeCommands();
+            // Recorded into the uploader's batch, submitted before the next frame, no GPU wait here
+            VulkanUploader& uploader = rhi.GetUploader();
+            const VulkanUploader::StagingAllocation staging = uploader.AllocateStaging(rhi, desc.Size);
+            memcpy(staging.MappedData, desc.InitialData, desc.Size);
 
             VkBufferCopy copyRegion = {};
+            copyRegion.srcOffset = staging.Offset;
             copyRegion.size = desc.Size;
-            vkCmdCopyBuffer(cb, stagingBuffer, entry.Buffer, 1, &copyRegion);
-
-            rhi.EndOneTimeCommands(cb);
-
-            vmaDestroyBuffer(allocator, stagingBuffer, stagingAllocation);
+            vkCmdCopyBuffer(uploader.GetCommandBuffer(rhi), staging.Buffer, entry.Buffer, 1, &copyRegion);
         }
 
         SET_VK_DEBUG_NAME(rhi, VK_OBJECT_TYPE_BUFFER, (uint64_t)entry.Buffer, desc.DebugName);
