@@ -34,7 +34,7 @@ namespace Surge
         // (Rid) Called through Scene::Update(EditorCamera&, editorDraw), editorDraw callback, in Editor.cpp
         void SubmitSceneDebug(Scene& scene, Entity selected);
 
-        // (Rid) Called before ImGuizmo so the manipulator stays on top, in ViewportPanel.cpp
+        // (Rid) Called before ImGuizmo so the manipulator stays on top, in Viewport/SceneViewport.cpp
         void DrawOverlay(Scene& scene, Entity selected, const glm::mat4& view, const glm::mat4& projection, float nearClip, const ImVec2& viewportMin, const ImVec2& viewportSize, bool allowHover);
 
         // Entity whose icon is under the mouse (nearest one wins), invalid when none. Valid after DrawOverlay() for the current frame

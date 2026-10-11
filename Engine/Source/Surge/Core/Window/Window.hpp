@@ -64,7 +64,7 @@ namespace Surge
         virtual void ShowConsole(bool show) const = 0;
         virtual void* GetNativeWindowHandle() = 0;
 
-        // Accept files dragged from the OS (FilesDroppedEvent), off by default. Editor only, no-op where unsupported
+        // Accept files dragged from the OS (FilesDroppedEvent), off by default. No-op where unsupported
         virtual void SetFileDropEnabled(bool) {}
 
         const WindowDesc& GetData() const { return mWindowData; }

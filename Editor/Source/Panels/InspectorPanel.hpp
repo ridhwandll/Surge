@@ -20,10 +20,15 @@ namespace Surge
         void SetHierarchy(SceneHierarchyPanel* hierarchy) { mHierarchy = hierarchy; }
 
     private:
+        void DrawEntityHeader(Entity& entity);
         void DrawComponents(Entity& entity);
+        void DrawAddComponentButton(Entity& entity);
 
     private:
         PanelCode mCode;
         SceneHierarchyPanel* mHierarchy;
+
+        bool mUniformScale = false;  // Transform: scale axes change together
+        String mAddComponentSearch;
     };
 } // namespace Surge

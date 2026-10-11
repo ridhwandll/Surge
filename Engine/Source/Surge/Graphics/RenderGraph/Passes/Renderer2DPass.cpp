@@ -680,74 +680,27 @@ namespace Surge
 
     void Renderer2DPass::OnImGuiRender(FrameBlackboard&)
     {
-        ImFont* boldFont = ImGui::GetIO().Fonts->Fonts[1];
-        ImGui::PushFont(boldFont, 25.0f);
-        ImGui::TextUnformatted("Renderer2D");
-        ImGui::Separator();
-        ImGui::PopFont();
-
-        ImGui::PushFont(boldFont, 20.0f);
-        ImGui::TextUnformatted("Quads");
-        ImGui::Separator();
-        ImGui::PopFont();
-
-        {
-            ImGui::Text("Batches: %u / %u", mQuadBatchCount, MAX_QUAD_BATCHES_PER_FRAME);
-
-            if(mMaxQuadCountReached)
-            {
-                ImGui::TextColored(ImVec4(1.0f, 0.25f, 0.25f, 1.0f), "Max quad count of Renderer2D reached!\nSome Quads were not rendered.");
-                ImGui::Separator();
-            }
-
-            float totalVerticesUsed = (float)mTotalQuadlVertexCount;
-            float usageRatio = totalVerticesUsed / MAX_QUAD_VERTICES;
-
-            float frameWeightMB = (sizeof(QuadVertex) * totalVerticesUsed) / 1024.0f / 1024.0f;
-            float totalWeightMB = (sizeof(QuadVertex) * MAX_QUAD_VERTICES) / 1024.0f / 1024.0f;
-            ImGui::Text("Vertex Buffer(GPU): %.1f MB / %.1f MB", frameWeightMB, totalWeightMB);
-
-            ImVec4 barColor = ImVec4(0.0f, 0.7f, 0.0f, 1.0f); // Green
-            if(usageRatio > 0.65f) barColor = ImVec4(1.0f, 0.4f, 0.0f, 1.0f); // Orange
-            if(usageRatio > 0.95f) barColor = ImVec4(1.0f, 0.0f, 0.0f, 1.0f); // Red
-
-            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, barColor);
-            ImGui::ProgressBar(usageRatio, ImVec2(-1.0f, 0.0f));
-            ImGui::Text("%u Quads (Total)", mTotalQuadlVertexCount / 4);
-            ImGui::Text("%u / %u Vertices", mTotalQuadlVertexCount, MAX_QUAD_VERTICES);
+        // Vertex buffer fill: green, orange past 65%, red past 95%
+        const auto usageBar = [](Uint used, Uint capacity, size_t vertexSize) {
+            const float ratio = static_cast<float>(used) / static_cast<float>(capacity);
+            const ImVec4 color = ratio > 0.95f ? ImVec4(1.0f, 0.0f, 0.0f, 1.0f) : ratio > 0.65f ? ImVec4(1.0f, 0.4f, 0.0f, 1.0f) : ImVec4(0.0f, 0.7f, 0.0f, 1.0f);
+            char overlay[64];
+            *std::format_to_n(overlay, sizeof(overlay) - 1, "{} / {} vertices ({:.1f} MB)", used, capacity, static_cast<double>(vertexSize) * used / (1024.0 * 1024.0)).out = '\0';
+            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, color);
+            ImGui::ProgressBar(ratio, ImVec2(-1.0f, 0.0f), overlay);
             ImGui::PopStyleColor();
-        }
+        };
 
-        ImGui::Separator();
-        ImGui::PushFont(boldFont, 20.0f);
-        ImGui::TextUnformatted("Lines");
-        ImGui::Separator();
-        ImGui::PopFont();
-        {
-            ImGui::Text("Batches: %u / %u", (mTotalLineCount + MAX_LINES_PER_BATCH - 1) / MAX_LINES_PER_BATCH, (MAX_LINES_TOTAL + MAX_LINES_PER_BATCH - 1) / MAX_LINES_PER_BATCH);
+        ImGui::SeparatorText("Renderer2D");
+        ImGui::Text("Quads: %u  |  Batches: %u / %u", mTotalQuadlVertexCount / 4, mQuadBatchCount, MAX_QUAD_BATCHES_PER_FRAME);
+        usageBar(mTotalQuadlVertexCount, MAX_QUAD_VERTICES, sizeof(QuadVertex));
+        if(mMaxQuadCountReached)
+            ImGui::TextColored(ImVec4(1.0f, 0.25f, 0.25f, 1.0f), "Quad limit reached, some quads were not drawn");
 
-            if(mMaxLinesCountReached)
-            {
-                ImGui::TextColored(ImVec4(1.0f, 0.25f, 0.25f, 1.0f), "Max Line count of Renderer2D reached!");
-                ImGui::Separator();
-            }
-
-            float totalVerticesUsed = (float)mTotalLineVertexCount;
-            float usageRatio = totalVerticesUsed / MAX_LINE_VERTICES;
-
-            float frameWeightMB = (sizeof(LineVertex) * totalVerticesUsed) / 1024.0f / 1024.0f;
-            float totalWeightMB = (sizeof(LineVertex) * MAX_LINE_VERTICES) / 1024.0f / 1024.0f;
-            ImGui::Text("Vertex Buffer(GPU): %.1f MB / %.1f MB", frameWeightMB, totalWeightMB);
-
-            ImVec4 barColor = ImVec4(0.0f, 0.7f, 0.0f, 1.0f); // Green
-            if(usageRatio > 0.65f) barColor = ImVec4(1.0f, 0.4f, 0.0f, 1.0f); // Orange
-            if(usageRatio > 0.95f) barColor = ImVec4(1.0f, 0.0f, 0.0f, 1.0f); // Red
-
-            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, barColor);
-            ImGui::ProgressBar(usageRatio, ImVec2(-1.0f, 0.0f));
-            ImGui::Text("%u / %u Vertices", mTotalLineVertexCount, MAX_LINE_VERTICES);
-            ImGui::PopStyleColor();
-        }
+        ImGui::Text("Lines: %u  |  Batches: %u / %u", mTotalLineCount, (mTotalLineCount + MAX_LINES_PER_BATCH - 1) / MAX_LINES_PER_BATCH, (MAX_LINES_TOTAL + MAX_LINES_PER_BATCH - 1) / MAX_LINES_PER_BATCH);
+        usageBar(mTotalLineVertexCount, MAX_LINE_VERTICES, sizeof(LineVertex));
+        if(mMaxLinesCountReached)
+            ImGui::TextColored(ImVec4(1.0f, 0.25f, 0.25f, 1.0f), "Line limit reached, some lines were not drawn");
     }
 }
 

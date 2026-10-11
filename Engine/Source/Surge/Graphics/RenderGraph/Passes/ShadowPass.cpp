@@ -237,9 +237,10 @@ namespace Surge
                 mRHI->CmdBindDescriptorSet(ctx, mShadowPipelines[cascade], mInstanceSet, DescriptorSetSlot::ZERO);
 
                 const float cascadeScale = 1.0f / (static_cast<float>(cascade) + 1.0f);
-                const float currentConstant = mDepthBiasConstant * cascadeScale;
-                const float currentSlope = mDepthBiasSlope * cascadeScale;
-                mRHI->CmdSetDepthBias(ctx, currentConstant, mDepthBiasClamp, currentSlope);
+                const ShadowSettings& settings = blackBoard.ShadowSettings_;
+                const float currentConstant = settings.DepthBiasConstant * cascadeScale;
+                const float currentSlope = settings.DepthBiasSlope * cascadeScale;
+                mRHI->CmdSetDepthBias(ctx, currentConstant, settings.DepthBiasClamp, currentSlope);
                 mRHI->CmdPushConstants(ctx, mShadowPipelines[cascade], ShaderType::VERTEX | ShaderType::FRAGMENT, 0, sizeof(glm::mat4), &mLightViewProjections[cascade]);
 
                 const Mesh* boundMesh = nullptr;
@@ -263,25 +264,12 @@ namespace Surge
     void ShadowPass::Resize(Uint /*width*/, Uint /*height*/, FrameBlackboard& /*blackBoard*/) {}
     void ShadowPass::OnImGuiRender(FrameBlackboard& blackBoard)
     {
-        ImFont* boldFont = ImGui::GetIO().Fonts->Fonts[1];
-        ImGui::PushFont(boldFont, 25.0f);
-        ImGui::TextUnformatted("Shadow Pass");
-        ImGui::Separator();
-        ImGui::PopFont();
-
-        ImGui::PushFont(boldFont, 20.0f);
-        ImGui::TextUnformatted("Depth Bias");
-        ImGui::Separator();
-        ImGui::PopFont();
-        ImGui::DragFloat("Constant", &mDepthBiasConstant, 0.1f, 0.0f, 100.0f, "%.2f");
-        ImGui::DragFloat("Clamp", &mDepthBiasClamp, 0.1f, 0.0f, 100.0f, "%.2f");
-        ImGui::DragFloat("Slope", &mDepthBiasSlope, 0.1f, 0.0f, 100.0f, "%.2f");
-        ImGui::Separator();
-        ImGui::Checkbox("Visualize Cascades", &blackBoard.ShadowSettings_.ShowCascades);
-        ImGui::SliderInt("Cascade Count", &blackBoard.ShadowSettings_.CascadeCount, 2, MAX_SHADOW_CASCADE_COUNT);
-        ImGui::SliderFloat("Cascade Split Lambda", &blackBoard.ShadowSettings_.CascadeSplitLambda, 0.0f, 1.0f, "%.3f");
-        ImGui::Text("CascadeSplits: %f | %f | %f", mCascadeEnds[0], mCascadeEnds[1], mCascadeEnds[2]);
-        ImGui::Text("Casters: %u | Visible per cascade: %u | %u | %u", mCasterCount, mCascadeVisible[0], mCascadeVisible[1], mCascadeVisible[2]);
+        // Stats only, the settings are edited in the Editor's Renderer panel
+        ImGui::SeparatorText("Shadows");
+        const int cascades = std::min(blackBoard.ShadowSettings_.CascadeCount, MAX_SHADOW_CASCADE_COUNT);
+        ImGui::Text("Casters: %u", mCasterCount);
+        for(int i = 0; i < cascades; i++)
+            ImGui::Text("Cascade %d: %u visible, ends at %.1f", i, mCascadeVisible[i], mCascadeEnds[i]);
     }
 
     void ShadowPass::Shutdown(FrameBlackboard& blackBoard)

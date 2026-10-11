@@ -8,6 +8,7 @@
 #include "Surge/Graphics/Renderer/Renderer.hpp"
 #include "Surge/Physics/Physics.hpp"
 #include "Surge/Audio/AudioEngine.hpp"
+#include "Surge/ScriptEngine/ScriptEngine.hpp"
 #include "Surge/Serializer/Serializer.hpp"
 
 #include "Surge/Utility/Platform.hpp"
@@ -16,7 +17,8 @@
 #include "Utility/ImGuiAux.hpp"
 #include "Gizmos/GizmoIcons.hpp"
 #include <imgui_stdlib.h>
-#include "Panels/ViewportPanel.hpp"
+#include "Viewport/SceneViewport.hpp"
+#include "Viewport/GameViewport.hpp"
 #include "Panels/SceneHierarchyPanel.hpp"
 #include "Panels/InspectorPanel.hpp"
 #include "Panels/ContentBrowserPanel.hpp"
@@ -26,6 +28,7 @@
 #include "Panels/ConsolePanel.hpp"
 #include "Panels/HistoryPanel.hpp"
 #include "Panels/AssetRegistryPanel.hpp"
+#include "Panels/RendererPanel.hpp"
 #include "Console/EditorConsole.hpp"
 #include "StatusBar/EditorStatusBar.hpp"
 #include "Surge/ECS/Components/Components.hpp"
@@ -46,7 +49,7 @@
 
 namespace Surge
 {
-    static void BuildDefaultLayout(ImGuiID dockspaceID, ImVec2 size);
+    static void BuildDefaultLayout(ImGuiID dockspaceID, ImVec2 size, ViewportManager& viewports);
 
     // mipmapped + sampler: for icons drawn smaller than their source (the default sampler is NEAREST)
     static ImageHandle GenerateImage(const String& path, bool mipmapped = false, SamplerHandle sampler = {})
@@ -93,14 +96,18 @@ namespace Surge
     void Editor::OnInitialize()
     {
         // Dummy Scene to render the project browser ImGui. We can probably find a better way to do this later, but for now it works and doesn't cause any issues
-        mActiveScene = Ref<Scene>::Create();
+        mActiveScene = Ref<Scene>::Create("Dummy");
 
         mAssetManager = Core::GetAssetManager();
         mRenderer = Core::GetRenderer();
         mRenderer->SetOutlineThickness(1);
 
-        mCamera = EditorCamera(45.0f, 1.778f, 0.1f, 1000.0f);
-        mCamera.SetActive(true);
+        mFrameCamera = EditorCamera(45.0f, 1.778f, 0.1f, 1000.0f);
+
+        // Every Scene/Game viewport draws through its own Renderer view, the main graph only presents ImGui
+        mRenderer->SetMainSceneEnabled(false);
+
+        SceneViewport::SetupManipulatorStyle();
 
         mAssetImporter.Initialize(mAssetManager);
         mAssetImporter.RegisterCooker(CreateScope<Texture2DCooker>());
@@ -122,7 +129,6 @@ namespace Surge
         // Configure panels
         SceneHierarchyPanel* sceneHierarchy = mPanelManager.PushPanel<SceneHierarchyPanel>();
         mPanelManager.PushPanel<InspectorPanel>()->SetHierarchy(sceneHierarchy);
-        mViewportPanel = mPanelManager.PushPanel<ViewportPanel>(&mCamera);
         mPanelManager.PushPanel<ContentBrowserPanel>();
         mPanelManager.PushPanel<MaterialEditorPanel>();
         mPanelManager.PushPanel<ExportPanel>();
@@ -130,6 +136,7 @@ namespace Surge
         mPanelManager.PushPanel<ConsolePanel>();
         mPanelManager.PushPanel<HistoryPanel>();
         mPanelManager.PushPanel<AssetRegistryPanel>();
+        mPanelManager.PushPanel<RendererPanel>();
         Core::GetWindow()->SetFileDropEnabled(true); // Files dropped from Explorer are imported by the Content Browser
 
         mHistory.SetScene(mActiveScene.Raw());
@@ -137,7 +144,19 @@ namespace Surge
         mProjectBrowser.Init();
 
         mRenderer->AddImGuiRenderCallback([this]() { OnImGuiRender(); });
-        mSceneDebugDraw = [this](Scene& scene) { mGizmos.SubmitSceneDebug(scene, GetSelectedEntity()); };
+        mSceneRenderHook = [this](Scene& scene) {
+            mViewports.UpdateViewCameras(scene); // Transforms are final here, cameras moved by scripts this frame are not a frame late
+            mRenderer->BeginEditorOverlay();     // Everything below only shows in Scene views
+
+            constexpr float axesLength = 10000.0f;
+            if(mSettings.ShowAxes)
+            {
+                mRenderer->SubmitLine({ -axesLength, 0.0f, 0.0f }, { axesLength, 0.0f, 0.0f }, { 1.0f, 0.3f, 0.3f, 1.0f }); // X
+                mRenderer->SubmitLine({ 0.0f, -axesLength, 0.0f }, { 0.0f, axesLength, 0.0f }, { 0.3f, 0.8f, 0.3f, 1.0f }); // Y
+                mRenderer->SubmitLine({ 0.0f, 0.0f, -axesLength }, { 0.0f, 0.0f, axesLength }, { 0.3f, 0.3f, 1.0f, 1.0f }); // Z
+            }
+            mGizmos.SubmitSceneDebug(scene, GetSelectedEntity());
+        };
 
         mEngineLogo = GenerateImage("Editor/Assets/Textures/EngineLogo.png");
         mMinimize = GenerateImage("Editor/Assets/Textures/Minimize.png");
@@ -171,31 +190,17 @@ namespace Surge
 
         if(mCurrentProject.IsValid())
         {
-            // Axes, edit mode only
-            constexpr float axesLength = 10000.0f;
-            if(mSettings.ShowAxes && !IsPlaying())
-            {
-                mRenderer->SubmitLine({ -axesLength, 0.0f, 0.0f }, { axesLength, 0.0f, 0.0f }, { 1.0f, 0.3f, 0.3f, 1.0f }); // X
-                mRenderer->SubmitLine({ 0.0f, -axesLength, 0.0f }, { 0.0f, axesLength, 0.0f }, { 0.3f, 0.8f, 0.3f, 1.0f }); // Y
-                mRenderer->SubmitLine({ 0.0f, 0.0f, -axesLength }, { 0.0f, 0.0f, axesLength }, { 0.3f, 0.3f, 1.0f, 1.0f }); // Z
-            }
+            mViewports.OnUpdate();
+            UpdateGameResolution();
 
-            CheckResize();
-            if(mRuntimeScene && mRuntimeScene->GetMainCameraEntity().Data1)
-                mRuntimeScene->Update();
-            else
-            {
-                mCamera.OnUpdate();
-                if(IsPlaying()) // Runtime without a main camera, still no editor drawing
-                    mActiveScene->Update(mCamera);
-                else
-                    mActiveScene->Update(mCamera, mSceneDebugDraw);
-            }
+            // The running scene keeps simulating without a camera, Scene views still show it and Game views say so
+            Scene& scene = mRuntimeScene ? *mRuntimeScene : *mActiveScene;
+            scene.Update(mFrameCamera, mSceneRenderHook);
         }
         else
         {
             // (Rid) We have to do this to render the ImGUI! Is this a design flaw? Maybe. But it works for now and we can refactor later if needed
-            mActiveScene->Update(mCamera);
+            mActiveScene->Update(mFrameCamera);
         }
     }
 
@@ -205,7 +210,6 @@ namespace Surge
 
         if(mCurrentProject.IsValid())
         {
-            mRenderer->ShowInternalImGui(true);
             HandleShortcuts();
 
             const char* unsavedMarker = mHistory.IsDirty() ? " *" : "";
@@ -216,9 +220,10 @@ namespace Surge
 #endif
             if(mShowTitlebar) // Both bars step aside for the fullscreen viewport, the dockspace keeps its size so the layout doesn't shift
                 EditorStatusBar::Get().Render();
-            ImGuiAux::DockSpace(titleBarHeight, BuildDefaultLayout, mResetLayoutRequested, EditorStatusBar::HEIGHT);
+            ImGuiAux::DockSpace(titleBarHeight, [this](ImGuiID dockspaceID, ImVec2 size) { BuildDefaultLayout(dockspaceID, size, mViewports); }, mResetLayoutRequested, EditorStatusBar::HEIGHT);
             mResetLayoutRequested = false;
             mPanelManager.RenderPanels();
+            mViewports.Render();
             RenderEditorSettings();
             RenderShortcutsWindow();
             RenderSaveSceneAsPopup();
@@ -246,7 +251,6 @@ namespace Surge
         else
         {
             constexpr float projectWindowTitlebarHeight = 40.0f;
-            mRenderer->ShowInternalImGui(false);
             DrawCustomTitlebar("Project Browser", projectWindowTitlebarHeight, false);
             mProjectBrowser.Render(projectWindowTitlebarHeight);
         }
@@ -348,11 +352,20 @@ namespace Surge
                         ImGui::MenuItem(PanelCodeToString(panelCode), nullptr, &panel.Show);
 
                     ImGuiAux::StyledSeparator();
+                    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]); // Bold font
+                    ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "VIEWPORTS");
+                    ImGui::PopFont();
+                    mViewports.DrawMenuItems();
+                    ImGuiAux::StyledSeparator();
 
                     if(ImGui::MenuItem("Reset Layout"))
                     {
                         for(auto& [panelCode, panel] : mPanelManager.GetAllPanels())
                             panel.Show = true;
+                        if(!mViewports.GetActiveSceneView())
+                            mViewports.AddSceneView();
+                        if(!mViewports.GetGameView())
+                            mViewports.OpenGameView();
                         RequestResetLayout(); // Rebuilt right before the dockspace next frame
                     }
                     ImGui::PopStyleColor();
@@ -462,9 +475,14 @@ namespace Surge
 
     void Editor::OnEvent(Event& e)
     {
-        if (mViewportPanel->IsViewportHovered())
-            mCamera.OnEvent(e);
+        // No project: only the Project Browser listens (dropped files would otherwise wait in the Content Browser for the next project)
+        if(!mCurrentProject.IsValid())
+        {
+            mProjectBrowser.OnEvent(e);
+            return;
+        }
 
+        mViewports.OnEvent(e);
         mPanelManager.OnEvent(e);
 
         EventDispatcher dispatcher(e);
@@ -490,16 +508,18 @@ namespace Surge
         mHistory.ResetTracking();
         if(mPanelManager.GetPanel<ConsolePanel>()->IsClearOnPlay())
             EditorConsole::Get().Clear();
+        Core::GetScriptEngine()->ResetSession(); // Modules and _G start fresh, edited scripts are required again
+        Core::SetTimeScale(1.0f);                // A script may have left slow motion on in the last session
 
-        mRuntimeScene = Ref<Scene>::Create();
+        mRuntimeScene = Ref<Scene>::Create("RuntimeDummy");
         mPanelManager.GetPanel<SceneHierarchyPanel>()->SetSceneContext(mRuntimeScene.Raw());
-        mPanelManager.GetPanel<ViewportPanel>()->OnSceneContextChanged();
+        mViewports.OnSceneContextChanged();
 
         mActiveScene->CopyTo(mRuntimeScene.Raw());
 
         mRuntimeScene->OnRuntimeStart();
-        glm::vec2 viewportSize = mPanelManager.GetPanel<ViewportPanel>()->GetViewportSize();
-        mRuntimeScene->OnResize(viewportSize.x, viewportSize.y);
+        mRuntimeScene->OnResize(mGameResolution.x, mGameResolution.y);
+        mViewports.OnPlay(); // Brings the Game view to front, like Unity
     }
 
     void Editor::OnRuntimeEnd()
@@ -511,9 +531,45 @@ namespace Surge
 
         // The runtime scene removed its canvases, this also drops roots set with SetUIRoot() from regular scripts so no UI leaks into edit mode
         mRenderer->GetUIManager().ClearCanvases();
+        Core::GetScriptEngine()->ResetSession(); // Releases the session's modules and globals (they may still reference runtime entities)
+        Core::SetTimeScale(1.0f);
 
         mPanelManager.GetPanel<SceneHierarchyPanel>()->SetSceneContext(mActiveScene.Raw());
-        mPanelManager.GetPanel<ViewportPanel>()->OnSceneContextChanged();
+        mViewports.OnSceneContextChanged();
+        mViewports.OnPlayStop();
+    }
+
+    void Editor::ChangeRuntimeScene(AssetID sceneID)
+    {
+        if(!IsPlaying())
+            return;
+
+        Ref<Scene> source = mAssetManager->Load<Scene>(sceneID);
+        if(!source)
+        {
+            Log<Severity::Error>("[Editor] Scene.Load: scene {} could not be loaded, staying in the current one", sceneID.Get());
+            return;
+        }
+
+        // Same as a scene switch in the Player: the old runtime scene ends, the Lua session (modules, _G, Storage) carries on
+        const bool paused = IsPaused();
+        SelectEntity(Entity());
+        mRuntimeScene->OnRuntimeEnd();
+        mRuntimeScene->SetRunning(false);
+
+        Ref<Scene> next = Ref<Scene>::Create("Dummy");
+        source->CopyTo(next.Raw());
+        mRuntimeScene = next;
+        mRenderer->GetUIManager().ClearCanvases();
+
+        mPanelManager.GetPanel<SceneHierarchyPanel>()->SetSceneContext(mRuntimeScene.Raw());
+        mViewports.OnSceneContextChanged();
+        mRuntimeScene->OnRuntimeStart();
+        mRuntimeScene->OnResize(mGameResolution.x, mGameResolution.y);
+        if(paused)
+            mRuntimeScene->SetPaused(true);
+
+        Log<Severity::Info>("[Editor] Scene.Load: switched to {}", mAssetManager->GetMetadata(sceneID).RelativePath);
     }
 
     void Editor::SetPaused(bool paused)
@@ -547,7 +603,6 @@ namespace Surge
             mScenesToUnload.push_back(previousID);
 
         mPanelManager.GetPanel<SceneHierarchyPanel>()->SetSceneContext(scene.Raw());
-        mPanelManager.GetPanel<ViewportPanel>()->OnSceneContextChanged();
 
         // This usually runs from ImGui, i.e. inside the previous scene's Update(), it is released at the start of the next update
         Ref<Scene> previous = std::move(mActiveScene);
@@ -557,33 +612,26 @@ namespace Surge
         mActiveScene = std::move(scene);
         mActiveScene->SetSelectedEntity({});
         mHistory.SetScene(mActiveScene.Raw());
+        mViewports.OnSceneContextChanged();
+        mActiveScene->OnResize(mGameResolution.x, mGameResolution.y);
 
         if(mActiveScene->GetID() && mAssetManager->IsRegistered(mActiveScene->GetID()))
             mSettings.LastScene = mActiveScene->GetID();
         //mAssetImporter.ScanAndCookAll();
     }
 
-    void Editor::CheckResize()
+    void Editor::UpdateGameResolution()
     {
-        ViewportPanel* viewportPanel = mPanelManager.GetPanel<ViewportPanel>();
-        Scope<GraphicsRHI>& rhi = mRenderer->GetRHI();
+        // Views resize themselves (Renderer::ResizeView), the scene's cameras keep the aspect scripts and gizmos see
+        const glm::vec2 resolution = mViewports.GetGameResolution();
+        if(resolution.x <= 0.0f || resolution.y <= 0.0f || resolution == mGameResolution)
+            return;
 
-        glm::vec2 viewportSize = viewportPanel->GetViewportSize();
-        FramebufferHandle fbHandle = mRenderer->GetFinalFramebuffer();
-        FramebufferDesc desc = rhi->GetDesc(fbHandle);
-
-        if (viewportSize.x > 0.0f && viewportSize.y > 0.0f && (desc.Width != (Uint)viewportSize.x || desc.Height != (Uint)viewportSize.y))
-        {
-            rhi->WaitIdle();
-
-            mCamera.SetViewportSize(viewportSize);
-            mRenderer->ForceResize((Uint)viewportSize.x, (Uint)viewportSize.y);
-
-            if(mRuntimeScene && mRuntimeScene->GetMainCameraEntity().Data1)
-                mRuntimeScene->OnResize(viewportSize.x, viewportSize.y);
-            else
-                mActiveScene->OnResize(viewportSize.x, viewportSize.y);
-        }
+        mGameResolution = resolution;
+        mFrameCamera.SetViewportSize(resolution);
+        mActiveScene->OnResize(resolution.x, resolution.y);
+        if(mRuntimeScene)
+            mRuntimeScene->OnResize(resolution.x, resolution.y);
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -723,6 +771,29 @@ namespace Surge
         }
     }
 
+    void Editor::MoveEntity(Entity entity, Entity newParent, Entity insertAfter)
+    {
+        if(!entity || entity == insertAfter)
+            return;
+
+        Entity oldParent = SceneEditUtils::GetParent(entity);
+        if(oldParent == newParent && SceneEditUtils::GetPreviousSibling(entity) == insertAfter)
+            return;
+
+        if(newParent && (newParent == entity || SceneEditUtils::IsDescendantOf(newParent, entity)))
+        {
+            Log<Severity::Warn>("[Editor] Cannot parent an entity to its own descendant!");
+            return;
+        }
+
+        const ReparentCommand::Placement from = { SceneEditUtils::GetUUID(oldParent), SceneEditUtils::GetUUID(SceneEditUtils::GetPreviousSibling(entity)) };
+        SceneEditUtils::SetParentAt(*entity.GetScene(), entity, newParent, insertAfter);
+        const ReparentCommand::Placement to = { SceneEditUtils::GetUUID(newParent), SceneEditUtils::GetUUID(SceneEditUtils::GetPreviousSibling(entity)) };
+
+        if(!IsPlaying())
+            mHistory.Push(CreateScope<ReparentCommand>(std::format("Move '{}'", SceneEditUtils::GetName(entity)), SceneEditUtils::GetUUID(entity), from, to));
+    }
+
     void Editor::SaveScene()
     {
         const AssetID sceneID = mActiveScene->GetID();
@@ -751,9 +822,8 @@ namespace Surge
 
         Core::SetFrameCap(mSettings.FrameCap);
         mPanelManager.GetPanel<ContentBrowserPanel>()->OnProjectSettingsLoaded();
-        if(mSettings.HasCameraView)
-            mCamera.SetView(mSettings.CameraFocalPoint, mSettings.CameraDistance, mSettings.CameraPitch, mSettings.CameraYaw);
-        mCamera.SetCameraSpeed(mSettings.CameraSpeed);
+        mViewports.Restore(mSettings.Viewports);
+        mGameResolution = { 0.0f, 0.0f }; // Re-applied to the scene's cameras once the viewports have a size
     }
 
     void Editor::LoadStartupScene()
@@ -784,6 +854,8 @@ namespace Surge
             mSettingsStore.Reset();
             mProjectFilePath.clear();
             mCurrentProject = {}; // Back to the Project Browser
+            mViewports.Clear();   // Their render targets aren't needed in the browser, the next project restores its own
+            mProjectBrowser.Refresh();
         });
     }
 
@@ -800,7 +872,7 @@ namespace Surge
             for(int i = 1; Filesystem::Exists(Path(mAssetManager->GetAssetsDirectory()) / relativePath); i++)
                 relativePath = std::format("Scenes/NewScene ({}){}", i, extension);
 
-            Ref<Scene> scene = mAssetManager->Create<Scene>(relativePath);
+            Ref<Scene> scene = mAssetManager->Create<Scene>(relativePath, Filesystem::GetFilenameWithoutExt(relativePath));
             if(!scene)
                 return;
 
@@ -845,7 +917,7 @@ namespace Surge
         }
 
         Filesystem::CreateOrEnsureDirectories((Path(mAssetManager->GetAssetsDirectory()) / path).parent_path());
-        Ref<Scene> newScene = mAssetManager->Create<Scene>(path);
+        Ref<Scene> newScene = mAssetManager->Create<Scene>(path, Filesystem::GetFilenameWithoutExt(path));
         if(!newScene)
             return;
 
@@ -873,23 +945,20 @@ namespace Surge
 
     void Editor::FocusEntity(Entity entity)
     {
-        if(entity && entity.HasComponent<TransformComponent>())
-            mCamera.Focus(entity.GetComponent<TransformComponent>().GetTransform()[3]);
+        // The Scene view the user worked in last, like Unity's F
+        SceneViewport* sceneView = mViewports.GetActiveSceneView();
+        if(sceneView && entity && entity.HasComponent<TransformComponent>())
+            sceneView->GetCamera().Focus(entity.GetComponent<TransformComponent>().GetTransform()[3]);
     }
 
     void Editor::SaveSettings()
     {
-        mSettings.HasCameraView = true;
-        mSettings.CameraFocalPoint = mCamera.GetFocalPoint();
-        mSettings.CameraDistance = mCamera.GetDistance();
-        mSettings.CameraPitch = mCamera.GetPitch();
-        mSettings.CameraYaw = mCamera.GetYaw();
-        mSettings.CameraSpeed = mCamera.GetCameraSpeed();
+        mViewports.Capture(mSettings.Viewports);
         mSettingsStore.Save(mSettings);
     }
 
-    // Hierarchy/Physics left, Viewport center, Inspector right, Content Browser/Console bottom
-    static void BuildDefaultLayout(ImGuiID dockspaceID, ImVec2 size)
+    // Hierarchy/Physics left, Scene/Game views center, Inspector right, Content Browser/Console bottom
+    static void BuildDefaultLayout(ImGuiID dockspaceID, ImVec2 size, ViewportManager& viewports)
     {
         ImGui::DockBuilderRemoveNode(dockspaceID);
         ImGui::DockBuilderAddNode(dockspaceID, ImGuiDockNodeFlags_DockSpace);
@@ -900,16 +969,14 @@ namespace Surge
         ImGuiID right = ImGui::DockBuilderSplitNode(center, ImGuiDir_Right, 0.27f, nullptr, &center);
         ImGuiID bottom = ImGui::DockBuilderSplitNode(center, ImGuiDir_Down, 0.32f, nullptr, &center);
         ImGuiID leftBottom = ImGui::DockBuilderSplitNode(left, ImGuiDir_Down, 0.35f, nullptr, &left);
-        ImGuiID rightBottom = ImGui::DockBuilderSplitNode(right, ImGuiDir_Down, 0.25f, nullptr, &right);
 
         ImGui::DockBuilderDockWindow(PanelCodeToString(PanelCode::SceneHierarchy), left);
         ImGui::DockBuilderDockWindow("Editor Settings", leftBottom);
         ImGui::DockBuilderDockWindow(PanelCodeToString(PanelCode::History), leftBottom);
         ImGui::DockBuilderDockWindow("Physics Stats", leftBottom);
 
-        ImGui::DockBuilderDockWindow(PanelCodeToString(PanelCode::Viewport), center);
+        viewports.DockWindows(center);
         ImGui::DockBuilderDockWindow("Export Project", center);
-        ImGui::DockBuilderDockWindow("RenderGraph", center);
 
         ImGui::DockBuilderDockWindow("Content Browser", bottom);
         ImGui::DockBuilderDockWindow("Asset Registry", bottom);
@@ -918,7 +985,7 @@ namespace Surge
         ImGui::DockBuilderDockWindow(PanelCodeToString(PanelCode::Inspector), right);
         ImGui::DockBuilderDockWindow("Material Editor", right);
         ImGui::DockBuilderDockWindow(PanelCodeToString(PanelCode::UIEditor), right);
-        ImGui::DockBuilderDockWindow("Renderer", rightBottom);
+        ImGui::DockBuilderDockWindow(PanelCodeToString(PanelCode::Renderer), right);
 
         ImGui::DockBuilderFinish(dockspaceID);
     }
@@ -956,8 +1023,7 @@ namespace Surge
     void Editor::RefreshCameraViewports()
     {
         // RuntimeCamera's viewport size is not serialized, cameras recreated from a snapshot need it again
-        const glm::vec2& viewportSize = mViewportPanel->GetViewportSize();
-        mActiveScene->OnResize(viewportSize.x, viewportSize.y);
+        mActiveScene->OnResize(mGameResolution.x, mGameResolution.y);
     }
 
     void Editor::ConfirmDiscardChanges(const char* action, std::function<void()> onConfirm)
@@ -1003,7 +1069,7 @@ namespace Surge
 
         // Entity shortcuts only while the Hierarchy or the Viewport has the user's attention, other panels reuse these keys (Content Browser: Ctrl+C)
         SceneHierarchyPanel* hierarchy = mPanelManager.GetPanel<SceneHierarchyPanel>();
-        if(!hierarchy->IsFocusedOrHovered() && !mViewportPanel->IsFocusedOrHovered())
+        if(!hierarchy->IsFocusedOrHovered() && !mViewports.IsSceneViewFocusedOrHovered())
             return;
 
         Entity selected = GetSelectedEntity();
@@ -1150,7 +1216,7 @@ namespace Surge
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
 
         ImGui::SetCursorPos(ImVec2(startX, (rowTop + rowBottom - buttonSize.y) * 0.5f));
-        if(GizmoIcons::IconButton("##PlayStop", playing ? GizmoIcon::STOP : GizmoIcon::PLAY, buttonSize, playing ? ImVec4(ImGuiAux::Colors::Red) : ImVec4(ImGuiAux::Colors::ThemeColor1)))
+        if(GizmoIcons::IconButton("##PlayStop", playing ? GizmoIcon::STOP : GizmoIcon::PLAY, buttonSize, glyphColor))
         {
             if(playing)
                 OnRuntimeEnd();
@@ -1352,6 +1418,7 @@ namespace Surge
         if(mCurrentProject.IsValid())
             SaveSettings();
 
+        mViewports.Clear(); // Their Renderer views go before the Renderer does
         mGizmos.Shutdown();
         mAssetImporter.Shutdown();
         Scope<GraphicsRHI>& rhi = Core::GetRenderer()->GetRHI();

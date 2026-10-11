@@ -119,8 +119,7 @@ SURGE_REFLECT_CLASS_REGISTER_BEGIN(Surge::MeshColliderComponent)
 SURGE_REFLECT_CLASS_REGISTER_END()
 
 SURGE_REFLECT_CLASS_REGISTER_BEGIN(Surge::ScriptComponent)
-    .AddVariable<&Surge::ScriptComponent::Active>("Active")
-    .AddVariable<&Surge::ScriptComponent::ScriptAsset>("ScriptAsset")
+    .AddVariable<&Surge::ScriptComponent::Active>("Active") // The script list is serialized by hand (Serializer.cpp)
 SURGE_REFLECT_CLASS_REGISTER_END()
 
 SURGE_REFLECT_CLASS_REGISTER_BEGIN(Surge::TextComponent)

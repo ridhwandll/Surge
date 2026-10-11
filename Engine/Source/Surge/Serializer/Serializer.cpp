@@ -84,6 +84,155 @@ namespace Surge
     NLOHMANN_JSON_SERIALIZE_ENUM(TextVerticalAlignment, { {TextVerticalAlignment::TOP, "TOP"}, {TextVerticalAlignment::CENTER, "CENTER"}, {TextVerticalAlignment::BOTTOM, "BOTTOM"}, {TextVerticalAlignment::BASELINE, "BASELINE"} });
     NLOHMANN_JSON_SERIALIZE_ENUM(AttenuationModel, { {AttenuationModel::NONE, "NONE"}, {AttenuationModel::INVERSE_DISTANCE, "INVERSE_DISTANCE"}, {AttenuationModel::LINEAR_DISTANCE, "LINEAR_DISTANCE"}, {AttenuationModel::EXPONENTIAL_DISTANCE, "EXPONENTIAL_DISTANCE"} });
 
+    // Inspector values of a script's Properties, only written when there are any (older scenes stay untouched)
+    static nlohmann::json FieldValueToJson(ScriptFieldType type, ScriptFieldType elementType, const ScriptFieldValue& value)
+    {
+        switch(type)
+        {
+            case ScriptFieldType::FLOAT:
+            case ScriptFieldType::INT: return value.Number;
+            case ScriptFieldType::BOOL: return value.Bool;
+            case ScriptFieldType::STRING:
+            case ScriptFieldType::ENUM: return value.Text;
+            case ScriptFieldType::VEC2:
+            case ScriptFieldType::VEC3:
+            case ScriptFieldType::VEC4:
+            case ScriptFieldType::COLOR: return value.Vector;
+            case ScriptFieldType::ENTITY: return value.EntityID;
+            case ScriptFieldType::ASSET: return value.AssetID;
+            case ScriptFieldType::ARRAY:
+            {
+                nlohmann::json array = nlohmann::json::array();
+                for(const ScriptFieldValue& element : value.Elements)
+                    array.push_back(FieldValueToJson(elementType, ScriptFieldType::FLOAT, element));
+                return array;
+            }
+            default: return nullptr;
+        }
+    }
+
+    static bool FieldValueFromJson(const nlohmann::json& json, ScriptFieldType type, ScriptFieldType elementType, ScriptFieldValue& out)
+    {
+        switch(type)
+        {
+            case ScriptFieldType::FLOAT:
+            case ScriptFieldType::INT: if(!json.is_number()) return false; out.Number = json.get<double>(); return true;
+            case ScriptFieldType::BOOL: if(!json.is_boolean()) return false; out.Bool = json.get<bool>(); return true;
+            case ScriptFieldType::STRING:
+            case ScriptFieldType::ENUM: if(!json.is_string()) return false; out.Text = json.get<String>(); return true;
+            case ScriptFieldType::VEC2:
+            case ScriptFieldType::VEC3:
+            case ScriptFieldType::VEC4:
+            case ScriptFieldType::COLOR: if(!json.is_object()) return false; out.Vector = json.get<glm::vec4>(); return true;
+            case ScriptFieldType::ENTITY: if(!json.is_number()) return false; out.EntityID = json.get<uint64_t>(); return true;
+            case ScriptFieldType::ASSET: if(!json.is_number()) return false; out.AssetID = json.get<uint64_t>(); return true;
+            case ScriptFieldType::ARRAY:
+            {
+                if(!json.is_array())
+                    return false;
+                for(const nlohmann::json& element : json)
+                {
+                    ScriptFieldValue item;
+                    if(FieldValueFromJson(element, elementType, ScriptFieldType::FLOAT, item))
+                        out.Elements.push_back(std::move(item));
+                }
+                return true;
+            }
+            default: return false;
+        }
+    }
+
+    // Inspector values of a script's Properties, only written when there are any (older scenes stay untouched)
+    static void SerializeScriptFields(nlohmann::json& out, const Vector<ScriptFieldOverride>& fields)
+    {
+        if(fields.empty())
+            return;
+
+        nlohmann::json& array = out["Fields"];
+        for(const ScriptFieldOverride& field : fields)
+        {
+            nlohmann::json entry;
+            entry["Name"] = field.Name;
+            entry["Type"] = ScriptFieldTypeToString(field.Type);
+            if(field.Type == ScriptFieldType::ARRAY)
+                entry["ElementType"] = ScriptFieldTypeToString(field.ElementType);
+            entry["Value"] = FieldValueToJson(field.Type, field.ElementType, field.Value);
+            array.push_back(std::move(entry));
+        }
+    }
+
+    static void DeserializeScriptFields(const nlohmann::json& in, Vector<ScriptFieldOverride>& outFields)
+    {
+        outFields.clear();
+        if(!in.contains("Fields") || !in["Fields"].is_array())
+            return;
+
+        for(const nlohmann::json& entry : in["Fields"])
+        {
+            ScriptFieldOverride field;
+            field.Name = entry.value("Name", String());
+            bool valid = !field.Name.empty() && entry.contains("Value") && ScriptFieldTypeFromString(entry.value("Type", String()).c_str(), field.Type);
+            if(valid && field.Type == ScriptFieldType::ARRAY)
+                valid = ScriptFieldTypeFromString(entry.value("ElementType", String()).c_str(), field.ElementType);
+            if(!valid || !FieldValueFromJson(entry["Value"], field.Type, field.ElementType, field.Value))
+            {
+                Log<Severity::Warn>("[Serializer] Skipping a malformed script field '{}'", field.Name);
+                continue;
+            }
+            outFields.push_back(std::move(field));
+        }
+    }
+
+    static Ref<Asset> LoadScriptAsset(uint64_t rawID)
+    {
+        AssetManager* am = Core::GetAssetManager();
+        const AssetID id(rawID);
+        const AssetMetadata& metadata = am->GetMetadata(id);
+        if(!rawID || !metadata.IsValid() || metadata.IsMissing() || metadata.Type != AssetType::SCRIPT)
+        {
+            if(rawID)
+                Log<Severity::Warn>("DeserializeComponent: Script asset with ID {} is missing or invalid", rawID);
+            return nullptr;
+        }
+        return am->Load<Script>(id);
+    }
+
+    // "Scripts": [ { "Active", "ScriptAsset", "Fields" }, ... ]
+    static void SerializeScriptList(nlohmann::json& out, const ScriptComponent& component)
+    {
+        nlohmann::json& scripts = out["Scripts"];
+        scripts = nlohmann::json::array();
+        for(const ScriptEntry& entry : component.Scripts)
+        {
+            nlohmann::json item;
+            item["Active"] = entry.Active;
+            item["ScriptAsset"] = entry.ScriptAsset ? entry.ScriptAsset->GetID().Get() : static_cast<uint64_t>(AssetID::INVALID);
+            SerializeScriptFields(item, entry.Fields);
+            scripts.push_back(std::move(item));
+        }
+    }
+
+    static void DeserializeScriptList(const nlohmann::json& in, ScriptComponent& component)
+    {
+        component.Scripts.clear();
+        if(in.contains("Scripts") && in["Scripts"].is_array())
+        {
+            for(const nlohmann::json& item : in["Scripts"])
+            {
+                ScriptEntry& entry = component.Scripts.emplace_back();
+                entry.Active = item.value("Active", true);
+                entry.ScriptAsset = LoadScriptAsset(item.value("ScriptAsset", 0ULL));
+                DeserializeScriptFields(item, entry.Fields);
+            }
+        }
+        else if(in.contains("ScriptAsset")) // Scenes from before multiple scripts per entity: one script, its fields next to it
+        {
+            ScriptEntry& entry = component.Scripts.emplace_back();
+            entry.ScriptAsset = LoadScriptAsset(in.value("ScriptAsset", 0ULL));
+            DeserializeScriptFields(in, entry.Fields);
+        }
+    }
+
     template <typename XComponent>
     static void SerializeComponent(nlohmann::json& j, Entity& e)
     {
@@ -165,6 +314,11 @@ namespace Surge
                 else
                     Log<Severity::Warn>("Unhandled Variable while serializing!");
             }
+
+            if constexpr(std::is_same_v<XComponent, ScriptComponent>)
+                SerializeScriptList(out, comp);
+            else if constexpr(std::is_same_v<XComponent, UICanvasComponent>)
+                SerializeScriptFields(out, comp.Fields);
         }
     }
 
@@ -230,6 +384,11 @@ namespace Surge
             // We MUST wait for all entities to exist before linking them
             return;
         }
+
+        if constexpr(std::is_same_v<XComponent, ScriptComponent>)
+            DeserializeScriptList(inJson, comp);
+        else if constexpr(std::is_same_v<XComponent, UICanvasComponent>)
+            DeserializeScriptFields(inJson, comp.Fields);
 
         for(const auto& [name, var] : clazz->GetVariables())
         {

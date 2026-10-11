@@ -34,7 +34,7 @@ namespace Surge
         // Creates a new, empty .sui file (unique name inside absoluteDirectory) and registers it, returns INVALID on failure
         static AssetID CreateLayoutAsset(const std::filesystem::path& absoluteDirectory, const String& baseName = "NewUILayout");
 
-        // ViewportPanel hook, call right after the viewport image (edit mode only)
+        // Game view hook, call right after the viewport image (edit mode only)
         // Draws widget outlines and selection handles, handles click to select, drag to move and handle to resize
         // Returns true while UI editing owns the viewport mouse (the entity gizmo is skipped then)
         bool OnViewportGUI(const ImVec2& viewportMin, const ImVec2& viewportSize);

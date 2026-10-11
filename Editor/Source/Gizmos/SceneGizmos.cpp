@@ -17,7 +17,7 @@ namespace Surge
     static constexpr float LINE_RIM_EXTRA = 2.0f;
     static constexpr float SELECTED_THICKNESS = 1.75f;
     static constexpr float UNSELECTED_THICKNESS = 1.25f;
-    static constexpr ImU32 SELECTION_COLOR = IM_COL32(255, 168, 0, 255); // Matches the ImGuizmo selection color (see ViewportPanel::Init)
+    static constexpr ImU32 SELECTION_COLOR = IM_COL32(255, 168, 0, 255); // Matches the ImGuizmo selection color (see SceneViewport::SetupManipulatorStyle)
     static constexpr ImU32 AUDIO_COLOR = IM_COL32(120, 205, 255, 255);
 
     // ConvexColliderComponent hulls are expensive to build, rebuilt only when the component is dirty or the selection changed

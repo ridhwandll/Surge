@@ -16,7 +16,7 @@
 namespace Surge
 {
     // Content Browser previews of image files, decoded from the source file on a worker thread (no cooking, works for unimported files too),
-    // uploaded a few per frame and evicted least recently used first. Editor only
+    // Uploaded a few per frame and evicted least recently used first.
     class ThumbnailCache
     {
     public:

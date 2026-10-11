@@ -8,6 +8,7 @@
 #include <glm/ext/quaternion_float.hpp>
 
 #include "ContactListener.hpp"
+#include <functional>
 
 namespace JPH
 {
@@ -21,6 +22,14 @@ namespace Surge
 {
     class Entity;
     struct RigidbodyComponent;
+
+    struct RaycastHit
+    {
+        uint64_t EnttID = 0;              // Body user data: the entt handle of the hit entity
+        glm::vec3 Point { 0.0f };
+        glm::vec3 Normal { 0.0f, 1.0f, 0.0f };
+        float Distance = 0.0f;
+    };
 
     struct BodyRuntimeData
     {
@@ -69,6 +78,21 @@ namespace Surge
         // Snaps a body's transform immediately, bypassing interpolation for this frame
         void Teleport(RigidBodyID rbID, const glm::vec3& position, const glm::vec3& rotationEuler);
 
+        // Closest body along the ray (sensors included). direction does not need to be normalized
+        bool Raycast(const glm::vec3& origin, const glm::vec3& direction, float maxDistance, RaycastHit& outHit) const;
+
+        // Runs right before every fixed simulation step with FIXED_TIMESTEP (scripts' OnFixedUpdate). One owner at a time,
+        // Clear only removes the callback when it still belongs to that owner
+        void SetFixedStepCallback(const void* owner, std::function<void(float)> callback) { mFixedStepOwner = owner; mFixedStepCallback = std::move(callback); }
+        void ClearFixedStepCallback(const void* owner)
+        {
+            if(mFixedStepOwner == owner)
+            {
+                mFixedStepOwner = nullptr;
+                mFixedStepCallback = nullptr;
+            }
+        }
+
         float GetInterpolationAlpha() const { return mInterpolationAlpha; }
         void GetDebugStats(int& outActiveBodies, int& outTotalBodies);
 
@@ -90,6 +114,8 @@ namespace Surge
         JPH::TempAllocatorImpl* mTempAllocator;
         JPH::DebugRenderer* mDebugRenderer;
         ContactListener mContactListener;
+        std::function<void(float)> mFixedStepCallback;
+        const void* mFixedStepOwner = nullptr;
 
         std::unordered_map<RigidBodyID, BodyRuntimeData> mBodies;
 

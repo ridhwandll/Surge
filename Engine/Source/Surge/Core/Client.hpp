@@ -27,6 +27,12 @@ namespace Surge
 
         virtual Ref<Scene> GetRuntimeScene() const { return mActiveScene; }
 
+        // Replaces the running scene with a fresh copy of the scene asset (Lua: Scene.Load). Called at the end of a frame,
+        // never while a scene is updating. The default does nothing: clients without a runtime scene ignore it
+        virtual void ChangeRuntimeScene(AssetID sceneID) { (void)sceneID; }
+
+        const Project& GetProject() const { return mCurrentProject; }
+
         void SetOptions(const ClientOptions& appCreateInfo) { mClientOptions = appCreateInfo; }
         const ClientOptions& GetClientOptions() const { return mClientOptions; }
 

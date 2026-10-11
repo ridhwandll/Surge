@@ -20,7 +20,9 @@ namespace Surge
         virtual void OnUpdate() override;
         virtual void OnEvent(Event& e) override;
         virtual void OnShutdown() override;
+        virtual void ChangeRuntimeScene(AssetID sceneID) override;
     private:
+        Ref<Scene> CreateRuntimeScene(AssetID sceneID); // Fresh copy of the scene asset, the asset itself is unloaded again
         void Resize(Uint width, Uint height);
         void OnImGuiRender();
         void OpenProject();

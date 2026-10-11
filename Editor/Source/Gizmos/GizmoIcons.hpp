@@ -4,6 +4,8 @@
 
 namespace Surge
 {
+    class Entity;
+
     enum class GizmoIcon
     {
         CAMERA,
@@ -12,6 +14,20 @@ namespace Surge
         AUDIO_SOURCE,
         AUDIO_LISTENER,
         ENVIRONMENT,
+
+        // Scene Hierarchy entity types
+        ENTITY,
+        MESH,
+        SPRITE,
+        TEXT,
+        UI_CANVAS,
+        SCRIPT,
+
+        // Inspector component headers
+        TRANSFORM,
+        RIGIDBODY,
+        COLLIDER,
+        LINK,
 
         // Title bar playback glyphs
         PLAY,
@@ -43,6 +59,15 @@ namespace Surge
 
         // Same button with a texture instead of a glyph (white icons, tinted by 'tint'), the image is a square of iconScale of the smaller side
         bool IconButton(const char* strId, ImTextureID texture, const ImVec2& size, const ImVec4& tint, float iconScale = 0.8f);
+
+        struct EntityIcon
+        {
+            GizmoIcon Icon;
+            ImU32 Color;
+        };
+
+        // The glyph of the component that best describes the entity (Scene Hierarchy rows, Inspector header)
+        EntityIcon GetEntityIcon(Entity entity);
 
     } // namespace GizmoIcons
 

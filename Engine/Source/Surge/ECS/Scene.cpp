@@ -11,6 +11,8 @@
 #include "Surge/Physics/Physics.hpp"
 #include "Surge/Asset/AssetManager.hpp"
 #include "Surge/ScriptEngine/ScriptAsset.hpp"
+#include "Surge/ScriptEngine/ScriptEngine.hpp"
+#include "Surge/Core/Time/Clock.hpp"
 #include "Surge/Graphics/UISystem/UILayout.hpp"
 
 #include <regex>
@@ -21,7 +23,8 @@ namespace Surge
 {
     static Entity sSelectedEntity;
 
-    Scene::Scene()
+    Scene::Scene(const String& name)
+        : mName(name)
     {
         AddStartupEntities();
 
@@ -33,6 +36,8 @@ namespace Surge
 
     Scene::~Scene()
     {
+        if(Physics* physics = Core::GetPhysics())
+            physics->ClearFixedStepCallback(this);
         mRegistry.clear();
         sSelectedEntity = Entity(entt::null, nullptr);
     }
@@ -42,10 +47,13 @@ namespace Surge
         mIsRunning = true;
 
         // Refresh the asset references from the asset manager to ensure it's loaded and valid
-        for(const auto& [entity, script] : mRegistry.view<ScriptComponent>().each())
+        for(const auto& [entity, scripts] : mRegistry.view<ScriptComponent>().each())
         {
-            if (script.ScriptAsset)
-                script.ScriptAsset = Core::GetAssetManager()->Load<Script>(script.ScriptAsset->GetID());
+            for(ScriptEntry& entry : scripts.Scripts)
+            {
+                if(entry.ScriptAsset)
+                    entry.ScriptAsset = Core::GetAssetManager()->Load<Script>(entry.ScriptAsset->GetID());
+            }
         }
         for(const auto& [entity, canvas] : mRegistry.view<UICanvasComponent>().each())
         {
@@ -67,6 +75,10 @@ namespace Surge
 
         Physics* physics = Core::GetPhysics();
         physics->OptimizeBroadPhase();
+
+        // Contacts of a previous session must not reach this one, OnFixedUpdate runs before every physics step from now on
+        physics->GetContactListener().Reset();
+        physics->SetFixedStepCallback(this, [this](float fixedDeltaTime) { FixedUpdateScripts(fixedDeltaTime); });
     }
 
     void Scene::OnRuntimeEnd()
@@ -81,6 +93,7 @@ namespace Surge
 //             for(auto entityID : view)
 //                 OnUICanvasDestroyed(mRegistry, entityID);
 //         }
+        Core::GetPhysics()->ClearFixedStepCallback(this);
         mIsRunning = false;
     }
 
@@ -356,6 +369,7 @@ namespace Surge
     void Scene::CopyTo(Scene* other)
     {
         other->mRegistry.clear();
+        other->mName = mName;
 
         std::unordered_map<UUID, entt::entity> enttMap;
         auto idComponents = mRegistry.view<IDComponent>();
@@ -647,111 +661,233 @@ namespace Surge
         }
     }
 
+    // A script entry by index, fetched again after every Lua call: a callback may remove the component or destroy the entity
+    static ScriptEntry* FindScriptEntry(entt::registry& registry, entt::entity entity, size_t index)
+    {
+        if(!registry.valid(entity))
+            return nullptr;
+        ScriptComponent* component = registry.try_get<ScriptComponent>(entity);
+        return (component && index < component->Scripts.size()) ? &component->Scripts[index] : nullptr;
+    }
+
+    static size_t ScriptCount(entt::registry& registry, entt::entity entity)
+    {
+        const ScriptComponent* component = registry.valid(entity) ? registry.try_get<ScriptComponent>(entity) : nullptr;
+        return component ? component->Scripts.size() : 0;
+    }
+
     void Scene::UpdateScripts()
     {
         SURGE_PROFILE_FUNC("Scene::UpdateScripts");
 
-        if(mIsRunning)
+        if(!mIsRunning)
+            return;
+
+        ScriptEngine* scriptEngine = Core::GetScriptEngine();
+        const float unscaledDeltaTime = Core::GetClock().GetSeconds();
+        const float deltaTime = unscaledDeltaTime * Core::GetTimeScale();
+        scriptEngine->AdvanceTime(deltaTime, unscaledDeltaTime);
+
+        // Contacts of the fixed steps that already ran this frame, before OnUpdate like the steps themselves
+        DispatchPhysicsEvents();
+
+        // Snapshot (reused buffer): scripts may add/remove entities while they run
+        auto view = mRegistry.view<ScriptComponent>();
+        mScriptEntities.assign(view.begin(), view.end());
+
+        // Scripts added from Lua (ScriptComponent:AddScript) join now, never while a list is iterated
+        for(entt::entity entityID : mScriptEntities)
         {
+            ScriptComponent* component = mRegistry.try_get<ScriptComponent>(entityID);
+            if(!component || component->PendingScripts.empty())
+                continue;
+            for(Ref<Asset>& asset : component->PendingScripts)
+                component->Scripts.emplace_back().ScriptAsset = std::move(asset);
+            component->PendingScripts.clear();
+        }
+
+        // Instantiate new scripts, flip enabled state, OnUpdate
+        mCreatedScripts.clear();
+        for(entt::entity entityID : mScriptEntities)
+        {
+            const size_t count = ScriptCount(mRegistry, entityID);
+            for(size_t i = 0; i < count; i++)
             {
-                // Copy to local buffer to avoid issues with scripts adding/removing entities during execution
-                auto view = mRegistry.view<ScriptComponent>();
-                Vector<entt::entity> scriptEntities(view.begin(), view.end());
+                ScriptEntry* entry = FindScriptEntry(mRegistry, entityID, i);
+                if(!entry)
+                    break;
 
-                for(auto entityID : scriptEntities)
+                const bool shouldRun = mRegistry.get<ScriptComponent>(entityID).Active && entry->Active && entry->ScriptAsset;
+                if(!entry->IsInstantiated)
                 {
-                    if (!mRegistry.valid(entityID))
-                        continue;
-
-                    auto& scriptComp = view.get<ScriptComponent>(entityID);
-                    if(!scriptComp.ScriptAsset || !scriptComp.Active)
-                        continue;
-
-                    Ref<Script> script = scriptComp.ScriptAsset.As<Script>();
-                    Entity entityObj = { entityID, this };
-                    if(!scriptComp.IsInstantiated)
+                    if(shouldRun)
                     {
-                        script->CreateEnvironment(&scriptComp.Env, &scriptComp.OnCreate, &scriptComp.OnUpdate, &scriptComp.OnDestroy, &scriptComp.OnCollisionEnter);
-                        script->ExecuteOnCreate(entityObj, scriptComp.OnCreate);
-                        scriptComp.IsInstantiated = true;
+                        // Every new script gets its environment before any OnCreate runs, so OnCreate can reach the others with entity:GetScript()
+                        scriptEngine->Instantiate(*entry->ScriptAsset.As<Script>(), entry->Instance, Entity(entityID, this), entry->Fields);
+                        entry->IsInstantiated = true; // Also when loading failed: the error is reported once, not every frame
+                        mCreatedScripts.emplace_back(entityID, static_cast<Uint>(i));
                     }
+                    continue;
+                }
+
+                if(shouldRun != entry->IsEnabled)
+                {
+                    entry->IsEnabled = shouldRun;
+                    if(shouldRun)
+                        scriptEngine->CallOnEnable(entry->Instance);
                     else
-                        script->ExecuteOnUpdate(entityObj, scriptComp.OnUpdate);
+                        scriptEngine->CallOnDisable(entry->Instance);
+
+                    entry = FindScriptEntry(mRegistry, entityID, i);
+                    if(!entry)
+                        break;
                 }
+
+                if(entry->IsEnabled)
+                    scriptEngine->CallOnUpdate(entry->Instance, deltaTime);
             }
+        }
+
+        for(const auto& [entityID, index] : mCreatedScripts)
+        {
+            ScriptEntry* entry = FindScriptEntry(mRegistry, entityID, index);
+            if(!entry || !entry->Instance.IsValid())
+                continue;
+
+            scriptEngine->CallOnCreate(entry->Instance);
+            entry = FindScriptEntry(mRegistry, entityID, index);
+            if(!entry)
+                continue;
+            entry->IsEnabled = true;
+            entry->StartedThisFrame = true;
+            scriptEngine->CallOnEnable(entry->Instance);
+        }
+
+        {
+            UI::Manager& uiManager = Core::GetRenderer()->GetUIManager();
+            auto canvasView = mRegistry.view<UICanvasComponent>();
+            mScriptEntities.assign(canvasView.begin(), canvasView.end());
+
+            for(entt::entity entityID : mScriptEntities)
             {
-                UI::Manager& uiManager = Core::GetRenderer()->GetUIManager();
-                auto view = mRegistry.view<UICanvasComponent>();
-                Vector<entt::entity> uiCanvases(view.begin(), view.end());
-
-                for(auto entityID : uiCanvases)
-                {
-                    if(!mRegistry.valid(entityID) || !mRegistry.all_of<UICanvasComponent>(entityID))
-                        continue;
-
-                    auto& uiComp = mRegistry.get<UICanvasComponent>(entityID);
-                    Entity entityObj = { entityID, this };
-
-                    // Each canvas is its own entry in the UI Manager, ShowCanvas/Active only hide this canvas (used to toggle the whole UI)
-                    uiComp.RuntimeCanvasID = entityObj.GetComponent<IDComponent>().ID.Get();
-                    const Ref<UILayout> layout = uiComp.Layout ? uiComp.Layout.As<UILayout>() : nullptr;
-                    uiManager.SetCanvasProperties(uiComp.RuntimeCanvasID, uiComp.SortOrder, layout ? layout->Scaler : UI::CanvasScaler(), uiComp.Active && uiComp.ShowCanvas);
-
-                    if(!uiComp.Active || !uiComp.ShowCanvas)
-                        continue;
-
-                    if(!uiComp.IsInstantiated)
-                    {
-                        // Layout first, so OnCreate can already find its widgets
-                        if(layout)
-                            uiManager.SetCanvasLayoutRoot(uiComp.RuntimeCanvasID, layout->Instantiate());
-
-                        if(uiComp.ScriptAsset)
-                        {
-                            Ref<Script> script = uiComp.ScriptAsset.As<Script>();
-                            script->CreateEnvironment(&uiComp.Env, &uiComp.OnCreate, &uiComp.OnUpdate, &uiComp.OnDestroy, &uiComp.OnCollisionEnter);
-                            uiManager.BeginCanvasScript(uiComp.RuntimeCanvasID);
-                            script->ExecuteOnCreate(entityObj, uiComp.OnCreate);
-                            uiManager.EndCanvasScript();
-                        }
-                        uiComp.IsInstantiated = true;
-                    }
-                    else if(uiComp.ScriptAsset)
-                    {
-                        uiManager.BeginCanvasScript(uiComp.RuntimeCanvasID);
-                        uiComp.ScriptAsset.As<Script>()->ExecuteOnUpdate(entityObj, uiComp.OnUpdate);
-                        uiManager.EndCanvasScript();
-                    }
-                }
-            }
-
-            // Handle Physics Collisions
-            auto collisions = Core::GetPhysics()->GetContactListener().FlushEvents();
-            for(const auto& event : collisions)
-            {
-                Entity entA(static_cast<entt::entity>(event.EnttIDA), this);
-                Entity entB(static_cast<entt::entity>(event.EnttIDB), this);
-
-                if(!mRegistry.valid(entA) || !mRegistry.valid(entB))
+                if(!mRegistry.valid(entityID) || !mRegistry.all_of<UICanvasComponent>(entityID))
                     continue;
 
-                // Fire for Entity A
-                if(entA.HasComponent<ScriptComponent>())
-                {
-                    auto& scriptC = entA.GetComponent<ScriptComponent>();
-                    if (scriptC.ScriptAsset)
-                        scriptC.ScriptAsset.As<Script>()->ExecuteOnCollisionEnter(entA, entB, scriptC.OnCollisionEnter);
-                }
+                auto& uiComp = mRegistry.get<UICanvasComponent>(entityID);
+                Entity entityObj = { entityID, this };
 
-                // Fire for Entity B
-                if(entB.HasComponent<ScriptComponent>())
+                // Each canvas is its own entry in the UI Manager, ShowCanvas/Active only hide this canvas (used to toggle the whole UI)
+                uiComp.RuntimeCanvasID = entityObj.GetComponent<IDComponent>().ID.Get();
+                const Ref<UILayout> layout = uiComp.Layout ? uiComp.Layout.As<UILayout>() : nullptr;
+                uiManager.SetCanvasProperties(uiComp.RuntimeCanvasID, uiComp.SortOrder, layout ? layout->Scaler : UI::CanvasScaler(), uiComp.Active && uiComp.ShowCanvas);
+
+                if(!uiComp.Active || !uiComp.ShowCanvas)
+                    continue;
+
+                if(!uiComp.IsInstantiated)
                 {
-                    auto& scriptC = entB.GetComponent<ScriptComponent>();
-                    if(scriptC.ScriptAsset)
-                        scriptC.ScriptAsset.As<Script>()->ExecuteOnCollisionEnter(entB, entA, scriptC.OnCollisionEnter);
+                    // Layout first, so OnCreate can already find its widgets
+                    if(layout)
+                        uiManager.SetCanvasLayoutRoot(uiComp.RuntimeCanvasID, layout->Instantiate());
+
+                    if(uiComp.ScriptAsset)
+                    {
+                        uiManager.BeginCanvasScript(uiComp.RuntimeCanvasID);
+                        if(scriptEngine->Instantiate(*uiComp.ScriptAsset.As<Script>(), uiComp.Instance, entityObj, uiComp.Fields))
+                            scriptEngine->CallOnCreate(uiComp.Instance);
+                        uiManager.EndCanvasScript();
+                    }
+                    uiComp.IsInstantiated = true;
+                }
+                else if(uiComp.Instance.OnUpdate.valid())
+                {
+                    uiManager.BeginCanvasScript(uiComp.RuntimeCanvasID);
+                    scriptEngine->CallOnUpdate(uiComp.Instance, deltaTime);
+                    uiManager.EndCanvasScript();
                 }
             }
+        }
 
+        // OnLateUpdate: after every OnUpdate (scripts and UI) of the frame, e.g. cameras following what moved
+        auto lateView = mRegistry.view<ScriptComponent>();
+        mScriptEntities.assign(lateView.begin(), lateView.end());
+        for(entt::entity entityID : mScriptEntities)
+        {
+            const size_t count = ScriptCount(mRegistry, entityID);
+            for(size_t i = 0; i < count; i++)
+            {
+                ScriptEntry* entry = FindScriptEntry(mRegistry, entityID, i);
+                if(!entry)
+                    break;
+                if(entry->StartedThisFrame) // OnCreate ran instead of OnUpdate this frame
+                {
+                    entry->StartedThisFrame = false;
+                    continue;
+                }
+                if(entry->IsEnabled)
+                    scriptEngine->CallOnLateUpdate(entry->Instance, deltaTime);
+            }
+        }
+    }
+
+    void Scene::FixedUpdateScripts(float fixedDeltaTime)
+    {
+        SURGE_PROFILE_FUNC("Scene::FixedUpdateScripts");
+        if(!mIsRunning)
+            return;
+
+        ScriptEngine* scriptEngine = Core::GetScriptEngine();
+        auto view = mRegistry.view<ScriptComponent>();
+        mFixedScriptEntities.assign(view.begin(), view.end());
+        for(entt::entity entityID : mFixedScriptEntities)
+        {
+            const size_t count = ScriptCount(mRegistry, entityID);
+            for(size_t i = 0; i < count; i++)
+            {
+                ScriptEntry* entry = FindScriptEntry(mRegistry, entityID, i);
+                if(!entry)
+                    break;
+                if(entry->IsEnabled)
+                    scriptEngine->CallOnFixedUpdate(entry->Instance, fixedDeltaTime);
+            }
+        }
+    }
+
+    void Scene::DispatchPhysicsEvents()
+    {
+        const Vector<CollisionEvent> events = Core::GetPhysics()->GetContactListener().FlushEvents();
+        if(events.empty())
+            return;
+
+        ScriptEngine* scriptEngine = Core::GetScriptEngine();
+        auto dispatch = [this, scriptEngine](entt::entity self, entt::entity other, const CollisionEvent& event) {
+            const bool enter = event.Type == CollisionEventType::ENTER;
+            if(enter && !mRegistry.valid(other))
+                return; // Exits still arrive when the other entity was destroyed (it is then an invalid Entity in Lua)
+
+            const Entity otherEntity(other, this);
+            const size_t count = ScriptCount(mRegistry, self);
+            for(size_t i = 0; i < count; i++)
+            {
+                ScriptEntry* entry = FindScriptEntry(mRegistry, self, i);
+                if(!entry)
+                    break;
+                if(!entry->IsEnabled)
+                    continue;
+
+                if(event.IsTrigger)
+                    enter ? scriptEngine->CallOnTriggerEnter(entry->Instance, otherEntity) : scriptEngine->CallOnTriggerExit(entry->Instance, otherEntity);
+                else
+                    enter ? scriptEngine->CallOnCollisionEnter(entry->Instance, otherEntity) : scriptEngine->CallOnCollisionExit(entry->Instance, otherEntity);
+            }
+        };
+
+        for(const CollisionEvent& event : events)
+        {
+            const entt::entity a = static_cast<entt::entity>(event.EnttIDA);
+            const entt::entity b = static_cast<entt::entity>(event.EnttIDB);
+            dispatch(a, b, event);
+            dispatch(b, a, event); // A's callback may have destroyed B: dispatch checks again
         }
     }
 
@@ -861,12 +997,28 @@ namespace Surge
 
     void Scene::OnScriptDestroyed(entt::registry&, entt::entity entity)
     {
-        Entity e(entity, this);
-        ScriptComponent& comp = e.GetComponent<ScriptComponent>();
-        if(comp.IsInstantiated)
+        ScriptEngine* scriptEngine = Core::GetScriptEngine();
+        const size_t count = ScriptCount(mRegistry, entity);
+        for(size_t i = 0; i < count; i++)
         {
-            comp.ScriptAsset.As<Script>()->ExecuteOnDestroy(e, comp.OnDestroy);
-            comp.IsInstantiated = false;
+            ScriptEntry* entry = FindScriptEntry(mRegistry, entity, i);
+            if(!entry)
+                break;
+            if(!entry->IsInstantiated)
+                continue;
+
+            if(entry->IsEnabled)
+            {
+                entry->IsEnabled = false;
+                scriptEngine->CallOnDisable(entry->Instance);
+                if(!(entry = FindScriptEntry(mRegistry, entity, i)))
+                    break;
+            }
+            scriptEngine->CallOnDestroy(entry->Instance);
+            if(!(entry = FindScriptEntry(mRegistry, entity, i)))
+                break;
+            entry->Instance = ScriptInstance();
+            entry->IsInstantiated = false;
         }
     }
     void Scene::OnUICanvasDestroyed(entt::registry&, entt::entity entity)
@@ -876,12 +1028,13 @@ namespace Surge
         UI::Manager& uiManager = Core::GetRenderer()->GetUIManager();
         if(comp.IsInstantiated)
         {
-            if(comp.ScriptAsset)
+            if(comp.Instance.OnDestroy.valid())
             {
                 uiManager.BeginCanvasScript(comp.RuntimeCanvasID); // SetUIRoot(nil) in OnDestroy must target this canvas
-                comp.ScriptAsset.As<Script>()->ExecuteOnDestroy(e, comp.OnDestroy);
+                Core::GetScriptEngine()->CallOnDestroy(comp.Instance);
                 uiManager.EndCanvasScript();
             }
+            comp.Instance = ScriptInstance();
             comp.IsInstantiated = false;
         }
 

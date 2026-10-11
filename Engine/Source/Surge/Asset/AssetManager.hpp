@@ -137,14 +137,19 @@ namespace Surge
             return asset ? asset.As<T>() : nullptr;
         }
 
-// TODO: Make a faster version of Load
-//         Ref<T> Get(AssetID id)
-//         {
-//             auto cacheIt = mLoadedAssets.find(id);
-//             if(cacheIt != mLoadedAssets.end())
-//                 return cacheIt->second.As<T>();
-//             return nullptr;
-//         }
+        // GetLoaded<T>
+        // Cache lookup only: no loading, no load callback (in the Editor that callback checks the cooked file on disk).
+        // A reload replaces the cached asset, so this is always the newest version of an asset that is loaded
+        // @param id    AssetID of the requested asset
+        // @return      Ref<T> of the cached asset, null if it is not loaded or has another type
+        template<IsAssetConcept T>
+        Ref<T> GetLoaded(AssetID id) const
+        {
+            auto cacheIt = mLoadedAssets.find(id);
+            if(cacheIt == mLoadedAssets.end() || cacheIt->second->GetAssetType() != T::GetStaticType())
+                return nullptr;
+            return cacheIt->second.As<T>();
+        }
 
         // Unload
         // Removes the live Ref from the cache if no other objects are referencing it i.e. Ref count = 1, otherwise does nothing since it's still in use 

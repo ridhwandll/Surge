@@ -143,7 +143,7 @@ namespace Surge
             return;
 
         // Orthographic Matrix
-        const glm::vec2 size = { blackboard.ScreenWidth, blackboard.ScreenHeight };
+        const glm::vec2 size = blackboard.UIResolution.x > 0.0f ? blackboard.UIResolution : glm::vec2(blackboard.ScreenWidth, blackboard.ScreenHeight);
         const glm::mat4 viewProjection = glm::ortho(0.0f, size.x, 0.0f, size.y, -1.0f, 1.0f);
 
         mRHI->CmdBindPipeline(ctx, mUIPipeline);

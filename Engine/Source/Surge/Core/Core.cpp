@@ -43,6 +43,7 @@ namespace Surge::Core
         float FrameCap = 144.0f; // 0.0f = uncapped
 #endif
         FrameCapper SurgeFrameCapper;
+        float TimeScale = 1.0f;
         bool Running = false;
         bool Suspended = false;
         Vector<std::function<void()>> FrameEndCallbacks;
@@ -152,13 +153,18 @@ namespace Surge::Core
             }
             SetSuspended(false);
 
-            sCoreData.SurgePhysics->Update(sCoreData.SurgeClock.GetSeconds());
+            sCoreData.SurgePhysics->Update(sCoreData.SurgeClock.GetSeconds() * sCoreData.TimeScale);
             sCoreData.SurgeClient->OnUpdate();
 
             if (!sCoreData.FrameEndCallbacks.empty())
             {
-                for (std::function<void()>& function : sCoreData.FrameEndCallbacks)
+                // By index, moved out before the call: a callback may queue another (e.g. Scene.Load from an OnDestroy during a
+                // scene switch), which grows the vector; the new one runs in this same pass
+                for (size_t i = 0; i < sCoreData.FrameEndCallbacks.size(); i++)
+                {
+                    std::function<void()> function = std::move(sCoreData.FrameEndCallbacks[i]);
                     function();
+                }
 
                 sCoreData.FrameEndCallbacks.clear();
             }
@@ -217,6 +223,16 @@ namespace Surge::Core
     AudioEngine* GetAudioEngine() { return sCoreData.SurgeAudioEngine; }
     Client* GetClient() { return sCoreData.SurgeClient; }
     Clock& GetClock() { return sCoreData.SurgeClock; }
+    void SetTimeScale(float scale)
+    {
+        sCoreData.TimeScale = scale > 0.0f ? scale : 0.0f;
+    }
+
+    float GetTimeScale()
+    {
+        return sCoreData.TimeScale;
+    }
+
     void SetFrameCap(float fps)
     {
         sCoreData.FrameCap = fps;

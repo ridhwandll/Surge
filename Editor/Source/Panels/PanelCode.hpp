@@ -5,8 +5,7 @@ namespace Surge
 {
     enum class PanelCode
     {
-        Viewport = 0,
-        SceneHierarchy,
+        SceneHierarchy = 0,
         Inspector,
         ContentBrowser,
         MaterialEditor,
@@ -14,14 +13,14 @@ namespace Surge
         UIEditor,
         Console,
         History,
-        AssetRegistry
+        AssetRegistry,
+        Renderer
     };
 
     constexpr const char* PanelCodeToString(PanelCode code)
     {
         switch (code)
         {
-            case PanelCode::Viewport: return "Viewport";
             case PanelCode::SceneHierarchy: return "Hierarchy";
             case PanelCode::Inspector: return "Inspector";
             case PanelCode::ContentBrowser: return "Content Browser";
@@ -31,6 +30,7 @@ namespace Surge
             case PanelCode::Console: return "Console";
             case PanelCode::History: return "History";
             case PanelCode::AssetRegistry: return "Asset Registry";
+            case PanelCode::Renderer: return "Renderer"; // Renderer settings, RenderGraph visualizer and stats
         }
         return nullptr;
     }

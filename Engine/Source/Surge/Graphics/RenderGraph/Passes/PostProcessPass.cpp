@@ -158,22 +158,7 @@ namespace Surge
         Core::AddFrameEndCallback([this, width, height, framebuffer]() { mRHI->ResizeFramebuffer(framebuffer, width, height); });
     }
 
-    void PostProcessPass::OnImGuiRender(FrameBlackboard& blackBoard)
-    {
-        ImFont* boldFont = ImGui::GetIO().Fonts->Fonts[1];
-        ImGui::PushFont(boldFont, 25.0f);
-        ImGui::TextUnformatted("PostProcess Pass");
-        ImGui::Separator();
-        ImGui::PopFont();
-
-        ImGui::Checkbox("Enable FXAA", &blackBoard.PostProcessSettings_.EnableFXAA);
-        ImGui::TextUnformatted("Enabling FXAA on mobile is not recommended!");
-
-
-        ImGui::SliderFloat("Vignette Intensity", &blackBoard.PostProcessSettings_.VignetteIntensity, 0.0f, 1.0f, "%.2f");
-        ImGui::SliderFloat("Vignette Softness", &blackBoard.PostProcessSettings_.VignetteSoftness, 0.01f, 1.0f, "%.2f");
-        ImGui::SliderFloat("Grain Intensity", &blackBoard.PostProcessSettings_.Grain, 0.0f, 0.15f, "%.3f");
-    }
+    void PostProcessPass::OnImGuiRender(FrameBlackboard&) {}
 
     void PostProcessPass::Shutdown(FrameBlackboard& blackBoard)
     {

@@ -278,34 +278,13 @@ namespace Surge
 
     void AmbientOcclusionPass::OnImGuiRender(FrameBlackboard& blackBoard)
     {
-        ImFont* boldFont = ImGui::GetIO().Fonts->Fonts[1];
-        ImGui::PushFont(boldFont, 25.0f);
-        ImGui::TextUnformatted("Ambient Occlusion (GTAO)");
-        ImGui::Separator();
-        ImGui::PopFont();
+        const AmbientOcclusionSettings& settings = blackBoard.AOSettings;
+        if(!settings.Enable)
+            return;
 
-        AmbientOcclusionSettings& settings = blackBoard.AOSettings;
-        ImGui::Checkbox("Enable AO", &settings.Enable);
-        ImGui::Checkbox("Show AO Only", &blackBoard.PostProcessSettings_.ShowAOOnly);
-
-        constexpr const char* qualityNames[] = { "Low (Mobile)", "Medium", "High", "Ultra (Desktop)" };
-        int quality = static_cast<int>(settings.Quality);
-        if(ImGui::Combo("Quality", &quality, qualityNames, IM_ARRAYSIZE(qualityNames)))
-            settings.ApplyQualityPreset(static_cast<AOQuality>(quality));
-
-        ImGui::SliderFloat("Resolution Scale", &settings.ResolutionScale, 0.25f, 1.0f, "%.2f");
-        ImGui::Text("AO Resolution: %ux%u", mAOSize.x, mAOSize.y);
-        ImGui::SliderInt("Slices", &settings.SliceCount, 1, 8);
-        ImGui::SliderInt("Steps Per Slice", &settings.StepsPerSlice, 1, 16);
-        ImGui::Checkbox("Accurate Normals", &settings.AccurateNormals);
-        ImGui::SliderInt("Blur Radius", &settings.BlurRadius, 0, 6);
-        ImGui::SliderFloat("Blur Sharpness", &settings.BlurSharpness, 0.0f, 32.0f, "%.1f");
-        ImGui::Separator();
-        ImGui::DragFloat("Radius", &settings.Radius, 0.01f, 0.01f, 10.0f, "%.2f");
-        ImGui::SliderFloat("Intensity", &settings.Intensity, 0.1f, 4.0f, "%.2f");
-        ImGui::SliderFloat("Falloff Range", &settings.FalloffRange, 0.05f, 1.0f, "%.2f");
-        ImGui::DragFloat("Max Distance", &settings.MaxDistance, 0.5f, 1.0f, 1000.0f, "%.1f");
-        ImGui::Text("Taps per AO pixel: %d", settings.SliceCount * settings.StepsPerSlice * 2 + (settings.AccurateNormals ? 5 : 1));
+        ImGui::SeparatorText("Ambient Occlusion");
+        ImGui::Text("Resolution: %u x %u", mAOSize.x, mAOSize.y);
+        ImGui::Text("Taps per pixel: %d", settings.SliceCount * settings.StepsPerSlice * 2 + (settings.AccurateNormals ? 5 : 1));
     }
 
     void AmbientOcclusionPass::Shutdown(FrameBlackboard& /*blackBoard*/)

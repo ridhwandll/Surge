@@ -9,6 +9,7 @@
 #include <cstdarg>
 
 #define HIERARCHY_ENTITY_DND "HiEnT!"
+#define IMGUI_ENTITY_PAYLOAD "ENTITY_PAYLOAD" // Hierarchy drag & drop, payload: entt::entity of the Hierarchy's scene
 
 // Function name prefixed with T means it is used inside ImGui::BeginTable
 namespace Surge::ImGuiAux
@@ -189,7 +190,7 @@ namespace Surge::ImGuiAux
 
         ImGui::PopItemWidth();
         if (ImGui::IsItemHovered() || ImGui::IsItemActive())
-            DrawRectAroundWidget(Colors::ThemeColor2, 1.5f, 1.0f);
+            DrawRectAroundWidget(Colors::ThemeColor2, 2.0f, 1.0f);
         ImGui::PopID();
 
         return result;
@@ -200,7 +201,7 @@ namespace Surge::ImGuiAux
         ImGui::TableNextColumn();
         bool isSlected = ImGui::Selectable(title);
         if (ImGui::IsItemFocused())
-            DrawRectAroundWidget(Colors::ThemeColor2, 1.5f, 1.0f);
+            DrawRectAroundWidget(Colors::ThemeColor2, 2.0f, 1.0f);
         return isSlected;
     }
 
@@ -215,7 +216,7 @@ namespace Surge::ImGuiAux
         result = ImGui::Button(buttonText);
 
         if (ImGui::IsItemHovered() || ImGui::IsItemActive())
-            DrawRectAroundWidget(Colors::ThemeColor2, 1.5f, 1.0f);
+            DrawRectAroundWidget(Colors::ThemeColor2, 2.0f, 1.0f);
         ImGui::PopID();
 
         return result;
@@ -226,7 +227,7 @@ namespace Surge::ImGuiAux
         bool result = ImGui::Button(label, size);
 
         if (ImGui::IsItemHovered() || ImGui::IsItemActive())
-            DrawRectAroundWidget(Colors::ThemeColor2, 1.5f, 1.0f);
+            DrawRectAroundWidget(Colors::ThemeColor2, 2.0f, 1.0f);
 
         return result;
     }
@@ -297,6 +298,7 @@ namespace Surge::ImGuiAux
         }
 
         ImGui::PopID();
+        ImGui::PopItemWidth();
         return modified;
     }
 

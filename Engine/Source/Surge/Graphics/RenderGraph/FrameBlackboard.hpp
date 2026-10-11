@@ -42,6 +42,11 @@ namespace Surge
 #endif
         float CascadeSplitLambda = 0.9f;
         bool ShowCascades = false;
+
+        // Scaled down per cascade by ShadowPass
+        float DepthBiasConstant = 1.25f;
+        float DepthBiasClamp = 0.0f;
+        float DepthBiasSlope = 1.75f;
     };
 
     struct Environnment
@@ -129,6 +134,9 @@ namespace Surge
     // Compute path writes storage images (RGBA16F), used on desktop
     struct BloomSettings
     {
+        static constexpr int MIN_MIP_COUNT = 2;
+        static constexpr int MAX_MIP_COUNT = 8;
+
         bool Enable = true;
         BloomQuality Quality = BloomQuality::LOW;
 
@@ -171,7 +179,6 @@ namespace Surge
     };
 
     // Resolution of the 3D scene (main pass, AO, bloom) relative to the output, UI and post-processing stay at full resolution
-    // Mobile panels are 1080p-1440p+, rendering the scene at 0.8x saves ~36% of the per-pixel cost for a barely visible softening
     struct RenderScaleSettings
     {
         static constexpr float MIN_SCALE = 0.5f;
@@ -343,6 +350,7 @@ namespace Surge
 
         // UI
         bool ShowUI = true;
+        glm::vec2 UIResolution = { 0.0f, 0.0f }; // Size the UI was laid out at, 0 = ScreenWidth/Height (Editor views share one layout)
         Vector<QuadSubmitCmd> UISpriteList;
         Vector<TextSubmitCmd> UITextList;
         Vector<UIDrawItem> UIDrawOrder;

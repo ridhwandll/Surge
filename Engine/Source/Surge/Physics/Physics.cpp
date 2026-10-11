@@ -1,6 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Physics.hpp"
 #include "Surge/Core/Core.hpp"
+#include "Surge/Core/Profiler.hpp"
 #include "Surge/ECS/Scene.hpp"
 #include "Surge/ECS/Components/Components.hpp"
 
@@ -24,6 +25,10 @@
 #include <Jolt/Physics/Collision/Shape/MeshShape.h>
 #include <Jolt/Physics/Collision/ObjectLayer.h>
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h>
+#include <Jolt/Physics/Collision/RayCast.h>
+#include <Jolt/Physics/Collision/CastResult.h>
+#include <Jolt/Physics/Collision/NarrowPhaseQuery.h>
+#include <Jolt/Physics/Body/BodyLock.h>
 
 
 #include <Jolt/Renderer/DebugRenderer.h>
@@ -258,6 +263,9 @@ namespace Surge
 
     void Physics::Simulate()
     {
+        if(mFixedStepCallback)
+            mFixedStepCallback(FIXED_TIMESTEP); // Scripts first: forces they add apply to this step
+
         for(auto& [id, data] : mBodies)
         {
             if(!data.Active)
@@ -284,6 +292,33 @@ namespace Surge
         JPH::UnregisterTypes();
         delete JPH::Factory::sInstance;
         JPH::Factory::sInstance = nullptr;
+    }
+
+    bool Physics::Raycast(const glm::vec3& origin, const glm::vec3& direction, float maxDistance, RaycastHit& outHit) const
+    {
+        SURGE_PROFILE_FUNC("Physics::Raycast");
+        const float length = glm::length(direction);
+        if(length <= 0.0f || maxDistance <= 0.0f)
+            return false;
+
+        const glm::vec3 ray = direction / length * maxDistance;
+        const JPH::RRayCast rayCast(JPH::RVec3(origin.x, origin.y, origin.z), JPH::Vec3(ray.x, ray.y, ray.z));
+        JPH::RayCastResult result;
+        if(!mPhysicsSystem->GetNarrowPhaseQuery().CastRay(rayCast, result))
+            return false;
+
+        const JPH::RVec3 point = rayCast.GetPointOnRay(result.mFraction);
+        JPH::BodyLockRead lock(mPhysicsSystem->GetBodyLockInterface(), result.mBodyID);
+        if(!lock.Succeeded())
+            return false;
+
+        const JPH::Body& body = lock.GetBody();
+        const JPH::Vec3 normal = body.GetWorldSpaceSurfaceNormal(result.mSubShapeID2, point);
+        outHit.EnttID = body.GetUserData();
+        outHit.Point = glm::vec3(static_cast<float>(point.GetX()), static_cast<float>(point.GetY()), static_cast<float>(point.GetZ()));
+        outHit.Normal = glm::vec3(normal.GetX(), normal.GetY(), normal.GetZ());
+        outHit.Distance = result.mFraction * maxDistance;
+        return true;
     }
 
     void Physics::OptimizeBroadPhase()
@@ -367,6 +402,7 @@ namespace Surge
         if(JPH::BodyID(rb.RuntimeBodyID).IsInvalid())
             return;
 
+        mContactListener.OnBodyRemoved(rb.RuntimeBodyID); // Its open contacts end now: OnCollisionExit / OnTriggerExit
         JPH::BodyInterface& bodyInterface = mPhysicsSystem->GetBodyInterface();
         bodyInterface.RemoveBody(JPH::BodyID(rb.RuntimeBodyID));
         bodyInterface.DestroyBody(JPH::BodyID(rb.RuntimeBodyID));

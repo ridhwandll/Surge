@@ -23,14 +23,32 @@ namespace Surge
         Vector<String> Favorites; // Folders relative to the Assets folder
     };
 
+    // An open Scene/Game view, restored with the project
+    struct ViewportSettings
+    {
+        int Type = 0;   // ViewportType
+        Uint Index = 1; // Window title: "Scene", "Scene (2)", ...
+
+        // Scene view camera (only applied when HasCameraView)
+        bool HasCameraView = false;
+        glm::vec3 CameraFocalPoint = glm::vec3(0.0f);
+        float CameraDistance = 10.0f;
+        float CameraPitch = 0.0f;
+        float CameraYaw = 0.0f;
+        float CameraSpeed = 0.003f;
+
+        // Game view
+        int AspectMode = 0; // GameViewport aspect presets
+    };
+
     // Per project editor state, restored when the project is opened again (<ProjectDir>/EditorSettings.json)
     struct EditorSettings
     {
         static constexpr const char* FILE_NAME = "EditorSettings.json";
 
-        // Viewport
+        // Viewports, empty: one Scene and one Game view
         bool ShowAxes = true;
-        int AspectMode = 0;      // ViewportPanel aspect presets
+        Vector<ViewportSettings> Viewports;
 
         // Transform gizmo
         int GizmoOperation = -1; // ImGuizmo::OPERATION, -1 = none
@@ -39,14 +57,6 @@ namespace Surge
         float SnapTranslate = 0.5f;
         float SnapRotate = 45.0f;
         float SnapScale = 0.5f;
-
-        // Editor camera (only applied when HasCameraView)
-        bool HasCameraView = false;
-        glm::vec3 CameraFocalPoint = glm::vec3(0.0f);
-        float CameraDistance = 10.0f;
-        float CameraPitch = 0.0f;
-        float CameraYaw = 0.0f;
-        float CameraSpeed = 0.003f;
 
         ContentBrowserSettings ContentBrowser;
 

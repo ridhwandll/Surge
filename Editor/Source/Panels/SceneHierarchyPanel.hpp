@@ -2,6 +2,10 @@
 #pragma once
 #include "Panels/IPanel.hpp"
 #include "Surge/ECS/Scene.hpp"
+#include "Surge/Asset/Asset.hpp"
+#include <unordered_map>
+
+struct ImVec2;
 
 namespace Surge
 {
@@ -37,8 +41,64 @@ namespace Surge
         void StartRename(Entity entity);
 
     private:
-        void DrawEntityNode(Entity& e);
-        void DrawRenameField(Entity& e);
+        enum class CreateKind : uint8_t
+        {
+            NONE,
+            EMPTY,
+            CAMERA,
+            SPRITE,
+            MESH,
+            ENVIRONMENT,
+            DIRECTIONAL_LIGHT,
+            POINT_LIGHT,
+            TEXT,
+            UI_CANVAS,
+            AUDIO_SOURCE,
+            AUDIO_LISTENER,
+            FROM_ASSET // Dropped from the Content Browser
+        };
+
+        // Structural edits are queued while the tree is drawn and applied once it is done: they relink the very sibling chains being walked
+        struct CreateRequest
+        {
+            CreateKind Kind = CreateKind::NONE;
+            Entity Parent;
+            const char* DefaultMesh = nullptr; // MESH: nullptr = empty MeshComponent
+            AssetID Asset;                     // FROM_ASSET
+        };
+
+        struct MoveRequest
+        {
+            Entity Target;
+            Entity Parent;
+            Entity InsertAfter;
+            bool KeepOrder = false; // Plain reparent (appended), no explicit sibling position
+        };
+
+        // Rows drawn this frame, top to bottom, for the arrow keys
+        struct VisibleRow
+        {
+            entt::entity Handle;
+            entt::entity Parent;
+            bool HasChildren;
+            bool Open;
+        };
+
+        void DrawToolbar();
+        void DrawCreateMenu(Entity parent);
+        void DrawEntityNode(Entity e, bool forceOpen);
+        void DrawRowContents(Entity e, const ImVec2& rowMin, const ImVec2& rowMax, float labelX, bool isSelected, bool isRenaming);
+        void DrawEntityContextMenu(Entity e);
+        void AcceptDrop(Entity target, const ImVec2& rowMin, const ImVec2& rowMax, float labelX, bool targetOpen); // Null target: root level
+        void DrawRenameField(Entity& e, const ImVec2& position);
+        void HandleKeyboardNavigation();
+        void ApplyPendingEdits();
+
+        void Select(Entity e, bool reveal);
+        void RequestOpen(entt::entity entity, bool open) { mOpenRequests.push_back({ entity, open }); }
+        void UpdateSearch();
+        bool IsSearching() const { return !mSearchName.empty() || !mSearchTypes.empty(); }
+        bool MatchesTypeFilters(Entity e) const;
 
     private:
         bool mHierarchyHovered = false;
@@ -50,6 +110,28 @@ namespace Surge
         String mRenameBuffer;
         bool mFocusRename = false;
         int mRenameGraceFrames = 0; // Frames the field may take to become active before the rename is dropped
+
+        // Search: "name t:mesh t:light", name is a case insensitive substring, every t: token is a component filter
+        String mSearchBuffer;
+        String mLastSearchBuffer;
+        bool mSearchChanged = false; // Results open fully once per query, collapsing them afterwards sticks
+        String mSearchName; // Lower case
+        Vector<String> mSearchTypes;
+        bool mFocusSearch = false;
+        std::unordered_map<entt::entity, bool> mSearchVisible; // Matches (true) and the ancestors that lead to them (false)
+
+        Vector<entt::entity> mRoots;
+        Vector<VisibleRow> mVisibleRows;
+        Vector<std::pair<entt::entity, bool>> mOpenRequests; // Applied with SetNextItemOpen() the next time the row is drawn
+        int mSetAllOpen = -1;                                // -1 none, 0 collapse all, 1 expand all
+        entt::entity mExpandSubtree = entt::null;            // Opens this entity and all of its descendants
+        entt::entity mNextExpandSubtree = entt::null;        // Requested while the tree is drawn, applied next frame
+        bool mOpenCreatePopup = false;
+        bool mOpenSpacePopup = false;
+
+        CreateRequest mPendingCreate;
+        MoveRequest mPendingMove;
+
         PanelCode mCode;
         Scene* mSceneContext;
         Entity mSelectedEntity; // TODO: Make It a vector when we allow multiple selection

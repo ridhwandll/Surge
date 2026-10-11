@@ -3,6 +3,7 @@
 #include "Surge/Core/Core.hpp"
 #include "Surge/Serializer/Serializer.hpp"
 #include "Surge/Asset/AssetManager.hpp"
+#include "Surge/Utility/Filesystem.hpp"
 
 namespace Surge
 {
@@ -29,7 +30,7 @@ namespace Surge
         AssetManager* assetManager = Core::GetAssetManager();
         String absolutePath = assetManager->GetAbsolutePath(metadata.RelativePath);
 
-        Ref<Scene> scene = Ref<Scene>::Create();
+        Ref<Scene> scene = Ref<Scene>::Create(Filesystem::GetFilenameWithoutExt(absolutePath));
         Serializer::DeserializeScene(absolutePath, scene.Raw());
         return scene.As<Asset>();
     }

@@ -19,7 +19,8 @@ namespace Surge
         String sourceCodeStr;
         if(Filesystem::ReadTextFile(sourceAbsPath, sourceCodeStr))
         {
-            Vector<Byte> sourceBytecode = Core::GetScriptEngine()->Compile(sourceCodeStr, Filesystem::GetFilenameWithExt(sourceAbsPath));
+            // '@' + asset path: errors and tracebacks read "Scripts/Player.lua:12: ...", and require() names match it
+            Vector<Byte> sourceBytecode = Core::GetScriptEngine()->Compile(sourceCodeStr, "@" + am->GetMetadata(id).RelativePath);
             if (!sourceBytecode.empty())
             {
                 Ref<Script> scriptAsset = Script::Create(std::move(sourceBytecode));

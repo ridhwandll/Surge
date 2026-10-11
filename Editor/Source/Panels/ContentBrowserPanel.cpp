@@ -17,7 +17,6 @@
 #include "Asset/SourceWriters/ScriptSourceWriter.hpp"
 #include "Panels/MaterialEditorPanel.hpp"
 #include "Panels/UIEditorPanel.hpp"
-#include "Panels/ViewportPanel.hpp"
 #include "StatusBar/EditorStatusBar.hpp"
 #include "Utility/ImGuiAux.hpp"
 
@@ -1985,7 +1984,7 @@ namespace Surge
         Settings().LastDirectory = AssetFileOps::ToRelative(mCurrentDirectory);
 
         // The open scene's file may have been renamed/moved
-        static_cast<Editor*>(Core::GetClient())->GetPanelManager().GetPanel<ViewportPanel>()->SetSceneName();
+        static_cast<Editor*>(Core::GetClient())->GetViewports().OnSceneContextChanged();
         mNeedsRefresh = true;
     }
 
@@ -2230,7 +2229,7 @@ namespace Surge
 
             if(type == AssetType::SCENE)
             {
-                if(mAssetManager->Create<Scene>(relative))
+                if(mAssetManager->Create<Scene>(relative, Filesystem::GetFilenameWithoutExt(path)))
                     created = path;
             }
             else if(type == AssetType::MATERIAL)

@@ -33,20 +33,52 @@ namespace Surge
 
         Project openedProject;
         Serializer::DeserializeProject(projectPath, &openedProject);
-        mActiveScene = mAssetManager->Load<Scene>(openedProject.StartScene);
         mCurrentProject = std::move(openedProject);
+        mActiveScene = CreateRuntimeScene(mCurrentProject.StartScene);
+    }
+
+    Ref<Scene> Player::CreateRuntimeScene(AssetID sceneID)
+    {
+        // The game runs a copy: loading the same scene again (Scene.Load) must start from the saved state, not from wherever the last run left it
+        Ref<Scene> source = mAssetManager->Load<Scene>(sceneID);
+        if(!source)
+            return nullptr;
+
+        Ref<Scene> runtime = Ref<Scene>::Create("Dummy");
+        source->CopyTo(runtime.Raw());
+        source.Reset();
+        mAssetManager->Unload(sceneID);
+        return runtime;
+    }
+
+    void Player::ChangeRuntimeScene(AssetID sceneID)
+    {
+        Ref<Scene> next = CreateRuntimeScene(sceneID);
+        if(!next)
+        {
+            Log<Severity::Error>("[Player] Scene.Load: scene {} could not be loaded, staying in the current one", sceneID.Get());
+            return;
+        }
+
+        // Ends the old scene: destroying it runs OnDisable/OnDestroy and removes its bodies and canvases.
+        // Lua modules and Storage are untouched, they belong to the app session
+        mActiveScene->OnRuntimeEnd();
+        mActiveScene = next;
+        Core::GetRenderer()->GetUIManager().ClearCanvases(); // Roots set with SetUIRoot() by the old scene's scripts
+
+        const glm::vec2 size = Core::GetWindow()->GetSize();
+        mActiveScene->OnResize(size.x, size.y);
+        mActiveScene->OnRuntimeStart();
     }
 
     void Player::OnInitialize()
     {
 #ifdef SURGE_RELEASE
-        // Shipping builds only report problems, Info logs would cost a format + logcat write each
         SetMinLogSeverity(Severity::Warn);
 #endif
 
         mRenderer = Core::GetRenderer();
         mAssetManager = Core::GetAssetManager();
-        mRenderer->ShowInternalImGui(false);
 
         OpenProject();
 

@@ -17,7 +17,7 @@ namespace Surge
 
     void SwapchainPass::Execute([[maybe_unused]] const FrameContext& ctx, [[maybe_unused]] const FrameBlackboard& blackBoard)
     {
-        // Intentionally empty: the swapchain group still begins/ends its render pass, ImGui draws into it
+        // Intentionally empty: the swapchain group still begins/ends its render pass at RenderGraph.cpp, ImGui draws into it
     }
 
     void SwapchainPass::Shutdown(FrameBlackboard&)

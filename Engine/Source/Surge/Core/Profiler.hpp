@@ -16,10 +16,10 @@
     #endif
 
 // Enable profiling for release builds if SURGE_RELEASE is defined
-#define PROFILE_RELEASE 0
+#define PROFILE_RELEASE 1
 
 #ifdef SURGE_RELEASE
-    #if PROFILE_RELEASE // (#ifdef was always true: PROFILE_RELEASE is defined as 0, which shipped Optick and its network server in Release)
+    #if PROFILE_RELEASE
         #define PROFILE_SURGE 1
         #define USE_OPTICK 1
         #include <optick.h>

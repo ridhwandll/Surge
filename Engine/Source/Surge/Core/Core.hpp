@@ -19,6 +19,10 @@ namespace Surge
         void Run();
         void Shutdown();
         void SetFrameCap(float fps);
+
+        // Game time scale: scales the physics step accumulation and the delta time scripts get (0 = frozen, 1 = normal)
+        void SetTimeScale(float scale);
+        float GetTimeScale();
         void AddFrameEndCallback(const std::function<void()>& func); // FrameEndCallbacks are a way to accomplish some task at the very end of a frame
 
         Window* GetWindow();

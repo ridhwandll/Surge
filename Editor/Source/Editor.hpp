@@ -9,13 +9,13 @@
 #include "History/SceneCommands.hpp"
 #include "Gizmos/SceneGizmos.hpp"
 #include "Settings/EditorSettings.hpp"
+#include "Viewport/ViewportManager.hpp"
 
 #include "Asset/AssetImporter.hpp"
 #include <functional>
 
 namespace Surge
 {
-    class ViewportPanel;
 
     // Viewport toolbar icons
     enum class ToolIcon
@@ -45,6 +45,7 @@ namespace Surge
         void ShowTitlebar(bool show) { mShowTitlebar = show; }
         void OnRuntimeStart();
         void OnRuntimeEnd();
+        virtual void ChangeRuntimeScene(AssetID sceneID) override; // Scene.Load from Lua while playing, the edited scene stays as it is
 
         // Play mode pause: the runtime scene keeps rendering, physics/scripts/audio stop. StepFrame() pauses first if needed
         bool IsPaused() const { return mRuntimeScene && mRuntimeScene->IsPaused(); }
@@ -74,7 +75,7 @@ namespace Surge
         AssetImporter& GetAssetImporter() { return mAssetImporter; }
         Ref<Scene> GetCurrentScene() { return mActiveScene; }
         PanelManager& GetPanelManager() { return mPanelManager; }
-        EditorCamera& GetCamera() { return mCamera; }
+        ViewportManager& GetViewports() { return mViewports; }
         SceneGizmos& GetGizmos() { return mGizmos; }
 
         // Scene editing: every operation below is recorded into the undo history while in edit mode
@@ -88,6 +89,7 @@ namespace Surge
         void PasteEntity();                    // As a sibling right after the selection (root level without one)
         bool HasEntityInClipboard() const { return mClipboard.IsValid(); }
         void ReparentEntity(Entity entity, Entity newParent);
+        void MoveEntity(Entity entity, Entity newParent, Entity insertAfter); // Also sets the sibling order: right after 'insertAfter' (first child when null)
         void SaveScene();
 
         // Undo/Redo, applied at the end of the frame (entities are created/destroyed, nothing may be iterating the registry)
@@ -99,7 +101,7 @@ namespace Surge
         void ConfirmDiscardChanges(const char* action, std::function<void()> onConfirm); // Runs onConfirm right away when nothing is unsaved
 
     private:
-        void CheckResize();
+        void UpdateGameResolution(); // Runtime cameras follow the Game view's size
         void OnImGuiRender();
         void HandleShortcuts();
         void DrawCustomTitlebar(const char* title, float titleBarHeight, bool showMenuItems = true);
@@ -130,10 +132,11 @@ namespace Surge
         Ref<Scene> mRuntimeScene;
 
         AssetImporter mAssetImporter;
-        EditorCamera mCamera;
+        EditorCamera mFrameCamera; // Only drives Renderer::BeginFrame, the viewports draw the scene with their own cameras
         Renderer* mRenderer;
         AssetManager* mAssetManager;
-        ViewportPanel* mViewportPanel;
+        ViewportManager mViewports;
+        glm::vec2 mGameResolution = { 0.0f, 0.0f };
         ProjectBrowser mProjectBrowser;
         PanelManager mPanelManager;
 
@@ -141,7 +144,7 @@ namespace Surge
         EntityTreeSnapshot mClipboard;
 
         SceneGizmos mGizmos;
-        std::function<void(Scene&)> mSceneDebugDraw;
+        std::function<void(Scene&)> mSceneRenderHook; // View cameras + editor-only debug geometry, runs inside the scene's rendering
 
         Ref<Scene> mRetiredScene;          // The scene LoadScene() replaced, kept alive until the next OnUpdate()
         Vector<AssetID> mScenesToUnload;   // Scenes whose unsaved edits were discarded, dropped from the asset cache next OnUpdate()

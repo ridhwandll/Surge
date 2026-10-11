@@ -55,9 +55,6 @@ namespace Surge
         std::array<float, MAX_SHADOW_CASCADE_COUNT> mCascadeSplits = {};
         std::array<float, MAX_SHADOW_CASCADE_COUNT> mCascadeEnds = {};
         float mShadowMapResolution;
-        float mDepthBiasConstant = 1.25f;
-        float mDepthBiasClamp = 0.0f;
-        float mDepthBiasSlope = 1.75f;
 
         // Instancing: every cascade's visible casters, sorted by mesh, back to back in one per-frame buffer
         BufferHandle mInstanceBuffers[RHISettings::FRAMES_IN_FLIGHT];

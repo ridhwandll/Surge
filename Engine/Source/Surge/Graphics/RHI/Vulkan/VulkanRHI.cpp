@@ -525,6 +525,18 @@ namespace Surge
         return entry->Desc;
     }
 
+    bool VulkanRHI::IsValid(ImageHandle h) const
+    {
+        return mTexturePool.Get(h) != nullptr;
+    }
+
+    bool VulkanRHI::IsImageSampleable(ImageHandle h) const
+    {
+        // Layout tracked at record time: queried while recording (e.g. inside the ImGui pass), it is the layout the GPU sees at that point
+        const ImageEntry* entry = mTexturePool.Get(h);
+        return entry && entry->Image != VK_NULL_HANDLE && entry->Layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    }
+
     PipelineHandle VulkanRHI::CreatePipeline(const PipelineDesc& desc)
     {
         SG_ASSERT(!desc.TargetFramebuffer.IsNull() || desc.TargetSwapchain, "PipelineDesc: must set either TargetFramebuffer or TargetSwapchain");
@@ -1212,7 +1224,7 @@ namespace Surge
     {
         // Pipelines are compiled by the driver on every launch unless we hand it back its own cache blob from last time
         // The blob is only reused if its header matches this exact GPU + driver build, anything else is ignored
-        const String path = Platform::GetPersistantStoragePath() + "/ " + SURGE_VK_PIPELINE_CACHE_FILE;
+        const String path = Platform::GetPersistantStoragePath() + "/" + SURGE_VK_PIPELINE_CACHE_FILE;
 
         Vector<Byte> data;
         if(FILE* f = std::fopen(path.c_str(), "rb"))
@@ -1264,7 +1276,7 @@ namespace Surge
             Vector<Byte> data(size);
             if(vkGetPipelineCacheData(mDevice.GetDevice(), mPipelineCache, &size, data.data()) == VK_SUCCESS)
             {
-                const String path = Platform::GetPersistantStoragePath() + "/ " + SURGE_VK_PIPELINE_CACHE_FILE;
+                const String path = Platform::GetPersistantStoragePath() + "/" + SURGE_VK_PIPELINE_CACHE_FILE;
                 if(FILE* f = std::fopen(path.c_str(), "wb"))
                 {
                     std::fwrite(data.data(), 1, size, f);

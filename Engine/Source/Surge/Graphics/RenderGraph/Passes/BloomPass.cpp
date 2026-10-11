@@ -29,8 +29,6 @@ namespace Surge
         constexpr int BLOOM_FLAG_HQ_FILTER = BIT(0);
         constexpr int BLOOM_FLAG_ANTI_FLICKER = BIT(1);
 
-        constexpr Uint MIN_MIP_COUNT = 2;
-        constexpr Uint MAX_MIP_COUNT = 8;
         constexpr Uint COMPUTE_GROUP_SIZE = 8; // local_size in BloomCompute.glsl
 
         glm::uvec2 MipSize(const glm::uvec2& fullSize, Uint mip)
@@ -69,7 +67,7 @@ namespace Surge
         config.FullSize = mFullSize;
 
         // Stop before the smallest mip collapses below 2px, blurring a 1px image only wastes a pass
-        const Uint requested = static_cast<Uint>(glm::clamp(settings.MipCount, static_cast<int>(MIN_MIP_COUNT), static_cast<int>(MAX_MIP_COUNT)));
+        const Uint requested = static_cast<Uint>(glm::clamp(settings.MipCount, BloomSettings::MIN_MIP_COUNT, BloomSettings::MAX_MIP_COUNT));
         Uint count = 0;
         while(count < requested)
         {
@@ -78,7 +76,7 @@ namespace Surge
                 break;
             count++;
         }
-        config.MipCount = glm::max(count, MIN_MIP_COUNT);
+        config.MipCount = glm::max(count, static_cast<Uint>(BloomSettings::MIN_MIP_COUNT));
         return config;
     }
 
@@ -352,45 +350,19 @@ namespace Surge
 
     void BloomPass::OnImGuiRender(FrameBlackboard& blackBoard)
     {
-        ImFont* boldFont = ImGui::GetIO().Fonts->Fonts[1];
-        ImGui::PushFont(boldFont, 25.0f);
-        ImGui::TextUnformatted("Bloom");
-        ImGui::Separator();
-        ImGui::PopFont();
-
-        ImGui::PushID("BloomPass"); // Shares the "Renderer" window with other passes ("Clamp" etc. would collide)
-        BloomSettings& settings = blackBoard.Bloom;
-        ImGui::Checkbox("Enable Bloom", &settings.Enable);
-
-        constexpr const char* qualityNames[] = { "Low (Mobile)", "Medium", "High", "Ultra (Desktop)" };
-        int quality = static_cast<int>(settings.Quality);
-        if(ImGui::Combo("Bloom Quality", &quality, qualityNames, IM_ARRAYSIZE(qualityNames)))
-            settings.ApplyQualityPreset(static_cast<BloomQuality>(quality));
-
-        ImGui::BeginDisabled(mComputePipeline.IsNull());
-        ImGui::Checkbox("Use Compute", &settings.UseCompute);
-        ImGui::EndDisabled();
-        ImGui::SliderInt("Mip Count", &settings.MipCount, static_cast<int>(MIN_MIP_COUNT), static_cast<int>(MAX_MIP_COUNT));
-        ImGui::Checkbox("High Quality Filter (13 tap / Tent)", &settings.HighQualityFilter);
-        ImGui::Checkbox("Anti Flicker (Karis Average)", &settings.AntiFlicker);
-        ImGui::Checkbox("High Quality Composite", &settings.HighQualityComposite);
-        ImGui::Separator();
-        ImGui::DragFloat("Threshold", &settings.Threshold, 0.01f, 0.0f, 20.0f, "%.2f");
-        ImGui::SliderFloat("Knee", &settings.Knee, 0.0f, 1.0f, "%.2f");
-        ImGui::DragFloat("Bloom Intensity", &settings.Intensity, 0.01f, 0.0f, 10.0f, "%.2f");
-        ImGui::SliderFloat("Scatter", &settings.Scatter, 0.05f, 0.95f, "%.2f");
-        ImGui::DragFloat("Clamp", &settings.ClampValue, 10.0f, 1.0f, 65000.0f, "%.0f");
-        ImGui::ColorEdit3("Tint", &settings.Tint.x);
+        if(!blackBoard.Bloom.Enable)
+            return;
 
         uint64_t bytes = 0;
         const uint64_t bytesPerPixel = mConfig.UseCompute ? 8 : 4;
         for(Uint i = 0; i < mMipSizes.size(); i++)
             bytes += static_cast<uint64_t>(mMipSizes[i].x) * mMipSizes[i].y * bytesPerPixel * (i + 1 < mMipSizes.size() ? 2 : 1); // Down + Up (no Up for the last mip)
 
-        ImGui::Text("Path: %s | %u mips | %.2f MB", mConfig.UseCompute ? "Compute (RGBA16F)" : "Fragment (R11G11B10)", mConfig.MipCount, static_cast<double>(bytes) / (1024.0 * 1024.0));
+        ImGui::SeparatorText("Bloom");
+        ImGui::Text("Path: %s", mConfig.UseCompute ? "Compute (RGBA16F)" : "Fragment (R11G11B10)");
+        ImGui::Text("Mips: %u  |  %.2f MB", mConfig.MipCount, static_cast<double>(bytes) / (1024.0 * 1024.0));
         if(!mMipSizes.empty())
             ImGui::Text("Chain: %ux%u -> %ux%u", mMipSizes.front().x, mMipSizes.front().y, mMipSizes.back().x, mMipSizes.back().y);
-        ImGui::PopID();
     }
 
     void BloomPass::Shutdown(FrameBlackboard& /*blackBoard*/)

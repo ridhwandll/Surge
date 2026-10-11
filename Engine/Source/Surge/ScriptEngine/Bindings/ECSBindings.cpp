@@ -11,6 +11,7 @@
 #include "Surge/Graphics/HighLevel/Mesh.hpp"
 #include "Surge/Asset/AssetManager.hpp"
 #include "Surge/ScriptEngine/ScriptAsset.hpp"
+#include "Surge/ScriptEngine/ScriptEngine.hpp"
 #include "Surge/Audio/Audio.hpp"
 #include <glm/glm.hpp>
 // TODO: REMOVE following includes
@@ -62,6 +63,42 @@ namespace Surge::ScriptBinding
                 Log<Severity::Warn>("ECSBindings: Cannot create entity. Parent entity has no valid Scene reference!");
 
             return outEntity;
+        };
+        // The environment of one of the entity's scripts: its globals, functions and Properties. With a name ("Player", the script's
+        // file name) that script, without one the first script (or the UI canvas script). nil until the script was instantiated;
+        // every script starting in a frame is instantiated before any OnCreate runs
+        entityType["GetScript"] = [](Entity& e, sol::optional<String> name) -> sol::object {
+            if(!e)
+                return sol::object();
+            if(const ScriptComponent* scripts = e.TryGetComponent<ScriptComponent>())
+            {
+                for(const ScriptEntry& entry : scripts->Scripts)
+                {
+                    if(entry.Instance.IsValid() && (!name || ScriptEngine::GetScriptName(entry.ScriptAsset) == *name))
+                        return entry.Instance.Env;
+                }
+            }
+            if(const UICanvasComponent* canvas = e.TryGetComponent<UICanvasComponent>(); canvas && canvas->Instance.IsValid())
+            {
+                if(!name || ScriptEngine::GetScriptName(canvas->ScriptAsset) == *name)
+                    return canvas->Instance.Env;
+            }
+            return sol::object();
+        };
+        // Every instantiated script of the entity, in order
+        entityType["GetScripts"] = [](Entity& e, sol::this_state s) -> sol::table {
+            sol::state_view lua(s);
+            sol::table result = lua.create_table();
+            if(const ScriptComponent* scripts = e ? e.TryGetComponent<ScriptComponent>() : nullptr)
+            {
+                int index = 1;
+                for(const ScriptEntry& entry : scripts->Scripts)
+                {
+                    if(entry.Instance.IsValid())
+                        result[index++] = entry.Instance.Env;
+                }
+            }
+            return result;
         };
         entityType["SetParent"] = [](Entity& child, Entity& parent) {
             if(child && parent)
@@ -393,23 +430,44 @@ namespace Surge::ScriptBinding
                                                 "LocalRotation", BIND_PROP(MeshColliderComponent, LocalRotation),
                                                 STRICT_READ(MeshColliderComponent));
 
+        // Adds a script asset to the entity. It is instantiated at the start of the next frame (OnCreate, OnEnable)
+        auto addScript = [](ScriptComponent& sc, const String& scriptAssetPath) -> bool {
+            AssetManager* am = Core::GetAssetManager();
+            const AssetID id = am->GetIDFromPath(scriptAssetPath);
+            Ref<Script> script = id ? am->Load<Script>(id) : nullptr;
+            if(!script)
+            {
+                Log<Severity::Warn>("[ECSBindings.cpp] Lua: ScriptComponent:AddScript: no script asset at path {}", scriptAssetPath);
+                return false;
+            }
+            sc.PendingScripts.push_back(script);
+            return true;
+        };
+        auto findEntry = [](ScriptComponent& sc, const String& name) -> ScriptEntry* {
+            for(ScriptEntry& entry : sc.Scripts)
+            {
+                if(ScriptEngine::GetScriptName(entry.ScriptAsset) == name)
+                    return &entry;
+            }
+            return nullptr;
+        };
+
         lua.new_usertype<ScriptComponent>("ScriptComponent", sol::no_constructor,
                                           "Active", BIND_PROP(ScriptComponent, Active),
-                                          "ScriptAsset", BIND_PROP(ScriptComponent, ScriptAsset),
-                                          "SetScript", [](ScriptComponent& sc, const String& scriptAssetPath)
-                                          {
-                                              AssetManager* am = Core::GetAssetManager();
-                                              AssetID id = am->GetIDFromPath(scriptAssetPath);
-                                              if(id)
-                                              {
-                                                  Ref<Script> script = am->Load<Script>(id);
-                                                  if(script)
-                                                      sc.ScriptAsset = script;
-                                                  else
-                                                      Log<Severity::Warn>("[ECSBindings.cpp] Lua: ScriptComponent: Failed to load script at path {}", scriptAssetPath);
-                                              }
-                                              else
-                                                  Log<Severity::Warn>("[ECSBindings.cpp] Lua: ScriptComponent: Failed to load script at path {}", scriptAssetPath);
+                                          "Count", sol::readonly_property([](ScriptComponent& sc) { return static_cast<lua_Integer>(sc.Scripts.size()); }),
+                                          "AddScript", addScript,
+                                          "SetScript", addScript, // Kept for older scripts: there is no single script to replace anymore
+                                          "HasScript", [findEntry](ScriptComponent& sc, const String& name) { return findEntry(sc, name) != nullptr; },
+                                          "IsScriptActive", [findEntry](ScriptComponent& sc, const String& name) {
+                                              const ScriptEntry* entry = findEntry(sc, name);
+                                              return entry && entry->Active;
+                                          },
+                                          // OnDisable / OnEnable run when the scene loop reaches that script: this frame if it comes after the caller, else the next
+                                          "SetScriptActive", [findEntry](ScriptComponent& sc, const String& name, bool active) {
+                                              ScriptEntry* entry = findEntry(sc, name);
+                                              if(entry)
+                                                  entry->Active = active;
+                                              return entry != nullptr;
                                           },
                                           STRICT_READ(ScriptComponent));
 

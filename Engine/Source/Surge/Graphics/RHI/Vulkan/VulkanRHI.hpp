@@ -65,6 +65,8 @@ namespace Surge
         void RecreateImage(ImageHandle h, const ImageDesc& desc); // Keeps the handle stable, content is undefined afterwards
         uint64_t GetImageSize(ImageHandle h) const;
         const ImageDesc& GetDesc(ImageHandle h) const;
+        bool IsValid(ImageHandle h) const;
+        bool IsImageSampleable(ImageHandle h) const;
 
         FramebufferHandle CreateFramebuffer(const FramebufferDesc& desc);
         void DestroyFramebuffer(FramebufferHandle h);

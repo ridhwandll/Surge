@@ -1,5 +1,8 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Gizmos/GizmoIcons.hpp"
+#include "Surge/ECS/Scene.hpp"
+#include "Surge/ECS/Components/Components.hpp"
+#include "Surge/ECS/Components/ScriptComponent.hpp"
 #include <glm/glm.hpp>
 
 namespace Surge::GizmoIcons
@@ -88,6 +91,103 @@ namespace Surge::GizmoIcons
         drawList->AddLine(p(-0.25f, 0.74f), p(0.25f, 0.74f), color, stroke);
     }
 
+    // Isometric cube outline: hexagon silhouette + the three edges meeting at the front corner
+    static void DrawEntity(ImDrawList* drawList, const GlyphFrame& p, ImU32 color, float stroke)
+    {
+        const ImVec2 hexagon[] = { p(0.0f, -0.86f), p(0.78f, -0.43f), p(0.78f, 0.43f), p(0.0f, 0.86f), p(-0.78f, 0.43f), p(-0.78f, -0.43f) };
+        drawList->AddPolyline(hexagon, 6, color, ImDrawFlags_Closed, stroke);
+        drawList->AddLine(p(0.0f, 0.0f), p(-0.78f, -0.43f), color, stroke * 0.85f);
+        drawList->AddLine(p(0.0f, 0.0f), p(0.78f, -0.43f), color, stroke * 0.85f);
+        drawList->AddLine(p(0.0f, 0.0f), p(0.0f, 0.86f), color, stroke * 0.85f);
+    }
+
+    // Solid isometric cube, faces separated by cutout edges
+    static void DrawMesh(ImDrawList* drawList, const GlyphFrame& p, ImU32 color, ImU32 cutoutColor, float stroke)
+    {
+        const ImVec2 hexagon[] = { p(0.0f, -0.86f), p(0.78f, -0.43f), p(0.78f, 0.43f), p(0.0f, 0.86f), p(-0.78f, 0.43f), p(-0.78f, -0.43f) };
+        drawList->AddConvexPolyFilled(hexagon, 6, color);
+        drawList->AddLine(p(0.0f, 0.0f), p(-0.78f, -0.43f), cutoutColor, stroke * 0.7f);
+        drawList->AddLine(p(0.0f, 0.0f), p(0.78f, -0.43f), cutoutColor, stroke * 0.7f);
+        drawList->AddLine(p(0.0f, 0.0f), p(0.0f, 0.86f), cutoutColor, stroke * 0.7f);
+    }
+
+    static void DrawSprite(ImDrawList* drawList, const GlyphFrame& p, ImU32 color, float stroke)
+    {
+        // Picture frame, two mountains and a sun
+        drawList->AddRect(p(-0.84f, -0.70f), p(0.84f, 0.70f), color, p(0.14f), ImDrawFlags_None, stroke);
+        drawList->AddTriangleFilled(p(-0.62f, 0.48f), p(-0.16f, -0.14f), p(0.30f, 0.48f), color);
+        drawList->AddTriangleFilled(p(0.04f, 0.48f), p(0.36f, 0.06f), p(0.64f, 0.48f), color);
+        drawList->AddCircleFilled(p(0.36f, -0.30f), p(0.15f), color, 12);
+    }
+
+    static void DrawTextGlyph(ImDrawList* drawList, const GlyphFrame& p, ImU32 color)
+    {
+        drawList->AddRectFilled(p(-0.72f, -0.80f), p(0.72f, -0.50f), color, p(0.06f));
+        drawList->AddRectFilled(p(-0.16f, -0.80f), p(0.16f, 0.80f), color, p(0.06f));
+        drawList->AddRectFilled(p(-0.38f, 0.56f), p(0.38f, 0.80f), color, p(0.06f));
+    }
+
+    static void DrawUICanvas(ImDrawList* drawList, const GlyphFrame& p, ImU32 color, float stroke)
+    {
+        // A window: title bar, a wide and a short widget
+        drawList->AddRect(p(-0.86f, -0.74f), p(0.86f, 0.74f), color, p(0.14f), ImDrawFlags_None, stroke);
+        drawList->AddRectFilled(p(-0.86f, -0.74f), p(0.86f, -0.36f), color, p(0.14f), ImDrawFlags_RoundCornersTop);
+        drawList->AddRectFilled(p(-0.56f, -0.10f), p(0.56f, 0.14f), color, p(0.05f));
+        drawList->AddRectFilled(p(-0.56f, 0.32f), p(0.10f, 0.50f), color, p(0.05f));
+    }
+
+    static void DrawScript(ImDrawList* drawList, const GlyphFrame& p, ImU32 color, float stroke)
+    {
+        // </>
+        const ImVec2 left[] = { p(-0.34f, -0.52f), p(-0.84f, 0.0f), p(-0.34f, 0.52f) };
+        const ImVec2 right[] = { p(0.34f, -0.52f), p(0.84f, 0.0f), p(0.34f, 0.52f) };
+        drawList->AddPolyline(left, 3, color, ImDrawFlags_None, stroke);
+        drawList->AddPolyline(right, 3, color, ImDrawFlags_None, stroke);
+        drawList->AddLine(p(0.16f, -0.72f), p(-0.16f, 0.72f), color, stroke);
+    }
+
+    static void DrawTransform(ImDrawList* drawList, const GlyphFrame& p, ImU32 color, float stroke)
+    {
+        // Move cross: four arrows from the center
+        drawList->AddLine(p(-0.62f, 0.0f), p(0.62f, 0.0f), color, stroke);
+        drawList->AddLine(p(0.0f, -0.62f), p(0.0f, 0.62f), color, stroke);
+        drawList->AddTriangleFilled(p(0.0f, -0.92f), p(0.26f, -0.56f), p(-0.26f, -0.56f), color);
+        drawList->AddTriangleFilled(p(0.0f, 0.92f), p(-0.26f, 0.56f), p(0.26f, 0.56f), color);
+        drawList->AddTriangleFilled(p(-0.92f, 0.0f), p(-0.56f, -0.26f), p(-0.56f, 0.26f), color);
+        drawList->AddTriangleFilled(p(0.92f, 0.0f), p(0.56f, 0.26f), p(0.56f, -0.26f), color);
+    }
+
+    static void DrawRigidbody(ImDrawList* drawList, const GlyphFrame& p, ImU32 color, float stroke)
+    {
+        // A ball and its motion lines
+        drawList->AddCircleFilled(p(0.30f, 0.0f), p(0.56f), color, 24);
+        drawList->AddLine(p(-0.92f, -0.34f), p(-0.42f, -0.34f), color, stroke);
+        drawList->AddLine(p(-0.92f, 0.0f), p(-0.36f, 0.0f), color, stroke);
+        drawList->AddLine(p(-0.92f, 0.34f), p(-0.42f, 0.34f), color, stroke);
+    }
+
+    static void DrawCollider(ImDrawList* drawList, const GlyphFrame& p, ImU32 color, float stroke)
+    {
+        // Bounds corners around a shape
+        const float c = 0.82f, l = 0.36f;
+        const ImVec2 corners[4][3] = {
+            { p(-c, -c + l), p(-c, -c), p(-c + l, -c) },
+            { p(c - l, -c), p(c, -c), p(c, -c + l) },
+            { p(c, c - l), p(c, c), p(c - l, c) },
+            { p(-c + l, c), p(-c, c), p(-c, c - l) },
+        };
+        for(const auto& corner : corners)
+            drawList->AddPolyline(corner, 3, color, ImDrawFlags_None, stroke);
+        drawList->AddCircle(p(0.0f, 0.0f), p(0.36f), color, 20, stroke * 0.85f);
+    }
+
+    static void DrawLink(ImDrawList* drawList, const GlyphFrame& p, ImU32 color, float stroke)
+    {
+        // Two chain links
+        drawList->AddRect(p(-0.92f, -0.32f), p(0.12f, 0.32f), color, p(0.32f), ImDrawFlags_None, stroke);
+        drawList->AddRect(p(-0.12f, -0.32f), p(0.92f, 0.32f), color, p(0.32f), ImDrawFlags_None, stroke);
+    }
+
     // Closed path through 'points' (glyph space) with every corner rounded: cut 'radius' back along both edges, joined by a curve through the corner
     static void PathRoundedPolygon(ImDrawList* drawList, const GlyphFrame& p, const ImVec2* points, int count, float radius)
     {
@@ -149,6 +249,16 @@ namespace Surge::GizmoIcons
             case GizmoIcon::AUDIO_SOURCE: DrawAudioSource(drawList, frame, color, stroke); break;
             case GizmoIcon::AUDIO_LISTENER: DrawAudioListener(drawList, frame, color, stroke); break;
             case GizmoIcon::ENVIRONMENT: DrawEnvironment(drawList, frame, color, stroke); break;
+            case GizmoIcon::ENTITY: DrawEntity(drawList, frame, color, stroke); break;
+            case GizmoIcon::MESH: DrawMesh(drawList, frame, color, cutoutColor, stroke); break;
+            case GizmoIcon::SPRITE: DrawSprite(drawList, frame, color, stroke); break;
+            case GizmoIcon::TEXT: DrawTextGlyph(drawList, frame, color); break;
+            case GizmoIcon::UI_CANVAS: DrawUICanvas(drawList, frame, color, stroke); break;
+            case GizmoIcon::SCRIPT: DrawScript(drawList, frame, color, stroke); break;
+            case GizmoIcon::TRANSFORM: DrawTransform(drawList, frame, color, stroke); break;
+            case GizmoIcon::RIGIDBODY: DrawRigidbody(drawList, frame, color, stroke); break;
+            case GizmoIcon::COLLIDER: DrawCollider(drawList, frame, color, stroke); break;
+            case GizmoIcon::LINK: DrawLink(drawList, frame, color, stroke); break;
             case GizmoIcon::PLAY: DrawPlay(drawList, frame, color); break;
             case GizmoIcon::STOP: DrawStop(drawList, frame, color); break;
             case GizmoIcon::PAUSE: DrawPause(drawList, frame, color); break;
@@ -190,6 +300,29 @@ namespace Surge::GizmoIcons
         const ImVec2 center(glm::floor((min.x + max.x) * 0.5f), glm::floor((min.y + max.y) * 0.5f)); // Whole pixels keep the downscaled icon sharp
         ImGui::GetWindowDrawList()->AddImage(texture, ImVec2(center.x - halfIcon, center.y - halfIcon), ImVec2(center.x + halfIcon, center.y + halfIcon), ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), ImGui::GetColorU32(tint));
         return pressed;
+    }
+
+    EntityIcon GetEntityIcon(Entity e)
+    {
+        if(e.HasComponent<CameraComponent>())
+            return { GizmoIcon::CAMERA, IM_COL32(130, 190, 255, 255) };
+        if(const LightComponent* light = e.TryGetComponent<LightComponent>())
+            return { light->Type == LightType::DIRECTIONAL ? GizmoIcon::DIRECTIONAL_LIGHT : GizmoIcon::POINT_LIGHT, IM_COL32(255, 205, 90, 255) };
+        if(e.HasComponent<EnvironmentComponent>())
+            return { GizmoIcon::ENVIRONMENT, IM_COL32(255, 170, 100, 255) };
+        if(e.HasComponent<AudioSourceComponent>())
+            return { GizmoIcon::AUDIO_SOURCE, IM_COL32(110, 215, 160, 255) };
+        if(e.HasComponent<AudioListenerComponent>())
+            return { GizmoIcon::AUDIO_LISTENER, IM_COL32(110, 215, 160, 255) };
+        if(e.HasComponent<UICanvasComponent>())
+            return { GizmoIcon::UI_CANVAS, IM_COL32(240, 130, 190, 255) };
+        if(e.HasComponent<TextComponent>())
+            return { GizmoIcon::TEXT, IM_COL32(225, 225, 225, 255) };
+        if(e.HasComponent<SpriteRendererComponent>())
+            return { GizmoIcon::SPRITE, IM_COL32(255, 145, 95, 255) };
+        if(e.HasComponent<MeshComponent>())
+            return { GizmoIcon::MESH, IM_COL32(150, 160, 255, 255) };
+        return { GizmoIcon::ENTITY, IM_COL32(150, 150, 150, 255) };
     }
 
     void DrawBadge(ImDrawList* drawList, const ImVec2& center, float radius, GizmoIcon icon, ImU32 glyphColor, const BadgeStyle& style)

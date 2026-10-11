@@ -47,14 +47,15 @@ namespace Surge
         // Called every frame
         void Execute(FrameContext& ctx);
 
-        void OnImGuiRender();
         void ClearLists() { mBlackboard.ClearLists(); }
 
         // Recreates size-dependent resources, calls Resize() on all passses
         void OnWindowResize(Uint width, Uint height);
         void ForceResize(Uint width, Uint height);
 
-        void ShowInternalImGui(bool show) { mShowInternalImGui = show; }
+        // Disabled: only the swapchain group runs (Editor: the scene is drawn by the Renderer's views, this graph just presents ImGui)
+        void SetSceneEnabled(bool enabled) { mSceneEnabled = enabled; }
+        bool IsSceneEnabled() const { return mSceneEnabled; }
 
         // Destroys all passses and registry resources
         void Shutdown();
@@ -69,17 +70,21 @@ namespace Surge
             return raw;
         }
 
+        // Run inside the swapchain pass (ImGui frame), the debug UI (Editor's Render Graph/Renderer panels) lives in these
         void AddImGuiRenderCallback(std::function<void()> callback);
 
         FrameBlackboard& GetBlackboard() { return mBlackboard; }
         const FrameBlackboard& GetBlackboard() const { return mBlackboard; }
         const CompiledGraph& GetCompiledGraph() const { return mCompiledGraph; } // For visualizer
+        const Vector<Scope<RenderPass>>& GetPasses() const { return mPasses; }   // Registration order
+        GraphicsRHI* GetRHI() const { return mRHI; }
     private:
         void SortByDependencies(Vector<RenderPass*>& passes); // Topological sort within a group based on ImageReads/ImageWrites
         void DeriveBarriers(Vector<ExecutionGroup*>& orderedGroups); // Inserts a SAMPLED transition before the first group that reads an image written by an earlier group
+        void RenderImGuiCallbacks();
     private:
         bool mImGuiEnabled = false;
-        bool mShowInternalImGui = true;
+        bool mSceneEnabled = true;
         Vector<Scope<RenderPass>> mPasses;
 
         Vector<std::function<void()>> mImGuiRenderCallbacks;

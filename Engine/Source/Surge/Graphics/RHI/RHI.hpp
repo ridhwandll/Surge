@@ -47,6 +47,8 @@ namespace Surge
         void RecreateImage(ImageHandle h, const ImageDesc& desc) { mBackendRHI.RecreateImage(h, desc); } // Same handle, new size/format/usage, content undefined
         uint64_t GetImageSize(ImageHandle h) const { return mBackendRHI.GetImageSize(h); }
         const ImageDesc& GetDesc(ImageHandle h) const { return mBackendRHI.GetDesc(h); }
+        bool IsValid(ImageHandle h) const { return mBackendRHI.IsValid(h); }                     // False once destroyed (stale handle)
+        bool IsImageSampleable(ImageHandle h) const { return mBackendRHI.IsImageSampleable(h); } // Currently in the SAMPLED layout: safe to show with ImGui
 
         // Framebuffer
         FramebufferHandle CreateFramebuffer(const FramebufferDesc& desc) { return mBackendRHI.CreateFramebuffer(desc); }

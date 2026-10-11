@@ -387,24 +387,11 @@ namespace Surge
 
     void GeometryPass::OnImGuiRender(FrameBlackboard& blackBoard)
     {
-        ImFont* boldFont = ImGui::GetIO().Fonts->Fonts[1];
-        ImGui::PushFont(boldFont, 25.0f);
-        ImGui::TextUnformatted("Geometry Pass");
-        ImGui::Separator();
-        ImGui::PopFont();
-
-        ImGui::Text("Submeshes: %u submitted, %u visible (%u culled)", mSubmittedSubmeshes, mVisibleSubmeshes, mSubmittedSubmeshes - mVisibleSubmeshes);
+        ImGui::SeparatorText("Geometry");
+        ImGui::Text("Submeshes: %u visible / %u submitted", mVisibleSubmeshes, mSubmittedSubmeshes);
         ImGui::Text("Draw calls: %u (instanced)", static_cast<Uint>(mDraws.size()));
         ImGui::Text("Lights: %u uploaded / %u submitted", mUploadedLightCount, static_cast<Uint>(blackBoard.LightList.size()));
-        ImGui::Text("Depth written to memory: %s", mDepthStored ? "Yes" : "No (transient, AO off)");
-
-        int maxLights = static_cast<int>(blackBoard.Lighting.MaxLights);
-        if(ImGui::SliderInt("Max Lights", &maxLights, 1, static_cast<int>(MAX_LIGHTS)))
-            blackBoard.Lighting.MaxLights = static_cast<Uint>(maxLights);
-
-        float renderScale = blackBoard.RenderScale;
-        if(ImGui::SliderFloat("Render Scale", &renderScale, RenderScaleSettings::MIN_SCALE, RenderScaleSettings::MAX_SCALE, "%.2f"))
-            Core::GetRenderer()->SetRenderScale(renderScale);
+        ImGui::Text("Depth stored: %s", mDepthStored ? "Yes" : "No (transient, AO off)");
     }
 
     void GeometryPass::Shutdown(FrameBlackboard& blackBoard)

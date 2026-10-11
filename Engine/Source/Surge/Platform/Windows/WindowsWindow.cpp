@@ -160,7 +160,7 @@ namespace Surge
             frameCount = 0;
         }
 
-        // Nothing to draw while minimized, sleep until the OS sends us something instead of spinning the main loop
+        // Nothing to draw while minimized
         if (IsIconic(mWin32Window))
             WaitMessage();
 

@@ -9,6 +9,201 @@
 -- ==============================================================================
 
 -- ==============================================================================
+-- SCRIPT STRUCTURE, MODULES & PROPERTIES
+-- ==============================================================================
+-- An entity script defines any of these (all optional), each runs with the owning entity:
+--   function OnCreate(entity) end                    -- once, the frame the script starts
+--   function OnEnable(entity) end                    -- after OnCreate, and whenever it is enabled again
+--   function OnDisable(entity) end                   -- when disabled, and before OnDestroy
+--   function OnFixedUpdate(entity, fixedDt) end      -- before every physics step (1/60 s), forces go here
+--   function OnUpdate(entity, deltaTime) end         -- every frame
+--   function OnLateUpdate(entity, deltaTime) end     -- every frame, after every OnUpdate (cameras, follow logic)
+--   function OnDestroy(entity) end                   -- entity destroyed, scene unloaded or Play stopped
+--   function OnCollisionEnter(entity, other) end     -- physics contact begins / ends
+--   function OnCollisionExit(entity, other) end
+--   function OnTriggerEnter(entity, other) end       -- same, when one of the bodies is a sensor (IsSensor)
+--   function OnTriggerExit(entity, other) end        -- 'other' may be destroyed already: check other:IsValid()
+-- Frame order: fixed steps (OnFixedUpdate) -> contact events -> OnUpdate -> new scripts' OnCreate/OnEnable
+--              -> UI canvas scripts -> OnLateUpdate.
+-- An entity can have any number of scripts (Script Component), each with its own globals and Properties;
+-- they never leak into other scripts. Toggle one with entity.ScriptC:SetScriptActive("Name", false).
+--
+-- MODULES (share code and state without _G)
+--   local State = require("Scripts.Game.State")  -- Assets/Scripts/Game/State.lua
+--   "Scripts/Game/State" and "Scripts/Game/State.lua" work too, and a unique file name alone
+--   ("State") is found anywhere in the project. A module runs once per play session and every
+--   script that requires it gets the same value, so a table returned by a module is shared state.
+--   A module that returns nothing exports its globals. Only script assets can be required
+--   (no files, no native modules), so it works the same in the Editor and on Android.
+--   The Editor resets modules and _G whenever Play starts or stops.
+--
+-- PROPERTIES (edited per entity in the Inspector)
+--   Properties = {
+--       Speed  = 6.5,                                   -- FLOAT (plain values work: number, boolean,
+--       Lives  = 3,                                     -- INT    string, Math.Vec2/Vec3/Vec4)
+--       Jump   = Property.Float(2.0, 0, 10, "Jump height in meters"), -- range + tooltip
+--       Tint   = Property.Color(1, 0.5, 0, 1),
+--       Target = Property.Entity("Who to follow"),     -- picked by dropping an entity from the Hierarchy
+--   }
+--   function OnUpdate(entity, dt) local speed = Properties.Speed end
+-- Properties holds plain values at runtime: the Inspector values are written into it once, before
+-- OnCreate, so reading Properties.X costs the same as any table field. Top level code runs before
+-- that, so read Properties inside the callbacks. An Entity property is nil when nothing is assigned.
+
+--- Typed declarations for the Properties table. At runtime they just return the value, the extra
+--- arguments (range, tooltip) are only read by the Editor.
+---@class Property
+Property = {}
+
+---@param value number|nil Default (0)
+---@param min number|nil Range minimum, used when min < max
+---@param max number|nil Range maximum
+---@param tooltip string|nil
+---@return number
+function Property.Float(value, min, max, tooltip) end
+
+---@param value integer|nil Default (0)
+---@param min integer|nil Range minimum, used when min < max
+---@param max integer|nil Range maximum
+---@param tooltip string|nil
+---@return integer
+function Property.Int(value, min, max, tooltip) end
+
+---@param value boolean|nil Default (false)
+---@param tooltip string|nil
+---@return boolean
+function Property.Bool(value, tooltip) end
+
+---@param value string|nil Default ("")
+---@param tooltip string|nil
+---@return string
+function Property.String(value, tooltip) end
+
+---@param tooltip string|nil
+---@return Vec2
+function Property.Vec2(x, y, tooltip) end
+
+---@param tooltip string|nil
+---@return Vec3
+function Property.Vec3(x, y, z, tooltip) end
+
+---@param tooltip string|nil
+---@return Vec4
+function Property.Vec4(x, y, z, w, tooltip) end
+
+--- A Vec4 edited with a color picker (defaults to white).
+---@param tooltip string|nil
+---@return Vec4
+function Property.Color(r, g, b, a, tooltip) end
+
+--- Reference to another entity of the scene, nil when none is assigned.
+---@param tooltip string|nil
+---@return Entity|nil
+function Property.Entity(tooltip) end
+
+--- Reference to an asset, picked by dropping it from the Content Browser. The script gets the asset's path
+--- (Assets-relative, e.g. "Meshes/Rock.glb"), ready for MeshC:SetMesh, AudioSourceC:SetAudioClip, Scene.Load...
+--- Saved by ID: renaming or moving the asset keeps the reference. nil when none is assigned.
+---@param kind string|nil Accepted asset type: "MESH", "TEXTURE2D", "AUDIO", "MATERIAL", "SCRIPT", "FONT", "SCENE", "UI_LAYOUT" (nil = any)
+---@param path string|nil Default asset path
+---@param tooltip string|nil
+---@return string|nil
+function Property.Asset(kind, path, tooltip) end
+
+--- One string out of a fixed list, edited with a dropdown.
+---   Difficulty = Property.Enum("Normal", { "Easy", "Normal", "Hard" })
+---@param value string|nil Default (the first option when nil)
+---@param options string[]
+---@param tooltip string|nil
+---@return string
+function Property.Enum(value, options, tooltip) end
+
+--- A Lua array of one element type, edited as a list (+ / - buttons).
+---   Waypoints = Property.Array("Entity"), Speeds = Property.Array("Float", { 1, 2.5 }), Props = Property.Array("Asset:MESH")
+---@param elementType string "Float", "Int", "Bool", "String", "Vec2", "Vec3", "Vec4", "Color", "Entity", "Asset" or "Asset:<KIND>"
+---@param values table|nil Default elements
+---@param tooltip string|nil
+---@return table
+function Property.Array(elementType, values, tooltip) end
+
+-- ==============================================================================
+-- TIME, SCENE, PHYSICS QUERIES & SAVE DATA
+-- ==============================================================================
+---@class Time
+Time = {}
+--- Seconds since the last frame, scaled by the time scale (also the deltaTime OnUpdate receives).
+---@return number
+function Time.GetDeltaTime() end
+---@return number
+function Time.GetUnscaledDeltaTime() end
+--- Scaled seconds since the play session started.
+---@return number
+function Time.GetTime() end
+---@return number
+function Time.GetUnscaledTime() end
+---@return integer
+function Time.GetFrameCount() end
+--- The fixed physics step (1/60 s), what OnFixedUpdate receives.
+---@return number
+function Time.GetFixedDeltaTime() end
+---@return number
+function Time.GetTimeScale() end
+--- 0 freezes the game (physics and script delta time), 0.5 is slow motion, 1 is normal. Rendering, input and audio keep running.
+---@param scale number
+function Time.SetTimeScale(scale) end
+
+---@class Scene
+Scene = {}
+--- First entity with this name in the running scene, nil if there is none.
+---@param name string
+---@return Entity|nil
+function Scene.FindEntity(name) end
+---@param name string
+---@return Entity|nil
+function Scene.CreateEntity(name) end
+--- Switches to a fresh copy of a scene asset at the end of the frame. Modules, _G and Storage survive the switch,
+--- the old scene's scripts get OnDisable/OnDestroy. Returns false if the path is not a scene asset.
+---   Scene.Load("Scenes/Level2.srg")   -- or a Property.Asset("SCENE") value
+---@param scenePath string
+---@return boolean
+function Scene.Load(scenePath) end
+
+---@class RaycastHit
+---@field Entity Entity|nil
+---@field Point Vec3
+---@field Normal Vec3
+---@field Distance number
+
+---@class Physics
+Physics = {}
+--- Closest body along a ray (sensors included). Only bodies of the running scene exist (Play mode).
+---@param origin Vec3
+---@param direction Vec3 Does not need to be normalized
+---@param maxDistance number
+---@return RaycastHit|nil
+function Physics.Raycast(origin, direction, maxDistance) end
+
+--- Persistent save data, survives app restarts (Android internal storage, %APPDATA%/SurgeEngine/<Project> on Windows).
+--- Values: nil, boolean, number, string, Math.Vec2/Vec3/Vec4 and tables of those. Keys: 1-64 of a-z A-Z 0-9 _ - .
+--- File IO: save on events (level done, settings changed), not every frame.
+---@class Storage
+Storage = {}
+---@param key string
+---@param value any
+---@return boolean
+function Storage.Save(key, value) end
+---@param key string
+---@param default any Returned when nothing is saved under key
+---@return any
+function Storage.Load(key, default) end
+---@param key string
+---@return boolean
+function Storage.Has(key) end
+---@param key string
+---@return boolean
+function Storage.Delete(key) end
+
+-- ==============================================================================
 -- LOGGING
 -- ==============================================================================
 ---@class Log
@@ -881,12 +1076,29 @@ local ConvexColliderComponent = {}
 local MeshColliderComponent = {}
 
 ---@class ScriptComponent
----@field Active boolean
----@field ScriptAsset number
+---@field Active boolean Turns every script of the entity off (OnDisable) and on (OnEnable)
+---@field Count integer Number of scripts on the entity
 local ScriptComponent = {}
---- Loads and assigns a script asset from a project-relative path.
+--- Adds a script asset (project-relative path). It starts at the beginning of the next frame (OnCreate, OnEnable).
 ---@param scriptAssetPath string
+---@return boolean
+function ScriptComponent:AddScript(scriptAssetPath) end
+--- Same as AddScript (kept for older scripts).
+---@param scriptAssetPath string
+---@return boolean
 function ScriptComponent:SetScript(scriptAssetPath) end
+--- name: the script's file name without extension, e.g. "Player" for Scripts/Player.lua
+---@param name string
+---@return boolean
+function ScriptComponent:HasScript(name) end
+---@param name string
+---@return boolean
+function ScriptComponent:IsScriptActive(name) end
+--- OnDisable / OnEnable run at the start of the next frame.
+---@param name string
+---@param active boolean
+---@return boolean
+function ScriptComponent:SetScriptActive(name, active) end
 
 ---@class TextComponent
 ---@field Active boolean
@@ -1003,6 +1215,20 @@ function Entity:CreateEntity(name) end
 --- Reparents this entity under the given parent entity.
 ---@param parent Entity
 function Entity:SetParent(parent) end
+
+--- The environment of one of this entity's scripts: its global variables, functions and Properties.
+--- With a name (the script's file name, e.g. "Health") that script, without one the first script
+--- (or the UI canvas script). nil until the script is instantiated; every script that starts in the
+--- same frame is instantiated before any OnCreate runs, so this works in OnCreate.
+---   local health = entity:FindEntityByName("Enemy"):GetScript("Health")
+---   health.TakeDamage(10); print(health.Properties.Max)
+---@param name string|nil
+---@return table|nil
+function Entity:GetScript(name) end
+
+--- Every instantiated script environment of this entity, in Script Component order.
+---@return table[]
+function Entity:GetScripts() end
 
 -- Generated Has/Add/Remove/GetOrAdd functions
 ---@return boolean

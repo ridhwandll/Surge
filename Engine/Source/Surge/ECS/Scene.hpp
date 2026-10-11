@@ -23,11 +23,12 @@ namespace Surge
     class Scene final : public Asset
     {
     public:
-        Scene();
+        Scene(const String& name);
         ~Scene();
         SURGE_ASSET_TYPE(AssetType::SCENE);
-        static Ref<Scene> Create() { return Ref<Scene>::Create(); }
+        static Ref<Scene> Create(const String& name) { return Ref<Scene>::Create(name); }
 
+        const String& GetName() { return mName; }
         void OnRuntimeStart();
         void Update(); // Runtime Update
         // EditorView Update, editorDraw runs after the scene was submitted and before the frame ends (editor-only debug geometry)
@@ -39,7 +40,6 @@ namespace Surge
 
         // Entity manipulation
         void CreateEntity(Entity& outEntity, const String& name = "New Entity");
-        void CreateEntityEmpty(Entity& outEntity, const String& name);
         void CreateEntityWithID(Entity& outEntity, const UUID& id, const String& name = "New Entity");
         void DestroyEntity(Entity entity);
         void DestroyEntityImmediate(Entity entity);
@@ -66,9 +66,13 @@ namespace Surge
 
         Pair<RuntimeCamera*, glm::mat4> GetMainCameraEntity(); // Camera - CameraTransform(view = glm::inverse(CameraTransform))
     private:
+        void CreateEntityEmpty(Entity& outEntity, const String& name); // Without TransformComponent
+
         void UpdateTransforms();
         void UpdateSimulation(); // Audio, physics sync and scripts, honors the pause/step state
         void UpdateScripts();
+        void FixedUpdateScripts(float fixedDeltaTime); // Physics fixed step callback while running
+        void DispatchPhysicsEvents();                  // OnCollisionEnter/Exit, OnTriggerEnter/Exit
         void UpdatePhysics();
         void UpdateAudio();
         void UpdateRendering(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix, const glm::vec2& cameraNearFar, const std::function<void(Scene&)>* editorDraw = nullptr);
@@ -84,11 +88,15 @@ namespace Surge
         void OnAudioSourceComponentDestroyed(entt::registry& registry, entt::entity entity);
 
     private:
+        String mName;
         bool mIsRunning = false;
         bool mIsPaused = false;
         Uint mStepFrames = 0;
         entt::registry mRegistry;
         Vector<entt::entity> mEntitiesToDestroy;
+        Vector<entt::entity> mScriptEntities;      // UpdateScripts() scratch, reused every frame
+        Vector<entt::entity> mFixedScriptEntities; // FixedUpdateScripts() scratch
+        Vector<std::pair<entt::entity, Uint>> mCreatedScripts; // (entity, script index) instantiated this frame
     };
 
     //
