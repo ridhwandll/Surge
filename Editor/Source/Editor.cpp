@@ -1062,8 +1062,8 @@ namespace Surge
         if(ctrl && !shift && ImGui::IsKeyPressed(ImGuiKey_S, false))
             SaveScene();
 
-        // Text fields keep their own Ctrl+Z/C/V, the UI Editor runs its own history while it is focused/hovered
-        if(io.WantTextInput || mPanelManager.GetPanel<UIEditorPanel>()->OwnsShortcuts() || mPanelManager.GetPanel<ParticleEditorPanel>()->OwnsShortcuts())
+        // Text fields keep their own Ctrl+Z/C/V, the UI/Particle/Material Editors run their own history while they are focused
+        if(io.WantTextInput || mPanelManager.GetPanel<UIEditorPanel>()->OwnsShortcuts() || mPanelManager.GetPanel<ParticleEditorPanel>()->OwnsShortcuts() || mPanelManager.GetPanel<MaterialEditorPanel>()->OwnsShortcuts())
             return;
 
         if(ctrl && shift && ImGui::IsKeyPressed(ImGuiKey_S, false) && !IsPlaying())

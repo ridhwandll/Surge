@@ -54,6 +54,7 @@ namespace Surge
     struct Environnment
     {
         bool HasEnvironment = false;
+        bool ShowSky = true; // false: only the ambient below lights the scene, the background stays clear
 
         // Sky
         float Elevation = 30.0f; // In degrees

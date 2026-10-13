@@ -13,6 +13,8 @@
 #include "Surge/ScriptEngine/ScriptAsset.hpp"
 #include "Surge/Audio/Audio.hpp"
 #include "Surge/Asset/Serializer/Scene/SceneSerializer.hpp"
+#include "Surge/Asset/Serializer/Mesh/MeshBinaryFormat.hpp"
+#include "Surge/Graphics/Renderer/Renderer.hpp"
 
 #include "Editor.hpp"
 #include "MaterialEditorPanel.hpp"
@@ -53,16 +55,6 @@ namespace Surge
         {
             return (color & ~IM_COL32_A_MASK) | (static_cast<ImU32>(alpha * 255.0f + 0.5f) << IM_COL32_A_SHIFT);
         }
-
-        void MenuSection(const char* title)
-        {
-            ImGuiAux::StyledSeparator();
-            ImGuiAux::ScopedBoldFont font;
-            ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "%s", title);
-            ImGuiAux::StyledSeparator();
-        }
-
-        // ------------------------------------------------------------------ Component identity (header glyph + accent color)
 
         struct ComponentStyle
         {
@@ -635,6 +627,208 @@ namespace Surge
                                   [](char a, char b) { return ::tolower(static_cast<unsigned char>(a)) == b; });
             return it != text.end();
         }
+
+        // ------------------------------------------------------------------ Mesh materials
+
+        String sMaterialFilter; // Shown once a mesh has more slots than fit comfortably
+        constexpr Uint MATERIAL_FILTER_THRESHOLD = 6;
+
+        // An overridden slot's glTF material is released when the mesh loads: rebuilt from the cooked mesh before the override goes
+        void ResetMaterialOverride(Ref<Mesh> mesh, Uint slot)
+        {
+            AssetManager* am = Core::GetAssetManager();
+            if(!mesh->GetMaterials()[slot])
+            {
+                AssetStamp stamp;
+                MeshSpecification spec;
+                if(!MeshBinary::Read(am->GetSidecarPath(mesh->GetID()), stamp, spec) || slot >= spec.Materials.size() || !spec.Materials[slot])
+                {
+                    EditorStatusBar::Get().Notify(Severity::Error, "Could not read the mesh's own material, re-cook the mesh and try again");
+                    return;
+                }
+                //(Rid) spec.Materials[slot] is the gLTF material which was originally assigned to this slot
+                mesh->SetGLTFMaterial(slot, spec.Materials[slot]);
+            }
+            mesh->ClearMaterialOverride(slot);
+            am->Save(mesh->GetID());
+        }
+
+        // Albedo map tinted by the albedo color (what the surface mostly looks like), the plain color without a map
+        void DrawMaterialSwatch(Material* material, const ImVec2& min, float size)
+        {
+            ImDrawList* drawList = ImGui::GetWindowDrawList();
+            const ImVec2 max(min.x + size, min.y + size);
+            if(!material)
+            {
+                drawList->AddRectFilled(min, max, ImGui::GetColorU32(SLOT_BG), 3.0f);
+                drawList->AddRect(min, max, IM_COL32(166, 64, 64, 255), 3.0f, 0, OUTLINE_THICKNESS);
+                return;
+            }
+
+            const glm::vec3 albedo = glm::clamp(material->Get<glm::vec3>("Albedo"), glm::vec3(0.0f), glm::vec3(1.0f));
+            const ImU32 tint = ImGui::GetColorU32(ImVec4(albedo.x, albedo.y, albedo.z, 1.0f));
+            const Ref<Texture2D>& albedoMap = material->GetTexture("AlbedoMap");
+            if(albedoMap && material->Get<int>("UseAlbedoMap"))
+            {
+                const ImTextureID image = static_cast<ImTextureID>(Core::GetRenderer()->GetRHI()->GetImGuiImage(albedoMap->GetRHIImage()));
+                drawList->AddImageRounded(image, min, max, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), tint, 3.0f);
+            }
+            else
+                drawList->AddRectFilled(min, max, tint, 3.0f);
+            drawList->AddRect(min, max, ImGui::GetColorU32(SLOT_BORDER), 3.0f, 0, 1.0f);
+        }
+
+        void DrawMaterialSlots(Ref<Mesh> mesh)
+        {
+            AssetManager* am = Core::GetAssetManager();
+            Editor* editor = static_cast<Editor*>(Core::GetClient());
+            const Uint slotCount = static_cast<Uint>(mesh->GetMaterials().size());
+            const bool builtIn = HasFlag(am->GetMetadata(mesh->GetID()).Flags, AssetFlags::MEMORY);
+
+            const String title = slotCount == 1 ? String("Material") : std::format("Materials ({})", slotCount);
+            ImGuiAux::TSperator(title.c_str());
+            if(builtIn)
+                HintRow("Built-in mesh: overrides change every entity using it and are not saved with the project", ImVec4(0.95f, 0.70f, 0.30f, 1.0f));
+
+            Vector<Uint> submeshCounts(slotCount, 0);
+            for(const Submesh& submesh : mesh->GetSubmeshes())
+            {
+                if(submesh.MaterialIndex < slotCount)
+                    submeshCounts[submesh.MaterialIndex]++;
+            }
+
+            String filter;
+            if(slotCount > MATERIAL_FILTER_THRESHOLD)
+            {
+                ImGui::TableNextColumn();
+                ImGui::TableNextColumn();
+                ImGui::SetNextItemWidth(-FLT_MIN);
+                ImGui::InputTextWithHint("##MaterialFilter", "Filter by material name", &sMaterialFilter);
+                filter = sMaterialFilter;
+                std::transform(filter.begin(), filter.end(), filter.begin(), [](char c) { return static_cast<char>(::tolower(static_cast<unsigned char>(c))); });
+            }
+
+            // Highlight every slot while a material is dragged over the Inspector
+            bool acceptsDrag = false;
+            if(const ImGuiPayload* drag = ImGui::GetDragDropPayload(); drag && drag->IsDataType(CONTENT_BROWSER_PAYLOAD))
+                acceptsDrag = am->GetMetadata(*static_cast<const AssetID*>(drag->Data)).Type == AssetType::MATERIAL;
+
+            int resetSlot = -1;
+            for(Uint i = 0; i < slotCount; i++)
+            {
+                Ref<Material> material = mesh->GetMaterialAtIndex(i);
+                if(!filter.empty() && (!material || !ContainsCaseInsensitive(material->GetName(), filter)))
+                    continue;
+
+                const bool overridden = mesh->HasOverride(i);
+                ImGui::PushID(static_cast<int>(i));
+
+                ImGui::TableNextColumn();
+                ImGui::AlignTextToFramePadding();
+                ImGui::TextColored(MUTED_TEXT, "Slot %u", i);
+                ImGuiAux::DelayedToolTip(std::format("Used by {} submesh{}", submeshCounts[i], submeshCounts[i] == 1 ? "" : "es").c_str());
+                ImGui::TableNextColumn();
+
+                const float frameHeight = ImGui::GetFrameHeight();
+                constexpr float spacing = 4.0f;
+
+                DrawMaterialSwatch(material.Raw(), ImGui::GetCursorScreenPos(), frameHeight);
+                ImGui::Dummy(ImVec2(frameHeight, frameHeight));
+                ImGui::SameLine(0.0f, spacing);
+
+                // Name on the left, where the material comes from on the right
+                const float buttonWidth = ImGui::GetContentRegionAvail().x - (overridden ? frameHeight + spacing : 0.0f);
+                const ImVec4 border = acceptsDrag ? ImVec4(ImGuiAux::Colors::ThemeColor1) : (material ? SLOT_BORDER : ImVec4(0.65f, 0.25f, 0.25f, 1.0f));
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f);
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, OUTLINE_THICKNESS);
+                ImGui::PushStyleColor(ImGuiCol_Border, border);
+                ImGui::PushStyleColor(ImGuiCol_Button, SLOT_BG);
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, SLOT_BG_HOVERED);
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, SLOT_BG_ACTIVE);
+                const bool clicked = ImGui::Button("##Material", ImVec2(std::max(buttonWidth, frameHeight), 0.0f));
+                ImGui::PopStyleColor(4);
+                ImGui::PopStyleVar(2);
+
+                const ImVec2 buttonMin = ImGui::GetItemRectMin();
+                const ImVec2 buttonMax = ImGui::GetItemRectMax();
+                {
+                    ImDrawList* drawList = ImGui::GetWindowDrawList();
+                    const char* tag = !material ? "" : (overridden ? "OVERRIDE" : (material->GetID() ? "ASSET" : "glTF"));
+                    const ImU32 tagColor = overridden ? ImGui::GetColorU32(ImVec4(ImGuiAux::Colors::ThemeColor1)) : ImGui::GetColorU32(MUTED_TEXT);
+                    const float tagWidth = ImGui::CalcTextSize(tag).x;
+                    const float textY = (buttonMin.y + buttonMax.y - ImGui::GetTextLineHeight()) * 0.5f;
+                    const float padding = ImGui::GetStyle().FramePadding.x;
+
+                    drawList->AddText(ImVec2(buttonMax.x - padding - tagWidth, textY), tagColor, tag);
+
+                    drawList->PushClipRect(buttonMin, ImVec2(buttonMax.x - padding - tagWidth - 8.0f, buttonMax.y), true);
+                    {
+                        ImGuiAux::ScopedBoldFont bold;
+                        const char* name = material ? material->GetName().c_str() : "Missing material";
+                        const ImU32 nameColor = material ? ImGui::GetColorU32(ImGuiCol_Text) : IM_COL32(217, 115, 115, 255);
+                        drawList->AddText(ImVec2(buttonMin.x + padding, (buttonMin.y + buttonMax.y - ImGui::GetTextLineHeight()) * 0.5f), nameColor, name);
+                    }
+                    drawList->PopClipRect();
+                }
+
+                if(clicked && material)
+                    editor->GetPanelManager().GetPanel<MaterialEditorPanel>()->OpenMaterial(material, mesh, i);
+                ImGuiAux::DelayedToolTip(material ? "Click: edit in the Material Editor, right click: more\nDrop a MATERIAL here to override this slot for every entity using this mesh"
+                                                  : "Drop a MATERIAL here to fill this slot");
+
+                if(ImGui::BeginDragDropTarget())
+                {
+                    if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(CONTENT_BROWSER_PAYLOAD))
+                    {
+                        SG_ASSERT(payload->DataSize == sizeof(AssetID), "Payload size mismatch!");
+                        const AssetID dropped = *static_cast<const AssetID*>(payload->Data);
+                        if(am->GetMetadata(dropped).Type == AssetType::MATERIAL)
+                        {
+                            if(Ref<Material> newMaterial = am->Load<Material>(dropped))
+                            {
+                                mesh->SetMaterialOverride(i, newMaterial);
+                                am->Save(mesh->GetID()); // Only the mesh: saving the material would also write its unsaved Material Editor edits
+                            }
+                        }
+                        else
+                            EditorStatusBar::Get().Notify(Severity::Warn, "Mesh slots take MATERIAL assets");
+                    }
+                    ImGui::EndDragDropTarget();
+                }
+
+                if(ImGuiAux::BeginStyledPopupContextItem("##SlotMenu"))
+                {
+                    if(ImGuiAux::StyledMenuItem("Edit in Material Editor", nullptr, nullptr, static_cast<bool>(material)))
+                        editor->GetPanelManager().GetPanel<MaterialEditorPanel>()->OpenMaterial(material, mesh, i);
+                    if(ImGuiAux::StyledMenuItem("Show in Content Browser", nullptr, nullptr, material && material->GetID()))
+                        editor->GetPanelManager().GetPanel<ContentBrowserPanel>()->SetSelectedAsset(material->GetID());
+                    ImGuiAux::StyledSeparator();
+                    if(ImGuiAux::StyledMenuItem("Reset to Mesh Material", nullptr, nullptr, overridden))
+                        resetSlot = static_cast<int>(i);
+                    ImGuiAux::EndStyledPopup();
+                }
+
+                if(overridden)
+                {
+                    ImGui::SameLine(0.0f, spacing);
+                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f);
+                    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, OUTLINE_THICKNESS);
+                    ImGui::PushStyleColor(ImGuiCol_Button, SLOT_BG);
+                    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.55f, 0.18f, 0.18f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_Border, SLOT_BORDER);
+                    if(ImGui::Button("x", ImVec2(frameHeight, frameHeight)))
+                        resetSlot = static_cast<int>(i);
+                    ImGui::PopStyleColor(3);
+                    ImGui::PopStyleVar(2);
+                    ImGuiAux::DelayedToolTip("Remove the override: back to the mesh's own material");
+                }
+
+                ImGui::PopID();
+            }
+
+            if(resetSlot >= 0)
+                ResetMaterialOverride(mesh, static_cast<Uint>(resetSlot));
+        }
     } // namespace
 
     void InspectorPanel::Init(void*)
@@ -805,8 +999,10 @@ namespace Surge
 
             if(!searching && (!category || strcmp(category, item.Category) != 0))
             {
-                category = item.Category;
-                MenuSection(category);
+                ImGuiAux::StyledSeparator();
+                ImGuiAux::ScopedBoldFont font;
+                ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "%s", item.Category);
+                ImGuiAux::StyledSeparator();
             }
             else if(searching && !anyShown)
                 ImGuiAux::StyledSeparator();
@@ -923,61 +1119,7 @@ namespace Surge
                     return;
 
                 ImGuiAux::TProperty<bool>("Drop Shadow", &component.DropShadow);
-
-                Ref<Mesh> mesh = component.MeshAsset;
-                ImGuiAux::TSperator("Materials");
-                for(size_t i = 0; i < mesh->GetMaterials().size(); i++)
-                {
-                    ImGui::PushID(static_cast<int>(i));
-                    Ref<Material> material = mesh->GetMaterialAtIndex(static_cast<Uint>(i));
-
-                    ImGui::TableNextRow();
-                    ImGui::TableSetColumnIndex(0);
-                    ImGui::AlignTextToFramePadding();
-                    ImGui::Text("Slot %zu", i);
-
-                    ImGui::TableSetColumnIndex(1);
-                    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, OUTLINE_THICKNESS);
-                    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.5f));
-                    if(material)
-                    {
-                        const String label = mesh->HasOverride(static_cast<Uint>(i)) ? std::format("{}  (override)", material->GetName()) : material->GetName();
-                        if(ImGui::Button(label.c_str(), ImVec2(ImGui::GetContentRegionAvail().x, 0.0f)))
-                        {
-                            auto* editor = static_cast<Editor*>(Core::GetClient());
-                            editor->GetPanelManager().GetPanel<MaterialEditorPanel>()->SetSelectedMaterial(material);
-                            ImGui::SetWindowFocus("Material Editor");
-                        }
-                        ImGuiAux::DelayedToolTip("Click: edit in the Material Editor\nDrop a MATERIAL here to override this slot");
-                    }
-                    else
-                    {
-                        ImGuiAux::ScopedBoldFont font;
-                        ImGui::AlignTextToFramePadding();
-                        ImGui::TextColored(ImGuiAux::Colors::Red, "MISSING MATERIAL");
-                    }
-                    ImGui::PopStyleVar(2);
-
-                    if(ImGui::BeginDragDropTarget())
-                    {
-                        if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(CONTENT_BROWSER_PAYLOAD))
-                        {
-                            AssetManager* am = Core::GetAssetManager();
-                            SG_ASSERT(payload->DataSize == sizeof(AssetID), "Payload size mismatch!");
-                            const AssetID droppedAssetID = *static_cast<const AssetID*>(payload->Data);
-                            const AssetMetadata& meta = am->GetMetadata(droppedAssetID);
-
-                            if(meta.Type == AssetType::MATERIAL)
-                            {
-                                mesh->SetMaterialOverride(static_cast<Uint>(i), am->Load<Material>(droppedAssetID));
-                                am->Save(meta.ID);
-                                am->Save(component.MeshAsset->GetID());
-                            }
-                        }
-                        ImGui::EndDragDropTarget();
-                    }
-                    ImGui::PopID();
-                }
+                DrawMaterialSlots(component.MeshAsset.As<Mesh>());
             });
         }
 

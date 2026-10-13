@@ -1148,6 +1148,8 @@ function Application.RequestExit() end
 -- ECS COMPONENTS
 -- ==============================================================================
 
+--- Property names (Renderer3D): Albedo (Vec3), Metallic, Roughness, Reflectance, Emission (Vec3), EmissionIntensity (floats),
+--- UseAlbedoMap, UseNormalMap, UseMetallicMap, UseRoughnessMap, UseEmissionMap (ints)
 ---@class Material
 local Material = {}
 function Material:MarkDirty() end

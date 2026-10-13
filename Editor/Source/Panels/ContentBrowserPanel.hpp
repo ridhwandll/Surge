@@ -49,6 +49,7 @@ namespace Surge
         void SetSelectedAsset(AssetID asset); // Shows the asset's folder and selects it
         void RequestRefresh() { mNeedsRefresh = true; }
         void ReleaseGPUResources(); // Icons + thumbnails, before the Editor's icon sampler goes away
+        ThumbnailCache& GetThumbnails() { return mThumbnails; } // Shared with the asset pickers, uploads only while the browser is shown
 
     private:
         struct Item

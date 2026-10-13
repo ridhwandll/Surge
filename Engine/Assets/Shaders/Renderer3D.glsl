@@ -64,11 +64,15 @@ layout(set = 1, binding = 0) uniform Material
     int UseNormalMap;
     int UseMetallicMap;
     int UseRoughnessMap;
+    int UseEmissionMap; // Fills the std140 padding before Emission
+    vec3 Emission;
+    float EmissionIntensity;
 } uMaterial;
 
 layout(set = 1, binding = 1) uniform sampler2D AlbedoMap;
 layout(set = 1, binding = 2) uniform sampler2D NormalMap;
 layout(set = 1, binding = 3) uniform sampler2D RoughnessMetallicMap;
+layout(set = 1, binding = 4) uniform sampler2D EmissionMap;
 
 // Set 2: Shadows
 layout(set = 2, binding = 0) uniform sampler2DShadow uShadowMap0;
@@ -290,7 +294,10 @@ void main()
         directAccumulation += contribution;
     }
 
-    vec3 HDRColor = ambient + directAccumulation;
+    vec3 emission = uMaterial.Emission * uMaterial.EmissionIntensity;
+    if (uMaterial.UseEmissionMap == 1)
+        emission *= texture(EmissionMap, vInput.TexCoord).rgb;
+    vec3 HDRColor = ambient + directAccumulation + emission;
     FinalColor = vec4(VisuaLizeCascades(HDRColor, cascadeIndex), 1.0);
 }
 

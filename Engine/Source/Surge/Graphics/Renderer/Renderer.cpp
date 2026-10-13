@@ -226,6 +226,7 @@ namespace Surge
 
         mRHI->EndFrame(mCurrentFrameCtx); // Stops command buffer recording & presents image to swapchain
         mMainRenderGraph.ClearLists();
+        mMainRenderGraph.GetBlackboard().HasDirectionalLight = false; // Follows LightList: no sun next frame = no shadow cascades rendered
         mOverlayMark.Set = false;
     }
 
@@ -303,10 +304,9 @@ namespace Surge
         FrameBlackboard* blackBoard = &mMainRenderGraph.GetBlackboard();
         if(view != INVALID_RENDER_VIEW)
         {
-            RenderView* target = FindView(view);
-            if(!target || target->Destroyed || !target->Desc.Isolated)
+            blackBoard = FindIsolatedBlackboard(view);
+            if(!blackBoard)
                 return {};
-            blackBoard = &target->Graph->GetBlackboard();
         }
 
         // The emitter index is 16 bits in ParticleRecord
@@ -322,6 +322,35 @@ namespace Surge
         blackBoard->ParticleList.resize(blackBoard->ParticleList.size() + count); // Capacity is kept across frames, no allocation after warm-up
         submission.Records = blackBoard->ParticleList.data() + emitter.FirstRecord;
         return submission;
+    }
+
+    void Renderer::SubmitMesh(const glm::mat4& transform, const Mesh* mesh, bool dropShadow, RenderViewID view)
+    {
+        if(FrameBlackboard* blackBoard = FindIsolatedBlackboard(view))
+            blackBoard->MeshList.emplace_back(MeshSubmitCmd { transform, mesh, dropShadow });
+    }
+
+    void Renderer::SubmitLight(const Light& light, RenderViewID view)
+    {
+        FrameBlackboard* blackBoard = FindIsolatedBlackboard(view);
+        if(!blackBoard)
+            return;
+
+        if(light.PositionType.w == (float)LightType::DIRECTIONAL)
+        {
+            blackBoard->HasDirectionalLight = true; // Reset with the view's lists after it executed
+            blackBoard->DirectionalLightDir = glm::vec3(light.PositionType);
+        }
+        blackBoard->LightList.emplace_back(light);
+    }
+
+    void Renderer::SubmitEnvironment(const Environnment& env, RenderViewID view)
+    {
+        if(FrameBlackboard* blackBoard = FindIsolatedBlackboard(view))
+        {
+            blackBoard->Env = env; // Reset with the view's lists after it executed
+            blackBoard->Env.HasEnvironment = true;
+        }
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -481,6 +510,14 @@ namespace Surge
         return nullptr;
     }
 
+    FrameBlackboard* Renderer::FindIsolatedBlackboard(RenderViewID id) const
+    {
+        RenderView* view = FindView(id);
+        if(!view || view->Destroyed || !view->Desc.Isolated)
+            return nullptr;
+        return &view->Graph->GetBlackboard();
+    }
+
     void Renderer::ExecuteViews()
     {
         SURGE_PROFILE_FUNC("Renderer::ExecuteViews");
@@ -495,7 +532,11 @@ namespace Surge
             if(view.Destroyed || !requested || !view.HasCamera || view.Size.x == 0 || view.Size.y == 0)
             {
                 if(view.Desc.Isolated)
+                {
                     view.Graph->ClearLists(); // Its submissions were for this frame only
+                    view.Graph->GetBlackboard().HasDirectionalLight = false;
+                    view.Graph->GetBlackboard().Env = Environnment {};
+                }
                 continue;
             }
 
@@ -529,13 +570,8 @@ namespace Surge
             blackBoard.AOSettings = mainBlackBoard.AOSettings;
             blackBoard.Bloom = mainBlackBoard.Bloom;
 
-            if(view.Desc.Isolated)
-            {
-                // Only what was submitted to this view (previews): no scene lights, sky or environment
-                blackBoard.Env = Environnment {};
-                blackBoard.HasDirectionalLight = false;
-            }
-            else
+            // Isolated views draw only what was submitted to them (previews): no scene lights, sky or environment
+            if(!view.Desc.Isolated)
             {
                 blackBoard.Env = mainBlackBoard.Env;
                 blackBoard.HasDirectionalLight = mainBlackBoard.HasDirectionalLight;
@@ -573,7 +609,11 @@ namespace Surge
             view.HasOutput = true;
 
             if(view.Desc.Isolated)
+            {
                 view.Graph->ClearLists();
+                blackBoard.HasDirectionalLight = false;
+                blackBoard.Env = Environnment {};
+            }
         }
     }
 

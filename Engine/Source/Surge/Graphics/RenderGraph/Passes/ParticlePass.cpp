@@ -277,7 +277,7 @@ namespace Surge
 
         PushConstantData pushConstants = {};
         pushConstants.ProjectionScaleY = mProjectionScaleY;
-        mRHI->CmdPushConstants(ctx, mPipeline, ShaderType::VERTEX, 0, sizeof(PushConstantData), &pushConstants);
+        mRHI->CmdPushConstants(ctx, mPipeline, ShaderType::VERTEX | ShaderType::FRAGMENT, 0, sizeof(PushConstantData), &pushConstants);
 
         for(const DrawCmd& draw : mDraws)
         {

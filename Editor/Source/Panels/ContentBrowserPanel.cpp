@@ -1927,10 +1927,7 @@ namespace Surge
         switch(item.Type)
         {
             case AssetType::SCENE: editor->OpenScene(item.ID); break; // Asks first when there are unsaved changes
-            case AssetType::MATERIAL:
-                editor->GetPanelManager().GetPanel<MaterialEditorPanel>()->SetSelectedMaterial(mAssetManager->Load<Material>(item.ID));
-                ImGui::SetWindowFocus("Material Editor");
-                break;
+            case AssetType::MATERIAL: editor->GetPanelManager().GetPanel<MaterialEditorPanel>()->OpenMaterial(mAssetManager->Load<Material>(item.ID)); break;
             case AssetType::UI_LAYOUT: editor->GetPanelManager().GetPanel<UIEditorPanel>()->OpenLayout(item.ID); break;
             case AssetType::PARTICLE_EFFECT: editor->GetPanelManager().GetPanel<ParticleEditorPanel>()->OpenEffect(item.ID); break;
             case AssetType::SCRIPT: Platform::OpenInVSCode(mAssetManager->GetAssetsDirectory(), item.AbsolutePath.string()); break;

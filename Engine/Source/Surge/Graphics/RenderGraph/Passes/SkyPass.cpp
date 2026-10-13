@@ -41,7 +41,7 @@ namespace Surge
 
     void SkyPass::Execute(const FrameContext& ctx, const FrameBlackboard& blackBoard)
     {
-        if (!blackBoard.Env.HasEnvironment)
+        if (!blackBoard.Env.HasEnvironment || !blackBoard.Env.ShowSky)
             return;
 
         mRHI->CmdBindPipeline(ctx, mSkyPipeline);

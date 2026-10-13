@@ -237,6 +237,7 @@ namespace Surge
                 material->SetTexture("AlbedoMap", whiteTexture);
                 material->SetTexture("NormalMap", whiteTexture);
                 material->SetTexture("RoughnessMetallicMap", whiteTexture);
+                material->SetTexture("EmissionMap", whiteTexture);
 
                 if(mat.has_pbr_metallic_roughness)
                 {
@@ -258,6 +259,12 @@ namespace Surge
                     material->Set<int>("UseNormalMap", 1);
                 else
                     material->Set<int>("UseNormalMap", 0);
+
+                material->Set<glm::vec3>("Emission", glm::vec3(mat.emissive_factor[0], mat.emissive_factor[1], mat.emissive_factor[2]));
+                float emissiveStrength = mat.has_emissive_strength ? mat.emissive_strength.emissive_strength : 1.0f;
+                material->Set<float>("EmissionIntensity", emissiveStrength);
+                if(SetMaterialTexture(absPath, mat.emissive_texture, material, "EmissionMap"))
+                    material->Set<int>("UseEmissionMap", 1);
             }
         }
     }

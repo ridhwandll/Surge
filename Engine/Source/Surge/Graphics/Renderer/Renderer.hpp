@@ -58,6 +58,11 @@ namespace Surge
         // Reserves 'count' records for one emitter (ParticleRuntime::Submit packs into them). view: an isolated Editor view (previews),
         // INVALID_RENDER_VIEW = the frame's scene. Records = null when nothing could be reserved
         ParticleSubmission SubmitParticles(const ParticleEmitterCmd& cmd, Uint count, RenderViewID view = INVALID_RENDER_VIEW);
+
+        // Isolated Editor views only (previews), ignored for any other view. The scene path keeps the inline overloads above
+        void SubmitMesh(const glm::mat4& transform, const Mesh* mesh, bool dropShadow, RenderViewID view);
+        void SubmitLight(const Light& light, RenderViewID view);
+        void SubmitEnvironment(const Environnment& env, RenderViewID view);
         FORCEINLINE void SubmitEnvironment(Environnment&& env)
         {
             env.HasEnvironment = true;
@@ -163,6 +168,7 @@ namespace Surge
 
         void AddScenePasses(RenderGraph& graph, bool withUI);
         RenderView* FindView(RenderViewID id) const;
+        FrameBlackboard* FindIsolatedBlackboard(RenderViewID id) const; // nullptr unless it is a live isolated view
         void QueueViewResize(RenderViewID id, glm::uvec2 size);
         void ExecuteViews();
         void DestroyViewImmediate(RenderView& view);

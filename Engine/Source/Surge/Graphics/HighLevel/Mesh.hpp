@@ -70,6 +70,12 @@ namespace Surge
             return index < mMaterialOverrides.size() && mMaterialOverrides[index];
         }
 
+        void SetGLTFMaterial(Uint index, const Ref<Material>& material)
+        {
+            SG_ASSERT(index < mGLTFMaterials.size(), "Slot index out of range!");
+            mGLTFMaterials[index] = material;
+        }
+
         Ref<Material> GetMaterialAtIndex(Uint index) const;
         const Material* GetMaterialPtrAtIndex(Uint index) const; // Render loops: no refcount traffic
 

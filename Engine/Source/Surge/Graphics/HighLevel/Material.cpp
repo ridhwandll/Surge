@@ -103,6 +103,11 @@ namespace Surge
         Renderer* r = Core::GetRenderer();
         Ref<Material> material = Ref<Material>::Create(r->GetRenderGraphBlackBoard().MaterialPipeline, r->GetShaderManager().Get("Renderer3D.glsl"), "Material");
         material->SetName(name);
+
+        material->Set<glm::vec3>("Albedo", glm::vec3(0.8f));
+        material->Set<float>("Roughness", 0.5f);
+        material->Set<float>("Reflectance", 0.5f);
+        material->Set<float>("EmissionIntensity", 1.0f);
         return material;
     }
 
@@ -150,6 +155,7 @@ namespace Surge
         SetTexture("AlbedoMap", mWhiteTexture);
         SetTexture("NormalMap", mWhiteTexture);
         SetTexture("RoughnessMetallicMap", mWhiteTexture);
+        SetTexture("EmissionMap", mWhiteTexture);
     }
 
     const Surge::ShaderResource* Material::FindResource(const String& name) const

@@ -70,7 +70,6 @@ namespace Surge
 
     Mesh::~Mesh()
     {
-        // Destroy* is deferred until the GPU has retired every frame that may still use the buffers, no device drain needed
         Scope<GraphicsRHI>& rhi = Core::GetRenderer()->GetRHI();
         rhi->DestroyBuffer(mVertexBuffer);
         rhi->DestroyBuffer(mIndexBuffer);

@@ -182,12 +182,9 @@ namespace Surge
         barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         barrier.image = entry.Image;
 
-        if(entry.Layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
-            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-        else if(entry.Layout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)
-            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-        else
-            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        // From the format, never the current layout: a depth image leaving UNDEFINED or SHADER_READ_ONLY still needs the depth aspect
+        // (shadow maps of a view whose ShadowPass skipped its first frame go UNDEFINED -> SAMPLED). Depth/stencil formats take both aspects
+        barrier.subresourceRange.aspectMask = VulkanUtils::GetVkImageAspectFlags(entry.Desc.Format);
 
         barrier.subresourceRange.baseMipLevel = 0;
         barrier.subresourceRange.levelCount = entry.Desc.MipLevel;
