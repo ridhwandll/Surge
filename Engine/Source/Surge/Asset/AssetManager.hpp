@@ -58,6 +58,7 @@ namespace Surge
             meta.RelativePath = relativePath;
             meta.Flags = AssetFlags::VALID | AssetFlags::LOADED;
             mAssetRegistry[newID] = meta;
+            mPathToID[relativePath] = newID;
 
             Ref<T> newAsset = T::Create(std::forward<Args>(args)...);
             newAsset->mID = newID;
@@ -100,6 +101,10 @@ namespace Surge
 
                 // Trigger user callback (In Editor this reads the binary file header to see if it is uptodate, Cooks the asset if needed)
                 shouldReload = mLoadCallback->OnAssetLoad(id, *metadata);
+
+                // Cooking can load other assets (a scene's meshes, a material's textures) and rehash the cache
+                cacheIt = mLoadedAssets.find(id);
+                isCached = cacheIt != mLoadedAssets.end();
             }
 
             // FAST PATH
@@ -121,7 +126,9 @@ namespace Surge
                 return nullptr;
             }
 
-            if(HasFlag(metadata->Flags, AssetFlags::MISSING))
+            // The Player has nothing that could bring a MISSING asset back. In the Editor the source may have been fixed or re-cooked since the
+            // failed load (JSON assets have no cooker to notice), so always retry: a successful load clears the flag
+            if(!mLoadCallback && HasFlag(metadata->Flags, AssetFlags::MISSING))
             {
                 Log<Severity::Error>("[AssetManager] Load: Asset is marked as MISSING for ID {}!", id.Get());
                 return nullptr;
@@ -170,26 +177,32 @@ namespace Surge
         // @return      true if the asset is registered, false otherwise
         bool IsRegistered(AssetID id);
 
+        // UnloadUnreferenced
+        // Drops every cached asset nothing else references (Ref count = 1), repeated until nothing changes since freeing a Material/Mesh/UILayout
+        // releases the textures/fonts it held. Call it after the old scene is released on a scene change, assets the next scene still uses survive
+        // @return      Number of assets unloaded
+        Uint UnloadUnreferenced();
+
         // Save
         // Saves the asset to disk
         // @param id    AssetID of the asset to save
-        void Save(AssetID id);
+        // @return      false if the asset is not loaded/registered or its serializer failed
+        bool Save(AssetID id);
 
         // UnregisterAsset
         // Removes the asset from the registry
         // @param id    AssetID of the asset to unregister
-        void UnregisterAsset(AssetID id) { mAssetRegistry.erase(id); SerializeRegistry(); }
+        void UnregisterAsset(AssetID id);
 
         // GetIDFromPath
-        // Returns the AssetID associated with a given relative path.
-        // This is a linear search, so avoid using this in performance critical code.
-        // It's best to cache the AssetID after the first lookup if you need to reference an asset by path multiple times
+        // Returns the AssetID associated with a given relative path (hash lookup, the match is exact and case sensitive like the APK)
         // @param relativePath    Path to the asset relative to the assets directory
         // @return                AssetID of the asset, or UUID::INVALID if not found
         AssetID GetIDFromPath(const String& relativePath);
 
         // UpdateAssetPath
         // Updates the relative path of an already registered asset. This is used when renaming/moving source files on disk.
+        // Refused if another asset is registered at newRelativePath
         // @param id                 AssetID of the asset to update
         // @param newRelativePath    New path relative to the assets directory
         // serialize = false lets a batch (moving a folder) write the registry once at the end with SerializeRegistry()
@@ -239,6 +252,7 @@ namespace Surge
     private:
         String sAssetsDirectory;
         std::unordered_map<AssetID, AssetMetadata> mAssetRegistry;
+        std::unordered_map<String, AssetID> mPathToID; // Mirrors mAssetRegistry's RelativePaths, only the methods below may change either
         std::unordered_map<AssetID, Ref<Asset>> mLoadedAssets;
         std::unordered_map<AssetType, Scope<AssetSerializer>> mSerializers;
         Scope<AssetLoadCallback> mLoadCallback = nullptr;

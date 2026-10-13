@@ -7,9 +7,8 @@
 
 namespace Surge
 {
-    // Prepended to every binary asset file (.rMESH, .rTEXTURE2D, .rMATERIAL)
-    // Serializers respect this AssetStamp and expects it to be present at the start of the file
-    // Serializers DO NOT WRITE the AssetStamp on Serialize
+    // Prepended to every binary asset file (.rMESH, .rTEXTURE2D, .rMATERIAL etc.)
+    // Serializers MUST respect this AssetStamp and expect it to be present at the start of the file
 
     // Example: Mesh:
     // AssetStamp written by   : MeshCooker             (Editor) fresh stamp, Current mod time

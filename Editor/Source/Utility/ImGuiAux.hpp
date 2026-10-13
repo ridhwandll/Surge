@@ -127,10 +127,10 @@ namespace Surge::ImGuiAux
     void ItemTooltip(const char* text);
     bool ButtonCentered(const char* title);
 
-    inline void TSperator(const char* text)
+    inline void TSperator(const char* text, bool disabled = false)
     {
         ScopedBoldFont font;
-        ScopedColor color({ ImGuiCol_Separator }, Colors::ThemeColor1);
+        ScopedColor color({ ImGuiCol_Separator }, disabled ? Colors::Aluminum : Colors::ThemeColor1);
         ImGui::TableNextColumn();
         ImGui::SeparatorText(text);
         ImGui::TableNextColumn();

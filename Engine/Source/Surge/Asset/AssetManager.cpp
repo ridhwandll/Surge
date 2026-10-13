@@ -4,14 +4,18 @@
 #include "Serializer/Script/ScriptSerializer.hpp"
 #include "Serializer/Material/MaterialSerializer.hpp"
 #include "Serializer/Mesh/MeshSerializer.hpp"
-#include "Serializer/SceneSerializer.hpp"
+#include "Serializer/Scene/SceneSerializer.hpp"
 #include "Serializer/Texture2DSerializer.hpp"
 #include "Serializer/Font/FontSerializer.hpp"
 #include "Serializer/Audio/AudioSerializer.hpp"
-#include "Serializer/UILayoutSerializer.hpp"
+#include "Serializer/UILayout/UILayoutSerializer.hpp"
+#include "Serializer/ParticleEffect/ParticleEffectSerializer.hpp"
 
 #include "Surge/Utility/Filesystem.hpp"
+#include "Surge/Core/Profiler.hpp"
 
+#include <algorithm>
+#include <cctype>
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
@@ -31,6 +35,7 @@ namespace Surge
         mSerializers[AssetType::FONT] = CreateScope<FontSerializer>();
         mSerializers[AssetType::AUDIO] = CreateScope<AudioSerializer>();
         mSerializers[AssetType::UI_LAYOUT] = CreateScope<UILayoutSerializer>();
+        mSerializers[AssetType::PARTICLE_EFFECT] = CreateScope<ParticleEffectSerializer>();
 
         for(auto& [type, serializer] : mSerializers)
             serializer->Initialize();
@@ -63,6 +68,7 @@ namespace Surge
         SerializeRegistry();
         mLoadedAssets.clear();
         mAssetRegistry.clear();
+        mPathToID.clear();
         Log<Severity::Info>("[AssetManager] Shutdown");
         mInitialized = false;
     }
@@ -105,6 +111,7 @@ namespace Surge
 
         meta.RelativePath = relativePath;
         mAssetRegistry[id] = std::move(meta);
+        mPathToID[relativePath] = id;
 
         Log<Severity::Info>("[AssetManager] Imported '{}' | ID: {} | Type: {}", relativePath, id.Get(), SurgeReflect::EnumToString(type).data());
         return id;
@@ -162,20 +169,80 @@ namespace Surge
         return true;
     }
 
+    Uint AssetManager::UnloadUnreferenced()
+    {
+        SURGE_PROFILE_FUNC("AssetManager::UnloadUnreferenced");
+        Uint total = 0;
+        Uint unloaded = 0;
+        do
+        {
+            // Erasing destroys the asset, which only lowers the Ref count of the assets it held: they are picked up by the next pass
+            unloaded = 0;
+            for(auto it = mLoadedAssets.begin(); it != mLoadedAssets.end();)
+            {
+                if(it->second->GetRefCount() > 1)
+                {
+                    ++it;
+                    continue;
+                }
+
+                if(AssetMetadata* meta = GetMetadataForEdit(it->first))
+                    meta->Flags &= ~AssetFlags::LOADED;
+
+                it = mLoadedAssets.erase(it);
+                unloaded++;
+            }
+            total += unloaded;
+
+        } while(unloaded > 0);
+
+        if(total > 0)
+            Log<Severity::Info>("[AssetManager] Unloaded {} unreferenced asset(s), {} still loaded", total, mLoadedAssets.size());
+        return total;
+    }
+
     bool AssetManager::IsLoaded(AssetID id)
     {
         return mLoadedAssets.find(id) != mLoadedAssets.end();
     }
 
-    void AssetManager::Save(AssetID id)
+    bool AssetManager::Save(AssetID id)
     {
         auto cacheIt = mLoadedAssets.find(id);
-        SG_ASSERT(cacheIt != mLoadedAssets.end(), "[AssetManager] Save: AssetID {} is not loaded!", id.Get());
-        SG_ASSERT(mAssetRegistry.find(id) != mAssetRegistry.end(), "[AssetManager] Save: AssetID {} is not registered!", id.Get());
+        if(cacheIt == mLoadedAssets.end())
+        {
+            Log<Severity::Error>("[AssetManager] Save: AssetID {} is not loaded!", id.Get());
+            return false;
+        }
 
-        auto serIt = mSerializers.find(mAssetRegistry.at(id).Type);
-        SG_ASSERT(serIt != mSerializers.end() && serIt->second, "[AssetManager] Save: No serializer found!'");
-        serIt->second->Serialize(cacheIt->second);
+        auto metaIt = mAssetRegistry.find(id);
+        if(metaIt == mAssetRegistry.end())
+        {
+            Log<Severity::Error>("[AssetManager] Save: AssetID {} is not registered!", id.Get());
+            return false;
+        }
+
+        auto serIt = mSerializers.find(metaIt->second.Type);
+        if(serIt == mSerializers.end() || !serIt->second)
+        {
+            Log<Severity::Error>("[AssetManager] Save: No serializer for type {}!", SurgeReflect::EnumToString(metaIt->second.Type).data());
+            return false;
+        }
+        return serIt->second->Serialize(cacheIt->second);
+    }
+
+    void AssetManager::UnregisterAsset(AssetID id)
+    {
+        auto it = mAssetRegistry.find(id);
+        if(it == mAssetRegistry.end())
+            return;
+
+        auto pathIt = mPathToID.find(it->second.RelativePath);
+        if(pathIt != mPathToID.end() && pathIt->second == id)
+            mPathToID.erase(pathIt);
+
+        mAssetRegistry.erase(it);
+        SerializeRegistry();
     }
 
     bool AssetManager::IsRegistered(AssetID id)
@@ -207,11 +274,22 @@ namespace Surge
 
     AssetID AssetManager::GetIDFromPath(const String& relativePath)
     {
-        for(const auto& [id, meta] : mAssetRegistry)
+        auto it = mPathToID.find(relativePath);
+        if(it != mPathToID.end())
+            return it->second;
+
+#ifdef SURGE_PLATFORM_WINDOWS
+        // Windows paths ignore case, the APK does not: a path that only matches with another case works on desktop but not on device.
+        // Only misses pay for this scan (the same cost the lookup always had before the hash map)
+        for(const auto& [path, id] : mPathToID)
         {
-            if(meta.RelativePath == relativePath)
-                return id;
+            if(path.size() == relativePath.size() && std::equal(path.begin(), path.end(), relativePath.begin(), [](char a, char b) { return std::tolower(static_cast<unsigned char>(a)) == std::tolower(static_cast<unsigned char>(b)); }))
+            {
+                Log<Severity::Warn>("[AssetManager] '{}' is not registered, but '{}' is: paths are case sensitive on Android", relativePath, path);
+                break;
+            }
         }
+#endif
         return UUID::INVALID;
     }
 
@@ -221,12 +299,24 @@ namespace Surge
         Log<Severity::Error>("[AssetManager] UpdateAssetPath is an Editor function. APK assets are readonly!");
 #else
         auto it = mAssetRegistry.find(id);
-        if(it != mAssetRegistry.end())
+        if(it == mAssetRegistry.end() || it->second.RelativePath == newRelativePath)
+            return;
+
+        auto takenIt = mPathToID.find(newRelativePath);
+        if(takenIt != mPathToID.end() && takenIt->second != id)
         {
-            it->second.RelativePath = newRelativePath;
-            if(serialize)
-                SerializeRegistry();
+            Log<Severity::Error>("[AssetManager] UpdateAssetPath: '{}' already belongs to asset {}, {} keeps '{}'", newRelativePath, takenIt->second.Get(), id.Get(), it->second.RelativePath);
+            return;
         }
+
+        auto oldIt = mPathToID.find(it->second.RelativePath);
+        if(oldIt != mPathToID.end() && oldIt->second == id)
+            mPathToID.erase(oldIt);
+
+        it->second.RelativePath = newRelativePath;
+        mPathToID[newRelativePath] = id;
+        if(serialize)
+            SerializeRegistry();
 #endif
     }
 
@@ -284,6 +374,7 @@ namespace Surge
         }
 
         mAssetRegistry.clear();
+        mPathToID.clear();
 
         std::istringstream stream(fileContents);
         String line;
@@ -344,11 +435,13 @@ namespace Surge
                 bool exists = sourceExists || sidecarExists;
                 meta.Flags = exists ? AssetFlags::VALID : AssetFlags::MISSING;
 
-                if(!sourceExists)
-                    Log<Severity::Warn>("[AssetManager] DeserializeRegistry: Source file missing for {}", relPath);
+                // Exported builds only ship the cooked files, a missing source alone is normal there
                 if (!exists)
                     Log<Severity::Warn>("[AssetManager] DeserializeRegistry: Asset Source & Sidecar is missing for {}", relPath);
             }
+
+            if(!mPathToID.try_emplace(relPath, id).second)
+                Log<Severity::Warn>("[AssetManager] DeserializeRegistry: '{}' is registered twice, path lookups resolve to {}", relPath, mPathToID[relPath].Get());
 
             mAssetRegistry[id] = std::move(meta);
             count++;

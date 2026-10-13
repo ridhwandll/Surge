@@ -251,6 +251,64 @@ namespace Surge
         FreeLibrary((HMODULE)library);
     }
 
+    // Text input: physical keyboard only, text arrives as KeyTyped events
+    void Platform::ShowSoftKeyboard(SoftKeyboardType, bool, const TextInputState&) {}
+    void Platform::HideSoftKeyboard() {}
+    void Platform::SetTextInputState(const TextInputState&) {}
+    bool Platform::PollTextInputState(TextInputState&) { return false; }
+    bool Platform::PollTextInputSubmit() { return false; }
+    bool Platform::IsSoftKeyboardVisible() { return false; }
+    float Platform::GetSoftKeyboardHeight() { return 0.0f; }
+    glm::vec4 Platform::GetSafeAreaInsets() { return { 0.0f, 0.0f, 0.0f, 0.0f }; }
+
+    String Platform::GetClipboardText()
+    {
+        String result;
+        if(!OpenClipboard(static_cast<HWND>(Core::GetWindow()->GetNativeWindowHandle())))
+            return result;
+
+        if(HANDLE data = GetClipboardData(CF_UNICODETEXT))
+        {
+            if(const wchar_t* text = static_cast<const wchar_t*>(GlobalLock(data)))
+            {
+                const int size = WideCharToMultiByte(CP_UTF8, 0, text, -1, nullptr, 0, nullptr, nullptr);
+                if(size > 1)
+                {
+                    result.resize(static_cast<size_t>(size - 1));
+                    WideCharToMultiByte(CP_UTF8, 0, text, -1, result.data(), size, nullptr, nullptr);
+                }
+                GlobalUnlock(data);
+            }
+        }
+        CloseClipboard();
+
+        // Windows line breaks -> \n
+        result.erase(std::remove(result.begin(), result.end(), '\r'), result.end());
+        return result;
+    }
+
+    void Platform::SetClipboardText(const String& text)
+    {
+        const int wideSize = MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, nullptr, 0);
+        if(wideSize <= 0 || !OpenClipboard(static_cast<HWND>(Core::GetWindow()->GetNativeWindowHandle())))
+            return;
+
+        EmptyClipboard();
+        if(HGLOBAL memory = GlobalAlloc(GMEM_MOVEABLE, static_cast<SIZE_T>(wideSize) * sizeof(wchar_t)))
+        {
+            if(wchar_t* destination = static_cast<wchar_t*>(GlobalLock(memory)))
+            {
+                MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, destination, wideSize);
+                GlobalUnlock(memory);
+                if(!SetClipboardData(CF_UNICODETEXT, memory))
+                    GlobalFree(memory); // Ownership only moves to the clipboard on success
+            }
+            else
+                GlobalFree(memory);
+        }
+        CloseClipboard();
+    }
+
     // Look at this stackoverflow post for other platfrom implementation: https://stackoverflow.com/a/60250581/14349078
     String Platform::GetCurrentExecutablePath()
     {

@@ -1,6 +1,6 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
-#include "IAssetSerializer.hpp"
+#include "Surge/Asset/Serializer/IAssetSerializer.hpp"
 #include "Surge/Graphics/UISystem/UILayout.hpp"
 
 namespace Surge

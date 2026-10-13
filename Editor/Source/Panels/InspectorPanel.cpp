@@ -12,12 +12,14 @@
 
 #include "Surge/ScriptEngine/ScriptAsset.hpp"
 #include "Surge/Audio/Audio.hpp"
-#include "Surge/Serializer/Serializer.hpp"
+#include "Surge/Asset/Serializer/Scene/SceneSerializer.hpp"
 
 #include "Editor.hpp"
 #include "MaterialEditorPanel.hpp"
 #include "ContentBrowserPanel.hpp"
 #include "UIEditorPanel.hpp"
+#include "ParticleEditorPanel.hpp"
+#include "Surge/Graphics/Particles/ParticleEffect.hpp"
 #include "Surge/Graphics/UISystem/UILayout.hpp"
 #include "Utility/ImGuiAux.hpp"
 #include "Gizmos/GizmoIcons.hpp"
@@ -38,8 +40,8 @@ namespace Surge
     namespace
     {
         constexpr ImU32 DISABLED_GLYPH = IM_COL32(110, 110, 110, 255);
-        constexpr float HEADER_GRADIENT_WIDTH = 0.4f;  // Fraction of the header the component color fades over
-        constexpr float HEADER_GRADIENT_ALPHA = 0.44f; // Opacity at the right edge
+        constexpr float HEADER_GRADIENT_WIDTH = 0.5f;  // Fraction of the header the component color fades over
+        constexpr float HEADER_GRADIENT_ALPHA = 0.65f; // Opacity at the right edge
         constexpr float OUTLINE_THICKNESS = 1.5f;
         const ImVec4 SLOT_BG(0.2f, 0.2f, 0.2f, 1.0f);
         const ImVec4 SLOT_BG_HOVERED(0.07f, 0.07f, 0.07f, 1.0f);
@@ -87,6 +89,7 @@ namespace Surge
             else if constexpr(std::is_same_v<T, UICanvasComponent>)          return { GizmoIcon::UI_CANVAS, IM_COL32(240, 130, 190, 255) };
             else if constexpr(std::is_same_v<T, AudioSourceComponent>)       return { GizmoIcon::AUDIO_SOURCE, AUDIO_COLOR };
             else if constexpr(std::is_same_v<T, AudioListenerComponent>)     return { GizmoIcon::AUDIO_LISTENER, AUDIO_COLOR };
+            else if constexpr(std::is_same_v<T, ParticleSystemComponent>)    return { GizmoIcon::PARTICLES, GizmoIcons::PARTICLES_COLOR };
             else                                                             return { GizmoIcon::COLLIDER, COLLIDER_COLOR }; // Colliders
         }
 
@@ -102,7 +105,7 @@ namespace Surge
             return CountComponents<TransformComponent, CameraComponent, SpriteRendererComponent, MeshComponent, LightComponent, EnvironmentComponent,
                                    RigidbodyComponent, BoxColliderComponent, SphereColliderComponent, CapsuleColliderComponent, CylinderColliderComponent,
                                    ConvexColliderComponent, MeshColliderComponent, ScriptComponent, TextComponent, UICanvasComponent,
-                                   AudioListenerComponent, AudioSourceComponent>(e);
+                                   AudioListenerComponent, AudioSourceComponent, ParticleSystemComponent>(e);
         }
 
         // ------------------------------------------------------------------ Component clipboard
@@ -110,7 +113,7 @@ namespace Surge
 
         struct ComponentClipboard
         {
-            String Key; // Reflection class name, the component's key in Serializer::SerializeEntity()
+            String Key; // Reflection class name, the component's key in SceneSerializer::EntityToJson()
             String DisplayName;
             String Json;
             bool (*Has)(Entity) = nullptr;
@@ -125,7 +128,7 @@ namespace Surge
         template <typename T>
         void CopyComponent(Entity entity, const char* displayName)
         {
-            const nlohmann::json state = nlohmann::json::parse(Serializer::SerializeEntity(entity), nullptr, false);
+            const nlohmann::json state = nlohmann::json::parse(SceneSerializer::EntityToJson(entity), nullptr, false);
             const char* key = ComponentKey<T>();
             if(state.is_discarded() || !state.contains(key))
                 return;
@@ -139,12 +142,12 @@ namespace Surge
             Core::AddFrameEndCallback([entity, clipboard = sComponentClipboard]() {
                 if(!entity)
                     return;
-                nlohmann::json state = nlohmann::json::parse(Serializer::SerializeEntity(entity), nullptr, false);
+                nlohmann::json state = nlohmann::json::parse(SceneSerializer::EntityToJson(entity), nullptr, false);
                 nlohmann::json value = nlohmann::json::parse(clipboard.Json, nullptr, false);
                 if(state.is_discarded() || value.is_discarded())
                     return;
                 state[clipboard.Key] = std::move(value);
-                Serializer::DeserializeEntity(state.dump(), entity);
+                SceneSerializer::EntityFromJson(state.dump(), entity);
             });
         }
 
@@ -353,9 +356,12 @@ namespace Surge
         void HintRow(const char* text, const ImVec4& color = MUTED_TEXT)
         {
             ImGui::TableNextColumn();
+            ImGui::TextColored(color, "%s", "Hint");
             ImGui::TableNextColumn();
             ImGui::PushTextWrapPos(0.0f);
+            ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0], 14.0f);
             ImGui::TextColored(color, "%s", text);
+            ImGui::PopFont();
             ImGui::PopTextWrapPos();
         }
 
@@ -455,6 +461,15 @@ namespace Surge
             // Header: framed tree node (keeps the open state per component type), everything else is drawn on top of it
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 5.0f));
 
+            if constexpr(HasActiveProperty_v<XComponent>)
+            {
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5.0f, 5.0f));
+                ImGui::Checkbox("##Active", &component.Active);
+                ImGuiAux::DelayedToolTip(component.Active ? "Enabled" : "Disabled");
+                ImGui::PopStyleVar();
+                ImGui::SameLine(0.0f, 8.0f);
+            }
+
             const float labelX = ImGui::GetCursorScreenPos().x + ImGui::GetTreeNodeToLabelSpacing();
             const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth |
                                              ImGuiTreeNodeFlags_AllowOverlap | ImGuiTreeNodeFlags_FramePadding;
@@ -491,16 +506,6 @@ namespace Surge
                 ImGui::SetCursorScreenPos(ImVec2(rightX, headerMin.y + 2.0f));
                 if(OptionsButton("##Options", buttonSize))
                     openMenu = true;
-            }
-            if constexpr(HasActiveProperty_v<XComponent>)
-            {
-                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(3.0f, 3.0f));
-                const float checkboxSize = ImGui::GetFrameHeight();
-                rightX -= checkboxSize + 4.0f;
-                ImGui::SetCursorScreenPos(ImVec2(rightX, centerY - checkboxSize * 0.5f));
-                ImGui::Checkbox("##Active", &component.Active);
-                ImGuiAux::DelayedToolTip(component.Active ? "Enabled" : "Disabled");
-                ImGui::PopStyleVar();
             }
             ImGui::SetCursorScreenPos(ImVec2(headerMin.x, headerMax.y + ImGui::GetStyle().ItemSpacing.y));
             ImGui::PopStyleVar();
@@ -580,6 +585,7 @@ namespace Surge
             { "Light", "RENDERING", StyleOf<LightComponent>(), &HasComponentOf<LightComponent>, &AddDefault<LightComponent>, nullptr },
             { "Environment", "RENDERING", StyleOf<EnvironmentComponent>(), &HasComponentOf<EnvironmentComponent>, &AddDefault<EnvironmentComponent>, nullptr },
             { "Text", "RENDERING", StyleOf<TextComponent>(), &HasComponentOf<TextComponent>, &AddDefault<TextComponent>, nullptr },
+            { "Particle System", "RENDERING", StyleOf<ParticleSystemComponent>(), &HasComponentOf<ParticleSystemComponent>, &AddDefault<ParticleSystemComponent>, nullptr },
 
             { "Rigidbody", "PHYSICS", StyleOf<RigidbodyComponent>(), &HasComponentOf<RigidbodyComponent>, &AddDefault<RigidbodyComponent>, nullptr },
             { "Box Collider", "PHYSICS", StyleOf<BoxColliderComponent>(), &HasComponentOf<BoxColliderComponent>, &AddDefault<BoxColliderComponent>, nullptr },
@@ -1229,6 +1235,77 @@ namespace Surge
             });
         }
 
+        if(entity.HasComponent<ParticleSystemComponent>())
+        {
+            ParticleSystemComponent& component = entity.GetComponent<ParticleSystemComponent>();
+            DrawComponent<ParticleSystemComponent>(entity, "Particle System", [&component, &entity]() {
+                DrawAssetDropSlot<ParticleEffect>("Effect", component.Effect, AssetType::PARTICLE_EFFECT, "None (Particle Effect)");
+
+                ImGui::TableNextColumn();
+                ImGui::TableNextColumn();
+                ParticleEditorPanel* particleEditor = static_cast<Editor*>(Core::GetClient())->GetPanelManager().GetPanel<ParticleEditorPanel>();
+                if(component.Effect)
+                {
+                    if(ImGui::Button("Edit Effect", ImVec2(-FLT_MIN, 0.0f)))
+                        particleEditor->OpenEffect(component.Effect->GetID());
+                }
+                else if(ImGui::Button("Create New Effect", ImVec2(-FLT_MIN, 0.0f)))
+                {
+                    // Assets/Effects/<EntityName>.spfx, assigned and opened in the Particle Editor right away
+                    AssetManager* am = Core::GetAssetManager();
+                    const String name = entity.HasComponent<NameComponent>() ? entity.GetComponent<NameComponent>().Name : String("ParticleEffect");
+                    const AssetID effectID = ParticleEditorPanel::CreateEffectAsset(std::filesystem::path(am->GetAssetsDirectory()) / "Effects", name);
+                    if(effectID)
+                    {
+                        component.Effect = am->Load<ParticleEffect>(effectID);
+                        particleEditor->OpenEffect(effectID);
+                    }
+                }
+
+                // Edit mode previews the effect in the Scene views, Play mode drives the running one
+                ParticleRuntime& runtime = component.Runtime;
+                ImGuiAux::TSperator("Playback");
+                ImGui::TableNextColumn();
+                ImGui::TableNextColumn();
+                {
+                    const float buttonSize = ImGui::GetFrameHeight();
+                    const ImVec4 glyphColor = ImGui::GetStyleColorVec4(ImGuiCol_Text);
+                    ImGui::BeginDisabled(!component.Effect);
+                    if(GizmoIcons::IconButton("##PlayPause", runtime.IsPlaying() ? GizmoIcon::PAUSE : GizmoIcon::PLAY, ImVec2(buttonSize, buttonSize), glyphColor))
+                    {
+                        if(runtime.IsPlaying())
+                            runtime.Pause();
+                        else
+                            runtime.Play();
+                    }
+                    ImGuiAux::DelayedToolTip(runtime.IsPlaying() ? "Pause" : "Play");
+                    ImGui::SameLine(0.0f, 2.0f);
+                    if(GizmoIcons::IconButton("##Restart", GizmoIcon::STEP, ImVec2(buttonSize, buttonSize), glyphColor))
+                        runtime.Restart();
+                    ImGuiAux::DelayedToolTip("Restart");
+                    ImGui::SameLine(0.0f, 2.0f);
+                    if(GizmoIcons::IconButton("##Stop", GizmoIcon::STOP, ImVec2(buttonSize, buttonSize), glyphColor))
+                        runtime.Stop(true);
+                    ImGuiAux::DelayedToolTip("Stop and clear");
+                    ImGui::EndDisabled();
+
+                    ImGui::SameLine();
+                    ImGui::AlignTextToFramePadding();
+                    ImGui::TextDisabled("%.2f s  |  %u particles", runtime.GetTime(), runtime.GetParticleCount());
+                }
+
+                ImGuiAux::TSperator("Settings");
+                ImGuiAux::TProperty<bool>("Auto Play", &component.AutoPlay);
+                ImGuiAux::TProperty<bool>("Auto Destroy", &component.AutoDestroy);
+                ImGuiAux::TSlider<float>("Simulation Speed", &component.SimulationSpeed, 0.0f, 4.0f, "%.2f");
+                ImGuiAux::TProperty<float>("Emission Multiplier", &component.EmissionMultiplier, 0.0f, 100.0f);
+                ImGuiAux::TProperty<int>("Seed", &component.Seed);
+                constexpr auto cullingModeStrings = std::array { "ALWAYS_SIMULATE", "PAUSE_OFFSCREEN", "PAUSE_AND_CATCH_UP" };
+                ImGuiAux::TComboBox("Culling", component.Culling, cullingModeStrings);
+                HintRow("Seed 0 = a different sequence every play. Culling: what the effect does outside the camera (Player only)");
+            });
+        }
+
         if(entity.HasComponent<UICanvasComponent>())
         {
             UICanvasComponent& component = entity.GetComponent<UICanvasComponent>();
@@ -1296,6 +1373,9 @@ namespace Surge
                     if(ImGuiAux::TProperty<float>("Max Distance", &component.MaxDistance, 0.0f, 100000.0f) && component.RuntimeID)
                         audioEngine->SetMaxDistance(component.RuntimeID, component.MaxDistance);
                 }
+                HintRow("Music and long ambience: use OGG with Streaming on. That keeps about 1 MB per minute in memory and no PCM.\n\n"
+                        "Short SFX : leave Streaming off.They decode once and every source shares the PCM, so there’s no decoding while playing.\n"
+                        "Avoid WAV for music.The encoded WAV already sits in RAM, and a non - streamed WAV adds its full PCM copy on top.");
             });
         }
 

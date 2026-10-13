@@ -16,7 +16,7 @@
     #endif
 
 // Enable profiling for release builds if SURGE_RELEASE is defined
-#define PROFILE_RELEASE 1
+#define PROFILE_RELEASE 0
 
 #ifdef SURGE_RELEASE
     #if PROFILE_RELEASE

@@ -74,8 +74,7 @@ namespace Surge
                 const Path assetsRoot = projectDir / "app/src/main/assets";
                 fs::remove_all(assetsRoot, ec);
                 Filesystem::CreateOrEnsureDirectories(assetsRoot);
-                ExportUtils::StageRuntimeContent(assetsRoot, job);
-                if(session.IsCancelled())
+                if(!ExportUtils::StageRuntimeContent(session, assetsRoot, job) || session.IsCancelled())
                     return false;
 
                 if(!a.IconPath.empty())

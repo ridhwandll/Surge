@@ -68,6 +68,8 @@ namespace Surge
             settings.AOSettings.ApplyQualityPreset(mobile ? AOQuality::LOW : AOQuality::ULTRA);
             settings.AOSettings.Enable = !mobile;
             settings.Bloom.ApplyQualityPreset(mobile ? BloomQuality::LOW : BloomQuality::ULTRA);
+            settings.Particles.MaxParticles = mobile ? 8192 : 131072;
+            settings.Particles.EmissionQuality = 1.0f;
         }
     } // namespace
 
@@ -117,11 +119,11 @@ namespace Surge
         ImGui::SameLine();
         if(ImGui::SmallButton("Mobile"))
             ApplyPlatformBudget(settings, true);
-        ImGuiAux::ItemTooltip("Android defaults: 0.8x scale, 8 lights, 2 cascades, no AO, low bloom");
+        ImGuiAux::ItemTooltip("Android defaults: 0.8x scale, 8 lights, 2 cascades, no AO, low bloom, 8k particles");
         ImGui::SameLine();
         if(ImGui::SmallButton("Desktop"))
             ApplyPlatformBudget(settings, false);
-        ImGuiAux::ItemTooltip("Desktop defaults: full scale, 64 lights, 3 cascades, ultra AO and bloom");
+        ImGuiAux::ItemTooltip("Desktop defaults: full scale, 64 lights, 3 cascades, ultra AO and bloom, 128k particles");
 
         const char* advancedLabel = "Advanced";
         const float advancedWidth = ImGui::GetFrameHeight() + ImGui::GetStyle().ItemInnerSpacing.x + ImGui::CalcTextSize(advancedLabel).x;
@@ -156,6 +158,20 @@ namespace Surge
             Row("FXAA");
             ImGui::Checkbox("##FXAA", &settings.PostProcessSettings_.EnableFXAA);
             ImGuiAux::ItemTooltip("Full screen anti-aliasing, not recommended on mobile");
+            EndSection();
+        }
+
+        if(BeginSection("Particles"))
+        {
+            Row("Max Particles");
+            int maxParticles = static_cast<int>(settings.Particles.MaxParticles);
+            if(ImGui::DragInt("##MaxParticles", &maxParticles, 64.0f, 0, 1 << 20, "%d", ImGuiSliderFlags_AlwaysClamp))
+                settings.Particles.MaxParticles = static_cast<Uint>(maxParticles);
+            ImGuiAux::ItemTooltip("Live particles of every particle system together, emission stops at the budget");
+
+            Row("Emission Quality");
+            ImGui::SliderFloat("##EmissionQuality", &settings.Particles.EmissionQuality, ParticleSettings::MIN_EMISSION_QUALITY, 1.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+            ImGuiAux::ItemTooltip("Scales every emission rate and burst, a quality knob for weaker devices");
             EndSection();
         }
 

@@ -109,16 +109,14 @@ namespace Surge::MeshBinary
         if(!Filesystem::ReadBinaryFile(path, fileData))
             return false;
 
-        const Byte* ptr = fileData.data();
-        const Byte* endPtr = fileData.data() + fileData.size();
-
         if(fileData.size() < sizeof(AssetStamp) + sizeof(Header))
             return false;
 
-        ReadData(ptr, outstamp);
+        BinaryReader reader(fileData.data(), fileData.size());
+        reader.Read(outstamp);
 
         Header header = {};
-        ReadData(ptr, header);
+        reader.Read(header);
 
         if(header.Magic != kSidecarMagic)
         {
@@ -131,46 +129,57 @@ namespace Surge::MeshBinary
             return false;
         }
 
+        // Every count comes from the file: check it against the bytes left before allocating from it (each entry is at least one byte)
+        if(!reader.Fits(header.VertexCount, sizeof(Vertex)) || !reader.Fits(header.IndexCount, sizeof(Index)) ||
+           !reader.Fits(header.SubmeshCount, 1) || !reader.Fits(header.TransientMaterialCount, 1))
+        {
+            Log<Severity::Error>("[MeshSerializer] {} is truncated or corrupted!", path);
+            return false;
+        }
+
         outSpec.Vertices.resize(header.VertexCount);
-        if(header.VertexCount > 0)
-            ReadDataArray(ptr, outSpec.Vertices.data(), header.VertexCount);
+        reader.ReadArray(outSpec.Vertices.data(), header.VertexCount);
 
         outSpec.Indices.resize(header.IndexCount);
-        if(header.IndexCount > 0)
-            ReadDataArray(ptr, outSpec.Indices.data(), header.IndexCount);
+        reader.ReadArray(outSpec.Indices.data(), header.IndexCount);
 
         outSpec.Submeshes.reserve(header.SubmeshCount);
-        for(Uint i = 0; i < header.SubmeshCount; i++)
+        for(Uint i = 0; i < header.SubmeshCount && !reader.Failed; i++)
         {
             Submesh& sm = outSpec.Submeshes.emplace_back();
-            ReadData(ptr, sm.BaseVertex);
-            ReadData(ptr, sm.BaseIndex);
-            ReadData(ptr, sm.MaterialIndex);
-            ReadData(ptr, sm.IndexCount);
-            ReadData(ptr, sm.VertexCount);
-            ReadData(ptr, sm.BoundingBox.Min);
-            ReadData(ptr, sm.BoundingBox.Max);
-            ReadData(ptr, sm.Transform);
-            ReadData(ptr, sm.LocalTransform);
-            sm.NodeName = ReadStr(ptr);
-            sm.MeshName = ReadStr(ptr);
+            reader.Read(sm.BaseVertex);
+            reader.Read(sm.BaseIndex);
+            reader.Read(sm.MaterialIndex);
+            reader.Read(sm.IndexCount);
+            reader.Read(sm.VertexCount);
+            reader.Read(sm.BoundingBox.Min);
+            reader.Read(sm.BoundingBox.Max);
+            reader.Read(sm.Transform);
+            reader.Read(sm.LocalTransform);
+            sm.NodeName = reader.ReadStr();
+            sm.MeshName = reader.ReadStr();
         }
 
         outSpec.Materials.resize(header.TransientMaterialCount);
-        for(Uint i = 0; i < header.TransientMaterialCount; i++)
-            outSpec.Materials[i] = MaterialBinary::ReadBuffer(ptr);
+        for(Uint i = 0; i < header.TransientMaterialCount && !reader.Failed; i++)
+            outSpec.Materials[i] = MaterialBinary::ReadBuffer(reader);
 
         outSpec.MaterialOverrides.assign(outSpec.Submeshes.size(), AssetID::INVALID);
-        for(Uint i = 0; i < header.ValidOverrideCount; i++)
+        for(Uint i = 0; i < header.ValidOverrideCount && !reader.Failed; i++)
         {
             Uint slotIndex = 0;
             uint64_t rawID = 0;
-            ReadData(ptr, slotIndex);
-            ReadData(ptr, rawID);
-            if(slotIndex < static_cast<Uint>(outSpec.Submeshes.size()))
+            reader.Read(slotIndex);
+            reader.Read(rawID);
+            if(!reader.Failed && slotIndex < static_cast<Uint>(outSpec.Submeshes.size()))
                 outSpec.MaterialOverrides[slotIndex] = AssetID(rawID);
         }
 
-        return ptr <= endPtr;
+        if(reader.Failed)
+        {
+            Log<Severity::Error>("[MeshSerializer] {} is truncated or corrupted!", path);
+            return false;
+        }
+        return true;
     }
 }

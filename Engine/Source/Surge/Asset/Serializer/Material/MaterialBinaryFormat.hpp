@@ -4,6 +4,11 @@
 #include "Surge/Graphics/HighLevel/Material.hpp"
 #include "Surge/Asset/Serializer/AssetStamp.hpp"
 
+namespace Surge
+{
+    struct BinaryReader;
+}
+
 namespace Surge::MaterialBinary
 {
     // MaterialBinary
@@ -15,7 +20,7 @@ namespace Surge::MaterialBinary
 
     Uint CalculateSize(const Ref<Material>& mat);
     void WriteBuffer(Vector<Byte>& buffer, const Ref<Material>& mat);
-    Ref<Material> ReadBuffer(const Byte*& ptr);
+    Ref<Material> ReadBuffer(BinaryReader& reader); // Null when the material has no data or the reader failed
 
     bool Write(const String& path, const AssetStamp& stamp, const Ref<Material>& mat);
     bool Read(const String& path, AssetStamp& outStamp, Ref<Material>& outMat);

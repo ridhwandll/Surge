@@ -221,6 +221,78 @@ namespace Surge
             return changed;
         }
 
+        bool PropertyInt(const char* label, int& value, int min, int max)
+        {
+            ImGui::PushID(label);
+            PropertyLabel(label);
+            const bool changed = ImGui::DragInt("##v", &value, 0.1f, min, max);
+            ImGui::PopID();
+            value = glm::clamp(value, min, max);
+            return changed;
+        }
+
+        bool PropertySlider(const char* label, float& value, float min, float max)
+        {
+            ImGui::PushID(label);
+            PropertyLabel(label);
+            const bool changed = ImGui::SliderFloat("##v", &value, min, max, "%.2f");
+            ImGui::PopID();
+            return changed;
+        }
+
+        bool PropertyVec4(const char* label, glm::vec4& value, float speed, float min = 0.0f, float max = 0.0f, const char* format = "%.1f")
+        {
+            ImGui::PushID(label);
+            PropertyLabel(label);
+            const bool changed = ImGui::DragFloat4("##v", glm::value_ptr(value), speed, min, max, format);
+            ImGui::PopID();
+            return changed;
+        }
+
+        // One drawn part of a widget (texture, color, 9-slice, rounded corners, border), as rows of the current property table
+        bool PropertyImagePart(const char* label, UI::ImagePartDesc& part, bool showColor, bool allowFilled, bool* outSetNativeSize)
+        {
+            constexpr std::array<const char*, 3> modeNames = { "Simple", "Sliced (9-slice)", "Filled" };
+            constexpr std::array<UI::ImageMode, 3> modeValues = { UI::ImageMode::SIMPLE, UI::ImageMode::SLICED, UI::ImageMode::FILLED };
+            constexpr std::array<const char*, 2> partModeNames = { "Simple", "Sliced (9-slice)" };
+            constexpr std::array<UI::ImageMode, 2> partModeValues = { UI::ImageMode::SIMPLE, UI::ImageMode::SLICED };
+
+            ImGui::PushID(label);
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::TextColored(ImVec4(1.0f, 0.65f, 0.0f, 1.0f), "%s", label);
+
+            bool changed = PropertyAsset("Texture", part.Texture, AssetType::TEXTURE2D);
+            if(part.Texture && outSetNativeSize)
+            {
+                PropertyLabel("");
+                if(ImGui::Button("Set Native Size", ImVec2(-FLT_MIN, 0.0f)))
+                    *outSetNativeSize = true;
+            }
+            if(showColor)
+                changed |= PropertyColor("Color", part.Color);
+
+            changed |= allowFilled ? PropertyCombo("Mode", part.Mode, modeNames, modeValues) : PropertyCombo("Mode", part.Mode, partModeNames, partModeValues);
+            if(part.Mode == UI::ImageMode::SLICED)
+            {
+                changed |= PropertyVec4("Slice Border", part.SliceBorder, 0.5f, 0.0f, 4096.0f, "%.0f");
+                ImGuiAux::DelayedToolTip("Left, top, right, bottom in texture pixels: corners keep their size, edges and center stretch");
+                changed |= PropertyFloat("Slice Scale", part.SliceScale, 0.01f, 0.0f, 100.0f, "%.2f");
+                changed |= PropertyBool("Fill Center", part.FillCenter);
+            }
+            else
+            {
+                changed |= PropertyFloat("Corner Radius", part.CornerRadius, 0.25f, 0.0f, 10000.0f);
+                ImGuiAux::DelayedToolTip("UI units. Half the height (or more) makes a pill / circle");
+            }
+            changed |= PropertyFloat("Border Width", part.BorderWidth, 0.1f, 0.0f, 500.0f);
+            if(part.BorderWidth > 0.0f)
+                changed |= PropertyColor("Border Color", part.BorderColor);
+
+            ImGui::PopID();
+            return changed;
+        }
+
         bool BeginPropertyTable(const char* id)
         {
             if(!ImGui::BeginTable(id, 2, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_PadOuterX))
@@ -432,7 +504,7 @@ namespace Surge
             mPreviewRoot->Destroy();
 
         mPreviewWidgets.clear();
-        mPreviewRoot = UI::Instantiate(mRoot, mResourceCache, &mPreviewWidgets);
+        mPreviewRoot = UI::Instantiate(mRoot, mResourceCache, &mPreviewWidgets, true); // Design preview: modals in place, placeholder list items
         mNeedsRebuild = false;
         UpdatePreviewLayout();
 
@@ -460,8 +532,7 @@ namespace Surge
         if(it == mPreviewWidgets.end())
             return false;
 
-        glm::vec2 pos, size;
-        it->second->GetGlobalBounds(pos, size);
+        auto [pos, size] = it->second->GetGlobalBounds();
         outMin = pos;
         outMax = pos + size;
         return true;
@@ -650,17 +721,13 @@ namespace Surge
             UUID parent = mRoot.ID;
             if(const UI::WidgetDesc* selected = mRoot.Find(mSelected))
             {
-                if(selected->Type == UI::WidgetType::BASE_WIDGET || selected->Type == UI::WidgetType::IMAGE)
+                if(UI::IsContainerType(selected->Type))
                     parent = selected->ID;
                 else if(const UI::WidgetDesc* selectedParent = mRoot.FindParentOf(mSelected))
                     parent = selectedParent->ID;
             }
 
-            for(UI::WidgetType type : { UI::WidgetType::BASE_WIDGET, UI::WidgetType::IMAGE, UI::WidgetType::TEXT, UI::WidgetType::BUTTON, UI::WidgetType::IMAGE_BUTTON })
-            {
-                if(ImGui::MenuItem(UI::WidgetTypeToDisplayName(type)))
-                    QueueAction({ .Op = PendingAction::Type::ADD_WIDGET, .NewParent = parent, .NewWidgetType = type });
-            }
+            DrawAddWidgetMenuItems(parent, false);
             ImGui::EndPopup();
         }
 
@@ -719,11 +786,7 @@ namespace Surge
 
         if(ImGui::BeginPopupContextItem("##HierarchyBackground", ImGuiPopupFlags_MouseButtonRight))
         {
-            for(UI::WidgetType type : { UI::WidgetType::BASE_WIDGET, UI::WidgetType::IMAGE, UI::WidgetType::TEXT, UI::WidgetType::BUTTON, UI::WidgetType::IMAGE_BUTTON })
-            {
-                if(ImGui::MenuItem(std::format("Add {}", UI::WidgetTypeToDisplayName(type)).c_str()))
-                    QueueAction({ .Op = PendingAction::Type::ADD_WIDGET, .NewParent = mRoot.ID, .NewWidgetType = type });
-            }
+            DrawAddWidgetMenuItems(mRoot.ID, true);
             ImGui::EndPopup();
         }
 
@@ -809,11 +872,7 @@ namespace Surge
                 mSelected = desc.ID;
                 if(ImGui::BeginMenu("Add Child"))
                 {
-                    for(UI::WidgetType type : { UI::WidgetType::BASE_WIDGET, UI::WidgetType::IMAGE, UI::WidgetType::TEXT, UI::WidgetType::BUTTON, UI::WidgetType::IMAGE_BUTTON })
-                    {
-                        if(ImGui::MenuItem(UI::WidgetTypeToDisplayName(type)))
-                            QueueAction({ .Op = PendingAction::Type::ADD_WIDGET, .NewParent = desc.ID, .NewWidgetType = type });
-                    }
+                    DrawAddWidgetMenuItems(desc.ID, false);
                     ImGui::EndMenu();
                 }
 
@@ -1048,6 +1107,36 @@ namespace Surge
                 case UI::WidgetType::TEXT:
                     snippet = std::format("local widget = entity.UICanvasC:FindWidget(\"{}\")\nwidget.Text = \"Hello\"", desc->Name);
                     break;
+                case UI::WidgetType::TOGGLE:
+                    snippet = std::format("local widget = entity.UICanvasC:FindWidget(\"{}\")\nwidget:OnValueChanged(function(self) Log(tostring(self.IsOn)) end)", desc->Name);
+                    break;
+                case UI::WidgetType::SLIDER:
+                    snippet = std::format("local widget = entity.UICanvasC:FindWidget(\"{}\")\nwidget:OnValueChanged(function(self) Log(tostring(self.Value)) end)", desc->Name);
+                    break;
+                case UI::WidgetType::PROGRESS_BAR:
+                    snippet = std::format("local widget = entity.UICanvasC:FindWidget(\"{}\")\nwidget.Value = 0.75", desc->Name);
+                    break;
+                case UI::WidgetType::JOYSTICK:
+                    snippet = std::format("local widget = entity.UICanvasC:FindWidget(\"{}\")\n-- In OnUpdate: local dir = widget.Direction (Vec2, +Y up)", desc->Name);
+                    break;
+                case UI::WidgetType::INPUT_FIELD:
+                    snippet = std::format("local widget = entity.UICanvasC:FindWidget(\"{}\")\nwidget:OnSubmit(function(self) Log(self.Text) end)", desc->Name);
+                    break;
+                case UI::WidgetType::DROPDOWN:
+                    snippet = std::format("local widget = entity.UICanvasC:FindWidget(\"{}\")\nwidget:OnValueChanged(function(self) Log(self.SelectedText) end)", desc->Name);
+                    break;
+                case UI::WidgetType::MODAL:
+                    snippet = std::format("local widget = entity.UICanvasC:FindWidget(\"{}\")\nwidget:Show()", desc->Name);
+                    break;
+                case UI::WidgetType::TAB_VIEW:
+                    snippet = std::format("local widget = entity.UICanvasC:FindWidget(\"{}\")\nwidget:OnValueChanged(function(self) Log(tostring(self.ActiveTab)) end)", desc->Name);
+                    break;
+                case UI::WidgetType::LIST_VIEW:
+                    snippet = std::format("local widget = entity.UICanvasC:FindWidget(\"{}\")\nwidget:OnBindItem(function(item, index) item:GetText().Text = \"Item \" .. index end)\nwidget.ItemCount = 100", desc->Name);
+                    break;
+                case UI::WidgetType::SCROLL_VIEW:
+                    snippet = std::format("local widget = entity.UICanvasC:FindWidget(\"{}\")\nwidget.ScrollPosition = Math.Vec2.new(0, 0) -- top", desc->Name);
+                    break;
                 default:
                     snippet = std::format("local widget = entity.UICanvasC:FindWidget(\"{}\")\nwidget.Visible = false", desc->Name);
                     break;
@@ -1205,12 +1294,55 @@ namespace Surge
             ImGui::TextDisabled("Stretched axes: Size is added to the parent size (negative = inset)");
     }
 
+    void UIEditorPanel::DrawAddWidgetMenuItems(UUID parent, bool addPrefix)
+    {
+        constexpr UI::WidgetType basicTypes[] = { UI::WidgetType::BASE_WIDGET, UI::WidgetType::IMAGE, UI::WidgetType::TEXT, UI::WidgetType::BUTTON, UI::WidgetType::IMAGE_BUTTON };
+        constexpr UI::WidgetType controlTypes[] = { UI::WidgetType::TOGGLE, UI::WidgetType::SLIDER, UI::WidgetType::PROGRESS_BAR, UI::WidgetType::INPUT_FIELD,
+                                                    UI::WidgetType::DROPDOWN, UI::WidgetType::JOYSTICK, UI::WidgetType::SPINNER };
+        constexpr UI::WidgetType containerTypes[] = { UI::WidgetType::SCROLL_VIEW, UI::WidgetType::LIST_VIEW, UI::WidgetType::LAYOUT_GROUP, UI::WidgetType::TAB_VIEW,
+                                                      UI::WidgetType::MODAL, UI::WidgetType::SAFE_AREA };
+
+        auto item = [&](UI::WidgetType type) {
+            const String label = addPrefix ? std::format("Add {}", UI::WidgetTypeToDisplayName(type)) : String(UI::WidgetTypeToDisplayName(type));
+            if(ImGui::MenuItem(label.c_str()))
+                QueueAction({ .Op = PendingAction::Type::ADD_WIDGET, .NewParent = parent, .NewWidgetType = type });
+        };
+
+        for(UI::WidgetType type : basicTypes)
+            item(type);
+        if(ImGui::BeginMenu("Controls"))
+        {
+            for(UI::WidgetType type : controlTypes)
+                item(type);
+            ImGui::EndMenu();
+        }
+        if(ImGui::BeginMenu("Containers"))
+        {
+            for(UI::WidgetType type : containerTypes)
+                item(type);
+            ImGui::EndMenu();
+        }
+    }
+
     void UIEditorPanel::DrawWidgetSettings(UI::WidgetDesc& desc)
     {
         constexpr std::array<const char*, 3> hAlignNames = { "Left", "Center", "Right" };
         constexpr std::array<TextAlignment, 3> hAlignValues = { TextAlignment::LEFT, TextAlignment::CENTER, TextAlignment::RIGHT };
         constexpr std::array<const char*, 3> vAlignNames = { "Top", "Center", "Bottom" };
         constexpr std::array<TextVerticalAlignment, 3> vAlignValues = { TextVerticalAlignment::TOP, TextVerticalAlignment::CENTER, TextVerticalAlignment::BOTTOM };
+        constexpr std::array<const char*, 3> overflowNames = { "Wrap", "Truncate (...)", "No Wrap" };
+        constexpr std::array<UI::TextOverflow, 3> overflowValues = { UI::TextOverflow::WRAP, UI::TextOverflow::TRUNCATE, UI::TextOverflow::NO_WRAP };
+        constexpr std::array<const char*, 4> originNames = { "Left", "Right", "Top", "Bottom" };
+        constexpr std::array<UI::FillOrigin, 4> originValues = { UI::FillOrigin::LEFT, UI::FillOrigin::RIGHT, UI::FillOrigin::TOP, UI::FillOrigin::BOTTOM };
+        constexpr std::array<const char*, 2> toggleNames = { "Checkbox", "Switch" };
+        constexpr std::array<UI::ToggleStyle, 2> toggleValues = { UI::ToggleStyle::CHECKBOX, UI::ToggleStyle::SWITCH };
+        constexpr std::array<const char*, 2> stickNames = { "Fixed", "Floating" };
+        constexpr std::array<UI::JoystickMode, 2> stickValues = { UI::JoystickMode::FIXED, UI::JoystickMode::FLOATING };
+        constexpr std::array<const char*, 3> directionNames = { "Horizontal", "Vertical", "Grid" };
+        constexpr std::array<UI::LayoutDirection, 3> directionValues = { UI::LayoutDirection::HORIZONTAL, UI::LayoutDirection::VERTICAL, UI::LayoutDirection::GRID };
+        constexpr std::array<const char*, 6> contentNames = { "Standard", "Integer", "Decimal", "Email", "Phone", "Password" };
+        constexpr std::array<UI::InputContentType, 6> contentValues = { UI::InputContentType::STANDARD, UI::InputContentType::INTEGER, UI::InputContentType::DECIMAL,
+                                                                       UI::InputContentType::EMAIL, UI::InputContentType::PHONE, UI::InputContentType::PASSWORD };
 
         if(desc.Type == UI::WidgetType::BASE_WIDGET)
         {
@@ -1220,57 +1352,266 @@ namespace Surge
 
         bool changed = false;
         bool setNativeSize = false;
+
+        // Shared groups
+        auto textProperties = [&](const char* textLabel, bool multiline) {
+            if(textLabel)
+                changed |= PropertyText(textLabel, desc.Text, multiline);
+            changed |= PropertyAsset("Font", desc.Font, AssetType::FONT);
+            changed |= PropertyFloat("Font Size", desc.FontSize, 0.25f, 1.0f, 512.0f);
+        };
+        auto valueProperties = [&]() {
+            changed |= PropertyFloat("Min", desc.MinValue, 0.05f, 0.0f, 0.0f, "%.2f");
+            changed |= PropertyFloat("Max", desc.MaxValue, 0.05f, 0.0f, 0.0f, "%.2f");
+            changed |= PropertySlider("Value", desc.Value, glm::min(desc.MinValue, desc.MaxValue), glm::max(desc.MinValue, desc.MaxValue));
+            changed |= PropertyCombo("Direction", desc.Origin, originNames, originValues);
+        };
+        auto stateColors = [&]() {
+            changed |= PropertyColor("Normal", desc.NormalColor);
+            changed |= PropertyColor("Hover", desc.HoverColor);
+            changed |= PropertyColor("Pressed", desc.PressedColor);
+        };
+
         if(BeginPropertyTable("##WidgetSettings"))
         {
-            const bool hasText = desc.Type == UI::WidgetType::TEXT || desc.Type == UI::WidgetType::BUTTON;
-            const bool hasTexture = desc.Type == UI::WidgetType::IMAGE || desc.Type == UI::WidgetType::BUTTON || desc.Type == UI::WidgetType::IMAGE_BUTTON;
-            const bool hasStates = desc.Type == UI::WidgetType::BUTTON || desc.Type == UI::WidgetType::IMAGE_BUTTON;
-
-            if(hasText)
+            switch(desc.Type)
             {
-                changed |= PropertyText(desc.Type == UI::WidgetType::BUTTON ? "Label" : "Text", desc.Text, desc.Type == UI::WidgetType::TEXT);
-                changed |= PropertyAsset("Font", desc.Font, AssetType::FONT);
-                changed |= PropertyFloat("Font Size", desc.FontSize, 0.25f, 1.0f, 512.0f);
-                changed |= PropertyCombo("Align", desc.HAlign, hAlignNames, hAlignValues);
-                changed |= PropertyCombo("Vertical Align", desc.VAlign, vAlignNames, vAlignValues);
-                if(desc.Type == UI::WidgetType::TEXT)
-                {
+                case UI::WidgetType::IMAGE:
+                    changed |= PropertyColor("Tint", desc.Color);
+                    changed |= PropertyImagePart("Image", desc.Background, false, true, &setNativeSize);
+                    changed |= PropertyBool("Preserve Aspect", desc.PreserveAspect);
+                    if(desc.Background.Mode == UI::ImageMode::FILLED)
+                    {
+                        changed |= PropertySlider("Fill Amount", desc.FillAmount, 0.0f, 1.0f);
+                        changed |= PropertyCombo("Fill Origin", desc.Origin, originNames, originValues);
+                    }
+                    break;
+
+                case UI::WidgetType::TEXT:
+                    textProperties("Text", true);
+                    changed |= PropertyCombo("Align", desc.HAlign, hAlignNames, hAlignValues);
+                    changed |= PropertyCombo("Vertical Align", desc.VAlign, vAlignNames, vAlignValues);
                     changed |= PropertyColor("Color", desc.Color);
-                    changed |= PropertyBool("Word Wrap", desc.WordWrap);
-                }
-                else
-                {
+                    changed |= PropertyCombo("Overflow", desc.Overflow, overflowNames, overflowValues);
+                    break;
+
+                case UI::WidgetType::BUTTON:
+                    textProperties("Label", false);
+                    changed |= PropertyCombo("Align", desc.HAlign, hAlignNames, hAlignValues);
+                    changed |= PropertyCombo("Vertical Align", desc.VAlign, vAlignNames, vAlignValues);
                     changed |= PropertyColor("Label Color", desc.TextColor);
                     changed |= PropertyFloat("Label Padding", desc.TextPadding, 0.25f, 0.0f, 500.0f);
-                }
-            }
+                    stateColors();
+                    changed |= PropertyImagePart("Background", desc.Background, false, false, &setNativeSize);
+                    break;
 
-            if(hasTexture)
-            {
-                changed |= PropertyAsset("Texture", desc.Texture, AssetType::TEXTURE2D);
-                if(desc.Texture)
+                case UI::WidgetType::IMAGE_BUTTON:
+                    stateColors();
+                    changed |= PropertyBool("Preserve Aspect", desc.PreserveAspect);
+                    changed |= PropertyImagePart("Image", desc.Background, false, false, &setNativeSize);
+                    break;
+
+                case UI::WidgetType::PROGRESS_BAR:
+                    valueProperties();
+                    changed |= PropertyFloat("Fill Padding", desc.FillPadding, 0.25f, 0.0f, 500.0f);
+                    changed |= PropertyImagePart("Background", desc.Background, true, false, nullptr);
+                    changed |= PropertyImagePart("Fill", desc.Fill, true, false, nullptr);
+                    break;
+
+                case UI::WidgetType::TOGGLE:
+                    changed |= PropertyCombo("Style", desc.ToggleType, toggleNames, toggleValues);
+                    changed |= PropertyBool("Is On", desc.IsOn);
+                    changed |= PropertyText("Group", desc.Group, false);
+                    if(!desc.Group.empty())
+                        changed |= PropertyBool("Allow Switch Off", desc.AllowSwitchOff);
+                    textProperties("Label", false);
+                    changed |= PropertyColor("Label Color", desc.TextColor);
+                    changed |= PropertyImagePart(desc.ToggleType == UI::ToggleStyle::SWITCH ? "Track (Off)" : "Box", desc.Background, true, false, nullptr);
+                    changed |= PropertyImagePart(desc.ToggleType == UI::ToggleStyle::SWITCH ? "Track (On)" : "Check Mark", desc.Fill, true, false, nullptr);
+                    if(desc.ToggleType == UI::ToggleStyle::SWITCH)
+                        changed |= PropertyImagePart("Knob", desc.Handle, true, false, nullptr);
+                    break;
+
+                case UI::WidgetType::SLIDER:
+                    valueProperties();
+                    changed |= PropertyBool("Whole Numbers", desc.WholeNumbers);
+                    changed |= PropertyFloat("Handle Size", desc.HandleSize, 0.25f, 0.0f, 1000.0f);
+                    changed |= PropertyFloat("Track Thickness", desc.TrackThickness, 0.25f, 0.0f, 1000.0f);
+                    changed |= PropertyImagePart("Track", desc.Background, true, false, nullptr);
+                    changed |= PropertyImagePart("Fill", desc.Fill, true, false, nullptr);
+                    changed |= PropertyImagePart("Handle", desc.Handle, true, false, nullptr);
+                    break;
+
+                case UI::WidgetType::JOYSTICK:
+                    changed |= PropertyCombo("Mode", desc.StickMode, stickNames, stickValues);
+                    changed |= PropertyFloat("Base Size", desc.BaseSize, 0.5f, 0.0f, 4000.0f);
+                    changed |= PropertyFloat("Handle Size", desc.HandleSize, 0.5f, 0.0f, 4000.0f);
+                    changed |= PropertySlider("Dead Zone", desc.DeadZone, 0.0f, 0.95f);
+                    changed |= PropertyFloat("Handle Range", desc.HandleRange, 0.01f, 0.0f, 4.0f, "%.2f");
+                    changed |= PropertyBool("Hide When Idle", desc.HideWhenIdle);
+                    changed |= PropertyImagePart("Base", desc.Background, true, false, nullptr);
+                    changed |= PropertyImagePart("Knob", desc.Handle, true, false, nullptr);
+                    break;
+
+                case UI::WidgetType::SCROLL_VIEW:
+                case UI::WidgetType::LIST_VIEW:
+                    changed |= PropertyBool("Scroll Vertical", desc.ScrollVertical);
+                    changed |= PropertyBool("Scroll Horizontal", desc.ScrollHorizontal);
+                    changed |= PropertySlider("Deceleration", desc.DecelerationRate, 0.0f, 0.99f);
+                    changed |= PropertyBool("Show Scrollbars", desc.ShowScrollbars);
+                    if(desc.ShowScrollbars)
+                        changed |= PropertyColor("Scrollbar Color", desc.ScrollbarColor);
+                    if(desc.Type == UI::WidgetType::LIST_VIEW)
+                    {
+                        changed |= PropertyVec2("Item Size", desc.ItemSize, 0.5f, 0.0f, 8192.0f);
+                        changed |= PropertyVec2("Spacing", desc.Spacing, 0.25f);
+                        changed |= PropertyVec4("Padding", desc.Padding, 0.25f);
+                        changed |= PropertyInt("Columns", desc.Columns, 1, 64);
+                        changed |= PropertyInt("Preview Items", desc.PreviewItemCount, 1, 50);
+                    }
+                    break;
+
+                case UI::WidgetType::LAYOUT_GROUP:
+                    changed |= PropertyCombo("Direction", desc.Direction, directionNames, directionValues);
+                    changed |= PropertyVec4("Padding", desc.Padding, 0.25f);
+                    changed |= PropertyVec2("Spacing", desc.Spacing, 0.25f);
+                    if(desc.Direction == UI::LayoutDirection::GRID)
+                    {
+                        changed |= PropertyVec2("Cell Size", desc.CellSize, 0.5f, 1.0f, 8192.0f);
+                        changed |= PropertyInt("Columns", desc.Columns, 0, 64);
+                    }
+                    changed |= PropertyVec2("Child Alignment", desc.ChildAlignment, 0.01f, 0.0f, 1.0f, "%.2f");
+                    if(desc.Direction != UI::LayoutDirection::GRID)
+                    {
+                        changed |= PropertyBool("Control Width", desc.ControlChildWidth);
+                        changed |= PropertyBool("Control Height", desc.ControlChildHeight);
+                    }
+                    changed |= PropertyBool("Fit Content", desc.FitContent);
+                    break;
+
+                case UI::WidgetType::INPUT_FIELD:
+                    textProperties("Text", desc.MultiLine);
+                    changed |= PropertyText("Placeholder", desc.Placeholder, false);
+                    changed |= PropertyCombo("Content Type", desc.ContentType, contentNames, contentValues);
+                    changed |= PropertyBool("Multi Line", desc.MultiLine);
+                    changed |= PropertyInt("Max Length", desc.MaxLength, 0, 100000);
+                    changed |= PropertyFloat("Text Padding", desc.TextPadding, 0.25f, 0.0f, 500.0f);
+                    changed |= PropertyColor("Text Color", desc.TextColor);
+                    changed |= PropertyColor("Placeholder Color", desc.PlaceholderColor);
+                    changed |= PropertyColor("Caret Color", desc.CaretColor);
+                    changed |= PropertyColor("Selection Color", desc.SelectionColor);
+                    changed |= PropertyColor("Focus Border", desc.HighlightColor);
+                    changed |= PropertyImagePart("Background", desc.Background, true, false, nullptr);
+                    break;
+
+                case UI::WidgetType::DROPDOWN:
                 {
-                    PropertyLabel("");
-                    setNativeSize = ImGui::Button("Set Native Size", ImVec2(-FLT_MIN, 0.0f));
+                    String options;
+                    for(size_t i = 0; i < desc.Options.size(); i++)
+                        options += (i > 0 ? "\n" : "") + desc.Options[i];
+                    if(PropertyText("Options (1 per line)", options, true))
+                    {
+                        desc.Options.clear();
+                        size_t start = 0;
+                        while(start <= options.size())
+                        {
+                            const size_t end = options.find('\n', start);
+                            const String line = options.substr(start, end == String::npos ? String::npos : end - start);
+                            if(!line.empty())
+                                desc.Options.push_back(line);
+                            if(end == String::npos)
+                                break;
+                            start = end + 1;
+                        }
+                        changed = true;
+                    }
+                    changed |= PropertyInt("Selected (-1 none)", desc.SelectedIndex, -1, glm::max(static_cast<int>(desc.Options.size()) - 1, -1));
+                    changed |= PropertyText("Placeholder", desc.Placeholder, false);
+                    textProperties(nullptr, false);
+                    changed |= PropertyColor("Text Color", desc.TextColor);
+                    changed |= PropertyFloat("Text Padding", desc.TextPadding, 0.25f, 0.0f, 500.0f);
+                    changed |= PropertyInt("Max Visible Items", desc.MaxVisibleItems, 1, 50);
+                    changed |= PropertyColor("Item Hover", desc.HoverColor);
+                    changed |= PropertyColor("Selected Item", desc.HighlightColor);
+                    changed |= PropertyImagePart("Field", desc.Background, true, false, nullptr);
+                    changed |= PropertyImagePart("List", desc.Fill, true, false, nullptr);
+                    break;
                 }
-            }
 
-            if(desc.Type == UI::WidgetType::IMAGE)
-                changed |= PropertyColor("Tint", desc.Color);
+                case UI::WidgetType::MODAL:
+                    changed |= PropertyColor("Backdrop", desc.BackdropColor);
+                    changed |= PropertyBool("Close On Backdrop", desc.CloseOnBackdrop);
+                    changed |= PropertyBool("Close On Back", desc.CloseOnBack);
+                    changed |= PropertyImagePart("Panel", desc.Background, true, false, nullptr);
+                    break;
 
-            if(hasStates)
-            {
-                changed |= PropertyColor("Normal", desc.NormalColor);
-                changed |= PropertyColor("Hover", desc.HoverColor);
-                changed |= PropertyColor("Pressed", desc.PressedColor);
+                case UI::WidgetType::TAB_VIEW:
+                    changed |= PropertyInt("Active Tab", desc.ActiveTab, 0, glm::max(static_cast<int>(desc.Children.size()) - 1, 0));
+                    changed |= PropertyBool("Tabs At Bottom", desc.TabsAtBottom);
+                    changed |= PropertyFloat("Tab Bar Height", desc.TabBarHeight, 0.5f, 0.0f, 2000.0f);
+                    textProperties(nullptr, false);
+                    changed |= PropertyColor("Text Color", desc.TextColor);
+                    changed |= PropertyColor("Active Text", desc.HighlightColor);
+                    changed |= PropertyImagePart("Bar", desc.Background, true, false, nullptr);
+                    changed |= PropertyImagePart("Active Tab", desc.Fill, true, false, nullptr);
+                    break;
+
+                case UI::WidgetType::SPINNER:
+                    changed |= PropertyColor("Color", desc.Color);
+                    changed |= PropertyInt("Dots", desc.DotCount, 3, 24);
+                    changed |= PropertySlider("Dot Size", desc.DotSize, 0.02f, 0.5f);
+                    changed |= PropertyFloat("Speed (rev/s)", desc.Speed, 0.01f, 0.0f, 10.0f, "%.2f");
+                    break;
+
+                case UI::WidgetType::SAFE_AREA:
+                {
+                    constexpr std::array<const char*, 4> edgeNames = { "Left Edge", "Top Edge", "Right Edge", "Bottom Edge" };
+                    for(int i = 0; i < 4; i++)
+                    {
+                        bool enabled = (desc.SafeEdges & (1 << i)) != 0;
+                        if(PropertyBool(edgeNames[i], enabled))
+                        {
+                            desc.SafeEdges = enabled ? (desc.SafeEdges | (1 << i)) : (desc.SafeEdges & ~(1 << i));
+                            changed = true;
+                        }
+                    }
+                    break;
+                }
+
+                case UI::WidgetType::BASE_WIDGET:
+                    break;
             }
             ImGui::EndTable();
+        }
+
+        // Type notes
+        switch(desc.Type)
+        {
+            case UI::WidgetType::LIST_VIEW:
+                ImGui::TextWrapped("The first child is the item template. At runtime only the visible items exist; fill them from Lua with OnBindItem(item, index) and set ItemCount.");
+                if(desc.Children.size() > 1)
+                    ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.3f, 1.0f), "Only the first child is used, the others are ignored");
+                break;
+            case UI::WidgetType::TAB_VIEW:
+                ImGui::TextWrapped("Each child is a page, its name is the tab label. Set Active Tab to edit another page.");
+                break;
+            case UI::WidgetType::MODAL:
+                ImGui::TextWrapped("Hidden until Show() is called from Lua; drawn above every canvas with a dimmed backdrop. Shown in place here for editing.");
+                break;
+            case UI::WidgetType::SCROLL_VIEW:
+                ImGui::TextWrapped("Children are clipped to the view and scrolled. Put a Layout Group with Fit Content inside to stack items.");
+                break;
+            case UI::WidgetType::SAFE_AREA:
+                ImGui::TextWrapped("Keeps its children clear of the notch and system bars. Preview with the Game view's Safe Area menu.");
+                break;
+            default:
+                break;
         }
 
         if(setNativeSize)
         {
             ImageHandle image;
-            mResourceCache.GetTexture(desc.Texture, image);
+            mResourceCache.GetTexture(desc.Background.Texture, image);
             if(!image.IsNull())
             {
                 const ImageDesc& imageDesc = Core::GetRenderer()->GetRHI()->GetDesc(image);
@@ -1279,7 +1620,9 @@ namespace Surge
             }
         }
 
-        if((desc.Type == UI::WidgetType::TEXT || desc.Type == UI::WidgetType::BUTTON) && !desc.Font)
+        const bool needsFont = desc.Type == UI::WidgetType::TEXT || desc.Type == UI::WidgetType::BUTTON || desc.Type == UI::WidgetType::TOGGLE ||
+                               desc.Type == UI::WidgetType::INPUT_FIELD || desc.Type == UI::WidgetType::DROPDOWN || desc.Type == UI::WidgetType::TAB_VIEW;
+        if(needsFont && !desc.Font)
             ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "No font assigned, the text is invisible. Import a .ttf and pick it above.");
 
         if(changed)
@@ -1365,9 +1708,11 @@ namespace Surge
         struct Item { UUID ID; glm::vec2 Min, Max; };
         Vector<Item> items;
         auto collect = [&](auto&& self, const UI::WidgetDesc& desc, bool visible) -> void {
-            for(const UI::WidgetDesc& child : desc.Children)
+            for(size_t i = 0; i < desc.Children.size(); i++)
             {
-                const bool childVisible = visible && child.Visible;
+                const UI::WidgetDesc& child = desc.Children[i];
+                const bool inactivePage = desc.Type == UI::WidgetType::TAB_VIEW && static_cast<int>(i) != glm::clamp(desc.ActiveTab, 0, static_cast<int>(desc.Children.size()) - 1);
+                const bool childVisible = visible && child.Visible && !inactivePage;
                 glm::vec2 min, max;
                 if(childVisible && GetWidgetRect(child.ID, min, max))
                     items.push_back({ child.ID, min, max });

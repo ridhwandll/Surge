@@ -208,6 +208,17 @@ namespace Surge::GizmoIcons
         }
     }
 
+    static void DrawParticles(ImDrawList* drawList, const GlyphFrame& p, ImU32 color)
+    {
+        // A four point sparkle (two crossed diamonds) and two smaller sparks
+        const ImVec2 vertical[] = { p(-0.22f, -0.86f), p(-0.06f, 0.06f), p(-0.22f, 0.86f), p(-0.38f, 0.06f) };
+        const ImVec2 horizontal[] = { p(-0.92f, 0.06f), p(-0.22f, -0.12f), p(0.48f, 0.06f), p(-0.22f, 0.24f) };
+        drawList->AddConvexPolyFilled(vertical, 4, color);
+        drawList->AddConvexPolyFilled(horizontal, 4, color);
+        drawList->AddCircleFilled(p(0.56f, -0.56f), p(0.17f), color, 12);
+        drawList->AddCircleFilled(p(0.62f, 0.58f), p(0.12f), color, 10);
+    }
+
     static void DrawPlay(ImDrawList* drawList, const GlyphFrame& p, ImU32 color)
     {
         // Nudged left so the triangle's mass sits in the middle, not its bounding box
@@ -255,6 +266,7 @@ namespace Surge::GizmoIcons
             case GizmoIcon::TEXT: DrawTextGlyph(drawList, frame, color); break;
             case GizmoIcon::UI_CANVAS: DrawUICanvas(drawList, frame, color, stroke); break;
             case GizmoIcon::SCRIPT: DrawScript(drawList, frame, color, stroke); break;
+            case GizmoIcon::PARTICLES: DrawParticles(drawList, frame, color); break;
             case GizmoIcon::TRANSFORM: DrawTransform(drawList, frame, color, stroke); break;
             case GizmoIcon::RIGIDBODY: DrawRigidbody(drawList, frame, color, stroke); break;
             case GizmoIcon::COLLIDER: DrawCollider(drawList, frame, color, stroke); break;
@@ -310,6 +322,8 @@ namespace Surge::GizmoIcons
             return { light->Type == LightType::DIRECTIONAL ? GizmoIcon::DIRECTIONAL_LIGHT : GizmoIcon::POINT_LIGHT, IM_COL32(255, 205, 90, 255) };
         if(e.HasComponent<EnvironmentComponent>())
             return { GizmoIcon::ENVIRONMENT, IM_COL32(255, 170, 100, 255) };
+        if(e.HasComponent<ParticleSystemComponent>())
+            return { GizmoIcon::PARTICLES, PARTICLES_COLOR };
         if(e.HasComponent<AudioSourceComponent>())
             return { GizmoIcon::AUDIO_SOURCE, IM_COL32(110, 215, 160, 255) };
         if(e.HasComponent<AudioListenerComponent>())

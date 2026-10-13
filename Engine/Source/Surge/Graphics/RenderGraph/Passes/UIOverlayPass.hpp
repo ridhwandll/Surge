@@ -35,13 +35,20 @@ namespace Surge
         static constexpr Uint MAX_TEX_SLOTS_PER_BATCH = 16;
 
         // Packed into QuadVertex::TextureIndex, must match UI.glsl
+        // bits 0-7: texture slot, bits 8-23: MSDF px range * 256 (text) or corner radius * 4 (sprites), bit 31: MSDF text glyph
         static constexpr Uint TEXT_GLYPH_FLAG = 0x80000000u;
         static constexpr Uint PX_RANGE_SHIFT = 8;
+        static constexpr Uint CORNER_RADIUS_SHIFT = 8;
+        static constexpr float CORNER_RADIUS_SCALE = 4.0f; // Quarter pixel precision, up to 16383 px
 
     private:
-        void AppendSprite(const QuadSubmitCmd& quad);
-        void AppendText(const TextSubmitCmd& text);
-        bool PushQuad(const glm::vec4 (&positions)[4], const glm::vec2 (&uvs)[4], Uint packedColor, ImageHandle texture, Uint textureIndexFlags); // false once the limits are hit
+        void AppendSprite(const UISpriteCmd& sprite, const glm::vec4* clip);
+        void AppendText(const TextSubmitCmd& text, const glm::vec4* clip);
+
+        // positions/uvs in the order right-top, right-bottom, left-bottom, left-top (axis aligned), clip = optional (minX, minY, maxX, maxY)
+        // Clipping happens here on the CPU: the quad shrinks and its UVs are interpolated, fully clipped quads are dropped
+        // Returns false once the limits are hit
+        bool PushQuad(glm::vec4 (&positions)[4], glm::vec2 (&uvs)[4], Uint packedColor, ImageHandle texture, Uint textureIndexFlags, const glm::vec4* clip);
         void FlushQuadBatch();
 
     private:

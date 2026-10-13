@@ -2,12 +2,14 @@
 #pragma once
 #include "Surge/ECS/Scene.hpp"
 #include "Gizmos/GizmoIcons.hpp"
+#include "Gizmos/GizmoCanvas.hpp"
 #include <glm/glm.hpp>
 #include <imgui.h>
 
 namespace Surge
 {
     class RuntimeCamera;
+    struct ParticleSystemComponent;
 
     struct GizmoSettings
     {
@@ -17,6 +19,7 @@ namespace Surge
         bool ShowCameraFrustums = true;
         bool ShowLightGizmos = true;
         bool ShowAudioGizmos = true;
+        bool ShowParticleGizmos = true; // Emitter shapes
         bool ShowSelectionOutline = true;
         bool ShowColliders = true;
     };
@@ -54,16 +57,9 @@ namespace Surge
             bool Inactive;
         };
 
-        // 3D -> viewport helpers, lines are clipped against the near plane so nothing behind the camera gets drawn
-        bool ProjectPoint(const glm::vec3& worldPos, ImVec2& outScreen, float* outDepth = nullptr) const;
-        float GetWorldPerPixel(const glm::vec3& worldPos) const;
-        void DrawLine3D(const glm::vec3& a, const glm::vec3& b, ImU32 color, float thickness);
-        void DrawPolyline3D(const glm::vec3* points, int count, bool closed, ImU32 color, float thickness);
-        void DrawCircle3D(const glm::vec3& center, const glm::vec3& axisU, const glm::vec3& axisV, float radius, ImU32 color, float thickness);
-        void DrawWireSphere(const glm::vec3& center, float radius, ImU32 color, float thickness);
-
         void DrawCameraFrustum(const glm::mat4& cameraWorld, const RuntimeCamera& camera, ImU32 color, float thickness);
         void DrawDirectionalLight(const glm::mat4& lightWorld, ImU32 color, float thickness);
+        void DrawParticleShapes(const ParticleSystemComponent& particles, const glm::mat4& world, ImU32 color, float thickness);
         void DrawIcons(Scene& scene, entt::entity selectedHandle, bool allowHover);
 
     private:
@@ -72,12 +68,7 @@ namespace Surge
         Entity mHoveredEntity;
 
         // Per-overlay state
+        GizmoCanvas mCanvas;
         ImDrawList* mDrawList = nullptr;
-        glm::mat4 mViewProjection = glm::mat4(1.0f);
-        glm::vec3 mCameraPosition = glm::vec3(0.0f);
-        float mNearClip = 0.1f;
-        float mProjectionScaleY = 1.0f;
-        ImVec2 mViewportMin = { 0.0f, 0.0f };
-        ImVec2 mViewportSize = { 0.0f, 0.0f };
     };
 } // namespace Surge

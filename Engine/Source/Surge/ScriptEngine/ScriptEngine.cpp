@@ -11,6 +11,7 @@
 #include "Bindings/UIBindings.hpp"
 #include "Bindings/SceneBinding.hpp"
 #include "Bindings/StorageBinding.hpp"
+#include "Bindings/ParticleBindings.hpp"
 #include "Surge/Core/Core.hpp"
 #include "Surge/Core/Profiler.hpp"
 #include "Surge/Asset/AssetManager.hpp"
@@ -242,6 +243,7 @@ Property = {
         ScriptBinding::BindMath(sLua);
         ScriptBinding::BindEntity(sLua);
         ScriptBinding::BindComponents(sLua);
+        ScriptBinding::BindParticles(sLua);
         ScriptBinding::BindUIWidgets(sLua);
         ScriptBinding::BindScene(sLua);
         ScriptBinding::BindStorage(sLua);
@@ -544,10 +546,16 @@ Property = {
             return {};
 
         const String& path = Core::GetAssetManager()->GetMetadata(scriptAsset->GetID()).RelativePath;
-        const size_t slash = path.find_last_of('/');
-        const size_t start = slash == String::npos ? 0 : slash + 1;
-        const size_t dot = path.find_last_of('.');
-        return path.substr(start, (dot == String::npos || dot < start) ? String::npos : dot - start);
+
+        size_t slash = path.find_last_of("/\\");
+        size_t start = (slash == String::npos) ? 0 : slash + 1;
+
+        size_t dot = path.find_last_of('.');
+
+        if(dot != String::npos && dot > start)
+            return path.substr(start, dot - start);
+
+        return path.substr(start); // No valid extension
     }
 
     //////////////////////////////////////////////////////////////////////////

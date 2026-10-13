@@ -1,35 +1,14 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
-#include "Surge/Serializer/Serializer.hpp"
+#include "SceneSerializer.hpp"
+#include "SceneBinaryFormat.hpp"
+#include "SerializableComponents.hpp"
 #include "Surge/Core/Core.hpp"
-#include "Surge/Asset/Asset.hpp"
 #include "Surge/Asset/AssetManager.hpp"
-
 #include "Surge/ECS/Scene.hpp"
-#include "Surge/ECS/Components/Components.hpp"
-#include "Surge/ECS/Components/ScriptComponent.hpp"
-
-#include "Surge/ScriptEngine/ScriptAsset.hpp"
-
-#include "Surge/Audio/Audio.hpp"
-
-#include "Surge/Graphics/HighLevel/Font.hpp"
-#include "Surge/Graphics/HighLevel/Mesh.hpp"
-#include "Surge/Graphics/HighLevel/Texture2D.hpp"
-#include "Surge/Graphics/UISystem/UILayout.hpp"
-
 #include "Surge/Utility/Filesystem.hpp"
 
 #include <glm/gtc/type_ptr.hpp>
 #include <json/json.hpp>
-
-//! NOTE: ALL THE SERIALIZABLE COMPONENTS MUST BE REGISTERED HERE, ADD BY SEPARATING VIA A COMMA (',') WHEN YOU ADD A NEW COMPONENT
-#define SERIALIZABLE_COMPONENTS ::Surge::IDComponent,        ::Surge::NameComponent,          ::Surge::TransformComponent,      \
-                                ::Surge::CameraComponent,    ::Surge::SpriteRendererComponent, ::Surge::MeshComponent, ::Surge::RelationshipComponent, \
-                                ::Surge::LightComponent,     ::Surge::EnvironmentComponent, \
-                                ::Surge::RigidbodyComponent, ::Surge::BoxColliderComponent, ::Surge::SphereColliderComponent, \
-                                ::Surge::CapsuleColliderComponent, ::Surge::CylinderColliderComponent, ::Surge::ConvexColliderComponent, ::Surge::MeshColliderComponent, \
-                                ::Surge::ScriptComponent, ::Surge::TextComponent, ::Surge::UICanvasComponent, \
-                                ::Surge::AudioListenerComponent, ::Surge::AudioSourceComponent
 
 // https://github.com/nlohmann/json#arbitrary-types-conversions
 namespace glm
@@ -74,14 +53,17 @@ namespace glm
 
 namespace Surge
 {
+    //////////////////////////////////////////////////////////////////////////
+    // JSON source (.srg): the Editor's authoring format, also the entity snapshots of the Editor's undo/copy-paste
+    //////////////////////////////////////////////////////////////////////////
 
-#pragma region SceneSerializer
     // Enum Mappings
     NLOHMANN_JSON_SERIALIZE_ENUM(RuntimeCamera::ProjectionType, { {RuntimeCamera::ProjectionType::Perspective, "Perspective"}, {RuntimeCamera::ProjectionType::Orthographic, "Orthographic"} });
     NLOHMANN_JSON_SERIALIZE_ENUM(LightType, { {LightType::POINT, "POINT"}, {LightType::DIRECTIONAL, "DIRECTIONAL"} });
     NLOHMANN_JSON_SERIALIZE_ENUM(RigidbodyType, { {RigidbodyType::STATIC, "STATIC"}, {RigidbodyType::DYNAMIC, "DYNAMIC"}, {RigidbodyType::KINEMATIC, "KINEMATIC"} });
     NLOHMANN_JSON_SERIALIZE_ENUM(TextAlignment, { {TextAlignment::LEFT, "LEFT"}, {TextAlignment::CENTER, "CENTER"}, {TextAlignment::RIGHT, "RIGHT"} });
     NLOHMANN_JSON_SERIALIZE_ENUM(TextVerticalAlignment, { {TextVerticalAlignment::TOP, "TOP"}, {TextVerticalAlignment::CENTER, "CENTER"}, {TextVerticalAlignment::BOTTOM, "BOTTOM"}, {TextVerticalAlignment::BASELINE, "BASELINE"} });
+    NLOHMANN_JSON_SERIALIZE_ENUM(ParticleCullingMode, { {ParticleCullingMode::ALWAYS_SIMULATE, "ALWAYS_SIMULATE"}, {ParticleCullingMode::PAUSE_OFFSCREEN, "PAUSE_OFFSCREEN"}, {ParticleCullingMode::PAUSE_AND_CATCH_UP, "PAUSE_AND_CATCH_UP"} });
     NLOHMANN_JSON_SERIALIZE_ENUM(AttenuationModel, { {AttenuationModel::NONE, "NONE"}, {AttenuationModel::INVERSE_DISTANCE, "INVERSE_DISTANCE"}, {AttenuationModel::LINEAR_DISTANCE, "LINEAR_DISTANCE"}, {AttenuationModel::EXPONENTIAL_DISTANCE, "EXPONENTIAL_DISTANCE"} });
 
     // Inspector values of a script's Properties, only written when there are any (older scenes stay untouched)
@@ -185,16 +167,7 @@ namespace Surge
 
     static Ref<Asset> LoadScriptAsset(uint64_t rawID)
     {
-        AssetManager* am = Core::GetAssetManager();
-        const AssetID id(rawID);
-        const AssetMetadata& metadata = am->GetMetadata(id);
-        if(!rawID || !metadata.IsValid() || metadata.IsMissing() || metadata.Type != AssetType::SCRIPT)
-        {
-            if(rawID)
-                Log<Severity::Warn>("DeserializeComponent: Script asset with ID {} is missing or invalid", rawID);
-            return nullptr;
-        }
-        return am->Load<Script>(id);
+        return LoadSerializedAsset(AssetID(rawID), AssetType::SCRIPT);
     }
 
     // "Scripts": [ { "Active", "ScriptAsset", "Fields" }, ... ]
@@ -303,6 +276,8 @@ namespace Surge
                     out[name] = *reinterpret_cast<const TextAlignment*>(source);
                 else if(type.EqualTo<TextVerticalAlignment>())
                     out[name] = *reinterpret_cast<const TextVerticalAlignment*>(source);
+                else if(type.EqualTo<ParticleCullingMode>())
+                    out[name] = *reinterpret_cast<const ParticleCullingMode*>(source);
                 else if(type.EqualTo<Ref<Asset>>())
                 {
                     const Ref<Asset>& asset = *reinterpret_cast<const Ref<Asset>*>(source);
@@ -337,31 +312,22 @@ namespace Surge
         SerializeComponents<SERIALIZABLE_COMPONENTS>(out, e);
     }
 
-    void Serializer::SerializeScene([[maybe_unused]] const Path& path, [[maybe_unused]] Scene* in)
+    String SceneSerializer::ToJson(Scene& scene)
     {
-#ifdef SURGE_PLATFORM_ANDROID
-        Log<Severity::Error>("[Serializer] SerializeScene is unsupported on Android runtime. APK assets are readonly!");
-        return;
-#else
-        SG_ASSERT_NOMSG(in);
-        SCOPED_TIMER("Serialization");
+        SCOPED_TIMER("SceneSerializer::ToJson");
         nlohmann::json outJson = nlohmann::json();
 
         uint64_t index = 0;
-        in->GetRegistry().each([&](auto entityID) {
-            Entity e = Entity(entityID, in);
+        scene.GetRegistry().each([&](auto entityID) {
+            Entity e = Entity(entityID, &scene);
             SerializeEntity(outJson["Scene"], e, index);
             index++;
         });
 
         // Size of all entities in the scene
-        const size_t size = in->GetRegistry().view<IDComponent>().size();
+        const size_t size = scene.GetRegistry().view<IDComponent>().size();
         outJson["Scene"]["Size"] = size;
-        String result = outJson.dump(4);
-
-        if(!Filesystem::WriteTextFile(path, result))
-            Log<Severity::Error>("SerializeScene: Failed to Write Text File {}", path.string());
-#endif
+        return outJson.dump(4);
     }
 
     template <typename XComponent>
@@ -439,39 +405,10 @@ namespace Surge
                 *reinterpret_cast<TextAlignment*>(dest) = inJson.value(name, TextAlignment::LEFT);
             else if(type.EqualTo<TextVerticalAlignment>())
                 *reinterpret_cast<TextVerticalAlignment*>(dest) = inJson.value(name, TextVerticalAlignment::BASELINE);
+            else if(type.EqualTo<ParticleCullingMode>())
+                *reinterpret_cast<ParticleCullingMode*>(dest) = inJson.value(name, ParticleCullingMode::PAUSE_OFFSCREEN);
             else if(type.EqualTo<Ref<Asset>>())
-            {
-                AssetManager* am = Core::GetAssetManager();
-                AssetID assetID = inJson.value(name, 0ULL);
-                const AssetMetadata& metadata = am->GetMetadata(assetID);
-
-                if(assetID == AssetID(AssetID::INVALID))
-                {
-                    *reinterpret_cast<Ref<Asset>*>(dest) = nullptr;
-                    continue;
-                }
-
-                if(metadata.IsValid() && !metadata.IsMissing())
-                {
-                    if (metadata.Type == AssetType::TEXTURE2D)
-                        *reinterpret_cast<Ref<Asset>*>(dest) = am->Load<Texture2D>(assetID);
-                    if (metadata.Type == AssetType::MESH)
-                        *reinterpret_cast<Ref<Asset>*>(dest) = am->Load<Mesh>(assetID);
-                    if (metadata.Type == AssetType::FONT)
-                        *reinterpret_cast<Ref<Asset>*>(dest) = am->Load<Font>(assetID);
-                    if (metadata.Type == AssetType::SCRIPT)
-                        *reinterpret_cast<Ref<Asset>*>(dest) = am->Load<Script>(assetID);
-                    if (metadata.Type == AssetType::AUDIO)
-                        *reinterpret_cast<Ref<Asset>*>(dest) = am->Load<Audio>(assetID);
-                    if (metadata.Type == AssetType::UI_LAYOUT)
-                        *reinterpret_cast<Ref<Asset>*>(dest) = am->Load<UILayout>(assetID);
-                }
-                else
-                {
-                    Log<Severity::Warn>("DeserializeComponent: Asset with ID {} is missing or invalid", assetID.Get());
-                    *reinterpret_cast<Ref<Asset>*>(dest) = nullptr;
-                }
-            }
+                *reinterpret_cast<Ref<Asset>*>(dest) = LoadSerializedAsset(AssetID(inJson.value(name, 0ULL)));
             else
                 Log<Severity::Warn>("DeserializeComponent: Unhandled type {} for field {}", type.GetFullName(), name);
         }
@@ -491,24 +428,17 @@ namespace Surge
         DeserializeComponents<SERIALIZABLE_COMPONENTS>(inJson, e);
     }
 
-    void Serializer::DeserializeScene(const Path& path, Scene* out)
+    bool SceneSerializer::FromJson(const String& json, Scene& outScene)
     {
-        SG_ASSERT_NOMSG(out);
+        Scene* out = &outScene;
         auto& registry = out->GetRegistry();
         registry.clear();
 
-        String jsonContents;
-        if(!Filesystem::ReadTextFile(path, jsonContents))
-        {
-            Log<Severity::Error>("DeserializeScene: Failed to read file '{}'", path.string());
-            return;
-        }
-
-        nlohmann::json parsedJson = nlohmann::json::parse(jsonContents, nullptr, false);
+        nlohmann::json parsedJson = nlohmann::json::parse(json, nullptr, false);
         if(parsedJson.is_discarded())
         {
-            Log<Severity::Error>("DeserializeScene: Corrupt or invalid JSON at '{}'", path.string());
-            return;
+            Log<Severity::Error>("[SceneSerializer] FromJson: Corrupt or invalid scene JSON");
+            return false;
         }
 
         // (Rid) 1st pass: Create flat hierarchy of entities, skip RelationshipComponent
@@ -548,6 +478,7 @@ namespace Surge
                 }
             }
         }
+        return true;
     }
 
     template <typename XComponent>
@@ -565,7 +496,7 @@ namespace Surge
         (RemoveComponentIfMissing<Components>(j, e), ...);
     }
 
-    String Serializer::SerializeEntity(Entity entity)
+    String SceneSerializer::EntityToJson(Entity entity)
     {
         SG_ASSERT_NOMSG(entity);
         nlohmann::json out = nlohmann::json::object();
@@ -574,13 +505,13 @@ namespace Surge
         return out.dump();
     }
 
-    bool Serializer::DeserializeEntity(const String& data, Entity entity)
+    bool SceneSerializer::EntityFromJson(const String& data, Entity entity)
     {
         SG_ASSERT_NOMSG(entity);
         nlohmann::json in = nlohmann::json::parse(data, nullptr, false);
         if(in.is_discarded())
         {
-            Log<Severity::Error>("[Serializer] DeserializeEntity: Corrupt or invalid entity data");
+            Log<Severity::Error>("[SceneSerializer] EntityFromJson: Corrupt or invalid entity data");
             return false;
         }
 
@@ -596,57 +527,53 @@ namespace Surge
 
         return true;
     }
-#pragma endregion
 
-#pragma region ProjectSerializer
-    void Serializer::SerializeProject([[maybe_unused]] const Path& path, [[maybe_unused]] Project* in)
+    //////////////////////////////////////////////////////////////////////////
+    // SceneSerializer
+    //////////////////////////////////////////////////////////////////////////
+
+    void SceneSerializer::Initialize()
+    {
+        mSerializerType = AssetType::SCENE;
+    }
+
+    bool SceneSerializer::Serialize([[maybe_unused]] Ref<Asset> asset) const
     {
 #ifdef SURGE_PLATFORM_ANDROID
-        Log<Severity::Error>("[Serializer] SerializeProject is unsupported on Android runtime. APK assets are readonly!");
+        Log<Severity::Error>("[SceneSerializer] Serialize is unsupported on Android runtime. APK assets are readonly!");
+        return false;
 #else
-        SG_ASSERT_NOMSG(in);
+        AssetManager* assetManager = Core::GetAssetManager();
+        const AssetMetadata& metadata = assetManager->GetMetadata(asset->GetID());
+        const String absolutePath = assetManager->GetAbsolutePath(metadata.RelativePath);
+        Ref<Scene> scene = asset.As<Scene>();
 
-        nlohmann::json outJson;
-        outJson["Project"]["Name"] = in->Name;
-        outJson["Project"]["Version"] = in->Version;
-        outJson["Project"]["StartScene"] = static_cast<uint64_t>(in->StartScene);
+        // JSON source first: the cooked file is stamped with its new modification time, so the next Load does not re-cook it
+        if(!Filesystem::WriteTextFile(absolutePath, ToJson(*scene)))
+        {
+            Log<Severity::Error>("[SceneSerializer] Failed to write {}", absolutePath);
+            return false;
+        }
 
-        String result = outJson.dump(4);
-
-        if (!Filesystem::WriteTextFile(path, result))
-            Log<Severity::Error>("SerializeProject: Failed to write to '{}'", path.string());
+        const AssetStamp stamp = AssetStampWriter::Build(absolutePath, SceneBinary::GetFormatVersion());
+        return SceneBinary::Write(assetManager->GetSidecarPath(metadata.ID), stamp, scene.Raw());
 #endif
     }
 
-    void Serializer::DeserializeProject(const Path& path, Project* out)
+    Ref<Asset> SceneSerializer::Deserialize(const AssetMetadata& metadata) const
     {
-        SG_ASSERT_NOMSG(out);
+        AssetManager* assetManager = Core::GetAssetManager();
 
-        String jsonContents;
-        if (!Filesystem::ReadTextFile(path, jsonContents))
-        {
-            Log<Severity::Error>("DeserializeProject: Failed to read file '{}'", path.string());
-            return;
-        }
-
-        nlohmann::json parsedJson = nlohmann::json::parse(jsonContents);
-        if(parsedJson.is_discarded())
-        {
-            Log<Severity::Error>("DeserializeProject: Corrupt or invalid JSON at '{}'", path.string());
-            return;
-        }
-
-        if(parsedJson.contains("Project"))
-        {
-            const auto& projNode = parsedJson["Project"];
-            out->Name = projNode.value("Name", "");
-            out->Version = projNode.value("Version", "1.0");
-            out->StartScene = static_cast<AssetID>(projNode.value("StartScene", 0ULL));
-        }
-        else
-            Log<Severity::Error>("DeserializeProject: Corrupted file '{}'", path.string());
+        Ref<Scene> scene = Ref<Scene>::Create(Filesystem::GetFilenameWithoutExt(metadata.RelativePath));
+        AssetStamp stamp;
+        if(!SceneBinary::Read(assetManager->GetSidecarPath(metadata.ID), stamp, scene.Raw()))
+            return nullptr;
+        return scene.As<Asset>();
     }
 
-#pragma endregion
+    void SceneSerializer::Shutdown()
+    {
+        Log<Severity::Info>("[SceneSerializer] Shutdown");
+    }
 
 } // namespace Surge

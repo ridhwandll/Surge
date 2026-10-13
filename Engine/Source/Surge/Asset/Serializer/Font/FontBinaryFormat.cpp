@@ -56,16 +56,14 @@ namespace Surge::FontBinary
         if(!Filesystem::ReadBinaryFile(path, fileData))
             return false;
 
-        const Byte* ptr = fileData.data();
-        const Byte* endPtr = fileData.data() + fileData.size();
-
         if(fileData.size() < sizeof(AssetStamp) + sizeof(Header))
             return false;
 
-        ReadData(ptr, outstamp);
+        BinaryReader reader(fileData.data(), fileData.size());
+        reader.Read(outstamp);
 
         Header header = {};
-        ReadData(ptr, header);
+        reader.Read(header);
 
         if(header.Magic != kFontBinHeaderMagic)
         {
@@ -78,6 +76,12 @@ namespace Surge::FontBinary
             return false;
         }
 
+        if(!reader.Fits(header.GlyphCount, sizeof(FontGlyph)) || !reader.Fits(header.UncomporessedDataSize, 1))
+        {
+            Log<Severity::Error>("[FontBinary] {} is truncated or corrupted!", path);
+            return false;
+        }
+
         outSpec.LineHeight = header.LineHeight;
         outSpec.PxRange = header.PxRange;
         outSpec.Width = header.Width;
@@ -85,14 +89,21 @@ namespace Surge::FontBinary
         outSpec.Glyphs.clear();
         outSpec.Glyphs.reserve(header.GlyphCount);
 
-        const FontGlyph* glyphArray = reinterpret_cast<const FontGlyph*>(ptr);
         for(Uint i = 0; i < header.GlyphCount; ++i)
-            outSpec.Glyphs[glyphArray[i].UnicodeID] = glyphArray[i];
-        ptr += header.GlyphCount * sizeof(FontGlyph);
+        {
+            FontGlyph glyph = {};
+            reader.Read(glyph);
+            outSpec.Glyphs[glyph.UnicodeID] = glyph;
+        }
 
         outSpec.UncompressedData.resize(header.UncomporessedDataSize);
-        ReadDataArray(ptr, outSpec.UncompressedData.data(), header.UncomporessedDataSize);
+        reader.ReadArray(outSpec.UncompressedData.data(), header.UncomporessedDataSize);
 
-        return ptr <= endPtr;
+        if(reader.Failed)
+        {
+            Log<Severity::Error>("[FontBinary] {} is truncated or corrupted!", path);
+            return false;
+        }
+        return true;
     }
 }

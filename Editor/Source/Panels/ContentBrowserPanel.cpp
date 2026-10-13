@@ -17,6 +17,7 @@
 #include "Asset/SourceWriters/ScriptSourceWriter.hpp"
 #include "Panels/MaterialEditorPanel.hpp"
 #include "Panels/UIEditorPanel.hpp"
+#include "Panels/ParticleEditorPanel.hpp"
 #include "StatusBar/EditorStatusBar.hpp"
 #include "Utility/ImGuiAux.hpp"
 
@@ -69,6 +70,7 @@ namespace Surge
             case AssetType::FONT: return ImVec4(0.68f, 0.52f, 0.98f, 1.0f);
             case AssetType::AUDIO: return ImVec4(0.30f, 0.86f, 0.76f, 1.0f);
             case AssetType::UI_LAYOUT: return ImVec4(0.42f, 0.58f, 1.00f, 1.0f);
+            case AssetType::PARTICLE_EFFECT: return ImVec4(0.92f, 0.53f, 1.00f, 1.0f);
             default: return ImVec4(0.45f, 0.45f, 0.45f, 1.0f);
         }
     }
@@ -87,6 +89,7 @@ namespace Surge
             case AssetType::FONT: return "FONT";
             case AssetType::AUDIO: return "AUDIO";
             case AssetType::UI_LAYOUT: return "UI LAYOUT";
+            case AssetType::PARTICLE_EFFECT: return "PARTICLES";
             default: return "FILE";
         }
     }
@@ -1471,6 +1474,18 @@ namespace Surge
 
     void ContentBrowserPanel::HandleItemInteraction(Item& item, bool selected)
     {
+        // Pressing an unselected item arms ImGui's box-select, which activates on the same drag threshold as the drag & drop source
+        // but earlier in the frame (BeginMultiSelect) and steals the active ID: dragging an item drags it, box-select starts from empty space only
+        if(ImGui::IsItemClicked(ImGuiMouseButton_Left))
+        {
+            ImGuiBoxSelectState& boxSelect = ImGui::GetCurrentContext()->BoxSelectState;
+            if(boxSelect.IsStarting && !boxSelect.IsStartedFromVoid)
+            {
+                boxSelect.IsStarting = false;
+                boxSelect.ID = 0;
+            }
+        }
+
         if(ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
             OpenItem(item);
 
@@ -1656,7 +1671,7 @@ namespace Surge
         if(single && ImGuiAux::StyledMenuItem("Show in Explorer"))
             Platform::OpenInExplorer(single->AbsolutePath.string());
 
-        if(single && !single->IsDirectory && (single->Type == AssetType::SCRIPT || single->Type == AssetType::SCENE || single->Type == AssetType::MATERIAL || single->Type == AssetType::UI_LAYOUT) &&
+        if(single && !single->IsDirectory && (single->Type == AssetType::SCRIPT || single->Type == AssetType::SCENE || single->Type == AssetType::MATERIAL || single->Type == AssetType::UI_LAYOUT || single->Type == AssetType::PARTICLE_EFFECT) &&
            ImGuiAux::StyledMenuItem("Open in VS Code"))
             Platform::OpenInVSCode(mAssetManager->GetAssetsDirectory(), single->AbsolutePath.string());
 
@@ -1734,6 +1749,8 @@ namespace Surge
             CreateAssetIn(AssetType::SCRIPT, folder);
         if(ImGuiAux::StyledMenuItem("UI Layout"))
             CreateAssetIn(AssetType::UI_LAYOUT, folder);
+        if(ImGuiAux::StyledMenuItem("Particle Effect"))
+            CreateAssetIn(AssetType::PARTICLE_EFFECT, folder);
     }
 
     void ContentBrowserPanel::DrawEmptyHint()
@@ -1915,6 +1932,7 @@ namespace Surge
                 ImGui::SetWindowFocus("Material Editor");
                 break;
             case AssetType::UI_LAYOUT: editor->GetPanelManager().GetPanel<UIEditorPanel>()->OpenLayout(item.ID); break;
+            case AssetType::PARTICLE_EFFECT: editor->GetPanelManager().GetPanel<ParticleEditorPanel>()->OpenEffect(item.ID); break;
             case AssetType::SCRIPT: Platform::OpenInVSCode(mAssetManager->GetAssetsDirectory(), item.AbsolutePath.string()); break;
             default: Notify(std::format("{} has no editor, drag it onto a component or the Viewport", item.DisplayName)); break;
         }
@@ -2220,6 +2238,12 @@ namespace Surge
             const AssetID layout = UIEditorPanel::CreateLayoutAsset(folder);
             if(layout)
                 created = mBaseDirectory / mAssetManager->GetMetadata(layout).RelativePath;
+        }
+        else if(type == AssetType::PARTICLE_EFFECT)
+        {
+            const AssetID effect = ParticleEditorPanel::CreateEffectAsset(folder);
+            if(effect)
+                created = mBaseDirectory / mAssetManager->GetMetadata(effect).RelativePath;
         }
         else
         {

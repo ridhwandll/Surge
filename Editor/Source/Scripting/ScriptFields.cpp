@@ -628,7 +628,7 @@ return Marker, {
         const ScriptFieldSchema& schema = GetSchema(scriptAsset);
         if(!schema.Error.empty())
         {
-            ImGuiAux::TSperator("Properties");
+            //ImGuiAux::TSperator("Properties", true);
             ImGui::TableNextColumn();
             ImGui::TableNextColumn();
             const String firstLine = schema.Error.substr(0, schema.Error.find('\n'));
@@ -641,7 +641,7 @@ return Marker, {
         if(schema.Fields.empty())
             return false;
 
-        ImGuiAux::TSperator(live ? "Properties (live)" : "Properties");
+        //ImGuiAux::TSperator(live ? "Properties (LIVE)" : "Properties", true);
         bool modified = false;
         for(const ScriptFieldInfo& field : schema.Fields)
         {

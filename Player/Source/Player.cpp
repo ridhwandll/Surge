@@ -3,7 +3,6 @@
 #include "Surge/Core/Core.hpp"
 #include "Surge/Asset/AssetManager.hpp"
 #include "Surge/Graphics/UISystem/UIManager.hpp"
-#include "Surge/Serializer/Serializer.hpp"
 #include "Surge/Utility/Filesystem.hpp"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -32,7 +31,7 @@ namespace Surge
         const Path projectPath = GetProjectPath();
 
         Project openedProject;
-        Serializer::DeserializeProject(projectPath, &openedProject);
+        openedProject.Load(projectPath);
         mCurrentProject = std::move(openedProject);
         mActiveScene = CreateRuntimeScene(mCurrentProject.StartScene);
     }
@@ -65,6 +64,9 @@ namespace Surge
         mActiveScene->OnRuntimeEnd();
         mActiveScene = next;
         Core::GetRenderer()->GetUIManager().ClearCanvases(); // Roots set with SetUIRoot() by the old scene's scripts
+
+        // The old scene is gone: free what only it used (the next scene already holds its own assets, shared ones stay)
+        mAssetManager->UnloadUnreferenced();
 
         const glm::vec2 size = Core::GetWindow()->GetSize();
         mActiveScene->OnResize(size.x, size.y);

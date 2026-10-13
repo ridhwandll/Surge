@@ -130,10 +130,11 @@ namespace Surge
             if(mMaxQuadCountReached)
                 break;
 
+            const glm::vec4* clip = item.ClipIndex != UI_NO_CLIP ? &blackboard.UIClipRects[item.ClipIndex - 1] : nullptr;
             if(item.IsText)
-                AppendText(blackboard.UITextList[item.Index]);
+                AppendText(blackboard.UITextList[item.Index], clip);
             else
-                AppendSprite(blackboard.UISpriteList[item.Index]);
+                AppendSprite(blackboard.UISpriteList[item.Index], clip);
         }
 
         if(mCurrentQuadBatch.QuadCount > 0)
@@ -159,8 +160,48 @@ namespace Surge
         }
     }
 
-    bool UIOverlayPass::PushQuad(const glm::vec4 (&positions)[4], const glm::vec2 (&uvs)[4], Uint packedColor, ImageHandle texture, Uint textureIndexFlags)
+    bool UIOverlayPass::PushQuad(glm::vec4 (&positions)[4], glm::vec2 (&uvs)[4], Uint packedColor, ImageHandle texture, Uint textureIndexFlags, const glm::vec4* clip)
     {
+        if(clip)
+        {
+            // Axis aligned bounds (italic glyphs are skewed, they are clipped as their bounding box)
+            const float left = glm::min(positions[2].x, positions[3].x);
+            const float right = glm::max(positions[0].x, positions[1].x);
+            const float top = positions[0].y;
+            const float bottom = positions[1].y;
+            if(right <= clip->x || left >= clip->z || bottom <= clip->y || top >= clip->w)
+                return true; // Fully clipped, nothing to draw
+
+            if(left < clip->x || right > clip->z || top < clip->y || bottom > clip->w)
+            {
+                // The UVs keep the same linear mapping, so UI.glsl still sees the original rect through the UV derivatives (rounded corners stay put)
+                const float width = right - left;
+                const float height = bottom - top;
+                const float newLeft = glm::max(left, clip->x);
+                const float newRight = glm::min(right, clip->z);
+                const float newTop = glm::max(top, clip->y);
+                const float newBottom = glm::min(bottom, clip->w);
+                const float tL = width > 0.0f ? (newLeft - left) / width : 0.0f;
+                const float tR = width > 0.0f ? (newRight - left) / width : 1.0f;
+                const float tT = height > 0.0f ? (newTop - top) / height : 0.0f;
+                const float tB = height > 0.0f ? (newBottom - top) / height : 1.0f;
+
+                const glm::vec2 uvOrigin = uvs[3];        // Left top
+                const glm::vec2 uvAlongX = uvs[0] - uvs[3]; // Left top -> right top
+                const glm::vec2 uvAlongY = uvs[2] - uvs[3]; // Left top -> left bottom
+                auto uvAt = [&](float tx, float ty) { return uvOrigin + uvAlongX * tx + uvAlongY * ty; };
+
+                positions[0] = { newRight, newTop, positions[0].z, 1.0f };
+                positions[1] = { newRight, newBottom, positions[1].z, 1.0f };
+                positions[2] = { newLeft, newBottom, positions[2].z, 1.0f };
+                positions[3] = { newLeft, newTop, positions[3].z, 1.0f };
+                uvs[0] = uvAt(tR, tT);
+                uvs[1] = uvAt(tR, tB);
+                uvs[2] = uvAt(tL, tB);
+                uvs[3] = uvAt(tL, tT);
+            }
+        }
+
         if(mTotalQuadCount >= MAX_UI_QUADS_TOTAL || mQuadBatchCount >= MAX_UI_QUAD_BATCHES)
         {
             mMaxQuadCountReached = true;
@@ -196,20 +237,23 @@ namespace Surge
         return true;
     }
 
-    void UIOverlayPass::AppendSprite(const QuadSubmitCmd& quad)
+    void UIOverlayPass::AppendSprite(const UISpriteCmd& sprite, const glm::vec4* clip)
     {
-        // Inverted V-coordinates so Sprites render right-side up in Y-Down space!
-        static constexpr glm::vec2 sUVs[4] = { { 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f }, { 0.0f, 0.0f } };
-        static constexpr glm::vec4 sLocalPositions[4] = { { 0.5f, -0.5f, 0.0f, 1.0f}, { 0.5f,  0.5f, 0.0f, 1.0f}, {-0.5f,  0.5f, 0.0f, 1.0f}, {-0.5f, -0.5f, 0.0f, 1.0f} };
+        if(sprite.Max.x <= sprite.Min.x || sprite.Max.y <= sprite.Min.y || sprite.Color.a <= 0.0f)
+            return;
 
-        glm::vec4 positions[4];
-        for(Uint i = 0; i < 4; i++)
-            positions[i] = quad.Transform * sLocalPositions[i];
+        // UV (0,0) is the top left of the texture, y grows down like the UI
+        glm::vec4 positions[4] = { { sprite.Max.x, sprite.Min.y, 0.0f, 1.0f }, { sprite.Max.x, sprite.Max.y, 0.0f, 1.0f }, { sprite.Min.x, sprite.Max.y, 0.0f, 1.0f }, { sprite.Min.x, sprite.Min.y, 0.0f, 1.0f } };
+        glm::vec2 uvs[4] = { { sprite.UVMax.x, sprite.UVMin.y }, sprite.UVMax, { sprite.UVMin.x, sprite.UVMax.y }, sprite.UVMin };
 
-        PushQuad(positions, sUVs, glm::packUnorm4x8(quad.Color), quad.Texture, 0u);
+        Uint flags = 0u;
+        if(sprite.CornerRadius > 0.0f)
+            flags = static_cast<Uint>(glm::clamp(sprite.CornerRadius * CORNER_RADIUS_SCALE, 1.0f, 65535.0f)) << CORNER_RADIUS_SHIFT;
+
+        PushQuad(positions, uvs, glm::packUnorm4x8(sprite.Color), sprite.Texture, flags, clip);
     }
 
-    void UIOverlayPass::AppendText(const TextSubmitCmd& txt)
+    void UIOverlayPass::AppendText(const TextSubmitCmd& txt, const glm::vec4* clip)
     {
         if(!txt.FontAsset || txt.Text.empty())
             return;
@@ -333,7 +377,7 @@ namespace Surge
             for(Uint v = 0; v < 4; v++)
                 positions[v] = txt.Transform * localPositions[v];
 
-            if(!PushQuad(positions, uvs, packedColor, fontAtlas, glyphFlags))
+            if(!PushQuad(positions, uvs, packedColor, fontAtlas, glyphFlags, clip))
                 return;
 
             cursorX += (glyph->Advance + txt.LetterSpacing);

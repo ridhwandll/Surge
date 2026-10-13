@@ -126,6 +126,7 @@ namespace Surge::ScriptBinding
         BindComponentToEntity<TextComponent>(entityType, "TextC");
         BindComponentToEntity<UICanvasComponent>(entityType, "UICanvasC");
         BindComponentToEntity<AudioSourceComponent>(entityType, "AudioSourceC");
+        BindComponentToEntity<ParticleSystemComponent>(entityType, "ParticleSystemC");
     }
 
     void BindComponents(void* luaState)
@@ -243,12 +244,13 @@ namespace Surge::ScriptBinding
                                             else
                                                 Log<Severity::Warn>("[ECSBindings.cpp] Lua: MeshComponent: Failed to load mesh at path {}", meshAssetPath);
                                         },
-                                        "GetMaterial", [](MeshComponent& mc, Uint index) -> Material* {
+                                        // A Ref: scripts may keep the material after its mesh is unloaded (AssetManager::UnloadUnreferenced on scene change)
+                                        "GetMaterial", [](MeshComponent& mc, Uint index) -> Ref<Material> {
                                             if(mc.MeshAsset)
                                             {
                                                 Ref<Mesh> mesh = mc.MeshAsset.As<Mesh>();
                                                 if(mesh)
-                                                    return mesh->GetMaterialAtIndex(index).Raw();
+                                                    return mesh->GetMaterialAtIndex(index);
                                             }
                                             Log<Severity::Warn>("[ECSBindings.cpp] Lua: Tried to get material on a MeshComponent that has no valid MeshAsset!");
                                             return nullptr;

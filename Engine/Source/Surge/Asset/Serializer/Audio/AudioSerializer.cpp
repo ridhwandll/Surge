@@ -3,6 +3,7 @@
 #include "Surge/Core/Core.hpp"
 #include "Surge/Asset/AssetManager.hpp"
 #include "Surge/Audio/Audio.hpp"
+#include "AudioBinaryFormat.hpp"
 
 namespace Surge
 {
@@ -20,10 +21,13 @@ namespace Surge
     Ref<Asset> AudioSerializer::Deserialize(const AssetMetadata& metadata) const
     {
         AssetManager* am = Core::GetAssetManager();
-        const String audioPath = am->GetSidecarPath(metadata.ID);
 
-        Ref<Audio> audio = Ref<Audio>::Create(audioPath);
-        return audio.As<Asset>();
+        AssetStamp stamp;
+        Vector<Byte> encodedData;
+        if(!AudioBinary::Read(am->GetSidecarPath(metadata.ID), stamp, encodedData))
+            return nullptr;
+
+        return Ref<Audio>::Create(std::move(encodedData)).As<Asset>();
     }
 
     void AudioSerializer::Shutdown()

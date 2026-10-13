@@ -40,23 +40,20 @@ namespace Surge::ScriptBinary
                 return false;
             }
 
-            const Byte* ptr = scriptCodeBuffer.data();
-            const Byte* endPtr = scriptCodeBuffer.data() + scriptCodeBuffer.size();
-
-            ReadData(ptr, outStamp);
+            BinaryReader reader(scriptCodeBuffer.data(), scriptCodeBuffer.size());
+            reader.Read(outStamp);
 
             uint64_t bytecodeSize = 0;
-            ReadData(ptr, bytecodeSize);
+            reader.Read(bytecodeSize);
 
-            // ptr is now at the start of the bytecode
-
-            if(ptr + bytecodeSize > endPtr)
+            // reader.Ptr is now at the start of the bytecode
+            if(!reader.Fits(bytecodeSize, 1))
             {
                 Log<Severity::Error>("[ScriptSerializer] Corrupted script sidecar (Bytecode size mismatch): {}", path);
                 return false;
             }
 
-            Vector<Byte> bytecode(ptr, ptr + bytecodeSize);
+            Vector<Byte> bytecode(reader.Ptr, reader.Ptr + bytecodeSize);
             outScript = Script::Create(std::move(bytecode));
             return true;
         }

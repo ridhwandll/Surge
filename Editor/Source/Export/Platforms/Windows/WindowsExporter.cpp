@@ -50,8 +50,7 @@ namespace Surge
                     return false;
 
                 session.SetStep("Staging content", 0.20f, stamp ? 0.80f : 0.95f);
-                ExportUtils::StageRuntimeContent(out, job);
-                if(session.IsCancelled())
+                if(!ExportUtils::StageRuntimeContent(session, out, job) || session.IsCancelled())
                     return false;
 
                 if(stamp)

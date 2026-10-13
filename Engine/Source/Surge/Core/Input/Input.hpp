@@ -75,6 +75,7 @@ namespace Surge
         static float GetMouseY();
         static float GetMouseScrollDelta(); // Wheel notches this frame, + = away from the user
         static void SetCursorMode(CursorMode cursorMode);
+        static void SetMousePosition(float x, float y); // Window client pixels, moves the OS cursor (no-op without one: Android)
 
         // Touch (multi touch on Android and Windows touch screens, the left mouse button is touch "IsMouse" when enabled)
         static Uint GetTouchCount();

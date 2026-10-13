@@ -80,6 +80,14 @@ namespace Surge
         sLastCursorMode = cursorMode;
     }
 
+    void Input::SetMousePosition(float x, float y)
+    {
+        HWND hWnd = (HWND)Core::GetWindow()->GetNativeWindowHandle();
+        POINT point = { static_cast<LONG>(x), static_cast<LONG>(y) };
+        ClientToScreen(hWnd, &point);
+        SetCursorPos(point.x, point.y);
+    }
+
     // XInput gamepads. The dll is loaded at runtime (no import lib needed, missing on very old systems = no gamepads).
     // Polling a disconnected slot is slow, so empty slots are only probed every PROBE_INTERVAL frames
     namespace

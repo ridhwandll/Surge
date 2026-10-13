@@ -94,6 +94,7 @@ namespace Surge
         void DrawRectTransform(UI::WidgetDesc& desc);
         void DrawAnchorPresets(UI::WidgetDesc& desc);
         void DrawWidgetSettings(UI::WidgetDesc& desc);
+        void DrawAddWidgetMenuItems(UUID parent, bool addPrefix); // Basic types + Controls/Containers sub menus
         void HandleShortcuts(bool focused);
 
         // Structural edits (deferred until the hierarchy is done iterating)

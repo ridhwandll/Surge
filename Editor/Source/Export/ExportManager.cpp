@@ -206,6 +206,18 @@ namespace Surge
         mJob.Proj.StartScene = mCommon.StartScene;
         mJob.ProjectDir = ExportUtils::GetProjectDir();
 
+        // Builds ship cooked data only: an asset that failed to cook fails the export instead of missing at runtime
+        Vector<String> missing;
+        if(!ExportUtils::CollectCookedContent(mJob, missing))
+        {
+            for(const String& path : missing)
+                mSession.Log(Severity::Error, "Not cooked: " + path);
+            mSession.Error(std::format("{} asset(s) could not be cooked, see the Console", missing.size()));
+            mTask.reset();
+            mSession.Finish(false);
+            return;
+        }
+
         mSession.SetState(ExportState::RUNNING);
         mWorker = std::thread([this]() {
             bool ok = false;

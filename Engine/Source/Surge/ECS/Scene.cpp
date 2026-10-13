@@ -144,22 +144,38 @@ namespace Surge
         for(auto [entity, transform, audioSrc] : sourceView.each())
         {
             Ref<Audio> asset = audioSrc.AudioClip.As<Audio>();
+
+            // The clip was swapped (Lua SetAudioClip, the Inspector): the sound still plays the previous one, rebuild it (playing again if it was)
+            bool resumePlaying = false;
+            if(audioSrc.RuntimeID && audioEngine->GetClip(audioSrc.RuntimeID) != asset.Raw())
+            {
+                resumePlaying = audioSrc.IsPlaying;
+                audioEngine->DestroyAudio(audioSrc.RuntimeID);
+                audioSrc.RuntimeID = nullptr;
+                audioSrc.IsInitialized = false;
+                audioSrc.IsPlaying = false;
+            }
+
             if(asset)
             {
                 if(!audioSrc.IsInitialized)
                 {
-                    audioSrc.RuntimeID = audioEngine->CreateAudio(asset->GetFilepath(), audioSrc.IsStreaming, audioSrc.IsSpatialized);
-                    audioEngine->SetVolume(audioSrc.RuntimeID, audioSrc.Volume);
-                    audioEngine->SetPitch(audioSrc.RuntimeID, audioSrc.Pitch);
-                    audioEngine->SetLooping(audioSrc.RuntimeID, audioSrc.Loop);
-                    audioEngine->SetMinDistance(audioSrc.RuntimeID, audioSrc.MinDistance);
-                    audioEngine->SetMaxDistance(audioSrc.RuntimeID, audioSrc.MaxDistance);
-                    audioEngine->SetAttenuationModel(audioSrc.RuntimeID, audioSrc.Attenuation);
-
-                    if(audioSrc.PlayOnAwake)
+                    // A clip that fails to play stays initialized without a sound
+                    audioSrc.RuntimeID = audioEngine->CreateAudio(asset, audioSrc.IsStreaming, audioSrc.IsSpatialized);
+                    if(audioSrc.RuntimeID)
                     {
-                        audioEngine->PlayAudio(audioSrc.RuntimeID);
-                        audioSrc.IsPlaying = true;
+                        audioEngine->SetVolume(audioSrc.RuntimeID, audioSrc.Volume);
+                        audioEngine->SetPitch(audioSrc.RuntimeID, audioSrc.Pitch);
+                        audioEngine->SetLooping(audioSrc.RuntimeID, audioSrc.Loop);
+                        audioEngine->SetMinDistance(audioSrc.RuntimeID, audioSrc.MinDistance);
+                        audioEngine->SetMaxDistance(audioSrc.RuntimeID, audioSrc.MaxDistance);
+                        audioEngine->SetAttenuationModel(audioSrc.RuntimeID, audioSrc.Attenuation);
+
+                        if(audioSrc.PlayOnAwake || resumePlaying)
+                        {
+                            audioEngine->PlayAudio(audioSrc.RuntimeID);
+                            audioSrc.IsPlaying = true;
+                        }
                     }
                     audioSrc.IsInitialized = true;
                 }
@@ -171,12 +187,50 @@ namespace Surge
         }
     }
 
-    void Scene::UpdateRendering(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix, const glm::vec2& cameraNearFar, const std::function<void(Scene&)>* editorDraw)
+    void Scene::UpdateParticles(float deltaTime, const Frustum* frustum, bool submit)
+    {
+        SURGE_PROFILE_FUNC("Scene::UpdateParticles");
+
+        Renderer* renderer = Core::GetRenderer();
+        FrameBlackboard& blackBoard = renderer->GetRenderGraphBlackBoard();
+
+        ParticleBudget budget;
+        budget.MaxParticles = blackBoard.Particles.MaxParticles;
+        budget.EmissionScale = glm::clamp(blackBoard.Particles.EmissionQuality, ParticleSettings::MIN_EMISSION_QUALITY, 1.0f);
+
+        ParticleStats stats;
+        auto view = mRegistry.view<ParticleSystemComponent, TransformComponent>();
+        for(const auto& [entity, particles, transform] : view.each())
+        {
+            if(!particles.Active)
+                continue;
+
+            // AutoPlay effects also play in the Editor's edit scene (a live preview), the copy made for Play mode starts over
+            particles.Runtime.Update(particles, transform.GetTransform(), deltaTime, frustum, budget);
+            stats.Systems++;
+            if(particles.Runtime.IsCulled())
+                stats.CulledSystems++;
+
+            if(submit)
+                particles.Runtime.Submit(*renderer);
+
+            if(mIsRunning && particles.AutoDestroy && particles.Runtime.IsFinished())
+                DestroyEntity(Entity(entity, this)); // Deferred to the frame end
+        }
+
+        stats.AliveParticles = budget.Used;
+        blackBoard.ParticleStatistics = stats;
+    }
+
+    void Scene::UpdateRendering(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix, const glm::vec2& cameraNearFar, float particleDeltaTime, bool cullParticles, const std::function<void(Scene&)>* editorDraw)
     {
         SURGE_PROFILE_FUNC("Scene::UpdateRendering");
 
         Renderer* renderer = Core::GetRenderer();
         renderer->BeginFrame(viewMatrix, projectionMatrix, cameraNearFar);
+
+        // After BeginFrame: culled with this frame's camera (transforms are final atp)
+        UpdateParticles(particleDeltaTime, cullParticles ? &renderer->GetRenderGraphBlackBoard().CameraFrustum : nullptr, true);
         {
             auto view = mRegistry.view<SpriteRendererComponent, TransformComponent>();
             for(const auto& [entity, sprite, transform] : view.each())
@@ -292,18 +346,19 @@ namespace Surge
     {
         SURGE_PROFILE_FUNC("Scene::Update(Editor)");
 
-        UpdateSimulation();
+        const float scaledDeltaTime = UpdateSimulation();
         UpdateTransforms();
-        UpdateRendering(camera.GetViewMatrix(), camera.GetProjectionMatrix(), camera.GetNearAndFarPlane(), &editorDraw);
+        // No particle culling: the Editor draws the scene through several views with their own cameras
+        UpdateRendering(camera.GetViewMatrix(), camera.GetProjectionMatrix(), camera.GetNearAndFarPlane(), scaledDeltaTime, false, &editorDraw);
         ProcessPendingEntityDestructions();
     }
 
-    void Scene::UpdateSimulation()
+    float Scene::UpdateSimulation()
     {
         if(mIsPaused)
         {
             if(mStepFrames == 0)
-                return;
+                return 0.0f;
             mStepFrames--;
         }
 
@@ -311,18 +366,24 @@ namespace Surge
         UpdateAudio();
         UpdatePhysics();
         UpdateScripts();
+
+        // Scaled game time while running
+        const float deltaTime = Core::GetClock().GetSeconds();
+        return mIsRunning ? deltaTime * Core::GetTimeScale() : deltaTime;
     }
 
     void Scene::Update()
     {
         SURGE_PROFILE_FUNC("Scene::Update()");
 
-        UpdateSimulation();
+        const float scaledDeltaTime = UpdateSimulation();
         UpdateTransforms();
 
         Pair<RuntimeCamera*, glm::mat4> camera = GetMainCameraEntity();
         if(camera.Data1)
-            UpdateRendering(glm::inverse(camera.Data2), camera.Data1->GetProjectionMatrix(), { camera.Data1->GetPerspectiveNearClip(), camera.Data1->GetPerspectiveFarClip() });
+            UpdateRendering(glm::inverse(camera.Data2), camera.Data1->GetProjectionMatrix(), { camera.Data1->GetPerspectiveNearClip(), camera.Data1->GetPerspectiveFarClip() }, scaledDeltaTime, true);
+        else
+            UpdateParticles(scaledDeltaTime, nullptr, false); // Nothing is drawn, one-shot effects still finish (AutoDestroy)
 
         ProcessPendingEntityDestructions();
     }
@@ -404,6 +465,7 @@ namespace Surge
 
         CopyComponent<AudioListenerComponent>(other->mRegistry, mRegistry, enttMap);
         CopyComponent<AudioSourceComponent>(other->mRegistry, mRegistry, enttMap);
+        CopyComponent<ParticleSystemComponent>(other->mRegistry, mRegistry, enttMap);
     }
 
     Surge::Entity Scene::FindEntityByUUID(UUID id)
@@ -515,6 +577,7 @@ namespace Surge
         CopyIfHas(std::type_identity<UICanvasComponent>{});
         CopyIfHas(std::type_identity<AudioListenerComponent>{});
         CopyIfHas(std::type_identity<AudioSourceComponent>{});
+        CopyIfHas(std::type_identity<ParticleSystemComponent>{});
 
         return newEntity;
     }

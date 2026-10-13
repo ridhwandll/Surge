@@ -26,6 +26,11 @@ namespace Surge
         // No cursor to lock on Android
     }
 
+    void Input::SetMousePosition(float, float)
+    {
+        // No cursor to move on Android
+    }
+
     // Gamepads and touches are event driven on Android (AndroidWindow), nothing to poll
     void InputState::PlatformBeginFrame() {}
 

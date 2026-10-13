@@ -19,6 +19,7 @@ namespace Surge
     struct TransformComponent;
     struct ScriptComponent;
     struct UICanvasComponent;
+    struct Frustum;
 
     class Scene final : public Asset
     {
@@ -69,13 +70,16 @@ namespace Surge
         void CreateEntityEmpty(Entity& outEntity, const String& name); // Without TransformComponent
 
         void UpdateTransforms();
-        void UpdateSimulation(); // Audio, physics sync and scripts, honors the pause/step state
+        float UpdateSimulation(); // Audio, physics sync and scripts, honors the pause/step state. Returns the time it advanced (particles)
         void UpdateScripts();
         void FixedUpdateScripts(float fixedDeltaTime); // Physics fixed step callback while running
         void DispatchPhysicsEvents();                  // OnCollisionEnter/Exit, OnTriggerEnter/Exit
         void UpdatePhysics();
         void UpdateAudio();
-        void UpdateRendering(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix, const glm::vec2& cameraNearFar, const std::function<void(Scene&)>* editorDraw = nullptr);
+        void UpdateRendering(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix, const glm::vec2& cameraNearFar, float particleDeltaTime,
+                             bool cullParticles, const std::function<void(Scene&)>* editorDraw = nullptr);
+        // Simulates every ParticleSystemComponent, submits the visible ones (right after Renderer::BeginFrame). frustum = null: no culling
+        void UpdateParticles(float deltaTime, const Frustum* frustum, bool submit);
         void ProcessPendingEntityDestructions();
 
     private:

@@ -69,40 +69,54 @@ namespace Surge::MaterialBinary
         }
     }
 
-    Ref<Material> ReadBuffer(const Byte*& ptr)
+    Ref<Material> ReadBuffer(BinaryReader& reader)
     {
         Byte hasData = 0;
-        ReadData(ptr, hasData);
+        reader.Read(hasData);
         if(!hasData)
             return nullptr;
 
-        const String name = ReadStr(ptr);
+        const String name = reader.ReadStr();
 
         Uint propsSize = 0;
-        ReadData(ptr, propsSize);
+        reader.Read(propsSize);
+        if(reader.Failed)
+            return nullptr;
 
         // Create with hardcoded pipeline/shader allocates CPU buffer via shader reflection
         Ref<Material> mat = Material::Create(name);
         MemoryBlock& cpuBuffer = mat->GetCPUData();
-        SG_ASSERT(propsSize == static_cast<Uint>(cpuBuffer.GetSize()), "[MeshSerializer] Inline material {} props size mismatch ({} vs {}). Shader UBO layout changed, delete sidecar and reimport", name, propsSize, static_cast<Uint>(cpuBuffer.GetSize()));
-
-        ReadDataArray(ptr, cpuBuffer.As<Byte>(), propsSize);
+        if(propsSize == static_cast<Uint>(cpuBuffer.GetSize()))
+        {
+            reader.ReadArray(cpuBuffer.As<Byte>(), propsSize);
+        }
+        else
+        {
+            // Stale cooked data (the shader UBO layout changed), the Player never re-cooks so keep the defaults instead of overflowing the block
+            Log<Severity::Error>("[MaterialBinary] Material {}: property size mismatch ({} vs {}), the shader UBO layout changed. Re-cook it, using defaults", name, propsSize, static_cast<Uint>(cpuBuffer.GetSize()));
+            reader.Skip(propsSize);
+        }
 
         Uint texCount = 0;
-        ReadData(ptr, texCount);
+        reader.Read(texCount);
         AssetManager* am = Core::GetAssetManager();
         for(Uint i = 0; i < texCount; i++)
         {
-            const String texName = ReadStr(ptr);
+            const String texName = reader.ReadStr();
             uint64_t rawID = 0;
-            ReadData(ptr, rawID);
+            reader.Read(rawID);
+            if(reader.Failed)
+                break;
 
             Ref<Texture2D> tex = am->Load<Texture2D>(AssetID(rawID));
             if(tex)
                 mat->SetTexture(texName, tex);
             else
-                Log<Severity::Warn>("[MeshSerializer] Material {}: texture ID {} failed to load!", name, rawID);
+                Log<Severity::Warn>("[MaterialBinary] Material {}: texture ID {} failed to load!", name, rawID);
         }
+
+        if(reader.Failed)
+            return nullptr;
 
         mat->MarkDirty();
         return mat;
@@ -134,10 +148,15 @@ namespace Surge::MaterialBinary
         if(!Filesystem::ReadBinaryFile(path, fileData))
             return false;
 
-        const Byte* ptr = fileData.data();
-        ReadData(ptr, outStamp);
-        outMat = ReadBuffer(ptr);
-
+        BinaryReader reader(fileData.data(), fileData.size());
+        reader.Read(outStamp);
+        outMat = ReadBuffer(reader);
+        if(reader.Failed)
+        {
+            Log<Severity::Error>("[MaterialBinary] {} is truncated or corrupted!", path);
+            outMat = nullptr;
+            return false;
+        }
         return true;
     }
 }

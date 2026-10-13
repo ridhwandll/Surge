@@ -1,56 +1,311 @@
-# Surge Engine
-Welcome to the development repository of SurgeEngine!
-Surge is a mobile-first game engine, inspired by SUPERCELL's Titan engine. Also why the name is suffixed with _Expired, because we are looking for a new name!
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="Docs/Images/SurgeLogo-DarkMode.png">
+    <source media="(prefers-color-scheme: light)" srcset="Docs/Images/SurgeLogo-LightMode.png">
+    <img alt="Surge" src="Docs/Images/SurgeLogo-LightMode.png" width="220">
+  </picture>
+</p>
 
- ## Platforms:
+<h1 align="center">Surge</h1>
 
-Currently supported platforms are Windows and Android, the Editor is Windows only as we only support Windows as out only development platform. The runtime ships on android and Windows. We plan to support iOS devices with a Robust Metal Renderer in future.
+<p align="center">
+  <b>A high-performance, mobile-first 2D/3D application engine for Rid Technologies</b><br>
+</p>
 
-## Building:
+<p align="center">
+  <a href="https://github.com/ridhwandll/Surge_Expired/actions/workflows/WindowsCI.yml"><img alt="Windows Build" src="https://github.com/ridhwandll/Surge_Expired/actions/workflows/WindowsCI.yml/badge.svg"></a>
+  <img alt="Platforms" src="https://img.shields.io/badge/platforms-Windows%20%7C%20Android%20arm64-2b2b2b">
+  <img alt="Vulkan 1.1" src="https://img.shields.io/badge/Vulkan-1.1-AC162C?logo=vulkan&logoColor=white">
+  <img alt="C++20" src="https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white">
+  <img alt="Lua 5.4" src="https://img.shields.io/badge/scripting-Lua%205.4-000080?logo=lua&logoColor=white">
+  <img alt="Jolt Physics" src="https://img.shields.io/badge/physics-Jolt-FFC107">
+</p>
 
-Clone the repository by `git clone https://github.com/ridhwandll/Surge_Expired`. Then follow the platform specific instructions below.
+<p align="center">
+  <a href="#gallery">Gallery</a> •
+  <a href="#features">Features</a> •
+  <a href="#the-editor">Editor</a> •
+  <a href="#building">Building</a> •
+  <a href="#architecture">Architecture</a> •
+  <a href="#dependencies">Dependencies</a>
+</p>
+
+Surge is heavily inspired by Supercell's **TITAN** and TheCherno's **Hazel** engine. The `_Expired` suffix is there because we are looking for a new name!
+
+---
+
+## How and Why of Surge
+
+How Surge? <br>
+Surge started back in 2021 as a reincarnation of my previous game engine Spike which was made following(read copying) the Game Engine Series by Cherno on YouTube. I am greatful to him for his videos and to this day few aspects in Surge follows Cherno's game engine; Hazel.
+
+Why Surge?<br>
+For the love of the game; (Also for my learning purposes)
+
+---
+
+## Gallery
+
+<p align="center">
+  <img alt="Toytown: a toy cannon barrage smashing a block castle" src="Docs/Images/Screenshots/Player-RuntimeToon2.png" width="100%">
+  <br><sub>A barrage tears the toy block castle apart. Chamfered toys with inked outlines, cartoon puff and star impacts, 500+ Jolt bodies(Surge can handle a LOT more though).</sub>
+</p>
+
+<table>
+  <tr>
+    <th width="50%">Runtime</th>
+    <th width="50%">Editor</th>
+  </tr>
+  <tr>
+    <td><img alt="Collapse at sunset: the citadel blown apart" src="Docs/Images/Screenshots/Player-Runtime.png"></td>
+    <td><img alt="The Editor with a Scene view and the Game view side by side" src="Docs/Images/Screenshots/Editor-Hero.png"></td>
+  </tr>
+  <tr>
+    <td><sub>CCD cannonballs blow the brick citadel apart. Glowing HDR bricks feed the bloom, under cascaded shadows and GTAO.</sub></td>
+    <td><sub>A Scene view and the Game view side by side, with the Hierarchy and the Inspector.</sub></td>
+  </tr>
+  <tr>
+    <td><img alt="Collapse at night: sparks and fireflies" src="Docs/Images/Screenshots/Player-RuntimeNight.png"></td>
+    <td><img alt="Editing the Sanctuary scene" src="Docs/Images/Screenshots/Editor-Overview.png"></td>
+  </tr>
+  <tr>
+    <td><sub>The same scene at night, with spark showers, fireflies and lanterns lighting the debris.</sub></td>
+    <td><sub>Clickable component icons, transform gizmos, mesh/rigidbody/collider components and the Content Browser.</sub></td>
+  </tr>
+  <tr>
+    <td><img alt="Toytown at night: can towers toppling" src="Docs/Images/Screenshots/Player-RuntimeToon.png"></td>
+    <td><img alt="The Particle Editor" src="Docs/Images/Screenshots/Editor-Particles.png"></td>
+  </tr>
+  <tr>
+    <td><sub>Soda can towers topple under trailed toy cannonballs.</sub></td>
+    <td><sub>Particle Editor: every module, curve and gradient, with a live isolated preview and gizmos.</sub></td>
+  </tr>
+</table>
+
+---
+
+## Features
+
+### The Design choice
+Surge builds as a static library on windows and `.so` on Android which is lightweight; And links to an executable which uses the engine systems. It always loads assets of custom engine(.rX example: "Image.rTEXTURE2D") formats, i.e. you cannot load a .gltf file in Surge, you must cook the .gltf via Editor then ship the game to load it(Same goes for other formats). This is done to strip out asset loading code on performace and size critical platforms like Android. The "Player" is the runtime shipped game which loads the precooked assets generated by the Editor(This also improves perfomace).
+<br><br>
+Surge is designed to be lightweight and follows good code over good sphagetti code perfomance rule.
+
+### Rendering
+
+**RHI** - a thin, handle-based layer over **Vulkan 1.1** (via *volk* + *VMA*). No DX12, ever.
+- Resources are generational handles (`ImageHandle`, `BufferHandle`, `PipelineHandle`, ...) in handle pools; raw Vulkan objects never leave the backend.
+- Descriptor set layouts, pipeline layouts and vertex attributes are **generated from SPIR-V reflection** (SPIRV-Cross).
+- **Batched, non-blocking uploads**: buffer/image data goes through a recycled staging ring, recorded into one upload command buffer and submitted right before the frame (no one-time submits, no `vkQueueWaitIdle`).
+- **Persistent pipeline cache**, header-validated against the current GPU and driver.
+- Deferred resource destruction (safe mid-frame), 2 frames in flight, compute pipelines and storage images where the device supports them.
+
+**Render graph** - passes declare their reads and writes, the graph sorts them and derives barriers and load/store ops.
+- `Setup to Prepare to Execute`: culling, uploads and descriptor updates happen in `Prepare`, before any render pass begins.
+- Groups whose passes have no work are **skipped entirely** (no begin, no clear, no store), which matters on tile-based GPUs.
+
+**3D renderer**
+- **Per-submesh frustum culling** (AABBs), material/mesh sorting and **automatic instancing**: identical (material, mesh, submesh) runs become one instanced draw, transforms live in a per-frame storage buffer indexed by `gl_InstanceIndex`.
+- **Energy-conserving Blinn-Phong with PBR parameters** (albedo, metallic, roughness, normal maps), tuned for mobile precision (`mediump` where it is safe).
+- Hemispherical sky/horizon/ground ambient + sky reflections, a **procedural Preetham sky** with sun disk, directional and point lights culled per frame.
+- **Cascaded shadow maps** (2 cascades on mobile, 3 on desktop) with per-cascade caster culling and practical split scheme.
+- **GTAO** ambient occlusion from depth only, with bilateral blur and Low to Ultra presets.
+- **HDR bloom** with a soft-knee threshold, fragment or compute path, anti-flicker filter.
+- **Post-processing**: ACES filmic tonemapping, FXAA, vignette, film grain, selection outlines.
+- **Render scale**: the 3D scene renders at 0.5–1.0× while UI and post-processing stay at native resolution.
+- HDR albedo (> 1) makes surfaces glow into the bloom, no extra emissive pass needed.
+
+**2D & text** - a batched 2D renderer (quads, sprites, billboards, lines) and **MSDF text** in the world (billboarded or not, with shadows, wrapping and alignment).
+
+### Particles
+- `ParticleEffect` assets with up to **16 emitters** of plain-data modules: Main, Emission (rate over time/distance, bursts), Shape (point, sphere, hemisphere, cone, box, circle, edge), Velocity, Limit Velocity + Drag, Force, Noise, Color/Size/Rotation over Lifetime, **Texture Sheet** flipbooks with frame blending, **Collision** planes and **Sub-emitters** (birth, death, collision).
+- Curves and gradients are baked to 64-entry LUTs. SoA pools per emitter, allocated once, no per-frame allocations.
+- One premultiplied pipeline for alpha and additive blending, vertex pulling from a per-frame SSBO, back-to-front emitter sorting, optional per-particle radix sort, one draw per texture run.
+- Render modes: Billboard, Stretched, Horizontal, Vertical. Off-screen culling modes: always simulate, pause, pause and catch up.
+- Edit an effect while it plays: parameter edits keep running instances, layout changes restart them.
+
+### Physics
+- **Jolt Physics** on a fixed 1/60 s step with **render interpolation**.
+- Static, dynamic and kinematic bodies; box, sphere, capsule, cylinder, **convex hull** and **triangle mesh** colliders (all scaled by the transform).
+- Sensors/triggers, continuous collision detection, per-axis rotation locks, damping, friction, bounciness.
+- Contact and trigger events delivered to Lua (`OnCollisionEnter/Exit`, `OnTriggerEnter/Exit`), raycasts, global time scale for slow motion.
+
+### Lua scripting
+- **Lua 5.4 + sol2**, scripts compiled to bytecode at cook time, sandboxed (no `io`/`debug`, a safe `os`), errors with full tracebacks.
+- **Multiple scripts per entity**, each in its own environment: `OnCreate`, `OnEnable/Disable`, `OnFixedUpdate`, `OnUpdate`, `OnLateUpdate`, `OnDestroy`, collision and trigger callbacks.
+- **Modules** with `require("Scripts.Game.State")` (only script assets, so it works the same on Android), shared state without `_G`.
+- **Properties** declared in Lua show up in the Inspector (floats with ranges, colors, enums, arrays, entity and asset references), saved sparsely per entity and written once before `OnCreate`: zero per-frame cost.
+- APIs for every component, input/touch/gamepad, `Physics.Raycast`, `Particles.Play`, `Scene.Load/FindEntity/CreateEntity`, `Time.*`, persistent `Storage.*` save data, the UI system and materials. Full VS Code IntelliSense ships in `SurgeAPI.lua`.
+
+```lua
+local State = require("Scripts.Game.State")
+
+Properties = {
+    Speed  = Property.Float(6.5, 0, 20, "Meters per second"),
+    Impact = Property.Asset("PARTICLE_EFFECT", "Effects/Impact.spfx"),
+}
+
+function OnCollisionEnter(entity, other)
+    Particles.Play(Properties.Impact, entity.TransformC.Position)
+    State.Score = State.Score + 1
+end
+
+function OnUpdate(entity, dt)
+    if Input.WasKeyPressed(Key.Space) then
+        entity.RigidbodyC:AddImpulse(Math.Vec3.new(0, Properties.Speed, 0))
+    end
+end
+```
+
+### Game UI
+- A retained widget tree with a **Unity-style rect transform** (anchors, pivot, offset, size) and a canvas scaler; layouts cached once per frame.
+- **Widgets**: Panel, Image (simple, 9-slice, filled), Text, Button, ImageButton, ProgressBar, Toggle (checkbox, switch, radio groups), Slider, **Joystick** (fixed/floating), Spinner, SafeArea, LayoutGroup (horizontal, vertical, grid), TabView, ScrollView, recycling **ListView**, Dropdown, Modal and **InputField** (with Android soft keyboard via GameTextInput).
+- Sprites and MSDF text share **one shader and pipeline**; clipping is done on the CPU so batches stay intact; rounded corners and borders without textures.
+- **Multi-touch** per-pointer input, drag hand-off to scroll views, overlays and modals, Back/Escape dismissal, focus and keyboard navigation.
+- Layouts are `.sui` assets edited in the **UI Editor** and found from Lua by name.
+
+### Audio
+- **miniaudio**, played from memory: streamed clips decode as they play, others are decoded once to PCM and shared.
+- 3D spatialized sources with inverse, linear or exponential attenuation, an audio listener, looping, pitch, play on awake.
+
+### Input
+- Keyboard and mouse, **multi-touch** (stable small IDs, began to ended phases), **gamepads** (XInput on Windows, joystick events on Android).
+- Touch-synthesized mouse events are tagged so nothing handles a tap twice; Android Back maps to Escape.
+
+### Assets & cooking
+- Every asset has a stable UUID in a project registry; the runtime loads only **cooked binary data**.
+- Cookers: textures to **Basis Universal UASTC** KTX2, transcoded at load to ASTC/ETC2 (Android) or BC7 (desktop); glTF meshes (cgltf + **meshoptimizer** vertex cache/overdraw/fetch optimization); TTF fonts to **MSDF atlases**; Lua to bytecode; scenes, particle effects and UI layouts to compact binaries.
+- `AssetStamp` headers (cooker version + source time) re-cook stale assets automatically in the Editor; bounds-checked readers fail cleanly on truncated files.
+- Unused assets are released after a scene change; missing assets fail gracefully.
+
+### ECS & scenes
+- **EnTT**-backed scenes with an `Entity` wrapper, hierarchies, deferred destruction and frame-end callbacks.
+- Scenes are saved as readable JSON for the Editor and cooked to a **reflection-driven binary**; a schema hash re-cooks every scene when a component changes.
+
+### Profiling & tooling
+- **Optick** instrumentation on Windows (`SURGE_PROFILE_FUNC()`), compiled out on Android.
+- Per-pass stats, GPU budget presets and a render graph visualizer in the Editor.
+
+---
+
+## The editor
+
+| | |
+|---|---|
+| **Project Hub** | Create, open, pin and search projects. Drop a `.surgeproj` on the window to open it. |
+| **Viewports** | Unity-style Scene views (as many as you like, each with its own camera, gizmos and render graph) and the Game view with aspect presets and simulated safe areas. |
+| **Gizmos & picking** | ImGuizmo translate/rotate/scale with snapping, clickable component icons, camera frustums, light/audio ranges, collider wires, selection outlines; CPU ray picking with no GPU readback. |
+| **Hierarchy & Inspector** | Drag-and-drop parenting, multi-script entities, Lua properties as typed fields, asset and entity references. |
+| **Undo / redo** | Every edit recorded while in edit mode, with a History panel. |
+| **Content Browser** | Async thumbnails, favorites, search, file operations that keep the asset registry in sync, drag & drop import. |
+| **Particle Editor** | Every module, curve and gradient editor, an isolated live preview with shape gizmos. |
+| **UI Editor** | WYSIWYG layout editing in the Game view, all widget types and their parts. |
+| **Material Editor** | Edit material parameters and textures with live results. |
+| **Renderer panel** | All quality settings with Mobile/Desktop presets, the render graph visualizer (toggle passes live) and per-pass stats. |
+| **Asset Registry** | Every registered asset with its ID, type, load status and path, searchable and sortable. |
+| **Console & status bar** | Every log line with filters and counters; background tasks (export, thumbnails) report progress in the status bar. |
+| **Export** | Windows executables (icon and version stamped) and Android **APK/AAB** via Gradle, with branding, orientation, immersive mode, cutouts, signing from environment variables, install and launch on a device. |
+
+Editor state (cameras, open viewports, gizmo options, content browser) is saved per project.
+
+---
+
+## Building
+
+Clone the repository:
+
+```bash
+git clone https://github.com/ridhwandll/Surge_Expired
+```
+No need for recursive clones as the repository has NO GIT SUBMODULES. Vendor code is baked in with a Custom CMakeList for each one.
 
 ### Windows
-Inside the Scripts folder run `WindowsGenProjects.bat`. It will create a Visual Studio solution file in the `build` folder inside the root directory. You need to have a valid installation of VS along with the Clang compiler for VS installed. Build the solution, set `Editor/Player` as the startup project.
+
+Requirements: a recent Visual Studio with the **C++ Clang (ClangCL)** toolset, and CMake (the solution is generated as `.slnx`). Download the VulkanSDK too from LunarG website.
+
+1. Run `Scripts/WindowsGenProjects.bat`. It generates `build/Surge.slnx`.
+2. Build in Visual Studio, or from the command line:
+   ```bash
+   msbuild build/Surge.slnx -p:Configuration=Release
+   ```
+3. Set **Editor** (not **Player**) as the startup project. The working directory is ALWAYS the repository root.
+
+Build the whole solution in Release mode before running editor. Shaders are compiled to SPIR-V with shaderc on Windows and cached in `Engine/Assets/Shaders/SPIRV/`.
 
 ### Android
-You need Android Studio installed with a valid SDK and NDK. After you have installed Android Studio, open up the `android` folder inside the root directory in Android Studio. Everything should be good to go. (If Android Studio prompts you to install proper version 
-of NDK and SDK, you must install it, just accept the prompt)
 
-### iOS
-Due to my lack of Apple devices, it is completely unsupported. But I plan to add support for this in future.
+Requirements: Android Studio, NDK `27.3.13750724`, an arm64-v8a device with Vulkan 1.1 (Android 10 / API 29+).
 
-## Rendering backend
-The RHI currently supports `Vulkan 1.1` on Android and Windows. And We will keep `Vulkan 1.1` for Windows (No `DX12` ever). For Apple we will use `Metal` in future.
+- Open the `android/` folder in Android Studio and run, or build from the command line:
+  ```bash
+  android/gradlew assembleDebug
+  ```
+- Or export straight from the Editor's **Export** panel (APK or AAB, optionally installed and launched on a connected device).
 
-## Dependencies:
+Note: Android loads precompiled SPIR-V from the APK, so run the Windows build once after editing a shader. The `Surge` post-build step copies `Engine/Assets/` into the Android assets.
 
-All dependencies can be found inside the `Engine\Vendor` from project root directory.
+### iOS / macOS
 
-- cgltf - Mesh loading
-- entt - ECS
-- glm - Math Library
-- ImGui - Tools UI
-- json - Serialization
-- Optick - (`Windows` only, profiler)
-- shaderc - (`Windows` only, shader compiler to  SPIR-V)
-- SPIRV-Cross - Shader Reflection and cross compilation
-- stb - Texture file reader
-- volk - Meta loader for Vulkan API
-- Vulkan-Headers
-- VulkanMemoryAllocator
+It is planned but can't work on it due to my lack of Apple devices. Linux and macOS desktop builds are intentionally unsupported for now. We will go with a native Metal Rendering backend on iOS and macOS
 
-All dependencies are included as a part of project with a custom CMakeLists.txt, no package manager/git submodule used. Required LICENSE can be found inside the respective Vendor folders.
+---
 
-# Features
+## Folder Structure
 
-- Verbose RHI
-- Batch Renderer2D (100k quads in 10 draw calls)
-- Renderer3D with robust Matarial workflow via shader reflection
-- Automatic VertexAttribute, DescriptorSetLayout, PipelineLayout generation via shader reflection
-- Mobile optimized Energy consrving Blinn-Phong with PBR parameters
-- Currently working on RenderGraphs
-- Scene system
-- C++ Scripting (deprecated & disabled, needs rewrite)
-- Automatic Serializarion via C++ Reflection (deprecated & disabled needs rewrite)
+```
+Engine/                     Surge static library
+  Source/Surge/             Main Engine source; All Systems + ECS
+  Source/SurgeReflect/      In-house reflection (enum <-> string, registry)
+  Source/SurgeMath/         AABB, Frustum and math helpers
+  Assets/Shaders/           One .glsl per program (+ Include/*.glsli)
+  Vendor/                   Third-party code with custom CMakeLists.txt
+Editor/                     Windows-only editor via Dear ImGui
+Player/                     Runtime executable (Windows + Android entry points)
+android/                    Gradle project, builds libSurgePlayer.so
+Scripts/                    Project generation
+```
 
+---
+
+## Dependencies
+
+All dependencies are vendored (no package manager, no submodules), each with its license in its folder.
+
+| Library | Used for |
+|---|---|
+| [Vulkan-Headers](https://github.com/KhronosGroup/Vulkan-Headers), [volk](https://github.com/zeux/volk), [VulkanMemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) | Graphics API, loader, memory allocation |
+| [shaderc](https://github.com/google/shaderc) *(Windows)*, [SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross) | GLSL to SPIR-V, shader reflection |
+| [Jolt Physics](https://github.com/jrouwe/JoltPhysics) | Physics, duh |
+| [EnTT](https://github.com/skypjack/entt) | ECS |
+| [Lua 5.4](https://www.lua.org) + [sol2](https://github.com/ThePhD/sol2) | Scripting |
+| [miniaudio](https://github.com/mackron/miniaudio) | Audio |
+| [Basis Universal](https://github.com/BinomialLLC/basis_universal) | Texture compression and transcoding |
+| [Dear ImGui](https://github.com/ocornut/imgui) + [ImGuizmo](https://github.com/CedricGuillemet/ImGuizmo) | Editor UI and gizmos(Source edited to meet Engine needs) |s
+| [glm](https://github.com/g-truc/glm) | Math |
+| [nlohmann/json](https://github.com/nlohmann/json) | JSON serialization |
+| [Optick](https://github.com/bombomby/optick) *(Windows)* | Profiling |
+| [cgltf](https://github.com/jkuhlmann/cgltf), [meshoptimizer](https://github.com/zeux/meshoptimizer), [stb](https://github.com/nothings/stb) *(Editor)* | Mesh import and optimization, image decoding |
+| [msdf-atlas-gen](https://github.com/Chlumsky/msdf-atlas-gen), [rcedit](https://github.com/electron/rcedit) *(Editor tools)* | Font atlases, executable stamping |
+| [Swappy](https://developer.android.com/games/sdk/frame-pacing) *(Android)* | Frame pacing |
+
+---
+
+## Roadmap
+
+- I do not know what I am doing at this point... Maybe ship a game/app with it?
+- Apple backend
+- Get a girlfriend?
+
+---
+
+## License
+
+Surge is distributed under the **Surge Engine License**, see [LICENSE](LICENSE). Third-party libraries keep their own licenses inside `Engine/Vendor` and `Editor/Vendor`.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="Docs/Images/SurgeLogo-DarkMode.png">
+    <source media="(prefers-color-scheme: light)" srcset="Docs/Images/SurgeLogo-LightMode.png">
+    <img alt="rid TECH" src="Docs/Images/SurgeLogo-LightMode.png" width="90">
+  </picture>
+</p>

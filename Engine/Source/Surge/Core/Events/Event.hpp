@@ -40,6 +40,9 @@ namespace Surge
         virtual String ToString() const = 0;
         virtual const char* GetName() const = 0;
         virtual EventType GetEventType() const = 0;
+
+    public:
+        bool Handled = false; // Set by a system that consumed the event (the UI closing a popup on Back), the platform layer may check it
     };
 
 #define EVENT_CLASS_TYPE(type)                                                  \

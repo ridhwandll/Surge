@@ -14,6 +14,7 @@ namespace Surge
         String DebugName = "RenderView";
         bool EditorOverlay = false; // Also draws what was submitted after Renderer::BeginEditorOverlay() (editor debug geometry)
         bool ShowUI = false;        // In-game UI on top (UIOverlayPass)
+        bool Isolated = false;      // Draws only what is submitted to this view (Renderer::SubmitParticles with its ID), never the frame's scene (previews)
     };
 
 } // namespace Surge

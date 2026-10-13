@@ -6,6 +6,8 @@
 #include "Surge/Graphics/HighLevel/Mesh.hpp"
 #include "Surge/Graphics/HighLevel/Font.hpp"
 #include "Surge/Graphics/Renderer/Text.hpp"
+#include "Surge/Graphics/Particles/ParticleRenderData.hpp"
+#include "SurgeMath/Frustum.hpp"
 
 #include <glm/glm.hpp>
 
@@ -276,12 +278,26 @@ namespace Surge
         const Font* FontAsset;
     };
 
-    // Screen space UI draw order: sprites and text are interleaved in hierarchy order (see UIOverlayPass)
+    // Screen space UI sprite, pushed by UI::Manager (pixels, (0,0) = top left of the UI target)
+    struct UISpriteCmd
+    {
+        glm::vec2 Min;
+        glm::vec2 Max;
+        glm::vec2 UVMin = { 0.0f, 0.0f }; // Sub-rect of Texture, lets 9-slice and filled images reuse the same quad path
+        glm::vec2 UVMax = { 1.0f, 1.0f };
+        glm::vec4 Color;
+        ImageHandle Texture;
+        float CornerRadius = 0.0f; // Pixels, rounded in UI.glsl (signed distance), 0 = sharp
+    };
+
+    // Screen space UI draw order: sprites and text are interleaved in hierarchy order
     struct UIDrawItem
     {
         bool IsText;
-        Uint Index; // Into UITextList or UISpriteList
+        uint16_t ClipIndex; // UI_NO_CLIP or index + 1 into UIClipRects, applied on the CPU (no scissor, batches stay intact)
+        Uint Index;         // Into UITextList or UISpriteList
     };
+    static constexpr uint16_t UI_NO_CLIP = 0;
 
     struct FrameBlackboard
     {
@@ -296,6 +312,7 @@ namespace Surge
         glm::vec2 CameraNearFarPlane;
         glm::vec3 CameraRight;
         glm::vec3 CameraUp;
+        Frustum CameraFrustum; // Of ViewProjection, culls the particle systems before they submit
 
         bool HasDirectionalLight = false;
         glm::vec3 DirectionalLightDir; //Set by Renderer.cpp
@@ -304,6 +321,7 @@ namespace Surge
         BufferHandle FrameUBOs[RHISettings::FRAMES_IN_FLIGHT];
         BufferHandle ShadowUBOs[RHISettings::FRAMES_IN_FLIGHT];
         ImageHandle WhiteImage;
+        ImageHandle ParticleDefaultImage; // Soft round particle, used by emitters without a texture
 
         ImageHandle MainPassColorImage;
         ImageHandle MainPassDepthImage;
@@ -334,6 +352,8 @@ namespace Surge
         Environnment Env;
 
         LightingSettings Lighting;
+        ParticleSettings Particles;
+        ParticleStats ParticleStatistics; // Written by the scene each frame
 
         // Screen Space options
         PostProcessSettings PostProcessSettings_;
@@ -347,13 +367,16 @@ namespace Surge
         Vector<LineSubmitCmd> LineList;
         Vector<TextSubmitCmd> TextList;
         Vector<OutlineSubmitCmd> OutlineList;
+        Vector<ParticleRecord> ParticleList;            // Renderer::SubmitParticles
+        Vector<ParticleEmitterCmd> ParticleEmitterList; // One per submitted emitter, records are contiguous per emitter
 
         // UI
         bool ShowUI = true;
         glm::vec2 UIResolution = { 0.0f, 0.0f }; // Size the UI was laid out at, 0 = ScreenWidth/Height (Editor views share one layout)
-        Vector<QuadSubmitCmd> UISpriteList;
+        Vector<UISpriteCmd> UISpriteList;
         Vector<TextSubmitCmd> UITextList;
         Vector<UIDrawItem> UIDrawOrder;
+        Vector<glm::vec4> UIClipRects; // (minX, minY, maxX, maxY) pixels
 
         // Size of the scene targets (main pass, AO, bloom) for a given output size
         glm::uvec2 GetSceneSize(Uint outputWidth, Uint outputHeight) const
@@ -370,10 +393,13 @@ namespace Surge
             QuadList.clear();
             LineList.clear();
             OutlineList.clear();
+            ParticleList.clear();
+            ParticleEmitterList.clear();
 
             UISpriteList.clear();
             UITextList.clear();
             UIDrawOrder.clear();
+            UIClipRects.clear();
         }
     };
 }

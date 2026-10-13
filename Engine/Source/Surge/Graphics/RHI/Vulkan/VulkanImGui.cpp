@@ -284,7 +284,7 @@ namespace Surge
         colors[ImGuiCol_Header] = colorFromBytesS(51);
         colors[ImGuiCol_HeaderHovered] = { 0.3f, 0.3f, 0.3f, 0.3f };
         colors[ImGuiCol_HeaderActive] = colorFromBytesS(22);
-        colors[ImGuiCol_CheckMark] = colorFromBytes(10, 200, 10); // Green
+        colors[ImGuiCol_CheckMark] = colorFromBytes(190, 190, 190);
 
         // Buttons
         colors[ImGuiCol_Button] = colorFromBytesS(40);
@@ -313,9 +313,9 @@ namespace Surge
         colors[ImGuiCol_TitleBgActive] = { 0.14, 0.14, 0.14, 1.0 };
 
         colors[ImGuiCol_ScrollbarBg] = colorFromBytesS(10);
-        colors[ImGuiCol_ScrollbarGrabActive] = colorFromBytes(255, 191, 0);
-        colors[ImGuiCol_SliderGrab] = colorFromBytes(255, 191, 0);
-        colors[ImGuiCol_SliderGrabActive] = colorFromBytes(255 - 100, 191 - 100, 0);
+        colors[ImGuiCol_ScrollbarGrabActive] = colorFromBytes(220, 220, 220);
+        colors[ImGuiCol_SliderGrab] = colorFromBytes(190, 190, 190);
+        colors[ImGuiCol_SliderGrabActive] = colorFromBytes(220, 220, 220);
 
         //colors[ImGuiCol_Border] = colorFromBytes(255 - 120, 191 - 120, 0);
     }

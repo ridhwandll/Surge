@@ -75,10 +75,14 @@ namespace Surge
 
         AssetStamp existingStamp;
         MeshSpecification existingGeom;
-        bool result = MeshBinary::Read(sidecarPath, existingStamp, existingGeom);
+        if(!MeshBinary::Read(sidecarPath, existingStamp, existingGeom))
+        {
+            // Writing now would replace the cooked geometry with an empty mesh
+            Log<Severity::Error>("[MeshSerializer] Could not read {} to update its material overrides, re-cook the mesh first", sidecarPath);
+            return false;
+        }
 
-        MeshBinary::Write(sidecarPath, existingStamp, existingGeom, mesh->GetMaterialOverrides()); //Just override the materials
-        return result;
+        return MeshBinary::Write(sidecarPath, existingStamp, existingGeom, mesh->GetMaterialOverrides()); //Just override the materials
 #endif
     }
 

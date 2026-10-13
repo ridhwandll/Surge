@@ -8,6 +8,7 @@
 #include "Editor.hpp"
 #include "Panels/ContentBrowserPanel.hpp"
 #include "Panels/UIEditorPanel.hpp"
+#include "Panels/ParticleEditorPanel.hpp"
 
 #include <format>
 
@@ -199,6 +200,18 @@ namespace Surge
                         Entity newEntity;
                         editor->GetCurrentScene()->CreateEntity(newEntity, "Mesh");
                         newEntity.AddComponent<MeshComponent>().MeshAsset = droppedMesh;
+                        editor->OnEntityCreated(newEntity);
+                    }
+                    break;
+                }
+                case AssetType::PARTICLE_EFFECT:
+                {
+                    Ref<ParticleEffect> effect = assetManager->Load<ParticleEffect>(droppedAssetID);
+                    if(effect && !editor->IsPlaying())
+                    {
+                        Entity newEntity;
+                        editor->GetCurrentScene()->CreateEntity(newEntity, Path(assetManager->GetMetadata(droppedAssetID).RelativePath).stem().string());
+                        newEntity.AddComponent<ParticleSystemComponent>().Effect = effect;
                         editor->OnEntityCreated(newEntity);
                     }
                     break;

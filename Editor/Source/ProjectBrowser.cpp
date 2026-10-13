@@ -6,7 +6,6 @@
 #include "Surge/Core/Events/Event.hpp"
 #include "Surge/Asset/AssetManager.hpp"
 #include "Surge/ECS/Scene.hpp"
-#include "Surge/Serializer/Serializer.hpp"
 #include "Surge/Utility/FileDialogs.hpp"
 #include "Surge/Utility/Filesystem.hpp"
 #include "Surge/Utility/Platform.hpp"
@@ -335,12 +334,12 @@ namespace Surge
             return nullptr;
         }
 
-        // Serializer::DeserializeProject throws on malformed JSON, a corrupt project file must not take the Editor down
+        // Project::Load throws on malformed JSON, a corrupt project file must not take the Editor down
         bool ReadProjectFile(const Path& path, Project& outProject)
         {
             try
             {
-                Serializer::DeserializeProject(path, &outProject);
+                outProject.Load(path);
             }
             catch(const nlohmann::json::exception&)
             {
@@ -1246,7 +1245,7 @@ namespace Surge
         ActivateAssetManager(projectFile);
         Ref<Scene> startScene = mAssetManager->Create<Scene>(std::format("Scenes/Main{}", GetExtensionFromAssetType(AssetType::SCENE)), "Main");
         project.StartScene = startScene->GetID();
-        Serializer::SerializeProject(projectFile, &project);
+        project.Save(projectFile);
 
         auto* editor = static_cast<Editor*>(Core::GetClient());
         editor->SetCurrentProject(project, projectFile);

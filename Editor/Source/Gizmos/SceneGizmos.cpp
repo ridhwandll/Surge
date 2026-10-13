@@ -4,17 +4,17 @@
 #include "Surge/ECS/Components/Components.hpp"
 #include "Surge/Graphics/Renderer/Renderer.hpp"
 #include "Surge/Graphics/HighLevel/Mesh.hpp"
+#include "Surge/Graphics/Particles/ParticleEffect.hpp"
+#include "Gizmos/ParticleGizmos.hpp"
 #include "Surge/Physics/Physics.hpp"
 
 #include <Jolt/Renderer/DebugRenderer.h>
 #include <glm/gtc/constants.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <algorithm>
 
 namespace Surge
 {
-    static constexpr int CIRCLE_SEGMENTS = 64;
-    static constexpr ImU32 LINE_RIM_COLOR = IM_COL32(0, 0, 0, 70); // Dark rim under every wire, keeps them readable on bright backgrounds
-    static constexpr float LINE_RIM_EXTRA = 2.0f;
     static constexpr float SELECTED_THICKNESS = 1.75f;
     static constexpr float UNSELECTED_THICKNESS = 1.25f;
     static constexpr ImU32 SELECTION_COLOR = IM_COL32(255, 168, 0, 255); // Matches the ImGuizmo selection color (see SceneViewport::SetupManipulatorStyle)
@@ -24,11 +24,7 @@ namespace Surge
     static JPH::ShapeRefC sConvexShapeCache = nullptr;
     static entt::entity sConvexShapeOwner = entt::null;
 
-    static ImU32 ScaleAlpha(ImU32 color, float factor)
-    {
-        const ImU32 alpha = (ImU32)((float)((color >> IM_COL32_A_SHIFT) & 0xFF) * glm::clamp(factor, 0.0f, 1.0f));
-        return (color & ~IM_COL32_A_MASK) | (alpha << IM_COL32_A_SHIFT);
-    }
+    static ImU32 ScaleAlpha(ImU32 color, float factor) { return GizmoCanvas::ScaleAlpha(color, factor); }
 
     static ImU32 ToU32(const glm::vec3& color, float alpha)
     {
@@ -40,32 +36,6 @@ namespace Surge
     {
         const float maxComponent = glm::max(glm::max(color.r, color.g), glm::max(color.b, 1e-4f));
         return glm::mix(glm::clamp(color / maxComponent, 0.0f, 1.0f), glm::vec3(1.0f), 0.3f);
-    }
-
-    static ImVec2 ClipToScreen(const glm::vec4& clip, const ImVec2& viewportMin, const ImVec2& viewportSize)
-    {
-        // Vulkan clip space: y points down, same as ImGui
-        const float invW = 1.0f / clip.w;
-        return ImVec2(viewportMin.x + (clip.x * invW * 0.5f + 0.5f) * viewportSize.x, viewportMin.y + (clip.y * invW * 0.5f + 0.5f) * viewportSize.y);
-    }
-
-    static bool ClipSegmentToNear(glm::vec4& a, glm::vec4& b, float nearW)
-    {
-        if(a.w < nearW && b.w < nearW)
-            return false;
-
-        if(a.w < nearW)
-            a = glm::mix(a, b, (nearW - a.w) / (b.w - a.w));
-        else if(b.w < nearW)
-            b = glm::mix(b, a, (nearW - b.w) / (a.w - b.w));
-        return true;
-    }
-
-    static void GetPerpendicularBasis(const glm::vec3& n, glm::vec3& outU, glm::vec3& outV)
-    {
-        const glm::vec3 reference = glm::abs(n.y) < 0.99f ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.0f, 0.0f);
-        outU = glm::normalize(glm::cross(n, reference));
-        outV = glm::cross(n, outU);
     }
 
     static bool IsColliderShown(Entity entity)
@@ -152,12 +122,7 @@ namespace Surge
             return;
 
         mDrawList = ImGui::GetWindowDrawList();
-        mViewProjection = projection * view;
-        mCameraPosition = glm::vec3(glm::inverse(view)[3]);
-        mNearClip = glm::max(nearClip, 1e-3f);
-        mProjectionScaleY = glm::max(glm::abs(projection[1][1]), 1e-4f);
-        mViewportMin = viewportMin;
-        mViewportSize = viewportSize;
+        mCanvas.Begin(mDrawList, view, projection, nearClip, viewportMin, viewportSize);
 
         mDrawList->PushClipRect(viewportMin, ImVec2(viewportMin.x + viewportSize.x, viewportMin.y + viewportSize.y), true);
 
@@ -192,7 +157,7 @@ namespace Surge
                 const glm::mat4& world = transform.GetTransform();
 
                 if(light.Type == LightType::POINT)
-                    DrawWireSphere(glm::vec3(world[3]), light.Radius, color, thickness);
+                    mCanvas.DrawWireSphere(glm::vec3(world[3]), light.Radius, color, thickness);
                 else
                     DrawDirectionalLight(world, color, thickness);
             }
@@ -209,8 +174,21 @@ namespace Surge
                 const float alpha = (isSelected ? 0.85f : 0.4f) * (audioSrc.Active ? 1.0f : 0.5f);
                 const float thickness = isSelected ? SELECTED_THICKNESS : UNSELECTED_THICKNESS;
                 const glm::vec3 position = glm::vec3(transform.GetTransform()[3]);
-                DrawWireSphere(position, audioSrc.MinDistance, ScaleAlpha(AUDIO_COLOR, alpha), thickness);
-                DrawWireSphere(position, audioSrc.MaxDistance, ScaleAlpha(IM_COL32(70, 140, 235, 255), alpha * 0.8f), thickness);
+                mCanvas.DrawWireSphere(position, audioSrc.MinDistance, ScaleAlpha(AUDIO_COLOR, alpha), thickness);
+                mCanvas.DrawWireSphere(position, audioSrc.MaxDistance, ScaleAlpha(IM_COL32(70, 140, 235, 255), alpha * 0.8f), thickness);
+            }
+        }
+
+        if(mSettings.ShowParticleGizmos)
+        {
+            for(const auto& [entity, transform, particles] : registry.view<TransformComponent, ParticleSystemComponent>().each())
+            {
+                const bool isSelected = entity == selectedHandle;
+                if(!isSelected && !wireForAll)
+                    continue;
+
+                const float alpha = (isSelected ? 0.85f : 0.4f) * (particles.Active ? 1.0f : 0.5f);
+                DrawParticleShapes(particles, transform.GetTransform(), ScaleAlpha(GizmoIcons::PARTICLES_COLOR, alpha), isSelected ? SELECTED_THICKNESS : UNSELECTED_THICKNESS);
             }
         }
 
@@ -229,7 +207,7 @@ namespace Surge
         auto addIcon = [&](entt::entity entity, const TransformComponent& transform, GizmoIcon icon, ImU32 tint, bool inactive) {
             ImVec2 screenPos;
             float depth;
-            if(ProjectPoint(glm::vec3(transform.GetTransform()[3]), screenPos, &depth))
+            if(mCanvas.ProjectPoint(glm::vec3(transform.GetTransform()[3]), screenPos, &depth))
                 mIcons.push_back(IconCmd { entity, screenPos, depth, icon, tint, inactive });
         };
 
@@ -258,6 +236,12 @@ namespace Surge
         {
             if(!registry.any_of<CameraComponent, LightComponent, AudioSourceComponent, AudioListenerComponent>(entity))
                 addIcon(entity, transform, GizmoIcon::ENVIRONMENT, IM_COL32(255, 200, 110, 255), !env.Active);
+        }
+
+        for(const auto& [entity, transform, particles] : registry.view<TransformComponent, ParticleSystemComponent>().each())
+        {
+            if(!registry.any_of<CameraComponent, LightComponent, AudioSourceComponent, AudioListenerComponent, EnvironmentComponent>(entity))
+                addIcon(entity, transform, GizmoIcon::PARTICLES, GizmoIcons::PARTICLES_COLOR, !particles.Active);
         }
 
         if(mIcons.empty())
@@ -290,7 +274,7 @@ namespace Surge
             const bool isHovered = i == hoveredIndex;
 
             // Fades out right in front of the camera instead of covering the view
-            float alpha = glm::clamp((icon.Depth - mNearClip) / 1.5f, 0.0f, 1.0f);
+            float alpha = glm::clamp((icon.Depth - mCanvas.GetNearClip()) / 1.5f, 0.0f, 1.0f);
             if(icon.Inactive)
                 alpha *= 0.45f;
             if(alpha <= 0.01f)
@@ -341,10 +325,10 @@ namespace Surge
         }
 
         const ImU32 faintColor = ScaleAlpha(color, 0.6f);
-        DrawPolyline3D(nearCorners, 4, true, color, thickness);
-        DrawPolyline3D(farCorners, 4, true, faintColor, thickness);
+        mCanvas.DrawPolyline3D(nearCorners, 4, true, color, thickness);
+        mCanvas.DrawPolyline3D(farCorners, 4, true, faintColor, thickness);
         for(int i = 0; i < 4; i++)
-            DrawLine3D(nearCorners[i], farCorners[i], faintColor, thickness);
+            mCanvas.DrawLine3D(nearCorners[i], farCorners[i], faintColor, thickness);
 
         // Viewfinder: a one unit deep pyramid (perspective) or the near plane (orthographic), with an "up" marker on top
         const bool isPerspective = camera.GetProjectionType() == RuntimeCamera::ProjectionType::Perspective;
@@ -357,9 +341,9 @@ namespace Surge
             {
                 const glm::vec3 local = localNear[i] * (bodyDepth / glm::max(-localNear[i].z, 1e-4f));
                 body[i] = glm::vec3(cameraWorld * glm::vec4(local, 1.0f));
-                DrawLine3D(origin, body[i], color, thickness);
+                mCanvas.DrawLine3D(origin, body[i], color, thickness);
             }
-            DrawPolyline3D(body, 4, true, color, thickness);
+            mCanvas.DrawPolyline3D(body, 4, true, color, thickness);
         }
         else
         {
@@ -372,7 +356,7 @@ namespace Surge
         const glm::vec3 triangle[3] = { body[0] + topEdge * 0.3f, body[0] + topEdge * 0.7f, body[0] + topEdge * 0.5f + up * glm::length(topEdge) * 0.25f };
 
         ImVec2 screen[3];
-        if(ProjectPoint(triangle[0], screen[0]) && ProjectPoint(triangle[1], screen[1]) && ProjectPoint(triangle[2], screen[2]))
+        if(mCanvas.ProjectPoint(triangle[0], screen[0]) && mCanvas.ProjectPoint(triangle[1], screen[1]) && mCanvas.ProjectPoint(triangle[2], screen[2]))
         {
             mDrawList->AddTriangleFilled(screen[0], screen[1], screen[2], ScaleAlpha(color, 0.45f));
             mDrawList->AddTriangle(screen[0], screen[1], screen[2], color, thickness);
@@ -385,154 +369,41 @@ namespace Surge
         const glm::vec3 origin = glm::vec3(lightWorld[3]);
         const glm::vec3 forward = glm::normalize(glm::vec3(lightWorld[2]));
         glm::vec3 u, v;
-        GetPerpendicularBasis(forward, u, v);
+        GizmoCanvas::GetPerpendicularBasis(forward, u, v);
 
-        const float unit = GetWorldPerPixel(origin) * mSettings.IconSize;
+        const float unit = mCanvas.GetWorldPerPixel(origin) * mSettings.IconSize;
         const float discRadius = unit * 0.9f;
         const float rayLength = unit * 2.2f;
 
-        DrawCircle3D(origin, u, v, discRadius, color, thickness);
+        mCanvas.DrawCircle3D(origin, u, v, discRadius, color, thickness);
         for(int i = 0; i < 8; i++)
         {
             const float angle = static_cast<float>(i) * glm::pi<float>() * 0.25f;
             const glm::vec3 start = origin + (u * glm::cos(angle) + v * glm::sin(angle)) * discRadius;
-            DrawLine3D(start, start + forward * rayLength, ScaleAlpha(color, 0.8f), thickness);
+            mCanvas.DrawLine3D(start, start + forward * rayLength, ScaleAlpha(color, 0.8f), thickness);
         }
 
         const glm::vec3 tip = origin + forward * rayLength * 1.35f;
         const glm::vec3 headBase = tip - forward * unit * 0.4f;
-        DrawLine3D(origin, tip, color, thickness);
-        DrawLine3D(tip, headBase + u * unit * 0.2f, color, thickness);
-        DrawLine3D(tip, headBase - u * unit * 0.2f, color, thickness);
-        DrawLine3D(tip, headBase + v * unit * 0.2f, color, thickness);
-        DrawLine3D(tip, headBase - v * unit * 0.2f, color, thickness);
+        mCanvas.DrawLine3D(origin, tip, color, thickness);
+        mCanvas.DrawLine3D(tip, headBase + u * unit * 0.2f, color, thickness);
+        mCanvas.DrawLine3D(tip, headBase - u * unit * 0.2f, color, thickness);
+        mCanvas.DrawLine3D(tip, headBase + v * unit * 0.2f, color, thickness);
+        mCanvas.DrawLine3D(tip, headBase - v * unit * 0.2f, color, thickness);
     }
 
-    void SceneGizmos::DrawWireSphere(const glm::vec3& center, float radius, ImU32 color, float thickness)
+    void SceneGizmos::DrawParticleShapes(const ParticleSystemComponent& particles, const glm::mat4& world, ImU32 color, float thickness)
     {
-        if(radius <= 0.0f)
+        if(!particles.Effect || particles.Effect->GetAssetType() != AssetType::PARTICLE_EFFECT)
             return;
 
-        // Faint great circles for the volume, the silhouette (what the eye reads as the sphere outline) at full strength
-        const ImU32 axisColor = ScaleAlpha(color, 0.5f);
-        DrawCircle3D(center, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), radius, axisColor, thickness);
-        DrawCircle3D(center, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), radius, axisColor, thickness);
-        DrawCircle3D(center, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), radius, axisColor, thickness);
-
-        const glm::vec3 toCamera = mCameraPosition - center;
-        const float distance = glm::length(toCamera);
-        if(distance <= radius)
-            return; // Inside the sphere, there is no silhouette
-
-        const glm::vec3 n = toCamera / distance;
-        glm::vec3 u, v;
-        GetPerpendicularBasis(n, u, v);
-        const float silhouetteRadius = radius * glm::sqrt(distance * distance - radius * radius) / distance;
-        DrawCircle3D(center + n * (radius * radius / distance), u, v, silhouetteRadius, color, thickness);
-    }
-
-    void SceneGizmos::DrawCircle3D(const glm::vec3& center, const glm::vec3& axisU, const glm::vec3& axisV, float radius, ImU32 color, float thickness)
-    {
-        glm::vec3 points[CIRCLE_SEGMENTS];
-        for(int i = 0; i < CIRCLE_SEGMENTS; i++)
+        const ParticleEffect& effect = *static_cast<const ParticleEffect*>(particles.Effect.Raw());
+        for(const ParticleEmitterDesc& emitter : effect.Emitters)
         {
-            const float angle = static_cast<float>(i) / static_cast<float>(CIRCLE_SEGMENTS) * glm::two_pi<float>();
-            points[i] = center + (axisU * glm::cos(angle) + axisV * glm::sin(angle)) * radius;
+            // Sub-emitter targets spawn on other particles, their shape has no fixed place
+            if(emitter.Enabled && emitter.Shape.Enabled && !emitter.IsSubEmitterTarget)
+                ParticleGizmos::DrawEmitterShape(mCanvas, emitter.Shape, world, color, thickness);
         }
-        DrawPolyline3D(points, CIRCLE_SEGMENTS, true, color, thickness);
-    }
-
-    void SceneGizmos::DrawPolyline3D(const glm::vec3* points, int count, bool closed, ImU32 color, float thickness)
-    {
-        SG_ASSERT(count >= 2 && count <= CIRCLE_SEGMENTS, "[SceneGizmos] Polyline point count out of range");
-
-        glm::vec4 clip[CIRCLE_SEGMENTS];
-        bool allVisible = true;
-        for(int i = 0; i < count; i++)
-        {
-            clip[i] = mViewProjection * glm::vec4(points[i], 1.0f);
-            allVisible &= clip[i].w >= mNearClip;
-        }
-
-        ImVec2 strip[CIRCLE_SEGMENTS + 1];
-        auto flush = [&](int pointCount, ImDrawFlags flags) {
-            if(pointCount < 2)
-                return;
-            mDrawList->AddPolyline(strip, pointCount, LINE_RIM_COLOR, flags, thickness + LINE_RIM_EXTRA);
-            mDrawList->AddPolyline(strip, pointCount, color, flags, thickness);
-        };
-
-        if(allVisible) // Common case: one polyline with proper joints
-        {
-            for(int i = 0; i < count; i++)
-                strip[i] = ClipToScreen(clip[i], mViewportMin, mViewportSize);
-            flush(count, closed ? ImDrawFlags_Closed : ImDrawFlags_None);
-            return;
-        }
-
-        // Crosses the near plane: split into visible runs
-        int stripCount = 0;
-        const int segmentCount = closed ? count : count - 1;
-        for(int i = 0; i < segmentCount; i++)
-        {
-            glm::vec4 a = clip[i];
-            glm::vec4 b = clip[(i + 1) % count];
-            const bool aVisible = a.w >= mNearClip;
-            const bool bVisible = b.w >= mNearClip;
-            if(!ClipSegmentToNear(a, b, mNearClip))
-            {
-                flush(stripCount, ImDrawFlags_None);
-                stripCount = 0;
-                continue;
-            }
-
-            if(stripCount == 0 || !aVisible)
-            {
-                flush(stripCount, ImDrawFlags_None);
-                stripCount = 0;
-                strip[stripCount++] = ClipToScreen(a, mViewportMin, mViewportSize);
-            }
-            strip[stripCount++] = ClipToScreen(b, mViewportMin, mViewportSize);
-
-            if(!bVisible)
-            {
-                flush(stripCount, ImDrawFlags_None);
-                stripCount = 0;
-            }
-        }
-        flush(stripCount, ImDrawFlags_None);
-    }
-
-    void SceneGizmos::DrawLine3D(const glm::vec3& a, const glm::vec3& b, ImU32 color, float thickness)
-    {
-        glm::vec4 clipA = mViewProjection * glm::vec4(a, 1.0f);
-        glm::vec4 clipB = mViewProjection * glm::vec4(b, 1.0f);
-        if(!ClipSegmentToNear(clipA, clipB, mNearClip))
-            return;
-
-        const ImVec2 screenA = ClipToScreen(clipA, mViewportMin, mViewportSize);
-        const ImVec2 screenB = ClipToScreen(clipB, mViewportMin, mViewportSize);
-        mDrawList->AddLine(screenA, screenB, LINE_RIM_COLOR, thickness + LINE_RIM_EXTRA);
-        mDrawList->AddLine(screenA, screenB, color, thickness);
-    }
-
-    bool SceneGizmos::ProjectPoint(const glm::vec3& worldPos, ImVec2& outScreen, float* outDepth) const
-    {
-        const glm::vec4 clip = mViewProjection * glm::vec4(worldPos, 1.0f);
-        if(clip.w < mNearClip)
-            return false;
-
-        outScreen = ClipToScreen(clip, mViewportMin, mViewportSize);
-        if(outDepth)
-            *outDepth = clip.w;
-        return true;
-    }
-
-    float SceneGizmos::GetWorldPerPixel(const glm::vec3& worldPos) const
-    {
-        // Perspective: clip.w is the view depth, the visible height at that depth is 2 * w / P[1][1]
-        const float depth = glm::max((mViewProjection * glm::vec4(worldPos, 1.0f)).w, mNearClip);
-        return (2.0f * depth) / (mProjectionScaleY * mViewportSize.y);
     }
 
     void SceneGizmos::OnSettingsGUI()
@@ -545,6 +416,7 @@ namespace Surge
         ImGui::Checkbox("Camera Frustums", &mSettings.ShowCameraFrustums);
         ImGui::Checkbox("Light Gizmos", &mSettings.ShowLightGizmos);
         ImGui::Checkbox("Audio Gizmos", &mSettings.ShowAudioGizmos);
+        ImGui::Checkbox("Particle Shapes", &mSettings.ShowParticleGizmos);
         ImGui::Checkbox("Wire Gizmos For All", &mSettings.ShowWireForAll);
         ImGui::SetItemTooltip("Frustums and light/audio ranges for every entity instead of only the selected one");
         ImGui::Checkbox("Selection Outline", &mSettings.ShowSelectionOutline);

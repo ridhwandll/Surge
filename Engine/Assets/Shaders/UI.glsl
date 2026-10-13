@@ -56,6 +56,22 @@ void main()
     if((inTextureIndex & TEXT_FLAG) == 0u)
     {
         outColor = texture(uTextures[slot], inUV) * color;
+
+        // Rounded rect: bits 8-23 hold the corner radius in quarter pixels. The quad is axis aligned and its UVs map it linearly,
+        // so the rect size in pixels is 1 / (UV change per pixel), this also holds for quads clipped on the CPU (same mapping)
+        uint radiusBits = (inTextureIndex >> 8) & 0xFFFFu;
+        if(radiusBits != 0u)
+        {
+            vec2 uvPerPixel = vec2(abs(uvDx.x) + abs(uvDy.x), abs(uvDx.y) + abs(uvDy.y));
+            vec2 halfSize = 0.5 / max(uvPerPixel, vec2(1e-6));
+            vec2 p = (inUV - 0.5) * 2.0 * halfSize; // Pixels from the rect center
+            float radius = min(float(radiusBits) * 0.25, min(halfSize.x, halfSize.y));
+
+            // Signed distance to a rounded box, negative inside
+            vec2 q = abs(p) - halfSize + radius;
+            float dist = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius;
+            outColor.a *= clamp(0.5 - dist, 0.0, 1.0); // 1 pixel wide anti-aliased edge
+        }
         return;
     }
 

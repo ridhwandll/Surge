@@ -3,11 +3,12 @@
 #include "Export/ExportSession.hpp"
 #include "Surge/Asset/AssetManager.hpp"
 #include "Surge/Core/Core.hpp"
-#include "Surge/Serializer/Serializer.hpp"
 #include "Surge/Utility/Filesystem.hpp"
 #include "Surge/Utility/Platform.hpp"
 
+#include <algorithm>
 #include <chrono>
+#include <format>
 #include <cstring>
 #include <iterator>
 
@@ -142,32 +143,68 @@ namespace Surge::ExportUtils
         Filesystem::CreateOrEnsureDirectories(out);
     }
 
-    void StageRuntimeContent(const Path& root, const ExportJobInfo& job)
+    bool CollectCookedContent(ExportJobInfo& job, Vector<String>& outMissing)
     {
-        const Path fontsPath = root / "Engine/Assets/Fonts";
-        Filesystem::CreateOrEnsureDirectories(fontsPath);
-        Filesystem::CopyDirectory("Engine/Assets/Fonts", fontsPath);
+        AssetManager* am = Core::GetAssetManager();
+        const Path assetsDir = am->GetAssetsDirectory();
 
+        job.CookedFiles.clear();
+        job.CookedFiles.reserve(am->GetRegistryMap().size());
+        for(const auto& [id, meta] : am->GetRegistryMap())
+        {
+            if(HasFlag(meta.Flags, AssetFlags::MEMORY))
+                continue; // Generated at runtime
+
+            const Path sidecar = am->GetSidecarPath(id);
+            std::error_code ec;
+            if(!fs::is_regular_file(sidecar, ec))
+            {
+                outMissing.push_back(meta.RelativePath);
+                continue;
+            }
+            job.CookedFiles.push_back({ sidecar, fs::relative(sidecar, assetsDir, ec) });
+        }
+
+        std::sort(outMissing.begin(), outMissing.end());
+        return outMissing.empty();
+    }
+
+    bool StageRuntimeContent(ExportSession& session, const Path& root, const ExportJobInfo& job)
+    {
         const Path shadersPath = root / "Engine/Assets/Shaders";
         Filesystem::CreateOrEnsureDirectories(shadersPath);
         Filesystem::CopyDirectory("Engine/Assets/Shaders", shadersPath);
 
-        // Cooked project content
+        // Cooked project content: the registry (path lookups, asset types) and Internal/, nothing else of the project's Assets folder
+        const Path assetsPath = root / "Engine/Assets";
+        if(!Filesystem::CopyFile(job.ProjectDir / "Assets/AssetRegistry.surge", assetsPath / "AssetRegistry.surge"))
+        {
+            session.Error("Could not copy the asset registry (Assets/AssetRegistry.surge)");
+            return false;
+        }
+
+        for(const ExportCookedFile& file : job.CookedFiles)
+        {
+            if(session.IsCancelled())
+                return false;
+
+            const Path destination = assetsPath / file.Destination;
+            Filesystem::CreateOrEnsureDirectories(destination.parent_path());
+            if(!Filesystem::CopyFile(file.Source, destination))
+            {
+                session.Error("Could not copy " + file.Source.string() + " to " + destination.string());
+                return false;
+            }
+        }
+        session.Log(Severity::Info, std::format("Staged {} cooked asset(s)", job.CookedFiles.size()));
+
         Project project = job.Proj;
         const Path projectFilePath = root / "Engine" / (project.Name + ".surgeproj");
-
-        // COPY THE WHOLE ASSETS FOLDER
-        Filesystem::CopyDirectory(job.ProjectDir / "Assets", root / "Engine/Assets");
-        fs::remove_all(root / "Engine/Assets/Meshes");
-        fs::remove_all(root / "Engine/Assets/Scripts");
-        fs::remove_all(root / "Engine/Assets/Audio");
-        fs::remove_all(root / "Engine/Assets/Fonts");
-        fs::remove_all(root / "Engine/Assets/Materials");
-
         Filesystem::CopyFile(job.ProjectDir / (project.Name + ".surgeproj"), projectFilePath);
 
         // Rewrite the .surgeproj so it points at the chosen start scene
-        Serializer::SerializeProject(projectFilePath, &project);
+        project.Save(projectFilePath);
+        return true;
     }
 
     ScopedEnv::ScopedEnv(const String& name, const String& value)

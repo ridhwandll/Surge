@@ -1,7 +1,7 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "History/SceneCommands.hpp"
 #include "Surge/ECS/Components/Components.hpp"
-#include "Surge/Serializer/Serializer.hpp"
+#include "Surge/Asset/Serializer/Scene/SceneSerializer.hpp"
 
 #include <json/json.hpp>
 #include <unordered_map>
@@ -116,7 +116,7 @@ namespace Surge
         Scene* scene = root.GetScene();
         auto visit = [&](auto&& self, Entity entity, UUID parent) -> void {
             const UUID id = SceneEditUtils::GetUUID(entity);
-            snapshot.Nodes.push_back({ id, parent, Serializer::SerializeEntity(entity) });
+            snapshot.Nodes.push_back({ id, parent, SceneSerializer::EntityToJson(entity) });
 
             Uint child = entity.GetComponent<RelationshipComponent>().FirstChild;
             while(child != RELATIONSHIP_NULL)
@@ -141,7 +141,7 @@ namespace Surge
         {
             Entity entity;
             scene.CreateEntityWithID(entity, node.ID, "");
-            Serializer::DeserializeEntity(node.Data, entity);
+            SceneSerializer::EntityFromJson(node.Data, entity);
 
             if(!root)
             {
@@ -167,7 +167,7 @@ namespace Surge
         {
             Entity entity;
             scene.CreateEntity(entity, ""); // Fresh UUID, DeserializeEntity keeps it
-            Serializer::DeserializeEntity(node.Data, entity);
+            SceneSerializer::EntityFromJson(node.Data, entity);
 
             if(!root)
             {
@@ -242,7 +242,7 @@ namespace Surge
             return UUID::INVALID;
         }
 
-        Serializer::DeserializeEntity(state, entity);
+        SceneSerializer::EntityFromJson(state, entity);
         return mID;
     }
 

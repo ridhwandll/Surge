@@ -10,6 +10,13 @@
 
 namespace Surge
 {
+    // Space for one emitter's particles in the frame's lists, see Renderer::SubmitParticles
+    struct ParticleSubmission
+    {
+        ParticleRecord* Records = nullptr; // RecordCount entries to fill right away: the next SubmitParticles call may move them
+        Uint EmitterIndex = 0;             // Goes into every record (ParticleRecord::VelocityZEmitter)
+    };
+
     class Renderer
     {
     public:
@@ -48,6 +55,9 @@ namespace Surge
             }
             bb.LightList.emplace_back(light);
         }
+        // Reserves 'count' records for one emitter (ParticleRuntime::Submit packs into them). view: an isolated Editor view (previews),
+        // INVALID_RENDER_VIEW = the frame's scene. Records = null when nothing could be reserved
+        ParticleSubmission SubmitParticles(const ParticleEmitterCmd& cmd, Uint count, RenderViewID view = INVALID_RENDER_VIEW);
         FORCEINLINE void SubmitEnvironment(Environnment&& env)
         {
             env.HasEnvironment = true;
@@ -147,7 +157,7 @@ namespace Surge
         // Submissions before BeginEditorOverlay(), set = false: everything is scene content
         struct OverlayMark
         {
-            size_t Meshes, Lights, Quads, Lines, Texts, Outlines;
+            size_t Meshes, Lights, Quads, Lines, Texts, Outlines, ParticleEmitters, ParticleRecords;
             bool Set = false;
         };
 

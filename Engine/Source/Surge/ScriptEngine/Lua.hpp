@@ -16,3 +16,18 @@
 #endif
 
 #include <sol2/sol.hpp>
+#include "Surge/Core/Memory.hpp"
+
+namespace sol
+{
+    // Ref<T> handed to Lua keeps the object alive (assets, widgets) for as long as Lua holds it
+    template <typename T>
+    struct unique_usertype_traits<Surge::Ref<T>>
+    {
+        typedef T type;
+        typedef Surge::Ref<T> actual_type;
+        static const bool is_shared = true;
+        static bool is_null(const actual_type& ptr) { return !ptr; }
+        static type* get(const actual_type& ptr) { return const_cast<type*>(ptr.get()); }
+    };
+}

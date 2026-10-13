@@ -6,6 +6,7 @@
 
 #include "Surge/Graphics/Renderer/Lights.hpp"
 #include "Surge/Graphics/Renderer/Text.hpp"
+#include "Surge/Graphics/Particles/ParticleRuntime.hpp"
 
 #include "Surge/Physics/RigidbodyID.hpp"
 #include "Surge/Asset/Asset.hpp"
@@ -309,6 +310,23 @@ namespace Surge
         AudioID RuntimeID = nullptr;
         bool IsInitialized = false;
         bool IsPlaying = false;
+
+        SURGE_REFLECTION_ENABLE;
+    };
+
+    // Plays a ParticleEffect asset (.spfx). The scene updates it right after Renderer::BeginFrame (Scene::UpdateParticles)
+    struct ParticleSystemComponent
+    {
+        bool Active = true;
+        Ref<Asset> Effect = nullptr;
+        bool AutoPlay = true;     // Starts on its own (the Editor previews it in edit mode too)
+        bool AutoDestroy = false; // Destroys the entity (deferred) once the effect finished, one-shot effects
+        float SimulationSpeed = 1.0f;
+        float EmissionMultiplier = 1.0f;
+        int Seed = 0; // 0 = a different random sequence every time
+        ParticleCullingMode Culling = ParticleCullingMode::PAUSE_OFFSCREEN;
+
+        ParticleRuntime Runtime; // Live particles, never serialized, a copy starts empty
 
         SURGE_REFLECTION_ENABLE;
     };

@@ -120,6 +120,8 @@ public:                                    \
 #define SURGE_GET_WIN32_LAST_ERROR
 #endif // SURGE_WINDOWS
 
+#define EVER (;;) // (Rid) Just for the love of the game
+
 namespace Surge
 {
     using Uint = uint32_t;

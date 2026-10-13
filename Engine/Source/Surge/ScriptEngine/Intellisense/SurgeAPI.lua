@@ -104,7 +104,7 @@ function Property.Entity(tooltip) end
 --- Reference to an asset, picked by dropping it from the Content Browser. The script gets the asset's path
 --- (Assets-relative, e.g. "Meshes/Rock.glb"), ready for MeshC:SetMesh, AudioSourceC:SetAudioClip, Scene.Load...
 --- Saved by ID: renaming or moving the asset keeps the reference. nil when none is assigned.
----@param kind string|nil Accepted asset type: "MESH", "TEXTURE2D", "AUDIO", "MATERIAL", "SCRIPT", "FONT", "SCENE", "UI_LAYOUT" (nil = any)
+---@param kind string|nil Accepted asset type: "MESH", "TEXTURE2D", "AUDIO", "MATERIAL", "SCRIPT", "FONT", "SCENE", "UI_LAYOUT", "PARTICLE_EFFECT" (nil = any)
 ---@param path string|nil Default asset path
 ---@param tooltip string|nil
 ---@return string|nil
@@ -436,6 +436,13 @@ AttenuationModel = {
     INVERSE_DISTANCE = 1,
     LINEAR_DISTANCE = 2,
     EXPONENTIAL_DISTANCE = 3
+}
+
+--- What a particle system does while it is outside the camera (it is never drawn then).
+ParticleCullingMode = {
+    ALWAYS_SIMULATE = 0,
+    PAUSE_OFFSCREEN = 1,   -- Looping effects freeze, one-shots keep running so they finish
+    PAUSE_AND_CATCH_UP = 2 -- Like PAUSE_OFFSCREEN, then simulates the missed time (up to 1 s) when visible again
 }
 
 -- ==============================================================================
@@ -771,7 +778,7 @@ function UI.IsPointerOverUI(x, y) end
 --- Topmost interactable widget of any visible canvas at this window position, or nil.
 ---@param x number
 ---@param y number
----@return UIWidget|UIButton|UIText|UIImage|UIImageButton|nil
+---@return UIWidget|UIButton|UIText|UIImage|UIImageButton|UIProgressBar|UIToggle|UISlider|UIJoystick|UIScrollView|UIListView|UILayoutGroup|UIInputField|UIDropdown|UIModal|UITabView|UISpinner|UISafeArea|nil
 function UI.WidgetAt(x, y) end
 
 --- Sets the root widget of the UI built in code. Pass nil to clear.
@@ -804,7 +811,7 @@ function UIWidget:AddChild(child) end
 function UIWidget:RemoveChild(child) end
 --- Finds a descendant by name (depth first), returns the concrete type (UIButton, UIText...) or nil.
 ---@param name string
----@return UIWidget|UIButton|UIText|UIImage|UIImageButton|nil
+---@return UIWidget|UIButton|UIText|UIImage|UIImageButton|UIProgressBar|UIToggle|UISlider|UIJoystick|UIScrollView|UIListView|UILayoutGroup|UIInputField|UIDropdown|UIModal|UITabView|UISpinner|UISafeArea|nil
 function UIWidget:FindChild(name) end
 --- callback(self) receives the clicked widget
 ---@param callback function
@@ -813,9 +820,24 @@ function UIWidget:OnClick(callback) end
 function UIWidget:OnHoverEnter(callback) end
 ---@param callback function
 function UIWidget:OnHoverExit(callback) end
+--- callback(self) when the value of a Toggle, Slider, InputField, Dropdown, TabView changes
+---@param callback function
+function UIWidget:OnValueChanged(callback) end
 
 ---@class UIImage : UIWidget
+---@field ImageMode UIImageMode SIMPLE, SLICED (9-slice), FILLED
+---@field FillAmount number FILLED: 0..1
+---@field FillOrigin UIFillOrigin FILLED
+---@field PreserveAspect boolean
+---@field SliceBorder Vec4 SLICED: left, top, right, bottom in texture pixels
+---@field SliceScale number
+---@field CornerRadius number UI units, rounded corners without a texture
+---@field BorderWidth number UI units
+---@field BorderColor Vec4
 UIImage = {}
+--- Replaces the texture (relative path, "" = plain color).
+---@param textureRelPath string
+function UIImage:SetTexture(textureRelPath) end
 
 --- Creates a new UIImage from a texture relative path.
 ---@param textureRelPath string
@@ -830,6 +852,7 @@ function UIImage.new(textureRelPath) end
 ---@field TextAlignment number
 ---@field TextVAlignment number
 ---@field WordWrap boolean
+---@field Overflow UITextOverflow WRAP, TRUNCATE ("..."), NO_WRAP
 UIText = {}
 
 --- Creates a new UIText.
@@ -865,6 +888,235 @@ UIImageButton = {}
 ---@param textureRelPath string
 ---@return UIImageButton
 function UIImageButton.new(textureRelPath) end
+
+---@enum UIImageMode
+UIImageMode = { SIMPLE = 0, SLICED = 1, FILLED = 2 }
+---@enum UIFillOrigin
+UIFillOrigin = { LEFT = 0, RIGHT = 1, TOP = 2, BOTTOM = 3 }
+---@enum UITextOverflow
+UITextOverflow = { WRAP = 0, TRUNCATE = 1, NO_WRAP = 2 }
+---@enum UIToggleStyle
+UIToggleStyle = { CHECKBOX = 0, SWITCH = 1 }
+---@enum UIJoystickMode
+UIJoystickMode = { FIXED = 0, FLOATING = 1 }
+---@enum UILayoutDirection
+UILayoutDirection = { HORIZONTAL = 0, VERTICAL = 1, GRID = 2 }
+---@enum UIContentType
+UIContentType = { STANDARD = 0, INTEGER = 1, DECIMAL = 2, EMAIL = 3, PHONE = 4, PASSWORD = 5 }
+
+--- The focused text field, or nil.
+---@return UIInputField|nil
+function UI.GetFocused() end
+--- Ends text editing (blurs the focused field, hides the soft keyboard).
+function UI.ClearFocus() end
+--- Device safe area in UI pixels (x = left, y = top, z = right, w = bottom): notch, status and navigation bars.
+---@return Vec4
+function UI.GetSafeAreaInsets() end
+
+---@class UIProgressBar : UIWidget
+---@field Value number In Min..Max
+---@field NormalizedValue number 0..1 (read only)
+---@field Min number
+---@field Max number
+---@field Direction UIFillOrigin Edge the fill grows from
+---@field FillPadding number UI units
+---@field BackgroundColor Vec4
+---@field FillColor Vec4
+UIProgressBar = {}
+---@return UIProgressBar
+function UIProgressBar.new() end
+
+--- Checkbox or switch. Toggles under the same parent with the same Group are radio buttons.
+--- OnValueChanged(function(self) ... self.IsOn ... end)
+---@class UIToggle : UIWidget
+---@field IsOn boolean Setting it fires OnValueChanged
+---@field Group string
+---@field AllowSwitchOff boolean Grouped toggles: tapping the active one turns it off
+---@field Style UIToggleStyle
+---@field BoxColor Vec4
+---@field CheckColor Vec4
+---@field KnobColor Vec4
+UIToggle = {}
+---@param label string
+---@param fontRelPath string
+---@return UIToggle
+function UIToggle.new(label, fontRelPath) end
+---@return UIText
+function UIToggle:GetLabel() end
+
+--- OnValueChanged(function(self) ... self.Value ... end) fires while dragging.
+---@class UISlider : UIWidget
+---@field Value number Setting it fires OnValueChanged
+---@field NormalizedValue number 0..1 (read only)
+---@field Min number
+---@field Max number
+---@field WholeNumbers boolean
+---@field Direction UIFillOrigin
+---@field HandleSize number UI units
+---@field TrackThickness number UI units, 0 = whole rect
+---@field TrackColor Vec4
+---@field FillColor Vec4
+---@field HandleColor Vec4
+UISlider = {}
+---@return UISlider
+function UISlider.new() end
+
+--- Virtual stick, read it every frame. Two sticks work at once (each finger presses its own widget).
+---@class UIJoystick : UIWidget
+---@field Direction Vec2 -1..1 per axis, +Y up, dead zone removed (read only)
+---@field Magnitude number 0..1 (read only)
+---@field IsActive boolean A finger is on it (read only)
+---@field Mode UIJoystickMode FLOATING centers where the finger lands
+---@field BaseSize number UI units, 0 = fit the rect
+---@field HandleSize number UI units, 0 = 45% of the base
+---@field DeadZone number 0..1
+---@field HandleRange number Max knob travel in base radii
+---@field HideWhenIdle boolean
+---@field BaseColor Vec4
+---@field KnobColor Vec4
+UIJoystick = {}
+---@return UIJoystick
+function UIJoystick.new() end
+
+--- Busy indicator, Color = dot color.
+---@class UISpinner : UIWidget
+---@field DotCount number
+---@field DotSize number Fraction of the diameter
+---@field Speed number Revolutions per second
+UISpinner = {}
+---@return UISpinner
+function UISpinner.new() end
+
+--- Insets its children by the device safe area.
+---@class UISafeArea : UIWidget
+---@field Edges number Bits: 1 left, 2 top, 4 right, 8 bottom (15 = all)
+UISafeArea = {}
+---@return UISafeArea
+function UISafeArea.new() end
+
+--- Arranges its visible children in a row, column or grid (their Size is used, anchors ignored).
+---@class UILayoutGroup : UIWidget
+---@field Direction UILayoutDirection
+---@field Padding Vec4 left, top, right, bottom
+---@field Spacing Vec2
+---@field CellSize Vec2 GRID
+---@field Columns number GRID, 0 = as many as fit
+---@field ChildAlignment Vec2 0 = left/top, 0.5 = center, 1 = right/bottom
+---@field ControlChildWidth boolean
+---@field ControlChildHeight boolean
+---@field FitContent boolean Resize to the content
+UILayoutGroup = {}
+---@return UILayoutGroup
+function UILayoutGroup.new() end
+
+--- Tab bar + one page per child (the child name is the tab label). OnValueChanged fires on tab switches.
+---@class UITabView : UIWidget
+---@field ActiveTab number 1 based
+---@field TabsAtBottom boolean
+---@field TabBarHeight number
+---@field FontSize number
+---@field BarColor Vec4
+---@field ActiveTabColor Vec4
+---@field TextColor Vec4
+---@field ActiveTextColor Vec4
+UITabView = {}
+---@param fontRelPath string
+---@return UITabView
+function UITabView.new(fontRelPath) end
+
+--- Clips and scrolls its children (drag with inertia, mouse wheel).
+---@class UIScrollView : UIWidget
+---@field ScrollPosition Vec2 Normalized 0..1, 0 = top/left
+---@field ScrollOffset Vec2 UI units (read only)
+---@field ContentSize Vec2 UI units (read only)
+---@field Horizontal boolean
+---@field Vertical boolean
+---@field DecelerationRate number Velocity kept after 1 s of coasting, 0 = no inertia
+---@field ShowScrollbars boolean
+---@field ScrollbarColor Vec4
+UIScrollView = {}
+---@return UIScrollView
+function UIScrollView.new() end
+
+--- Recycling list: only the visible items exist. The layout's first child is the item template (or use OnCreateItem).
+---@class UIListView : UIScrollView
+---@field ItemCount number
+---@field ItemSize Vec2 0 = template size (width 0 = full width)
+---@field Spacing Vec2
+---@field Padding Vec4
+---@field Columns number
+UIListView = {}
+---@return UIListView
+function UIListView.new() end
+--- callback(item, index): fill an item for data index (1 based). Called when items scroll into view.
+---@param callback function
+function UIListView:OnBindItem(callback) end
+--- callback() returns a new item widget, for lists built from code (no layout template).
+---@param callback function
+function UIListView:OnCreateItem(callback) end
+--- Rebinds the visible items (the data changed).
+function UIListView:Refresh() end
+---@param index number 1 based
+function UIListView:ScrollToIndex(index) end
+
+--- Text entry, opens the soft keyboard on Android. OnValueChanged fires on every edit.
+---@class UIInputField : UIWidget
+---@field Text string
+---@field Placeholder string
+---@field IsFocused boolean (read only)
+---@field ContentType UIContentType
+---@field MultiLine boolean
+---@field MaxLength number 0 = unlimited
+---@field FontSize number
+---@field TextColor Vec4
+---@field PlaceholderColor Vec4
+---@field BackgroundColor Vec4
+UIInputField = {}
+---@param fontRelPath string
+---@return UIInputField
+function UIInputField.new(fontRelPath) end
+function UIInputField:Focus() end
+function UIInputField:Blur() end
+--- Enter / keyboard Done. A single line field loses the focus first.
+---@param callback function
+function UIInputField:OnSubmit(callback) end
+---@param callback function
+function UIInputField:OnFocus(callback) end
+---@param callback function
+function UIInputField:OnBlur(callback) end
+
+--- Picks one option, the open list is drawn above everything. OnValueChanged fires on selection.
+---@class UIDropdown : UIWidget
+---@field Options string[]
+---@field SelectedIndex number 1 based, 0 = nothing
+---@field SelectedText string (read only)
+---@field IsOpen boolean (read only)
+---@field Placeholder string
+---@field MaxVisibleItems number
+---@field FontSize number
+---@field TextColor Vec4
+---@field BackgroundColor Vec4
+UIDropdown = {}
+---@param fontRelPath string
+---@return UIDropdown
+function UIDropdown.new(fontRelPath) end
+function UIDropdown:Open() end
+function UIDropdown:Close() end
+
+--- Popup above every canvas with a dimmed backdrop that blocks the input below. Its children are its content.
+---@class UIModal : UIWidget
+---@field IsOpen boolean (read only)
+---@field BackdropColor Vec4
+---@field CloseOnBackdrop boolean
+---@field CloseOnBack boolean Back / Escape closes it
+---@field PanelColor Vec4
+UIModal = {}
+---@return UIModal
+function UIModal.new() end
+function UIModal:Show() end
+function UIModal:Hide() end
+---@param callback function
+function UIModal:OnClose(callback) end
 
 -- ==============================================================================
 -- RENDERER & APPLICATION
@@ -1124,13 +1376,13 @@ local UICanvasComponent = {}
 --- Finds a widget of this canvas by name (UI Layout made in the UI Editor, or the SetUIRoot tree), returns the concrete type or nil.
 --- Example: entity.UICanvasC:FindWidget("PlayButton"):OnClick(function(self) Log(self.Name) end)
 ---@param name string
----@return UIWidget|UIButton|UIText|UIImage|UIImageButton|nil
+---@return UIWidget|UIButton|UIText|UIImage|UIImageButton|UIProgressBar|UIToggle|UISlider|UIJoystick|UIScrollView|UIListView|UILayoutGroup|UIInputField|UIDropdown|UIModal|UITabView|UISpinner|UISafeArea|nil
 function UICanvasComponent:FindWidget(name) end
 
 --- Topmost interactable widget of this canvas at a window position (e.g. a touch position), or nil.
 ---@param x number
 ---@param y number
----@return UIWidget|UIButton|UIText|UIImage|UIImageButton|nil
+---@return UIWidget|UIButton|UIText|UIImage|UIImageButton|UIProgressBar|UIToggle|UISlider|UIJoystick|UIScrollView|UIListView|UILayoutGroup|UIInputField|UIDropdown|UIModal|UITabView|UISpinner|UISafeArea|nil
 function UICanvasComponent:WidgetAt(x, y) end
 
 --- Window position -> canvas units (the units widget Offset/Size are authored in, (0,0) = top left).
@@ -1166,6 +1418,49 @@ function AudioSourceComponent:Seek(time) end
 ---@param audioAssetPath string
 function AudioSourceComponent:SetAudioClip(audioAssetPath) end
 
+--- Plays a particle effect asset (.spfx, made in the Editor's Particle Editor).
+---@class ParticleSystemComponent
+---@field Active boolean Inactive systems are neither simulated nor drawn.
+---@field AutoPlay boolean Starts on its own when the scene runs.
+---@field AutoDestroy boolean Destroys the entity once the effect finished (one-shot effects).
+---@field SimulationSpeed number
+---@field EmissionMultiplier number Scales every emission rate and burst.
+---@field Seed integer 0 = a different random sequence every play.
+---@field Culling number ParticleCullingMode enum value.
+---@field IsPlaying boolean Read-only.
+---@field IsPaused boolean Read-only.
+---@field IsAlive boolean Read-only. Emitting or particles left.
+---@field ParticleCount integer Read-only.
+local ParticleSystemComponent = {}
+--- Starts the effect, or resumes it when paused.
+function ParticleSystemComponent:Play() end
+--- Stops emitting, the live particles finish unless clear is true.
+---@param clear boolean|nil
+function ParticleSystemComponent:Stop(clear) end
+function ParticleSystemComponent:Pause() end
+--- Clears the particles and plays from the start.
+function ParticleSystemComponent:Restart() end
+--- Removes every live particle.
+function ParticleSystemComponent:Clear() end
+--- Spawns particles right away in every emitter (on the next update), works without Play().
+---@param count integer
+function ParticleSystemComponent:Emit(count) end
+--- Loads and assigns a particle effect from an Assets-relative path (e.g. "Effects/Fire.spfx").
+---@param effectAssetPath string
+function ParticleSystemComponent:SetEffect(effectAssetPath) end
+
+--- Fire-and-forget particle effects in the running scene.
+---@class Particles
+Particles = {}
+--- Plays an effect once at a position: creates an entity with an AutoDestroy ParticleSystemC, removed when the effect finished.
+--- Returns the entity (nil if the path is not a particle effect). Looping effects keep running until you stop or destroy them.
+---   Particles.Play("Effects/Hit.spfx", hit.Point)
+---@param effectAssetPath string
+---@param position Vec3
+---@param rotation Vec3|nil Degrees
+---@return Entity|nil
+function Particles.Play(effectAssetPath, position, rotation) end
+
 -- ==============================================================================
 -- ECS ENTITY
 -- ==============================================================================
@@ -1189,6 +1484,7 @@ function AudioSourceComponent:SetAudioClip(audioAssetPath) end
 ---@field TextC TextComponent|nil
 ---@field UICanvasC UICanvasComponent|nil
 ---@field AudioSourceC AudioSourceComponent|nil
+---@field ParticleSystemC ParticleSystemComponent|nil
 local Entity = {}
 
 ---@return boolean
@@ -1338,3 +1634,9 @@ function Entity:HasAudioSourceC() end
 ---@return AudioSourceComponent
 function Entity:AddAudioSourceC() end
 function Entity:RemoveAudioSourceC() end
+
+---@return boolean
+function Entity:HasParticleSystemC() end
+---@return ParticleSystemComponent
+function Entity:AddParticleSystemC() end
+function Entity:RemoveParticleSystemC() end

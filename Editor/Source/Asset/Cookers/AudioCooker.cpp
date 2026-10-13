@@ -12,11 +12,8 @@ namespace Surge
         AssetManager* am = Core::GetAssetManager();
         const String outputPath = am->GetSidecarPath(id, AssetType::AUDIO);
 
-        // Audio assets are just the raw file copied to internal directory, no processing is done here
-        // The AudioEngine will handle the actual decoding of the audio file at runtime
-        Filesystem::CopyFile(sourceAbsPath, outputPath);
-
-        result.Success = true;
+        // The encoded file is kept as is behind the stamp, AudioEngine decodes/streams it at runtime
+        result.Success = AudioBinary::Write(outputPath, AssetStampWriter::Build(sourceAbsPath, GetCookerVersion()), sourceAbsPath);
         result.OutputPath = outputPath;
         result.InputMegaBytes = Filesystem::FileSizeInMB(sourceAbsPath);
         result.OutputMegaBytes = Filesystem::FileSizeInMB(outputPath);

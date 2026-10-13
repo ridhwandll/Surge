@@ -45,7 +45,7 @@ namespace Surge
         Uint cooked = 0, skipped = 0;
         for(const auto& [id, meta] : mAssetManager->GetRegistryMap())
         {
-            if(HasFlag(meta.Flags, AssetFlags::MEMORY) || meta.Type == AssetType::SCENE)
+            if(HasFlag(meta.Flags, AssetFlags::MEMORY))
                 continue;
 
             if(!NeedsCook(id, meta.Type))

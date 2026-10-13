@@ -55,6 +55,7 @@ namespace Surge
             UI_CANVAS,
             AUDIO_SOURCE,
             AUDIO_LISTENER,
+            PARTICLE_SYSTEM,
             FROM_ASSET // Dropped from the Content Browser
         };
 
@@ -126,6 +127,7 @@ namespace Surge
         int mSetAllOpen = -1;                                // -1 none, 0 collapse all, 1 expand all
         entt::entity mExpandSubtree = entt::null;            // Opens this entity and all of its descendants
         entt::entity mNextExpandSubtree = entt::null;        // Requested while the tree is drawn, applied next frame
+        entt::entity mPressedEntity = entt::null;            // Row pressed with the left button, selected on release unless it got dragged
         bool mOpenCreatePopup = false;
         bool mOpenSpacePopup = false;
 

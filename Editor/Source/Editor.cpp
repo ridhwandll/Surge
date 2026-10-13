@@ -9,7 +9,6 @@
 #include "Surge/Physics/Physics.hpp"
 #include "Surge/Audio/AudioEngine.hpp"
 #include "Surge/ScriptEngine/ScriptEngine.hpp"
-#include "Surge/Serializer/Serializer.hpp"
 
 #include "Surge/Utility/Platform.hpp"
 #include "Surge/Utility/Filesystem.hpp"
@@ -29,6 +28,7 @@
 #include "Panels/HistoryPanel.hpp"
 #include "Panels/AssetRegistryPanel.hpp"
 #include "Panels/RendererPanel.hpp"
+#include "Panels/ParticleEditorPanel.hpp"
 #include "Console/EditorConsole.hpp"
 #include "StatusBar/EditorStatusBar.hpp"
 #include "Surge/ECS/Components/Components.hpp"
@@ -39,6 +39,9 @@
 #include "Asset/Cookers/ScriptCooker.hpp"
 #include "Asset/Cookers/FontCooker.hpp"
 #include "Asset/Cookers/AudioCooker.hpp"
+#include "Asset/Cookers/SceneCooker.hpp"
+#include "Asset/Cookers/ParticleEffectCooker.hpp"
+#include "Asset/Cookers/UILayoutCooker.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -116,6 +119,9 @@ namespace Surge
         mAssetImporter.RegisterCooker(CreateScope<ScriptCooker>());
         mAssetImporter.RegisterCooker(CreateScope<FontCooker>());
         mAssetImporter.RegisterCooker(CreateScope<AudioCooker>());
+        mAssetImporter.RegisterCooker(CreateScope<SceneCooker>());
+        mAssetImporter.RegisterCooker(CreateScope<ParticleEffectCooker>());
+        mAssetImporter.RegisterCooker(CreateScope<UILayoutCooker>());
 
         mAssetManager->AddAssetLoadCallback(CreateScope<EditorAssetLoadCallback>());
 
@@ -137,6 +143,8 @@ namespace Surge
         mPanelManager.PushPanel<HistoryPanel>();
         mPanelManager.PushPanel<AssetRegistryPanel>();
         mPanelManager.PushPanel<RendererPanel>();
+        mPanelManager.PushPanel<ParticleEditorPanel>();
+        mPanelManager.GetAllPanels()[PanelCode::ParticleEditor].Show = false; // Opens with an effect (Content Browser, Inspector)
         Core::GetWindow()->SetFileDropEnabled(true); // Files dropped from Explorer are imported by the Content Browser
 
         mHistory.SetScene(mActiveScene.Raw());
@@ -939,7 +947,7 @@ namespace Surge
             return;
 
         mCurrentProject.StartScene = sceneID;
-        Serializer::SerializeProject(mProjectFilePath, &mCurrentProject);
+        mCurrentProject.Save(mProjectFilePath);
         Log<Severity::Info>("[Editor] Start scene set to: {}", mAssetManager->GetMetadata(sceneID).RelativePath);
     }
 
@@ -977,6 +985,7 @@ namespace Surge
 
         viewports.DockWindows(center);
         ImGui::DockBuilderDockWindow("Export Project", center);
+        ImGui::DockBuilderDockWindow(PanelCodeToString(PanelCode::ParticleEditor), center);
 
         ImGui::DockBuilderDockWindow("Content Browser", bottom);
         ImGui::DockBuilderDockWindow("Asset Registry", bottom);
@@ -1054,7 +1063,7 @@ namespace Surge
             SaveScene();
 
         // Text fields keep their own Ctrl+Z/C/V, the UI Editor runs its own history while it is focused/hovered
-        if(io.WantTextInput || mPanelManager.GetPanel<UIEditorPanel>()->OwnsShortcuts())
+        if(io.WantTextInput || mPanelManager.GetPanel<UIEditorPanel>()->OwnsShortcuts() || mPanelManager.GetPanel<ParticleEditorPanel>()->OwnsShortcuts())
             return;
 
         if(ctrl && shift && ImGui::IsKeyPressed(ImGuiKey_S, false) && !IsPlaying())
@@ -1373,7 +1382,7 @@ namespace Surge
             { "Q / W / E / R / T", "Gizmo: none / move / rotate / scale / universal" },
             { "X", "Gizmo: toggle local / world space" },
             { "Ctrl (hold)", "Invert snapping while using the gizmo" },
-            { "F11 / Esc", "Fullscreen viewport / leave fullscreen" },
+            { "F11 / Esc", "Fullscreen viewport or Particle Editor (hovered) / leave fullscreen" },
             { "UI EDITOR (focused)", nullptr },
             { "Ctrl+Z / Ctrl+Y", "Undo / Redo layout edits" },
             { "Ctrl+S", "Save layout" },

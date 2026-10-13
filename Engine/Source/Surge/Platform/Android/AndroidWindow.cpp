@@ -203,6 +203,14 @@ namespace Surge
             break;
         }
 
+        case APP_CMD_SOFTWARE_KB_VIS_CHANGED:
+            Android::OnSoftKeyboardVisibilityChanged(app->softwareKeyboardVisible);
+            break;
+
+        case APP_CMD_EDITOR_ACTION:
+            Android::OnEditorAction(app->editorAction);
+            break;
+
         case APP_CMD_DESTROY:
             Log<Severity::Info>("APP_CMD_DESTROY");
             // Actual event is fired via destroyRequested in Update()
@@ -644,12 +652,14 @@ namespace Surge
         }
 
         const KeyCode key = TranslateKey(event->keyCode);
+        bool pressHandled = false;
         if (key != 0)
         {
             if (down)
             {
                 KeyPressedEvent pressEvent(static_cast<Key>(key), static_cast<uint16_t>(event->repeatCount));
                 window->Emit(pressEvent);
+                pressHandled = pressEvent.Handled;
             }
             else
             {
@@ -667,8 +677,9 @@ namespace Surge
         }
 
         // Back button: closes the app unless the game handles it (Input::SetBackButtonExitsApp(false))
+        // A Back press the UI consumed (closing a popup, leaving a text field) never exits
         if (event->keyCode == AKEYCODE_BACK && down && event->repeatCount == 0)
-            window->mBackExitsOnRelease = Input::DoesBackButtonExitApp();
+            window->mBackExitsOnRelease = Input::DoesBackButtonExitApp() && !pressHandled;
         if (event->keyCode == AKEYCODE_BACK && up && window->mBackExitsOnRelease)
         {
             window->mBackExitsOnRelease = false;

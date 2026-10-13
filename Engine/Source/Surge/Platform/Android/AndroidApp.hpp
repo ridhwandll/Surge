@@ -9,6 +9,10 @@ namespace Surge::Android
     // Provides access to the android_app context for platform and window code
     extern android_app* GAndroidApp;
 
+    // Forwarded from AndroidWindow::HandleAppCmd to the text input state in AndroidPlatform.cpp
+    void OnSoftKeyboardVisibilityChanged(bool visible);
+    void OnEditorAction(int action);
+
 } // namespace Surge::Android
 
 #endif // SURGE_PLATFORM_ANDROID

@@ -17,6 +17,7 @@
 #include "Surge/Graphics/HighLevel/Font.hpp"
 #include "Surge/Graphics/HighLevel/Mesh.hpp"
 #include "Surge/Graphics/UISystem/UILayout.hpp"
+#include "Surge/Graphics/Particles/ParticleEffect.hpp"
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <imgui_stdlib.h>
@@ -58,6 +59,7 @@ namespace Surge
             { "canvas", [](Entity e) { return e.HasComponent<UICanvasComponent>(); } },
             { "ui", [](Entity e) { return e.HasComponent<UICanvasComponent>(); } },
             { "environment", [](Entity e) { return e.HasComponent<EnvironmentComponent>(); } },
+            { "particles", [](Entity e) { return e.HasComponent<ParticleSystemComponent>(); } },
             { "rigidbody", [](Entity e) { return e.HasComponent<RigidbodyComponent>(); } },
             { "collider", [](Entity e) {
                   return e.HasComponent<BoxColliderComponent>() || e.HasComponent<SphereColliderComponent>() || e.HasComponent<CapsuleColliderComponent>() ||
@@ -86,7 +88,8 @@ namespace Surge
                 case AssetType::TEXTURE2D:
                 case AssetType::AUDIO:
                 case AssetType::FONT:
-                case AssetType::UI_LAYOUT: return true;
+                case AssetType::UI_LAYOUT:
+                case AssetType::PARTICLE_EFFECT: return true;
                 default: return false;
             }
         }
@@ -315,6 +318,7 @@ namespace Surge
         MenuSection("RENDERING");
         item("Camera", CreateKind::CAMERA);
         item("Sprite Renderer", CreateKind::SPRITE);
+        item("Particle System", CreateKind::PARTICLE_SYSTEM);
 
         MenuSection("3D PRIMITIVES");
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 4.0f));
@@ -395,8 +399,16 @@ namespace Surge
         const bool opened = ImGui::TreeNodeEx(reinterpret_cast<void*>(static_cast<uint64_t>(static_cast<Uint>(handle))), flags, "%s", ""); // Label drawn below, with the icon
         ImGui::PopStyleColor(isSelected ? 3 : 1);
 
-        // Read before the drag & drop source opens its tooltip window
-        const bool clicked = ImGui::IsItemClicked(ImGuiMouseButton_Left) && !ImGui::IsItemToggledOpen();
+        // Read before the drag & drop source opens its tooltip window.
+        // Selected on release, not on press: dragging a row onto an Inspector field must not switch the Inspector to the dragged entity
+        if(ImGui::IsItemClicked(ImGuiMouseButton_Left))
+            mPressedEntity = ImGui::IsItemToggledOpen() ? entt::null : handle;
+        bool clicked = false;
+        if(mPressedEntity == handle && ImGui::IsItemDeactivated())
+        {
+            clicked = !ImGui::IsMouseDragPastThreshold(ImGuiMouseButton_Left);
+            mPressedEntity = entt::null;
+        }
         const bool doubleClicked = ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
         const ImVec2 rowMin = ImGui::GetItemRectMin();
         const ImVec2 rowMax = ImGui::GetItemRectMax();
@@ -745,6 +757,10 @@ namespace Surge
                 mSceneContext->CreateEntity(entity, "AudioListener");
                 entity.AddComponent<AudioListenerComponent>();
                 break;
+            case CreateKind::PARTICLE_SYSTEM:
+                mSceneContext->CreateEntity(entity, "Particle System");
+                entity.AddComponent<ParticleSystemComponent>();
+                break;
             case CreateKind::FROM_ASSET:
             {
                 const AssetMetadata& meta = assetManager->GetMetadata(request.Asset);
@@ -755,6 +771,7 @@ namespace Surge
                     case AssetType::TEXTURE2D: entity.AddComponent<SpriteRendererComponent>(glm::vec4 { 1.0f, 1.0f, 1.0f, 1.0f }).TextureAsset = assetManager->Load<Texture2D>(request.Asset); break;
                     case AssetType::AUDIO: entity.AddComponent<AudioSourceComponent>().AudioClip = assetManager->Load<Audio>(request.Asset); break;
                     case AssetType::UI_LAYOUT: entity.AddComponent<UICanvasComponent>().Layout = assetManager->Load<UILayout>(request.Asset); break;
+                    case AssetType::PARTICLE_EFFECT: entity.AddComponent<ParticleSystemComponent>().Effect = assetManager->Load<ParticleEffect>(request.Asset); break;
                     case AssetType::FONT:
                     {
                         TextComponent& text = entity.AddComponent<TextComponent>();

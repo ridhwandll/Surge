@@ -24,6 +24,7 @@ namespace Surge
 
     private:
         int mAspectMode = 0; // Index into ASPECT_PRESETS
+        int mSafeAreaMode = 0; // Index into SAFE_AREA_PRESETS, previews UI::SafeArea without a device
         bool mHasCamera = false;
     };
 

@@ -30,8 +30,10 @@ namespace Surge
         AssetManager* am = Core::GetAssetManager();
         const String ktx2Path = am->GetSidecarPath(metadata.ID);
 
+        // Null marks the asset MISSING (LoadFromKTX2 logs why), no assert: a bad cooked file must not take the app down
         Ref<Texture2D> texture = LoadFromKTX2(ktx2Path);
-        SG_ASSERT(texture, "[Texture2DSerializer] Failed to deserialize Texture2D: {}", metadata.RelativePath);
+        if(!texture)
+            return nullptr;
         return texture.As<Asset>();
     }
 
@@ -45,6 +47,8 @@ namespace Surge
         }
 
         TextureSpecification spec = LoadFromKTX2(fileData, ktx2Path, false);
+        if(spec.Mips.empty())
+            return {};
         return Texture2D::Create(spec);
     }
 
@@ -90,6 +94,12 @@ namespace Surge
 
     TextureSpecification Texture2DSerializer::LoadFromKTX2(const Vector<Byte>& ktx2Data, const String& debugStr, bool raw)
     {
+        if(!raw && ktx2Data.size() <= sizeof(AssetStamp))
+        {
+            Log<Severity::Error>("[Texture2DSerializer] Corrupted KTX2 file (too small): {}", debugStr);
+            return {};
+        }
+
         const Byte* ktx2Start = raw ? ktx2Data.data() : ktx2Data.data() + sizeof(AssetStamp);
         const Uint ktx2Size = raw ? static_cast<Uint>(ktx2Data.size()) : static_cast<Uint>(ktx2Data.size() - sizeof(AssetStamp));
         basist::ktx2_transcoder ktx2;

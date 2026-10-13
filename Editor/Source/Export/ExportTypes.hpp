@@ -4,6 +4,7 @@
 #include "Surge/Core/Path.hpp"
 #include "Surge/Core/Project.hpp"
 #include "Surge/Core/String.hpp"
+#include "Surge/Core/Vector.hpp"
 
 namespace Surge
 {
@@ -61,11 +62,19 @@ namespace Surge
     };
 
     // Everything a run shares across platforms, snapshotted on the main thread
+    // A cooked file the build ships, Destination is relative to the exported Assets folder (Internal/<TYPE>/<id>.r<TYPE>)
+    struct ExportCookedFile
+    {
+        Path Source;
+        Path Destination;
+    };
+
     struct ExportJobInfo
     {
         ExportBranding Branding;
         Project Proj; // StartScene already overridden
         Path ProjectDir;
+        Vector<ExportCookedFile> CookedFiles; // Collected on the main thread right after cooking, the worker never touches the AssetManager
     };
 
     struct ExportStatus

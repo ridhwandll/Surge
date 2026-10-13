@@ -1,7 +1,6 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #pragma once
 #include "UIWidgets.hpp"
-#include "Surge/Core/Profiler.hpp"
 
 namespace Surge
 {
@@ -52,6 +51,18 @@ namespace Surge::UI
         void SetEditorPreview(Ref<Widget> root, const CanvasScaler& scaler);
         void ClearEditorPreview();
 
+        // Editor only: fake device safe area (fractions of the UI target: left, top, right, bottom), replaces the platform insets
+        void SetSimulatedSafeArea(const glm::vec4& fractions, bool enabled) { mSimulatedSafeArea = fractions; mSimulateSafeArea = enabled; }
+
+        // Overlays: drawn after every canvas in open order and hit first (Dropdown lists, Modals). Widgets open/close themselves
+        void OpenOverlay(Ref<Widget> widget);
+        void CloseOverlay(Widget* widget);
+        bool HasOverlays() const { return !mOverlays.empty(); }
+
+        // Keyboard focus (InputField). The focused widget receives key/text events, a press elsewhere or Escape/Back blurs it
+        void SetFocus(Widget* widget);
+        Widget* GetFocused() { return mFocused.get(); }
+
         // SetViewportBounds
         // Sets the viewport offset and size for the UI system. This is used to convert raw OS window coordinates to the UI coordinate system.
         // @param xOffset:    X offset of the viewport in raw OS window coordinates
@@ -60,6 +71,8 @@ namespace Surge::UI
         // @param height:     Height of the viewport in raw OS window coordinates
         void SetViewportBounds(float xOffset, float yOffset, float width, float height)
         {
+            SG_ASSERT(mViewportSize.x > 0.0f && mViewportSize.y > 0.0f, "Invalid viewport size");
+
             mViewportOffset = { xOffset, yOffset };
             mViewportSize = { width, height };
         }
@@ -67,7 +80,7 @@ namespace Surge::UI
         // Resolution the UI was last laid out at (render target pixels)
         const glm::vec2& GetTargetResolution() const { return mTargetResolution; }
 
-        // Inverse of ScreenToUI: render target pixels -> raw OS window coordinates (e.g. to point a tutorial arrow at a widget)
+        // Render target pixels -> raw OS window coordinates (e.g. to point a tutorial arrow at a widget)
         glm::vec2 UIToScreen(const glm::vec2& uiPos) const { return mViewportOffset + uiPos / mTargetResolution * mViewportSize; }
         size_t GetCanvasCount() const { return mCanvases.size(); }
 
@@ -92,8 +105,11 @@ namespace Surge::UI
         Canvas* FindCanvas(uint64_t owner);
         Canvas& GetOrCreateCanvas(uint64_t owner);
         void SortCanvases();
-        void ReleaseRoot(Ref<Widget>& root); // Drops input trackers pointing into the tree, then destroys it
+        void ReleaseRoot(Ref<Widget>& root); // Drops input trackers, focus and overlays pointing into the tree, then destroys it
         Widget* HitTest(float x, float y);
+        void UpdateFrameInfo();
+        void PollTextInput();
+        void FocusNext(bool backwards); // Tab: next focusable widget of the focused widget's tree
 
         // ScreenToUI
         // Converts raw OS window coordinates to the UIs coordinate system (0,0) at top-left of the viewport, and (width,height) at bottom-right of the viewport
@@ -104,7 +120,8 @@ namespace Surge::UI
             const float normalizedX = localX / mViewportSize.x;
             const float normalizedY = localY / mViewportSize.y;
 
-            return { normalizedX * mTargetResolution.x, normalizedY * mTargetResolution.y };
+            glm::vec2 result = { normalizedX * mTargetResolution.x, normalizedY * mTargetResolution.y };
+            return result;
         }
 
         bool IsInsideViewport(const glm::vec2& uiPos) const
@@ -116,10 +133,14 @@ namespace Surge::UI
         void ExtractRenderData(FrameBlackboard& blackboard);
         void ProcessMouseMove(float rawX, float rawY);
         bool ProcessMouseButton(float rawX, float rawY, bool isDown) { return isDown ? ProcessPointerDown(MOUSE_POINTER_ID, rawX, rawY) : ProcessPointerUp(MOUSE_POINTER_ID, rawX, rawY, false); }
+        bool ProcessScroll(float rawX, float rawY, float wheelDelta);
+        bool ProcessKeyPressed(Key key);
+        void ProcessTextInput(Uint codepoint);
 
         // Every pointer (mouse, each touch) presses its own widget: holding one button never blocks another finger
         static constexpr int64_t MOUSE_POINTER_ID = -1;
         bool ProcessPointerDown(int64_t pointerID, float rawX, float rawY);
+        void ProcessPointerMove(int64_t pointerID, float rawX, float rawY);
         bool ProcessPointerUp(int64_t pointerID, float rawX, float rawY, bool canceled);
         float GetCanvasScale(const Canvas& canvas) const { return canvas.Scaler.ComputeScale(mTargetResolution); }
 
@@ -129,16 +150,27 @@ namespace Surge::UI
 
         Ref<Widget> mEditorPreviewRoot;
         CanvasScaler mEditorPreviewScaler;
+        glm::vec4 mSimulatedSafeArea = { 0.0f, 0.0f, 0.0f, 0.0f };
+        bool mSimulateSafeArea = false;
+
+        Vector<Ref<Widget>> mOverlays; // Open order, last = on top
 
         // Trackers, Refs so a widget removed while hovered/pressed can never dangle
         struct PointerPress
         {
             int64_t PointerID;
-            Ref<Widget> Pressed;
+            Ref<Widget> PressedWidget;
+            glm::vec2 StartPos; // UI pixels, where the press began (drag threshold, scroll hand-off)
         };
         Ref<Widget> mHoveredWidget;
         Vector<PointerPress> mPointerPresses;
         bool mUIVisible = true;
+
+        // Focus + soft keyboard
+        Ref<Widget> mFocused;
+        float mFocusTime = 0.0f;
+        bool mKeyboardWasVisible = false;
+        float mKeyboardShift = 0.0f; // Pixels the focused field's canvas is moved up so the keyboard doesn't cover the field
 
         glm::vec2 mViewportOffset = { 0.0f, 0.0f };
         glm::vec2 mViewportSize = { 1920.0f, 1080.0f };

@@ -52,10 +52,15 @@ namespace Surge
             ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.11f, 0.11f, 0.11f, 0.97f));
             ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.22f, 0.22f, 0.22f, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.9f, 0.9f, 1.0f));
-            if(ImGui::BeginTooltip())
+
+            // Delayed tool tip
+            if(ImGui::IsItemHovered() && GImGui->HoveredIdTimer > 0.5f)
             {
-                ImGui::PushTextWrapPos(ImGui::GetFontSize() * 40.0f);
-                return true;
+                if(ImGui::BeginTooltip())
+                {
+                    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 40.0f);
+                    return true;
+                }
             }
             ImGui::PopStyleColor(3);
             ImGui::PopStyleVar(4);

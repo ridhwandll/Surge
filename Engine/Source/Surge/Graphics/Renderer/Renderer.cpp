@@ -13,8 +13,10 @@
 #include "Surge/Graphics/RenderGraph/Passes/UIOverlayPass.hpp"
 #include "Surge/Graphics/RenderGraph/Passes/AmbientOcclusionPass.hpp"
 #include "Surge/Graphics/RenderGraph/Passes/BloomPass.hpp"
+#include "Surge/Graphics/RenderGraph/Passes/ParticlePass.hpp"
 
 #include "Surge/Graphics/UISystem/UIManager.hpp"
+#include "Surge/Core/Input/Input.hpp"
 
 #define ENGINE_SHADER_PATH "Engine/Assets/Shaders"
 
@@ -42,6 +44,7 @@ namespace Surge
         mShaderManager.Load("AOBlur.glsl");
         mShaderManager.Load("Bloom.glsl");
         mShaderManager.Load("BloomCompute.glsl", ShaderType::COMPUTE);
+        mShaderManager.Load("Particle.glsl");
 
         mRHI = CreateScope<GraphicsRHI>();
         mRHI->Initialize(Core::GetWindow());
@@ -105,6 +108,34 @@ namespace Surge
         texDesc.Sampler = blackBoard.DefaultSampler;
         blackBoard.WhiteImage = mRHI->CreateImage(texDesc);
 
+        // Default particle: white with a soft round alpha falloff
+        {
+            constexpr Uint size = 64;
+            Vector<Byte> pixels(size * size * 4);
+            for(Uint y = 0; y < size; y++)
+            {
+                for(Uint x = 0; x < size; x++)
+                {
+                    const glm::vec2 p = (glm::vec2(static_cast<float>(x), static_cast<float>(y)) + 0.5f) / static_cast<float>(size) * 2.0f - 1.0f;
+                    const float falloff = glm::clamp(1.0f - glm::length(p), 0.0f, 1.0f);
+                    Byte* pixel = &pixels[(y * size + x) * 4];
+                    pixel[0] = pixel[1] = pixel[2] = 255;
+                    pixel[3] = static_cast<Byte>(falloff * falloff * (3.0f - 2.0f * falloff) * 255.0f + 0.5f);
+                }
+            }
+
+            ImageDesc particleDesc = {};
+            particleDesc.Width = size;
+            particleDesc.Height = size;
+            particleDesc.Format = ImageFormat::RGBA8_UNORM;
+            particleDesc.Usage = ImageUsage::SAMPLED | ImageUsage::TRANSFER_DST;
+            particleDesc.DebugName = "ParticleDefaultTexture";
+            particleDesc.InitialData = pixels.data();
+            particleDesc.DataSize = static_cast<Uint>(pixels.size());
+            particleDesc.Sampler = blackBoard.LinearClampSampler;
+            blackBoard.ParticleDefaultImage = mRHI->CreateImage(particleDesc);
+        }
+
         BufferDesc frameUBODesc = {};
         frameUBODesc.Usage = BufferUsage::UNIFORM;
         frameUBODesc.HostVisible = true;
@@ -128,6 +159,7 @@ namespace Surge
         graph.AddPass<GeometryPass>();
         graph.AddPass<SkyPass>();
         graph.AddPass<Renderer2DPass>();
+        graph.AddPass<ParticlePass>();         // After the opaque passes: no depth writes, premultiplied alpha
         graph.AddPass<AmbientOcclusionPass>(); // After GeometryPass (needs MainPassDepthImage), before PostProcessPass (consumes AOImage)
         graph.AddPass<BloomPass>();            // After GeometryPass (needs MainPassColorImage), before PostProcessPass (consumes BloomImage)
         graph.AddPass<PostProcessPass>();
@@ -169,6 +201,7 @@ namespace Surge
         blackBoard.CameraNearFarPlane = cameraNearFar;
         blackBoard.CameraRight = { viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0] };
         blackBoard.CameraUp = { viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1] };
+        blackBoard.CameraFrustum.Extract(blackBoard.ViewProjection);
 
         FrameUBO frameData = {};
         frameData.View = blackBoard.ViewMatrix;
@@ -260,7 +293,35 @@ namespace Surge
         mOverlayMark.Lines = blackBoard.LineList.size();
         mOverlayMark.Texts = blackBoard.TextList.size();
         mOverlayMark.Outlines = blackBoard.OutlineList.size();
+        mOverlayMark.ParticleEmitters = blackBoard.ParticleEmitterList.size();
+        mOverlayMark.ParticleRecords = blackBoard.ParticleList.size();
         mOverlayMark.Set = true;
+    }
+
+    ParticleSubmission Renderer::SubmitParticles(const ParticleEmitterCmd& cmd, Uint count, RenderViewID view)
+    {
+        FrameBlackboard* blackBoard = &mMainRenderGraph.GetBlackboard();
+        if(view != INVALID_RENDER_VIEW)
+        {
+            RenderView* target = FindView(view);
+            if(!target || target->Destroyed || !target->Desc.Isolated)
+                return {};
+            blackBoard = &target->Graph->GetBlackboard();
+        }
+
+        // The emitter index is 16 bits in ParticleRecord
+        if(count == 0 || blackBoard->ParticleEmitterList.size() >= 0xFFFF)
+            return {};
+
+        ParticleSubmission submission;
+        submission.EmitterIndex = static_cast<Uint>(blackBoard->ParticleEmitterList.size());
+
+        ParticleEmitterCmd& emitter = blackBoard->ParticleEmitterList.emplace_back(cmd);
+        emitter.FirstRecord = static_cast<Uint>(blackBoard->ParticleList.size());
+        emitter.RecordCount = count;
+        blackBoard->ParticleList.resize(blackBoard->ParticleList.size() + count); // Capacity is kept across frames, no allocation after warm-up
+        submission.Records = blackBoard->ParticleList.data() + emitter.FirstRecord;
+        return submission;
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -281,12 +342,14 @@ namespace Surge
         FrameBlackboard& blackBoard = view->Graph->GetBlackboard();
         blackBoard.RenderScale = mainBoard.RenderScale;
         blackBoard.WhiteImage = mainBoard.WhiteImage;
+        blackBoard.ParticleDefaultImage = mainBoard.ParticleDefaultImage;
         blackBoard.DefaultSampler = mainBoard.DefaultSampler;
         blackBoard.TextSampler = mainBoard.TextSampler;
         blackBoard.PointClampSampler = mainBoard.PointClampSampler;
         blackBoard.LinearClampSampler = mainBoard.LinearClampSampler;
         blackBoard.ShadowSettings_ = mainBoard.ShadowSettings_;
         blackBoard.Lighting = mainBoard.Lighting;
+        blackBoard.Particles = mainBoard.Particles;
         blackBoard.PostProcessSettings_ = mainBoard.PostProcessSettings_;
         blackBoard.AOSettings = mainBoard.AOSettings;
         blackBoard.Bloom = mainBoard.Bloom;
@@ -430,7 +493,11 @@ namespace Surge
             const bool requested = view.RenderRequested;
             view.RenderRequested = false; // Requested again by the next ImGui frame while the view stays on screen
             if(view.Destroyed || !requested || !view.HasCamera || view.Size.x == 0 || view.Size.y == 0)
+            {
+                if(view.Desc.Isolated)
+                    view.Graph->ClearLists(); // Its submissions were for this frame only
                 continue;
+            }
 
             FrameBlackboard& blackBoard = view.Graph->GetBlackboard();
 
@@ -456,24 +523,38 @@ namespace Surge
             // Settings edited on the main graph (Renderer panel), passes rebuild their targets themselves when these change
             blackBoard.ShadowSettings_ = mainBlackBoard.ShadowSettings_;
             blackBoard.Lighting = mainBlackBoard.Lighting;
+            blackBoard.Particles = mainBlackBoard.Particles;
+            blackBoard.ParticleStatistics = mainBlackBoard.ParticleStatistics;
             blackBoard.PostProcessSettings_ = mainBlackBoard.PostProcessSettings_;
             blackBoard.AOSettings = mainBlackBoard.AOSettings;
             blackBoard.Bloom = mainBlackBoard.Bloom;
-            blackBoard.Env = mainBlackBoard.Env;
-            blackBoard.HasDirectionalLight = mainBlackBoard.HasDirectionalLight;
-            blackBoard.DirectionalLightDir = mainBlackBoard.DirectionalLightDir;
 
-            // Submissions, assign() reuses the view's capacity so this does no allocations
-            const bool overlay = view.Desc.EditorOverlay || (mark.Set == false);
-            const auto copyList = [overlay](auto& destination, const auto& source, size_t sceneCount) {
-                destination.assign(source.begin(), source.begin() + static_cast<std::ptrdiff_t>(overlay ? source.size() : sceneCount));
-            };
-            copyList(blackBoard.MeshList, mainBlackBoard.MeshList, mark.Meshes);
-            copyList(blackBoard.LightList, mainBlackBoard.LightList, mark.Lights);
-            copyList(blackBoard.QuadList, mainBlackBoard.QuadList, mark.Quads);
-            copyList(blackBoard.LineList, mainBlackBoard.LineList, mark.Lines);
-            copyList(blackBoard.TextList, mainBlackBoard.TextList, mark.Texts);
-            copyList(blackBoard.OutlineList, mainBlackBoard.OutlineList, mark.Outlines);
+            if(view.Desc.Isolated)
+            {
+                // Only what was submitted to this view (previews): no scene lights, sky or environment
+                blackBoard.Env = Environnment {};
+                blackBoard.HasDirectionalLight = false;
+            }
+            else
+            {
+                blackBoard.Env = mainBlackBoard.Env;
+                blackBoard.HasDirectionalLight = mainBlackBoard.HasDirectionalLight;
+                blackBoard.DirectionalLightDir = mainBlackBoard.DirectionalLightDir;
+
+                // Submissions, assign() reuses the view's capacity so this does no allocations
+                const bool overlay = view.Desc.EditorOverlay || (mark.Set == false);
+                const auto copyList = [overlay](auto& destination, const auto& source, size_t sceneCount) {
+                    destination.assign(source.begin(), source.begin() + static_cast<std::ptrdiff_t>(overlay ? source.size() : sceneCount));
+                };
+                copyList(blackBoard.MeshList, mainBlackBoard.MeshList, mark.Meshes);
+                copyList(blackBoard.LightList, mainBlackBoard.LightList, mark.Lights);
+                copyList(blackBoard.QuadList, mainBlackBoard.QuadList, mark.Quads);
+                copyList(blackBoard.LineList, mainBlackBoard.LineList, mark.Lines);
+                copyList(blackBoard.TextList, mainBlackBoard.TextList, mark.Texts);
+                copyList(blackBoard.OutlineList, mainBlackBoard.OutlineList, mark.Outlines);
+                copyList(blackBoard.ParticleEmitterList, mainBlackBoard.ParticleEmitterList, mark.ParticleEmitters);
+                copyList(blackBoard.ParticleList, mainBlackBoard.ParticleList, mark.ParticleRecords);
+            }
 
             if(view.Desc.ShowUI)
             {
@@ -482,6 +563,7 @@ namespace Surge
                 blackBoard.UISpriteList.assign(mainBlackBoard.UISpriteList.begin(), mainBlackBoard.UISpriteList.end());
                 blackBoard.UITextList.assign(mainBlackBoard.UITextList.begin(), mainBlackBoard.UITextList.end());
                 blackBoard.UIDrawOrder.assign(mainBlackBoard.UIDrawOrder.begin(), mainBlackBoard.UIDrawOrder.end());
+                blackBoard.UIClipRects.assign(mainBlackBoard.UIClipRects.begin(), mainBlackBoard.UIClipRects.end());
             }
 
             view.Graph->Execute(mCurrentFrameCtx);
@@ -489,6 +571,9 @@ namespace Surge
             // ImGui samples it in the main graph's swapchain pass
             mRHI->CmdTransitionImageLayout(mCurrentFrameCtx, blackBoard.FinalImage, ImageUsage::SAMPLED);
             view.HasOutput = true;
+
+            if(view.Desc.Isolated)
+                view.Graph->ClearLists();
         }
     }
 
@@ -506,6 +591,7 @@ namespace Surge
         mMainRenderGraph.Shutdown();
 
         mRHI->DestroyImage(blackBoard.WhiteImage);
+        mRHI->DestroyImage(blackBoard.ParticleDefaultImage);
 
         for(Uint i = 0; i < RHISettings::FRAMES_IN_FLIGHT; i++)
             mRHI->DestroyBuffer(blackBoard.FrameUBOs[i]);
@@ -522,7 +608,15 @@ namespace Surge
         EventDispatcher dispatcher(e);
         // Hover follows the mouse and the primary touch (mouse events synthesized from touch), presses come from the left mouse
         // button and from every touch, the synthesized clicks are skipped so a tap is not processed twice
-        dispatcher.Dispatch<MouseMovedEvent>([&](MouseMovedEvent& e) { mUIManager.ProcessMouseMove(e.GetX(), e.GetY()); });
+        dispatcher.Dispatch<MouseMovedEvent>([&](MouseMovedEvent& e) {
+            mUIManager.ProcessMouseMove(e.GetX(), e.GetY());
+            if(!e.IsFromTouch())
+                mUIManager.ProcessPointerMove(UI::Manager::MOUSE_POINTER_ID, e.GetX(), e.GetY());
+        });
+        dispatcher.Dispatch<MouseScrolledEvent>([&](MouseScrolledEvent& e) {
+            const auto [x, y] = Input::GetMousePosition();
+            mUIManager.ProcessScroll(x, y, e.GetDelta());
+        });
         dispatcher.Dispatch<MouseButtonPressedEvent>([&](MouseButtonPressedEvent& e) {
             if(!e.IsFromTouch() && e.GetMouseButton() == static_cast<MouseCode>(Mouse::ButtonLeft))
                 mUIManager.ProcessPointerDown(UI::Manager::MOUSE_POINTER_ID, e.GetX(), e.GetY());
@@ -533,6 +627,14 @@ namespace Surge
         });
         dispatcher.Dispatch<TouchPressedEvent>([&](TouchPressedEvent& e) { mUIManager.ProcessPointerDown(e.GetPointerID(), e.GetX(), e.GetY()); });
         dispatcher.Dispatch<TouchReleasedEvent>([&](TouchReleasedEvent& e) { mUIManager.ProcessPointerUp(e.GetPointerID(), e.GetX(), e.GetY(), e.IsCanceled()); });
+        dispatcher.Dispatch<TouchMovedEvent>([&](TouchMovedEvent& e) { mUIManager.ProcessPointerMove(e.GetPointerID(), e.GetX(), e.GetY()); });
+
+        // Keys reach the focused text field, Back/Escape closes popups first (Handled keeps Android Back from exiting the app)
+        dispatcher.Dispatch<KeyPressedEvent>([&](KeyPressedEvent& e) {
+            if(mUIManager.ProcessKeyPressed(e.GetKeyCode()))
+                e.Handled = true;
+        });
+        dispatcher.Dispatch<KeyTypedEvent>([&](KeyTypedEvent& e) { mUIManager.ProcessTextInput(static_cast<Uint>(e.GetKeyCode())); });
         dispatcher.Dispatch<WindowLostFocusEvent>([&](WindowLostFocusEvent&) { mUIManager.ProcessPointerUp(UI::Manager::MOUSE_POINTER_ID, -1.0f, -1.0f, true); });
     }
 
