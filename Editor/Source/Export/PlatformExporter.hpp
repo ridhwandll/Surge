@@ -40,7 +40,14 @@ namespace Surge
         virtual void CollectIssues(Vector<String>& issues) = 0;
 
         // Called right before the worker starts, after cooking. nullptr: the platform can't build
-        virtual Scope<ExportTask> CreateTask() const = 0;
+        virtual Scope<ExportTask> CreateTask() = 0;
+
+        // Every frame, also while the panel is hidden, and once when a run of this platform finished
+        virtual void Update() {}
+        virtual void OnRunFinished(const ExportStatus&) {}
+
+        // Stops the exporter's own background work (ExportManager::Shutdown)
+        virtual void Shutdown() {}
     };
 
 } // namespace Surge

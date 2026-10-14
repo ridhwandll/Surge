@@ -34,6 +34,12 @@ namespace Surge
         openedProject.Load(projectPath);
         mCurrentProject = std::move(openedProject);
         mActiveScene = CreateRuntimeScene(mCurrentProject.StartScene);
+        if(!mActiveScene)
+        {
+            // Keep running with the error in the log instead of crashing on a null scene
+            Log<Severity::Error>("[Player] Start scene {} could not be loaded ({}), running an empty scene", mCurrentProject.StartScene.Get(), projectPath.string());
+            mActiveScene = Ref<Scene>::Create("Empty");
+        }
     }
 
     Ref<Scene> Player::CreateRuntimeScene(AssetID sceneID)

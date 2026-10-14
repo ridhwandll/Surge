@@ -26,7 +26,7 @@ namespace Surge
         virtual void DeserializeSettings(const nlohmann::json& in) override;
 
         virtual void CollectIssues(Vector<String>& issues) override;
-        virtual Scope<ExportTask> CreateTask() const override { return nullptr; }
+        virtual Scope<ExportTask> CreateTask() override { return nullptr; }
 
         IOSExportSettings& GetSettings() { return mSettings; }
 

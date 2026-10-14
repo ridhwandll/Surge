@@ -29,7 +29,7 @@ namespace Surge
         virtual void DeserializeSettings(const nlohmann::json& in) override;
 
         virtual void CollectIssues(Vector<String>& issues) override;
-        virtual Scope<ExportTask> CreateTask() const override;
+        virtual Scope<ExportTask> CreateTask() override;
 
         WindowsExportSettings& GetSettings() { return mSettings; }
 

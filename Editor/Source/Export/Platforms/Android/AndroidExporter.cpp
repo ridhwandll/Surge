@@ -10,7 +10,6 @@
 #include <algorithm>
 #include <cctype>
 #include <chrono>
-#include <fstream>
 
 namespace Surge
 {
@@ -77,10 +76,13 @@ namespace Surge
                 if(!ExportUtils::StageRuntimeContent(session, assetsRoot, job) || session.IsCancelled())
                     return false;
 
+                // The custom icon goes into the release resource overlay (gitignored), which overrides the default in src/main/res
+                const Path iconOverlay = projectDir / "app/src/release/res";
+                fs::remove_all(iconOverlay, ec);
                 if(!a.IconPath.empty())
                 {
                     session.SetStep("Installing launcher icon", 0.14f, 0.15f);
-                    const Path resDir = projectDir / "app/src/main/res/mipmap-xxxhdpi";
+                    const Path resDir = iconOverlay / "mipmap-xxxhdpi";
                     Filesystem::CreateOrEnsureDirectories(resDir);
                     for(const char* name : { "ic_launcher.png", "ic_launcher_round.png" })
                         fs::copy_file(a.IconPath, resDir / name, fs::copy_options::overwrite_existing);
@@ -125,8 +127,20 @@ namespace Surge
                 fs::copy_file(artifact, dest, fs::copy_options::overwrite_existing);
                 session.SetResult(dest);
 
+                // Failures here don't fail the export, the artifact is already built. The panel offers a retry (AndroidDeviceInstaller)
                 if(install)
-                    InstallOnDevice(session, dest, gradleEnd + 0.03f);
+                {
+                    switch(AndroidDevice::InstallAndLaunch(session, mInput.AdbPath, dest, a.PackageId, a.LaunchAfterInstall, gradleEnd + 0.03f))
+                    {
+                        case AndroidDevice::InstallResult::INSTALL_FAILED:
+                            session.SetResultWarning("Built, but installing on the device failed - is it connected with USB debugging enabled?");
+                            break;
+                        case AndroidDevice::InstallResult::LAUNCH_FAILED:
+                            session.SetResultWarning("Installed, but launching the app on the device failed.");
+                            break;
+                        default: break;
+                    }
+                }
 
                 return true;
             }
@@ -156,30 +170,6 @@ namespace Surge
                 return cmd;
             }
 
-            // Failures here don't fail the export, the artifact is already built
-            void InstallOnDevice(ExportSession& session, const Path& apk, float begin) const
-            {
-                const String adb = Quote(mInput.AdbPath.string());
-                AdbOutputParser parser;
-
-                session.SetStep("Installing on device", begin, 0.99f);
-                session.SetDetail("adb install " + apk.filename().string());
-                if(session.RunTool(adb + " install -r " + Quote(apk.string()), Path(), &parser) != 0)
-                {
-                    if(!session.IsCancelled())
-                        session.SetResultWarning("Built, but installing on the device failed - is it connected with USB debugging enabled?");
-                    return;
-                }
-
-                if(!mInput.Settings.LaunchAfterInstall || session.IsCancelled())
-                    return;
-
-                session.SetStep("Launching on device", 0.99f, 1.0f);
-                const String launch = adb + " shell monkey -p " + mInput.Settings.PackageId + " -c android.intent.category.LAUNCHER 1";
-                if(session.RunTool(launch, Path(), &parser) != 0 && !session.IsCancelled())
-                    session.SetResultWarning("Installed, but launching the app on the device failed.");
-            }
-
         private:
             AndroidTaskInput mInput;
         };
@@ -205,6 +195,7 @@ namespace Surge
             {"CleanOutput", a.CleanOutput},
             {"InstallOnDevice", a.InstallOnDevice},
             {"LaunchAfterInstall", a.LaunchAfterInstall},
+            {"AttachLogcat", a.AttachLogcat},
             {"VerboseLog", a.VerboseLog},
         };
     }
@@ -230,6 +221,7 @@ namespace Surge
         ExportSettingsIO::Read(in, "CleanOutput", a.CleanOutput);
         ExportSettingsIO::Read(in, "InstallOnDevice", a.InstallOnDevice);
         ExportSettingsIO::Read(in, "LaunchAfterInstall", a.LaunchAfterInstall);
+        ExportSettingsIO::Read(in, "AttachLogcat", a.AttachLogcat);
         ExportSettingsIO::Read(in, "VerboseLog", a.VerboseLog);
 
         a.Format = format == 1 ? AndroidPackageFormat::AAB : AndroidPackageFormat::APK;
@@ -254,31 +246,99 @@ namespace Surge
             issues.push_back("Enter the keystore password");
         if(!a.IconPath.empty() && !mIconExists.Check(a.IconPath))
             issues.push_back("Icon file not found");
-        if(!mGradlewExists.Check(String(PROJECT_DIR) + "/gradlew.bat"))
-            issues.push_back(std::format("Gradle wrapper not found ({}/gradlew.bat)", PROJECT_DIR));
 
-        // The SDK lookup reads a file, so it is refreshed every 2 seconds
-        const double now = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
-        if(now - mSdkCheckTime > 2.0)
-        {
-            mCachedSdk = FindSdk();
-            mCachedAdb = FindAdb(mCachedSdk);
-            mSdkCheckTime = now;
-        }
-
-        if(mCachedSdk.empty())
-            issues.push_back(std::format("Android SDK not found - set ANDROID_HOME or sdk.dir in {}/local.properties", PROJECT_DIR));
-        else if(a.InstallOnDevice && a.Format == AndroidPackageFormat::APK && mCachedAdb.empty())
+        const AndroidToolchain& toolchain = GetToolchain();
+        issues.insert(issues.end(), toolchain.Issues.begin(), toolchain.Issues.end());
+        if(a.InstallOnDevice && a.Format == AndroidPackageFormat::APK && toolchain.Adb.empty() && !toolchain.Sdk.empty())
             issues.push_back("adb not found in the Android SDK (platform-tools) - needed for 'Install on device'");
+        if(mDeviceInstaller.IsBusy())
+            issues.push_back("Installing on the device - wait for it or cancel it");
     }
 
-    Scope<ExportTask> AndroidExporter::CreateTask() const
+    Scope<ExportTask> AndroidExporter::CreateTask()
     {
         // Run on main thread
+        mToolchainTime = -100.0; // Fresh, the export may have waited on cooking
+        const AndroidToolchain& toolchain = GetToolchain();
+        toolchain.ApplyToProcessEnvironment();
+
+        mDeviceInstaller.Reset();
+        mLastPackageId = mSettings.PackageId;
+        mLastInstall = mSettings.InstallOnDevice && mSettings.Format == AndroidPackageFormat::APK;
+        mLastLaunch = mSettings.LaunchAfterInstall;
+
         AndroidTaskInput input;
         input.Settings = mSettings;
-        input.AdbPath = FindAdb(FindSdk());
+        input.AdbPath = toolchain.Adb;
         return CreateScope<AndroidExportTask>(std::move(input));
+    }
+
+    const AndroidToolchain& AndroidExporter::GetToolchain()
+    {
+        const double now = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+        if(now - mToolchainTime > 2.0 || mToolchainTargetApi != mSettings.TargetApi)
+        {
+            mToolchain = AndroidToolchain::Detect(mSettings.TargetApi);
+            mToolchainTime = now;
+            mToolchainTargetApi = mSettings.TargetApi;
+        }
+        return mToolchain;
+    }
+
+    void AndroidExporter::ReattachAndInstall(const Path& apk)
+    {
+        mToolchainTime = -100.0;
+        const AndroidToolchain& toolchain = GetToolchain();
+        toolchain.ApplyToProcessEnvironment();
+        if(toolchain.Adb.empty())
+            return; // The panel only offers the retry with adb present
+
+        AndroidDeviceInstaller::Request request;
+        request.Adb = toolchain.Adb;
+        request.Apk = apk;
+        request.PackageId = mLastPackageId.empty() ? mSettings.PackageId : mLastPackageId;
+        request.Launch = mLastLaunch;
+        mDeviceInstaller.Start(std::move(request));
+    }
+
+    void AndroidExporter::Update()
+    {
+        // A reattach that installed and launched the app attaches the log like an export would
+        const ExportState state = mDeviceInstaller.GetStatus().State;
+        if(state != mInstallerState && state == ExportState::SUCCEEDED && mLastLaunch && mSettings.AttachLogcat)
+            AttachLogcat(mLastPackageId);
+        mInstallerState = state;
+    }
+
+    void AndroidExporter::OnRunFinished(const ExportStatus& status)
+    {
+        if(status.State == ExportState::SUCCEEDED && mLastInstall && mLastLaunch && mSettings.AttachLogcat && status.ResultWarning.empty())
+            AttachLogcat(mLastPackageId);
+    }
+
+    void AndroidExporter::Shutdown()
+    {
+        mDeviceInstaller.Shutdown();
+        mLogcat.Stop();
+    }
+
+    void AndroidExporter::AttachLogcat(const String& packageId)
+    {
+        mToolchainTime = -100.0;
+        const AndroidToolchain& toolchain = GetToolchain();
+        if(toolchain.Adb.empty())
+            return; // The panel only offers it with adb present
+        toolchain.ApplyToProcessEnvironment();
+
+        AndroidLogcat::Request request;
+        request.Adb = toolchain.Adb;
+        request.PackageId = packageId;
+        std::error_code ec;
+        const Path symbolizer = toolchain.Ndk / "toolchains/llvm/prebuilt/windows-x86_64/bin/llvm-symbolizer.exe";
+        if(!toolchain.Ndk.empty() && fs::exists(symbolizer, ec))
+            request.Symbolizer = symbolizer.lexically_normal();
+        request.SymbolsDir = fs::absolute(Path(PROJECT_DIR) / "app/build/intermediates/cxx", ec).lexically_normal();
+        mLogcat.Start(std::move(request));
     }
 
     bool AndroidExporter::IsValidPackageId(const String& id)
@@ -306,54 +366,6 @@ namespace Surge
             i = dot + 1;
         }
         return segments >= 2;
-    }
-
-    Path AndroidExporter::FindSdk()
-    {
-        for(const char* var : { "ANDROID_HOME", "ANDROID_SDK_ROOT" })
-        {
-            String value = Platform::GetEnvVariableForCurrentProcess(var);
-            if(value.empty() && Platform::HasEnvVariable(var))
-                value = Platform::GetEnvVariable(var);
-            if(!value.empty())
-                return value;
-        }
-
-        // Java properties escaping: sdk.dir=C\:\\Android\\Sdk
-        std::ifstream file(Path(PROJECT_DIR) / "local.properties");
-        String line;
-        while(std::getline(file, line))
-        {
-            if(!StartsWith(line, "sdk.dir"))
-                continue;
-            const size_t eq = line.find('=');
-            if(eq == String::npos)
-                continue;
-
-            String value;
-            for(size_t i = eq + 1; i < line.size(); ++i)
-            {
-                if(line[i] == '\\' && i + 1 < line.size())
-                    ++i;
-                value += line[i];
-            }
-            while(!value.empty() && std::isspace(static_cast<unsigned char>(value.back())))
-                value.pop_back();
-            while(!value.empty() && std::isspace(static_cast<unsigned char>(value.front())))
-                value.erase(0, 1);
-            if(!value.empty())
-                return value;
-        }
-        return {};
-    }
-
-    Path AndroidExporter::FindAdb(const Path& sdk)
-    {
-        if(sdk.empty())
-            return {};
-        std::error_code ec;
-        const Path adb = sdk / "platform-tools" / "adb.exe";
-        return fs::exists(adb, ec) ? adb : Path();
     }
 
 } // namespace Surge

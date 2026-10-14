@@ -155,7 +155,7 @@ namespace Surge
             issues.push_back("Icon file not found");
     }
 
-    Scope<ExportTask> WindowsExporter::CreateTask() const
+    Scope<ExportTask> WindowsExporter::CreateTask()
     {
         return CreateScope<WindowsExportTask>(mSettings);
     }

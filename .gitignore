@@ -16,7 +16,7 @@ android/.idea
 android/local.properties
 android/app/build/ 
 android/app/release/ 
-android/app/src/main/res/
+android/app/src/release/
 android/app/.cxx/
 android/build/
 android/app/src/main/assets/

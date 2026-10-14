@@ -40,9 +40,9 @@ namespace Surge
         ImFont* sBold = nullptr;
         float sLabelWidth = 0.0f;
 
-        void ShowLogInConsole()
+        void ShowLogInConsole(const char* tag = ExportSession::LOG_TAG)
         {
-            static_cast<Editor*>(Core::GetClient())->GetPanelManager().GetPanel<ConsolePanel>()->FocusWithSearch(ExportSession::LOG_TAG);
+            static_cast<Editor*>(Core::GetClient())->GetPanelManager().GetPanel<ConsolePanel>()->FocusWithSearch(tag);
         }
 
         // Widgets
@@ -285,10 +285,53 @@ namespace Surge
             CheckRow("Open folder when done", "##WinOpen", options.OpenFolderWhenDone, "Show the exported executable in Explorer after a successful export.");
         }
 
-        void DrawAndroidSettings(AndroidExportSettings& a, ExportOptions& options)
+        // Every path the Android build uses, missing ones in their expected location. Click a path to copy it
+        void DrawAndroidToolchain(AndroidExporter& exporter)
         {
-            Section("ANDROID");
+            Section("ANDROID TOOLCHAIN");
 
+            ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0], 14.0f);
+            bool incomplete = false;
+            for(const AndroidToolItem& item : exporter.GetToolchain().Items)
+            {
+                incomplete |= item.State != AndroidToolState::OK;
+                RowLabel(item.Name.c_str());
+
+                const ImVec4 color = item.State == AndroidToolState::OK ? ImGui::GetStyleColorVec4(ImGuiCol_Text) : item.State == AndroidToolState::WARN ? kWarn : kErr;
+                ImGui::PushStyleColor(ImGuiCol_Text, color);
+                ImGui::PushTextWrapPos(0.0f);
+                ImGui::TextUnformatted(item.Location.empty() ? "Not found" : item.Location.c_str());
+                ImGui::PopTextWrapPos();
+                ImGui::PopStyleColor();
+                if(!item.Location.empty() && ImGui::IsItemHovered() && GImGui->HoveredIdTimer > 0.8f)
+                {
+                    ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+                    ImGui::TextUnformatted("Click to copy the path");
+                    if(ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                        ImGui::SetClipboardText(item.Location.c_str());
+                }
+
+                if(!item.Note.empty() && item.Location.empty())
+                {
+                    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + sLabelWidth);
+                    ImGui::PushStyleColor(ImGuiCol_Text, kTextMuted);
+                    ImGui::PushTextWrapPos(0.0f);
+                    ImGui::TextUnformatted(item.Note.c_str());
+                    ImGui::PopTextWrapPos();
+                    ImGui::PopStyleColor();
+                }
+            }
+            ImGui::PopFont();
+            if(incomplete)
+                ImGuiAux::TextCentered("Scripts/AndroidSetup.bat installs everything the Android build needs! Just run it and restart the editor!");
+        }
+
+        void DrawAndroidSettings(AndroidExporter& exporter, ExportOptions& options)
+        {
+            AndroidExportSettings& a = exporter.GetSettings();
+            DrawAndroidToolchain(exporter);
+
+            Section("ANDROID");
             PathRow("Build destination", "##AndOut", a.OutputPath, "Folder to export into", false,
                     []() { return FileDialog::ChooseFolder(); });
             PathRow("Icon (.png)", "##AndIcon", a.IconPath, "Optional - 192x192 or larger", true,
@@ -356,7 +399,6 @@ namespace Surge
             CheckRow("Verbose build log", "##AndVerbose", a.VerboseLog, "Print every compiled C++ file to the Console. Warnings and errors are always printed.");
 
             Section("DISPLAY");
-
             RowLabel("Orientation");
             ImGui::SetNextItemWidth(-FLT_MIN);
             if(ImGui::BeginCombo("##AndOrient", AndroidExporter::ORIENTATIONS[a.Orientation].Name))
@@ -388,6 +430,10 @@ namespace Surge
                      isApk ? "Install the APK on the connected device with adb (USB debugging must be enabled)." : "Only available for APK exports.");
             ImGui::BeginDisabled(!a.InstallOnDevice);
             CheckRow("Launch after install", "##AndLaunch", a.LaunchAfterInstall, "Start the app on the device once it is installed.");
+            ImGui::BeginDisabled(!a.LaunchAfterInstall);
+            CheckRow("Attach device log", "##AndLogcat", a.AttachLogcat,
+                     "After launching, stream the app's log and native crash reports into the Console (search [Device]).\nCrash backtraces are symbolized against the last build.");
+            ImGui::EndDisabled();
             ImGui::EndDisabled();
             ImGui::EndDisabled();
         }
@@ -499,6 +545,129 @@ namespace Surge
                 ImGui::SameLine(ImGui::GetContentRegionMax().x - ImGui::CalcTextSize(right.c_str()).x);
                 ImGui::TextColored(kTextMuted, "%s", right.c_str());
             }
+        }
+
+        // Attach by hand: an app started from the launcher, or after a crash (the recent log is included)
+        void DrawAndroidDeviceLog(AndroidExporter& exporter, bool busy)
+        {
+            AndroidLogcat& logcat = exporter.GetLogcat();
+            const String& packageId = exporter.GetSettings().PackageId;
+            const bool hasAdb = !exporter.GetToolchain().Adb.empty();
+
+            RowLabel("Device log");
+            ImGui::BeginDisabled(busy);
+            if(logcat.IsRunning())
+            {
+                if(SmallActionButton("DETACH"))
+                    exporter.DetachLogcat();
+            }
+            else
+            {
+                ImGui::BeginDisabled(!hasAdb || !AndroidExporter::IsValidPackageId(packageId));
+                if(SmallActionButton("ATTACH"))
+                    exporter.AttachLogcat(packageId);
+                ImGui::EndDisabled();
+                if(ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+                    ImGui::SetTooltip(hasAdb ? "Stream the log of %s from the connected device into the Console" : "adb not found in the Android SDK (platform-tools)", packageId.c_str());
+            }
+            ImGui::EndDisabled();
+            ImGui::SameLine();
+            if(SmallActionButton("SHOW LOG##DeviceLog"))
+                ShowLogInConsole(AndroidLogcat::LOG_TAG);
+            ImGui::SameLine();
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextColored(kTextMuted, "%s", logcat.GetStatusText().c_str());
+        }
+
+        // The last exported APK, else the one an earlier export left in the build destination
+        String FindInstallableApk(ExportManager& manager, const ExportStatus& exportStatus)
+        {
+            if(manager.GetRunPlatform() == ExportPlatform::ANDROID && exportStatus.State == ExportState::SUCCEEDED && exportStatus.ArtifactPath.ends_with(".apk"))
+                return exportStatus.ArtifactPath;
+
+            static ExportUtils::CachedExists sApkExists;
+            const String& outputPath = manager.GetExporter<AndroidExporter>()->GetSettings().OutputPath;
+            if(outputPath.empty())
+                return String();
+            const String apk = (Path(outputPath) / (ExportUtils::SanitizeFileName(manager.GetCommonSettings().Branding.AppName) + ".apk")).string();
+            return sApkExists.Check(apk) ? apk : String();
+        }
+
+        // Installs (restarting adb first) without a new export, e.g. when 'Install on device' failed or the device was plugged in later
+        void DrawAndroidDeviceInstall(AndroidExporter& exporter, const String& apk, const ExportStatus& exportStatus, bool busy)
+        {
+            AndroidDeviceInstaller& installer = exporter.GetDeviceInstaller();
+            const ExportStatus status = installer.GetStatus();
+            const bool ownsResult = status.State != ExportState::IDLE && !apk.empty() && installer.GetApk() == Path(apk);
+
+            RowLabel("Install");
+            ImGui::BeginGroup();
+            if(IsExportBusy(status.State))
+            {
+                SplitLine(ImVec4(1.0f, 1.0f, 1.0f, 0.85f), status.StepName, ExportUtils::FormatDuration(status.ElapsedSeconds));
+                ImGui::Dummy(ImVec2(0.0f, 2.0f));
+                DrawProgressBar(status.Progress, false);
+                ImGui::PushStyleColor(ImGuiCol_Text, kTextMuted);
+                ImGui::TextWrapped("%s", status.StepDetail.empty() ? " " : status.StepDetail.c_str());
+                ImGui::PopStyleColor();
+
+                ImGui::Dummy(ImVec2(0.0f, 4.0f));
+                ImGui::BeginDisabled(status.CancelRequested);
+                if(SmallActionButton(status.CancelRequested ? "CANCELLING...##Device" : "CANCEL##Device"))
+                    installer.Cancel();
+                ImGui::EndDisabled();
+                ImGui::EndGroup();
+                return;
+            }
+
+            const bool hasAdb = !exporter.GetToolchain().Adb.empty();
+            const bool lastFailed = ownsResult ? status.State != ExportState::SUCCEEDED : apk == exportStatus.ArtifactPath && !exportStatus.ResultWarning.empty();
+            const char* label = lastFailed ? "REATTACH ADB & INSTALL" : ownsResult ? "INSTALL AGAIN" : "INSTALL";
+            ImGui::BeginDisabled(!hasAdb || apk.empty() || busy);
+            if(SmallActionButton(label))
+                exporter.ReattachAndInstall(apk);
+            ImGui::EndDisabled();
+            if(ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+                ImGui::SetTooltip("%s", !hasAdb ? "adb not found in the Android SDK (platform-tools)"
+                                        : "Restarts the adb server, waits for an authorized device (up to 30 s) and installs the APK.");
+            ImGui::SameLine();
+            ImGui::AlignTextToFramePadding();
+            if(apk.empty())
+                ImGui::TextColored(kTextMuted, "No APK yet - export one first");
+            else
+                ImGui::TextColored(kTextMuted, "%s", Path(apk).filename().string().c_str());
+            if(!apk.empty() && ImGui::IsItemHovered())
+                ImGui::SetTooltip("%s", apk.c_str());
+
+            if(ownsResult)
+            {
+                ImGui::PushTextWrapPos(0.0f);
+                if(status.State == ExportState::SUCCEEDED)
+                {
+                    ImGui::TextColored(kOk, "Installed on the device");
+                    if(!status.ResultWarning.empty())
+                        ImGui::TextColored(kWarn, "%s", status.ResultWarning.c_str());
+                }
+                else if(status.State == ExportState::FAILED)
+                {
+                    ImGui::PushStyleColor(ImGuiCol_Text, kErr);
+                    ImGui::TextUnformatted(status.FailureSummary.empty() ? "Installing on the device failed. See the Console." : status.FailureSummary.c_str());
+                    ImGui::PopStyleColor();
+                }
+                else if(status.State == ExportState::CANCELLED)
+                    ImGui::TextColored(kWarn, "Device install cancelled");
+                ImGui::PopTextWrapPos();
+            }
+            ImGui::EndGroup();
+        }
+
+        // Below the build button and its status: everything that talks to the connected device
+        void DrawAndroidDevice(ExportManager& manager, const ExportStatus& exportStatus, bool busy)
+        {
+            AndroidExporter& exporter = *manager.GetExporter<AndroidExporter>();
+            Section("DEVICE");
+            DrawAndroidDeviceLog(exporter, busy);
+            DrawAndroidDeviceInstall(exporter, FindInstallableApk(manager, exportStatus), exportStatus, busy);
         }
 
         void DrawStatus(ExportManager& manager, const ExportStatus& status, float displayProgress)
@@ -675,7 +844,7 @@ namespace Surge
                     switch(platform)
                     {
                         case ExportPlatform::WINDOWS: DrawWindowsSettings(manager.GetExporter<WindowsExporter>()->GetSettings(), common.Options); break;
-                        case ExportPlatform::ANDROID: DrawAndroidSettings(manager.GetExporter<AndroidExporter>()->GetSettings(), common.Options); break;
+                        case ExportPlatform::ANDROID: DrawAndroidSettings(*manager.GetExporter<AndroidExporter>(), common.Options); break;
                         default: break;
                     }
                     ImGui::EndDisabled();
@@ -686,6 +855,9 @@ namespace Surge
                     // The result belongs to the platform it was built for
                     if(busy || manager.GetRunPlatform() == platform)
                         DrawStatus(manager, status, busy ? mDisplayProgress : status.Progress);
+
+                    if(platform == ExportPlatform::ANDROID)
+                        DrawAndroidDevice(manager, status, busy);
                 }
 
                 ImGui::PopStyleColor(6);

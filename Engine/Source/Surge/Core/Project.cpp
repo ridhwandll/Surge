@@ -14,7 +14,7 @@ namespace Surge
         nlohmann::json outJson;
         outJson["Project"]["Name"] = Name;
         outJson["Project"]["Version"] = Version;
-        outJson["Project"]["StartScene"] = static_cast<uint64_t>(StartScene);
+        outJson["Project"]["StartScene"] = StartScene.Get(); // Not static_cast: on a const UUID it goes through operator bool and writes 1
 
         if(!Filesystem::WriteTextFile(path, outJson.dump(4)))
         {

@@ -554,7 +554,6 @@ namespace Surge
         AssetManager* am = Core::GetAssetManager();
         const String meshName = mOwnerMesh && mOwnerMesh->GetID() ? Filesystem::GetFilenameWithExt(am->GetMetadata(mOwnerMesh->GetID()).RelativePath) : String("a mesh file");
 
-        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.23f, 0.18f, 0.07f, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.42f, 0.33f, 0.13f, 1.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 4.0f);
         if(ImGui::BeginChild("##ReadOnlyBanner", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AlwaysUseWindowPadding))
@@ -576,7 +575,7 @@ namespace Surge
         }
         ImGui::EndChild();
         ImGui::PopStyleVar();
-        ImGui::PopStyleColor(2);
+        ImGui::PopStyleColor();
         ImGui::Spacing();
     }
 

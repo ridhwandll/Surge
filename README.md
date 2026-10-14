@@ -212,6 +212,8 @@ Editor state (cameras, open viewports, gizmo options, content browser) is saved 
 
 ## Building
 
+> **Learn more about building Surge:** [ridhwandll.github.io/projects/surge/building-the-engine](https://ridhwandll.github.io/projects/surge/building-the-engine/)
+
 Clone the repository:
 
 ```bash
@@ -234,15 +236,7 @@ Build the whole solution in Release mode before running editor. Shaders are comp
 
 ### Android
 
-Requirements: Android Studio, NDK `27.3.13750724`, an arm64-v8a device with Vulkan 1.1 (Android 10 / API 29+).
-
-- Open the `android/` folder in Android Studio and run, or build from the command line:
-  ```bash
-  android/gradlew assembleDebug
-  ```
-- Or export straight from the Editor's **Export** panel (APK or AAB, optionally installed and launched on a connected device).
-
-Note: Android loads precompiled SPIR-V from the APK, so run the Windows build once after editing a shader. The `Surge` post-build step copies `Engine/Assets/` into the Android assets.
+Run `Scripts/AndroidSetup.bat`; Accept (Press `Y`) everything when prompted (Android Studio is optional, you can press `N` there). That should download **EVERYTHING** you need to export android `.apk` or `.aab` via the Export Panel of the Editor.
 
 ### iOS / macOS
 

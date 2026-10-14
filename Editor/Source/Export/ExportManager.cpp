@@ -52,6 +52,8 @@ namespace Surge
     void ExportManager::Update()
     {
         mFrame++;
+        for(const Scope<PlatformExporter>& exporter : mExporters)
+            exporter->Update();
 
         const Path projectDir = ExportUtils::GetProjectDir();
         if(!IsBusy() && projectDir != mSettingsProjectDir)
@@ -88,6 +90,8 @@ namespace Surge
         mSession.RequestCancel();
         JoinWorker();
         mTask.reset();
+        for(const Scope<PlatformExporter>& exporter : mExporters)
+            exporter->Shutdown();
         SaveSettings();
     }
 
@@ -246,6 +250,7 @@ namespace Surge
         mTask.reset();
 
         const ExportStatus status = mSession.GetStatus();
+        GetExporter(mRunPlatform)->OnRunFinished(status);
         const char* platformName = GetExporter(mRunPlatform)->GetDisplayName();
         EditorStatusBar& statusBar = EditorStatusBar::Get();
         statusBar.EndTask(STATUS_TASK_KEY);

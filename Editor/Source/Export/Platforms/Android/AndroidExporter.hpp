@@ -2,6 +2,9 @@
 #pragma once
 #include "Export/ExportUtils.hpp"
 #include "Export/PlatformExporter.hpp"
+#include "Export/Platforms/Android/AndroidDevice.hpp"
+#include "Export/Platforms/Android/AndroidLogcat.hpp"
+#include "Export/Platforms/Android/AndroidToolchain.hpp"
 #include <iterator>
 
 namespace Surge
@@ -26,6 +29,7 @@ namespace Surge
         bool ExitOnBack = true;
         bool InstallOnDevice = false;   // APK only, through adb
         bool LaunchAfterInstall = true;
+        bool AttachLogcat = true;       // Stream the app's log into the Console after launching it
         bool VerboseLog = true;         // Every compiled file goes to the Console
     };
 
@@ -77,26 +81,44 @@ namespace Surge
         virtual void DeserializeSettings(const nlohmann::json& in) override;
 
         virtual void CollectIssues(Vector<String>& issues) override;
-        virtual Scope<ExportTask> CreateTask() const override;
+        virtual Scope<ExportTask> CreateTask() override;
+        virtual void Update() override;
+        virtual void OnRunFinished(const ExportStatus& status) override;
+        virtual void Shutdown() override;
 
         AndroidExportSettings& GetSettings() { return mSettings; }
 
         // Letters, digits and '_', at least two dot-separated segments, each starting with a letter
         static bool IsValidPackageId(const String& id);
 
-        // ANDROID_HOME / ANDROID_SDK_ROOT, else sdk.dir from android/local.properties. Empty if not found
-        static Path FindSdk();
-        static Path FindAdb(const Path& sdk); // Empty if the SDK has no platform-tools
+        // JDK, SDK, NDK, ... the build uses. Re-detected every 2 seconds (it reads files), right away when the target API changes
+        const AndroidToolchain& GetToolchain();
+
+        // Retry after 'Install on device' failed: restarts adb and installs the APK of the last export again
+        void ReattachAndInstall(const Path& apk);
+        AndroidDeviceInstaller& GetDeviceInstaller() { return mDeviceInstaller; }
+
+        // Device log of packageId in the Console (AndroidLogcat::LOG_TAG). Restarts when already attached
+        void AttachLogcat(const String& packageId);
+        void DetachLogcat() { mLogcat.Stop(); }
+        AndroidLogcat& GetLogcat() { return mLogcat; }
 
     private:
         AndroidExportSettings mSettings;
-        ExportUtils::CachedExists mGradlewExists;
         ExportUtils::CachedExists mKeystoreExists;
         ExportUtils::CachedExists mIconExists;
 
-        Path mCachedSdk;
-        Path mCachedAdb;
-        double mSdkCheckTime = -100.0;
+        AndroidToolchain mToolchain;
+        double mToolchainTime = -100.0;
+        int mToolchainTargetApi = 0;
+
+        AndroidDeviceInstaller mDeviceInstaller;
+        String mLastPackageId; // Of the last export, the retry launches what was installed
+        bool mLastInstall = false;
+        bool mLastLaunch = true;
+        ExportState mInstallerState = ExportState::IDLE;
+
+        AndroidLogcat mLogcat;
     };
 
 } // namespace Surge

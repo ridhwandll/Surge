@@ -27,11 +27,12 @@ namespace Surge
         // Pass nullptr to disable filtering and receive every axis
         android_app_set_motion_event_filter(app, nullptr);
 
-        // GameActivity only reports X/Y/pressure... by default: enable what mice (wheel) and gamepads (sticks, triggers, hat) use
-        for (int32_t axis : { AMOTION_EVENT_AXIS_VSCROLL, AMOTION_EVENT_AXIS_HSCROLL, AMOTION_EVENT_AXIS_Z, AMOTION_EVENT_AXIS_RZ,
-                              AMOTION_EVENT_AXIS_RX, AMOTION_EVENT_AXIS_RY, AMOTION_EVENT_AXIS_LTRIGGER, AMOTION_EVENT_AXIS_RTRIGGER,
-                              AMOTION_EVENT_AXIS_BRAKE, AMOTION_EVENT_AXIS_GAS, AMOTION_EVENT_AXIS_HAT_X, AMOTION_EVENT_AXIS_HAT_Y })
+        for(int32_t axis : { AMOTION_EVENT_AXIS_PRESSURE, AMOTION_EVENT_AXIS_VSCROLL, AMOTION_EVENT_AXIS_HSCROLL, AMOTION_EVENT_AXIS_Z, AMOTION_EVENT_AXIS_RZ,
+            AMOTION_EVENT_AXIS_RX, AMOTION_EVENT_AXIS_RY, AMOTION_EVENT_AXIS_LTRIGGER, AMOTION_EVENT_AXIS_RTRIGGER,
+            AMOTION_EVENT_AXIS_BRAKE, AMOTION_EVENT_AXIS_GAS, AMOTION_EVENT_AXIS_HAT_X, AMOTION_EVENT_AXIS_HAT_Y })
+        {
             GameActivityPointerAxes_enableAxis(axis);
+        }
         InputState::SetTouchSupported(true);
 
         // Surface may already be available if the window was created before Init
