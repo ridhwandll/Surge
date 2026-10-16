@@ -9,8 +9,8 @@ struct VertexOutput
     vec3 Tangent;
     vec3 BiTangent;
     vec3 WorldPos;
-    vec3 ViewSpacePos;
-    vec4 LightSpaceVectors[MAX_CASCADE_COUNT];
+    float ViewDepth;  // Positive view space depth, picks the shadow cascade
+    vec3 ShadowCoord; // Cascade 0 light space position, the other cascades are a scale + offset of it
 };
 layout(location = 0) in VertexOutput vInput;
 layout(location = 0) out vec4 FinalColor;
@@ -64,7 +64,7 @@ layout(set = 1, binding = 0) uniform Material
     int UseNormalMap;
     int UseMetallicMap;
     int UseRoughnessMap;
-    int UseEmissionMap; // Fills the std140 padding before Emission
+    int UseEmissionMap;
     vec3 Emission;
     float EmissionIntensity;
 } uMaterial;
@@ -74,17 +74,25 @@ layout(set = 1, binding = 2) uniform sampler2D NormalMap;
 layout(set = 1, binding = 3) uniform sampler2D RoughnessMetallicMap;
 layout(set = 1, binding = 4) uniform sampler2D EmissionMap;
 
-// Set 2: Shadows
-layout(set = 2, binding = 0) uniform sampler2DShadow uShadowMap0;
-layout(set = 2, binding = 1) uniform sampler2DShadow uShadowMap1;
-layout(set = 2, binding = 2) uniform sampler2DShadow uShadowMap2;
-layout(set = 2, binding = 3) uniform ShadowUBO
+// Set 2: Shadows, one D16 atlas with the cascades side by side
+layout(set = 2, binding = 0) uniform sampler2DShadow uShadowAtlas;
+layout(std140, set = 2, binding = 1) uniform ShadowUBO
 {
-    vec4 CascadeEnds;
-    mat4 LightSpaceMatrix[MAX_CASCADE_COUNT];
+    mat4 LightSpaceMatrix;                 // World -> cascade 0
+    vec4 CascadeScale[MAX_CASCADE_COUNT];  // xyz: cascade 0 -> cascade i, w: world size of one shadow texel
+    vec4 CascadeOffset[MAX_CASCADE_COUNT];
+    vec4 CascadeEnds;                      // Positive view depth
+    vec2 AtlasTexelSize;
+    float NormalBias;                      // In shadow texels
+    float CascadeBlend;
+    float FadeStart;
+    float Distance;
     uint CascadeCount;
+    int FilterSize;                        // 3, 5 or 7
+    int DitheredBlend;
     int ShowCascades;
-    float _pad0, pad1;
+    int Enabled;
+    float _pad0;
 } uShadowParams;
 
 // (Rid) Colors and material terms are mediump (RelaxedPrecision): mobile GPUs run fp16 math at up to twice the fp32 rate
@@ -99,35 +107,175 @@ struct PBRParameters
 };
 PBRParameters gPBRParams;
 
-const vec2 poissonDisk[4] = vec2[](
-    vec2(-0.94201624, -0.39906216), 
-    vec2( 0.94558609, -0.76890725), 
-    vec2(-0.09418410,  0.92938870), 
-    vec2( 0.34495938,  0.29387760)
-);
-
-float SampleShadowMap(int cascadeIndex, vec3 texCoords)
+float SampleShadowTap(vec2 baseUV, float u, float v, float depth)
 {
-    if (cascadeIndex == 0)
-        return texture(uShadowMap0, texCoords).r;
-    if (cascadeIndex == 1)
-        return texture(uShadowMap1, texCoords).r;
-    if (cascadeIndex == 2)
-        return texture(uShadowMap2, texCoords).r;
-    return 1.0;
+    return texture(uShadowAtlas, vec3(baseUV + vec2(u, v) * uShadowParams.AtlasTexelSize, depth));
 }
 
-float SampleShadow(int cascade, vec3 shadowCoord)
+// Tent filtered PCF out of hardware 2x2 comparisons (The Witness, MJP's Shadows sample): the 3x3, 5x5 and 7x7 tents cost 4, 9 and 16 lookups
+float SampleShadowPCF(vec2 atlasUV, float depth)
 {
-    vec2 uv = shadowCoord.xy * 0.5 + 0.5;
-    float depth = shadowCoord.z;
+    vec2 uv = atlasUV / uShadowParams.AtlasTexelSize; // In texels
+    vec2 baseUV = floor(uv + 0.5);
+    float s = uv.x + 0.5 - baseUV.x;
+    float t = uv.y + 0.5 - baseUV.y;
+    baseUV = (baseUV - 0.5) * uShadowParams.AtlasTexelSize;
 
-    vec2 texelSize = 1.0 / vec2(textureSize(uShadowMap0, 0)); // All cascades share one resolution
-    float shadow = 0.0;
-    for (int i = 0; i < 4; i++)
-        shadow += SampleShadowMap(cascade, vec3(uv + poissonDisk[i] * texelSize, depth));
+    float sum = 0.0;
+    if (uShadowParams.FilterSize == 3)
+    {
+        float uw0 = 3.0 - 2.0 * s;
+        float uw1 = 1.0 + 2.0 * s;
+        float u0 = (2.0 - s) / uw0 - 1.0;
+        float u1 = s / uw1 + 1.0;
 
-    return shadow / 4.0;
+        float vw0 = 3.0 - 2.0 * t;
+        float vw1 = 1.0 + 2.0 * t;
+        float v0 = (2.0 - t) / vw0 - 1.0;
+        float v1 = t / vw1 + 1.0;
+
+        sum += uw0 * vw0 * SampleShadowTap(baseUV, u0, v0, depth);
+        sum += uw1 * vw0 * SampleShadowTap(baseUV, u1, v0, depth);
+        sum += uw0 * vw1 * SampleShadowTap(baseUV, u0, v1, depth);
+        sum += uw1 * vw1 * SampleShadowTap(baseUV, u1, v1, depth);
+        return sum * (1.0 / 16.0);
+    }
+    else if (uShadowParams.FilterSize == 5)
+    {
+        float uw0 = 4.0 - 3.0 * s;
+        float uw1 = 7.0;
+        float uw2 = 1.0 + 3.0 * s;
+        float u0 = (3.0 - 2.0 * s) / uw0 - 2.0;
+        float u1 = (3.0 + s) / uw1;
+        float u2 = s / uw2 + 2.0;
+
+        float vw0 = 4.0 - 3.0 * t;
+        float vw1 = 7.0;
+        float vw2 = 1.0 + 3.0 * t;
+        float v0 = (3.0 - 2.0 * t) / vw0 - 2.0;
+        float v1 = (3.0 + t) / vw1;
+        float v2 = t / vw2 + 2.0;
+
+        sum += uw0 * vw0 * SampleShadowTap(baseUV, u0, v0, depth);
+        sum += uw1 * vw0 * SampleShadowTap(baseUV, u1, v0, depth);
+        sum += uw2 * vw0 * SampleShadowTap(baseUV, u2, v0, depth);
+        sum += uw0 * vw1 * SampleShadowTap(baseUV, u0, v1, depth);
+        sum += uw1 * vw1 * SampleShadowTap(baseUV, u1, v1, depth);
+        sum += uw2 * vw1 * SampleShadowTap(baseUV, u2, v1, depth);
+        sum += uw0 * vw2 * SampleShadowTap(baseUV, u0, v2, depth);
+        sum += uw1 * vw2 * SampleShadowTap(baseUV, u1, v2, depth);
+        sum += uw2 * vw2 * SampleShadowTap(baseUV, u2, v2, depth);
+        return sum * (1.0 / 144.0);
+    }
+
+    float uw0 = 5.0 * s - 6.0;
+    float uw1 = 11.0 * s - 28.0;
+    float uw2 = -(11.0 * s + 17.0);
+    float uw3 = -(5.0 * s + 1.0);
+    float u0 = (4.0 * s - 5.0) / uw0 - 3.0;
+    float u1 = (4.0 * s - 16.0) / uw1 - 1.0;
+    float u2 = -(7.0 * s + 5.0) / uw2 + 1.0;
+    float u3 = -s / uw3 + 3.0;
+
+    float vw0 = 5.0 * t - 6.0;
+    float vw1 = 11.0 * t - 28.0;
+    float vw2 = -(11.0 * t + 17.0);
+    float vw3 = -(5.0 * t + 1.0);
+    float v0 = (4.0 * t - 5.0) / vw0 - 3.0;
+    float v1 = (4.0 * t - 16.0) / vw1 - 1.0;
+    float v2 = -(7.0 * t + 5.0) / vw2 + 1.0;
+    float v3 = -t / vw3 + 3.0;
+
+    sum += uw0 * vw0 * SampleShadowTap(baseUV, u0, v0, depth);
+    sum += uw1 * vw0 * SampleShadowTap(baseUV, u1, v0, depth);
+    sum += uw2 * vw0 * SampleShadowTap(baseUV, u2, v0, depth);
+    sum += uw3 * vw0 * SampleShadowTap(baseUV, u3, v0, depth);
+    sum += uw0 * vw1 * SampleShadowTap(baseUV, u0, v1, depth);
+    sum += uw1 * vw1 * SampleShadowTap(baseUV, u1, v1, depth);
+    sum += uw2 * vw1 * SampleShadowTap(baseUV, u2, v1, depth);
+    sum += uw3 * vw1 * SampleShadowTap(baseUV, u3, v1, depth);
+    sum += uw0 * vw2 * SampleShadowTap(baseUV, u0, v2, depth);
+    sum += uw1 * vw2 * SampleShadowTap(baseUV, u1, v2, depth);
+    sum += uw2 * vw2 * SampleShadowTap(baseUV, u2, v2, depth);
+    sum += uw3 * vw2 * SampleShadowTap(baseUV, u3, v2, depth);
+    sum += uw0 * vw3 * SampleShadowTap(baseUV, u0, v3, depth);
+    sum += uw1 * vw3 * SampleShadowTap(baseUV, u1, v3, depth);
+    sum += uw2 * vw3 * SampleShadowTap(baseUV, u2, v3, depth);
+    sum += uw3 * vw3 * SampleShadowTap(baseUV, u3, v3, depth);
+    return sum * (1.0 / 2704.0);
+}
+
+float SampleCascade(int cascade, vec3 N, float NdotL)
+{
+    vec4 scale = uShadowParams.CascadeScale[cascade];
+
+    // Normal offset: the receiver is pushed off its surface by a few texels of this cascade, more at grazing angles
+    float offset = uShadowParams.NormalBias * scale.w * 1.4142136 * (1.0 - NdotL);
+    vec3 coord0 = vInput.ShadowCoord + mat3(uShadowParams.LightSpaceMatrix) * (N * offset);
+    vec3 coord = coord0 * scale.xyz + uShadowParams.CascadeOffset[cascade].xyz;
+
+    // This cascade's region of the atlas, kept 5 texels inside its edges so the widest filter never reads a neighbour
+    float border = 5.0 * uShadowParams.AtlasTexelSize.y;
+    vec2 uv = clamp(coord.xy * 0.5 + 0.5, vec2(border), vec2(1.0 - border));
+    uv.x = (uv.x + float(cascade)) / float(uShadowParams.CascadeCount);
+    return SampleShadowPCF(uv, min(coord.z, 1.0));
+}
+
+int gCascadeIndex = -1;
+
+// Shadow term of the directional light ShadowPass rendered, L points toward the light
+float CalculateDirectionalShadow(vec3 L)
+{
+    if (uShadowParams.Enabled == 0)
+        return 1.0;
+
+    float depth = vInput.ViewDepth;
+    if (depth >= uShadowParams.Distance)
+        return 1.0;
+
+    int count = int(uShadowParams.CascadeCount);
+    int cascade = count - 1;
+    for (int i = 0; i < count - 1; i++)
+    {
+        if (depth < uShadowParams.CascadeEnds[i])
+        {
+            cascade = i;
+            break;
+        }
+    }
+
+    // Blend band at the end of every cascade but the last one (that one fades out instead)
+    float blend = 0.0;
+    if (cascade < count - 1)
+    {
+        float cascadeStart = cascade == 0 ? 0.0 : uShadowParams.CascadeEnds[cascade - 1];
+        float cascadeEnd = uShadowParams.CascadeEnds[cascade];
+        float bandStart = cascadeEnd - (cascadeEnd - cascadeStart) * uShadowParams.CascadeBlend;
+        blend = clamp((depth - bandStart) / max(cascadeEnd - bandStart, 0.0001), 0.0, 1.0);
+    }
+
+    vec3 N = normalize(vInput.Normal); // Geometric normal, a normal map would make the offset noisy
+    float NdotL = clamp(dot(N, L), 0.0, 1.0);
+
+    float shadow;
+    if (blend > 0.0 && uShadowParams.DitheredBlend == 1)
+    {
+        // One cascade per pixel, picked with interleaved gradient noise: a single lookup set, the filter hides the noise
+        float noise = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
+        if (noise < blend)
+            cascade++;
+        shadow = SampleCascade(cascade, N, NdotL);
+    }
+    else
+    {
+        shadow = SampleCascade(cascade, N, NdotL);
+        if (blend > 0.0)
+            shadow = mix(shadow, SampleCascade(cascade + 1, N, NdotL), blend);
+    }
+    gCascadeIndex = cascade;
+
+    float fade = clamp((depth - uShadowParams.FadeStart) / max(uShadowParams.Distance - uShadowParams.FadeStart, 0.0001), 0.0, 1.0);
+    return mix(shadow, 1.0, fade);
 }
 
 vec3 CalculateNormal()
@@ -227,7 +375,7 @@ vec3 CalculateFastGI(vec3 N, vec3 V)
     return (diffuseAmbient + specularAmbient);
 }
 
-vec3 VisuaLizeCascades(vec3 finalColor, int cascadeIndex)
+vec3 VisualizeCascades(vec3 finalColor, int cascadeIndex)
 {
     if (uShadowParams.ShowCascades == 1 && cascadeIndex != -1)
     {
@@ -269,25 +417,16 @@ void main()
 
     // Direct Lighting Accumulation
     vec3 directAccumulation = vec3(0.0);
-    int cascadeIndex = -1;
+    float shadow = -1.0; // Computed once, by the first directional light that actually lights this pixel
 
     for (uint i = 0; i < uMesh.LightCount; i++)
     {
         vec3 contribution = CalculateMobilePBR(uLights.Lights[i], gPBRParams.Normal, gPBRParams.View, vInput.WorldPos);
 
-        if (uLights.Lights[i].PositionType.w == 0.0) // Directional light
+        if (uLights.Lights[i].PositionType.w == 0.0 && any(greaterThan(contribution, vec3(0.0)))) // Lit by a directional light
         {
-            float shadow = 1.0;
-            for (int j = 0; j < uShadowParams.CascadeCount; j++)
-            {
-                if (vInput.ViewSpacePos.z > -uShadowParams.CascadeEnds[j])
-                {
-                    cascadeIndex = j;
-                    vec3 shadowCoords = vInput.LightSpaceVectors[j].xyz / vInput.LightSpaceVectors[j].w;
-                    shadow = SampleShadow(cascadeIndex, shadowCoords);
-                    break;
-                }
-            }
+            if (shadow < 0.0)
+                shadow = CalculateDirectionalShadow(normalize(-uLights.Lights[i].PositionType.xyz));
             contribution *= shadow;
         }
 
@@ -298,7 +437,7 @@ void main()
     if (uMaterial.UseEmissionMap == 1)
         emission *= texture(EmissionMap, vInput.TexCoord).rgb;
     vec3 HDRColor = ambient + directAccumulation + emission;
-    FinalColor = vec4(VisuaLizeCascades(HDRColor, cascadeIndex), 1.0);
+    FinalColor = vec4(VisualizeCascades(HDRColor, gCascadeIndex), 1.0);
 }
 
 //SURGE:[Shader: Vertex]
@@ -333,18 +472,28 @@ struct VertexOutput
     vec3 Tangent;
     vec3 BiTangent;
     vec3 WorldPos;
-    vec3 ViewSpacePos;
-    vec4 LightSpaceVectors[MAX_CASCADE_COUNT];
+    float ViewDepth;  // Positive view space depth, picks the shadow cascade
+    vec3 ShadowCoord; // Cascade 0 light space position, the other cascades are a scale + offset of it
 };
 layout(location = 0) out VertexOutput vOutput;
 
-layout(set = 2, binding = 3) uniform ShadowUBO
+layout(std140, set = 2, binding = 1) uniform ShadowUBO
 {
-    vec4 CascadeEnds;
-    mat4 LightSpaceMatrix[MAX_CASCADE_COUNT];
+    mat4 LightSpaceMatrix;                 // World -> cascade 0
+    vec4 CascadeScale[MAX_CASCADE_COUNT];  // xyz: cascade 0 -> cascade i, w: world size of one shadow texel
+    vec4 CascadeOffset[MAX_CASCADE_COUNT];
+    vec4 CascadeEnds;                      // Positive view depth
+    vec2 AtlasTexelSize;
+    float NormalBias;                      // In shadow texels
+    float CascadeBlend;
+    float FadeStart;
+    float Distance;
     uint CascadeCount;
+    int FilterSize;                        // 3, 5 or 7
+    int DitheredBlend;
     int ShowCascades;
-    float _pad0, pad1;
+    int Enabled;
+    float _pad0;
 } uShadowParams;
 
 void main()
@@ -358,10 +507,8 @@ void main()
     vOutput.BiTangent = mat3(model) * normalize(aBiTangent);
     vOutput.Normal = mat3(model) * normalize(aNormal);
 
-    vOutput.ViewSpacePos = vec3(uFrame.View * worldPos);
-
-    for(uint i = 0; i < MAX_CASCADE_COUNT; i++)
-        vOutput.LightSpaceVectors[i] = uShadowParams.LightSpaceMatrix[i] * worldPos;
+    vOutput.ViewDepth = -(uFrame.View * worldPos).z;
+    vOutput.ShadowCoord = (uShadowParams.LightSpaceMatrix * worldPos).xyz; // Orthographic, w == 1
 
     gl_Position = uFrame.ViewProjection * worldPos;
 }

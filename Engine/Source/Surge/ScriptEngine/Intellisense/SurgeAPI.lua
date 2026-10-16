@@ -448,6 +448,8 @@ ParticleCullingMode = {
 -- ==============================================================================
 -- MATH (VECTORS, QUATERNIONS & MATRICES)
 -- ==============================================================================
+-- Vectors are userdata: every operator and every method returning a vector allocates a new one (GC).
+-- In hot loops prefer plain numbers, v:Unpack() and v:Set(...) on a reused vector. No method mutates except Set.
 
 ---@class Vec2
 ---@field x number
@@ -458,16 +460,91 @@ ParticleCullingMode = {
 ---@operator div(number|Vec2): Vec2
 ---@operator unm: Vec2
 local Vec2 = {}
+---@param x number
+---@param y number
+function Vec2:Set(x, y) end
+---@return number x, number y
+function Vec2:Unpack() end
 ---@return Vec2
-function Vec2:Normalize() end
+function Vec2:Clone() end
 ---@return number
 function Vec2:Length() end
+---@return number
+function Vec2:LengthSquared() end
+--- Unit length copy, zero vector stays zero
+---@return Vec2
+function Vec2:Normalize() end
 ---@param other Vec2
 ---@return number
 function Vec2:Dot(other) end
+--- 2D cross product (z of the 3D cross)
+---@param other Vec2
+---@return number
+function Vec2:Cross(other) end
 ---@param other Vec2
 ---@return number
 function Vec2:Distance(other) end
+---@param other Vec2
+---@return number
+function Vec2:DistanceSquared(other) end
+--- Unsigned angle in radians [0, pi]
+---@param other Vec2
+---@return number
+function Vec2:Angle(other) end
+--- Signed angle in radians [-pi, pi], positive counter-clockwise
+---@param other Vec2
+---@return number
+function Vec2:SignedAngle(other) end
+---@param angleRad number
+---@return Vec2
+function Vec2:Rotate(angleRad) end
+--- Rotated 90 degrees counter-clockwise (-y, x)
+---@return Vec2
+function Vec2:Perpendicular() end
+---@param target Vec2
+---@param t number
+---@return Vec2
+function Vec2:Lerp(target, t) end
+---@param target Vec2
+---@param maxDistance number
+---@return Vec2
+function Vec2:MoveTowards(target, maxDistance) end
+---@param maxLength number
+---@return Vec2
+function Vec2:ClampLength(maxLength) end
+---@param onto Vec2
+---@return Vec2
+function Vec2:Project(onto) end
+---@param n Vec2
+---@return Vec2
+function Vec2:Reflect(n) end
+---@param n Vec2
+---@param eta number
+---@return Vec2
+function Vec2:Refract(n, eta) end
+---@param other Vec2
+---@return Vec2
+function Vec2:Min(other) end
+---@param other Vec2
+---@return Vec2
+function Vec2:Max(other) end
+---@param min Vec2
+---@param max Vec2
+---@return Vec2
+function Vec2:Clamp(min, max) end
+---@return Vec2
+function Vec2:Abs() end
+---@return Vec2
+function Vec2:Floor() end
+---@return Vec2
+function Vec2:Ceil() end
+---@return Vec2
+function Vec2:Round() end
+--- Per component |a - b| <= epsilon (default 1e-6)
+---@param other Vec2
+---@param epsilon number|nil
+---@return boolean
+function Vec2:Approximately(other, epsilon) end
 
 ---@class Vec3
 ---@field x number
@@ -479,10 +556,23 @@ function Vec2:Distance(other) end
 ---@operator div(number|Vec3): Vec3
 ---@operator unm: Vec3
 local Vec3 = {}
+---@param x number
+---@param y number
+---@param z number
+function Vec3:Set(x, y, z) end
+---@return number x, number y, number z
+function Vec3:Unpack() end
 ---@return Vec3
-function Vec3:Normalize() end
+function Vec3:Clone() end
+---@return Vec2
+function Vec3:XY() end
 ---@return number
 function Vec3:Length() end
+---@return number
+function Vec3:LengthSquared() end
+--- Unit length copy, zero vector stays zero
+---@return Vec3
+function Vec3:Normalize() end
 ---@param other Vec3
 ---@return number
 function Vec3:Dot(other) end
@@ -492,6 +582,35 @@ function Vec3:Cross(other) end
 ---@param other Vec3
 ---@return number
 function Vec3:Distance(other) end
+---@param other Vec3
+---@return number
+function Vec3:DistanceSquared(other) end
+--- Unsigned angle in radians [0, pi]
+---@param other Vec3
+---@return number
+function Vec3:Angle(other) end
+--- Angle in radians, negative when the rotation from self to other goes clockwise around axis
+---@param other Vec3
+---@param axis Vec3
+---@return number
+function Vec3:SignedAngle(other, axis) end
+---@param target Vec3
+---@param t number
+---@return Vec3
+function Vec3:Lerp(target, t) end
+---@param target Vec3
+---@param maxDistance number
+---@return Vec3
+function Vec3:MoveTowards(target, maxDistance) end
+---@param maxLength number
+---@return Vec3
+function Vec3:ClampLength(maxLength) end
+---@param onto Vec3
+---@return Vec3
+function Vec3:Project(onto) end
+---@param normal Vec3
+---@return Vec3
+function Vec3:ProjectOnPlane(normal) end
 ---@param n Vec3
 ---@return Vec3
 function Vec3:Reflect(n) end
@@ -499,7 +618,31 @@ function Vec3:Reflect(n) end
 ---@param eta number
 ---@return Vec3
 function Vec3:Refract(n, eta) end
+---@param other Vec3
+---@return Vec3
+function Vec3:Min(other) end
+---@param other Vec3
+---@return Vec3
+function Vec3:Max(other) end
+---@param min Vec3
+---@param max Vec3
+---@return Vec3
+function Vec3:Clamp(min, max) end
+---@return Vec3
+function Vec3:Abs() end
+---@return Vec3
+function Vec3:Floor() end
+---@return Vec3
+function Vec3:Ceil() end
+---@return Vec3
+function Vec3:Round() end
+--- Per component |a - b| <= epsilon (default 1e-6)
+---@param other Vec3
+---@param epsilon number|nil
+---@return boolean
+function Vec3:Approximately(other, epsilon) end
 
+--- Also used for colors (x, y, z, w = r, g, b, a)
 ---@class Vec4
 ---@field x number
 ---@field y number
@@ -507,20 +650,55 @@ function Vec3:Refract(n, eta) end
 ---@field w number
 ---@operator add(Vec4): Vec4
 ---@operator sub(Vec4): Vec4
----@operator mul(number): Vec4
+---@operator mul(number|Vec4): Vec4
 ---@operator div(number|Vec4): Vec4
 ---@operator unm: Vec4
 local Vec4 = {}
+---@param x number
+---@param y number
+---@param z number
+---@param w number
+function Vec4:Set(x, y, z, w) end
+---@return number x, number y, number z, number w
+function Vec4:Unpack() end
 ---@return Vec4
-function Vec4:Normalize() end
+function Vec4:Clone() end
+---@return Vec2
+function Vec4:XY() end
+---@return Vec3
+function Vec4:XYZ() end
 ---@return number
 function Vec4:Length() end
+---@return number
+function Vec4:LengthSquared() end
+---@return Vec4
+function Vec4:Normalize() end
 ---@param other Vec4
 ---@return number
 function Vec4:Dot(other) end
 ---@param other Vec4
 ---@return number
 function Vec4:Distance(other) end
+---@param other Vec4
+---@return number
+function Vec4:DistanceSquared(other) end
+---@param other Vec4
+---@return number
+function Vec4:Angle(other) end
+---@param target Vec4
+---@param t number
+---@return Vec4
+function Vec4:Lerp(target, t) end
+---@param target Vec4
+---@param maxDistance number
+---@return Vec4
+function Vec4:MoveTowards(target, maxDistance) end
+---@param maxLength number
+---@return Vec4
+function Vec4:ClampLength(maxLength) end
+---@param onto Vec4
+---@return Vec4
+function Vec4:Project(onto) end
 ---@param n Vec4
 ---@return Vec4
 function Vec4:Reflect(n) end
@@ -528,6 +706,28 @@ function Vec4:Reflect(n) end
 ---@param eta number
 ---@return Vec4
 function Vec4:Refract(n, eta) end
+---@param other Vec4
+---@return Vec4
+function Vec4:Min(other) end
+---@param other Vec4
+---@return Vec4
+function Vec4:Max(other) end
+---@param min Vec4
+---@param max Vec4
+---@return Vec4
+function Vec4:Clamp(min, max) end
+---@return Vec4
+function Vec4:Abs() end
+---@return Vec4
+function Vec4:Floor() end
+---@return Vec4
+function Vec4:Ceil() end
+---@return Vec4
+function Vec4:Round() end
+---@param other Vec4
+---@param epsilon number|nil
+---@return boolean
+function Vec4:Approximately(other, epsilon) end
 
 ---@class Quat
 ---@field x number
@@ -537,21 +737,81 @@ function Vec4:Refract(n, eta) end
 ---@operator mul(Quat): Quat
 ---@operator mul(Vec3): Vec3
 local Quat = {}
+---@param x number
+---@param y number
+---@param z number
+---@param w number
+function Quat:Set(x, y, z, w) end
+---@return number x, number y, number z, number w
+function Quat:Unpack() end
+---@return Quat
+function Quat:Clone() end
+--- Euler angles in radians
 ---@return Vec3
 function Quat:Euler() end
+---@return number angleRad, Vec3 axis
+function Quat:ToAngleAxis() end
+---@return Mat4
+function Quat:ToMat4() end
 ---@return Quat
 function Quat:Normalize() end
 ---@return Quat
 function Quat:Inverse() end
+---@return Quat
+function Quat:Conjugate() end
+---@param other Quat
+---@return number
+function Quat:Dot(other) end
+--- Angle in radians between the two rotations
+---@param other Quat
+---@return number
+function Quat:Angle(other) end
 ---@param b Quat
 ---@param t number
 ---@return Quat
 function Quat:Slerp(b, t) end
+--- Normalized linear interpolation (cheaper than Slerp, shortest path)
+---@param b Quat
+---@param t number
+---@return Quat
+function Quat:Lerp(b, t) end
+---@param target Quat
+---@param maxAngleRad number
+---@return Quat
+function Quat:RotateTowards(target, maxAngleRad) end
+--- Same as q * v
+---@param v Vec3
+---@return Vec3
+function Quat:Rotate(v) end
+--- Rotated -Z (the engine's forward)
+---@return Vec3
+function Quat:Forward() end
+---@return Vec3
+function Quat:Right() end
+---@return Vec3
+function Quat:Up() end
 
+--- Column major like GLSL: Get(column, row), indices 0-3, translation is column 3.
 ---@class Mat4
 ---@operator mul(Mat4): Mat4
 ---@operator mul(Vec4): Vec4
 local Mat4 = {}
+--- nil when out of range
+---@param column integer
+---@param row integer
+---@return number|nil
+function Mat4:Get(column, row) end
+--- Ignored when out of range
+---@param column integer
+---@param row integer
+---@param value number
+function Mat4:Set(column, row, value) end
+---@param column integer
+---@return Vec4|nil
+function Mat4:GetColumn(column) end
+---@param column integer
+---@param value Vec4
+function Mat4:SetColumn(column, value) end
 ---@param v Vec3
 ---@return Mat4
 function Mat4:Translate(v) end
@@ -564,15 +824,40 @@ function Mat4:Rotate(angleRad, axis) end
 function Mat4:Scale(v) end
 ---@return Mat4
 function Mat4:Inverse() end
+---@return Mat4
+function Mat4:Transpose() end
+---@return number
+function Mat4:Determinant() end
+---@return Mat4
+function Mat4:Clone() end
+--- Position (w = 1, divided by w for projections)
+---@param p Vec3
+---@return Vec3
+function Mat4:TransformPoint(p) end
+--- Direction (w = 0, translation ignored)
+---@param d Vec3
+---@return Vec3
+function Mat4:TransformDirection(d) end
+---@return Vec3 position, Quat rotation, Vec3 scale
+function Mat4:Decompose() end
 
 -- ==============================================================================
 -- MATH (FUNCTIONS)
 -- ==============================================================================
+-- Scalar functions are plain C functions on doubles, exactly as fast as Lua's own math library (which stays available).
+-- Floor/Ceil/Round/Trunc/Min/Max/Clamp return integers for integer input like math.floor/math.min.
+-- Calling through a local (local sin = Math.Sin) skips two table lookups per call.
 
 ---@class Math
 Math = {
-    Pi = 3.14159265359,
-    Epsilon = 0.000001,
+    Pi = 3.141592653589793,
+    Tau = 6.283185307179586,
+    Epsilon = 1.1920929e-07, -- float epsilon
+    Infinity = math.huge,
+    Deg2Rad = 0.017453292519943295,
+    Rad2Deg = 57.29577951308232,
+    MaxInteger = math.maxinteger,
+    MinInteger = math.mininteger,
     Vec2 = {},
     Vec3 = {},
     Vec4 = {},
@@ -581,21 +866,29 @@ Math = {
     Easing = {}
 }
 
----@param x number|nil
----@param y number|nil
+---@overload fun(): Vec2
+---@overload fun(scalar: number): Vec2
+---@param x number
+---@param y number
 ---@return Vec2
 function Math.Vec2.new(x, y) end
 
----@param x number|nil
----@param y number|nil
----@param z number|nil
+---@overload fun(): Vec3
+---@overload fun(scalar: number): Vec3
+---@overload fun(xy: Vec2, z: number): Vec3
+---@param x number
+---@param y number
+---@param z number
 ---@return Vec3
 function Math.Vec3.new(x, y, z) end
 
----@param x number|nil
----@param y number|nil
----@param z number|nil
----@param w number|nil
+---@overload fun(): Vec4
+---@overload fun(scalar: number): Vec4
+---@overload fun(xyz: Vec3, w: number): Vec4
+---@param x number
+---@param y number
+---@param z number
+---@param w number
 ---@return Vec4
 function Math.Vec4.new(x, y, z, w) end
 
@@ -609,19 +902,65 @@ function Math.Mat4.new() end
 ---@return Mat4
 function Math.Mat4.Identity() end
 
----@param dir Vec3
----@param up Vec3
----@return Quat
-function Math.Quat.LookRotation(dir, up) end
+--- Translation * Rotation * Scale
+---@param position Vec3
+---@param rotation Quat
+---@param scale Vec3
+---@return Mat4
+function Math.Mat4.TRS(position, rotation, scale) end
 
---- Constructs a quaternion. Called with no args for identity, (x,y,z,w) raw
---- components, or a single Vec3 of euler angles (radians) to build a
---- rotation quaternion from.
+---@param fovYRad number
+---@param aspect number
+---@param near number
+---@param far number
+---@return Mat4
+function Math.Mat4.Perspective(fovYRad, aspect, near, far) end
+
+---@return Mat4
+function Math.Mat4.Orthographic(left, right, bottom, top, near, far) end
+
+--- View matrix
+---@param eye Vec3
+---@param target Vec3
+---@param up Vec3
+---@return Mat4
+function Math.Mat4.LookAt(eye, target, up) end
+
+--- Constructs a quaternion. No args for identity, (x, y, z, w) components,
+--- or a single Vec3 of euler angles (radians).
 ---@overload fun(): Quat
 ---@overload fun(x: number, y: number, z: number, w: number): Quat
 ---@overload fun(euler: Vec3): Quat
 function Math.Quat.new() end
 
+---@return Quat
+function Math.Quat.Identity() end
+
+---@param eulerRad Vec3
+---@return Quat
+function Math.Quat.FromEuler(eulerRad) end
+
+---@param angleRad number
+---@param axis Vec3
+---@return Quat
+function Math.Quat.AngleAxis(angleRad, axis) end
+
+--- Shortest rotation turning from into to
+---@param from Vec3
+---@param to Vec3
+---@return Quat
+function Math.Quat.FromToRotation(from, to) end
+
+--- Rotation whose Forward() (-Z) points along dir. up defaults to Math.Up()
+---@param dir Vec3
+---@param up Vec3|nil
+---@return Quat
+function Math.Quat.LookRotation(dir, up) end
+
+-- Easing (t in [0, 1], all return 0 at 0 and 1 at 1)
+---@param t number
+---@return number
+function Math.Easing.Linear(t) end
 ---@param t number
 ---@return number
 function Math.Easing.QuadIn(t) end
@@ -633,106 +972,229 @@ function Math.Easing.QuadOut(t) end
 function Math.Easing.QuadInOut(t) end
 ---@param t number
 ---@return number
+function Math.Easing.CubicIn(t) end
+---@param t number
+---@return number
+function Math.Easing.CubicOut(t) end
+---@param t number
+---@return number
+function Math.Easing.CubicInOut(t) end
+---@param t number
+---@return number
+function Math.Easing.SineIn(t) end
+---@param t number
+---@return number
+function Math.Easing.SineOut(t) end
+---@param t number
+---@return number
+function Math.Easing.SineInOut(t) end
+---@param t number
+---@return number
+function Math.Easing.ExpoIn(t) end
+---@param t number
+---@return number
+function Math.Easing.ExpoOut(t) end
+--- Pulls back below 0 before going to 1
+---@param t number
+---@return number
+function Math.Easing.BackIn(t) end
+--- Overshoots 1 then settles
+---@param t number
+---@return number
+function Math.Easing.BackOut(t) end
+---@param t number
+---@return number
 function Math.Easing.ElasticOut(t) end
-
--- Core Math
----@param min number
----@param max number
+---@param t number
 ---@return number
-function Math.RandomRange(min, max) end
-
+function Math.Easing.BounceIn(t) end
+---@param t number
 ---@return number
-function Math.Random() end
+function Math.Easing.BounceOut(t) end
 
+-- Trigonometry (radians)
+---@param rad number
+---@return number
+function Math.Sin(rad) end
+---@param rad number
+---@return number
+function Math.Cos(rad) end
+---@param rad number
+---@return number
+function Math.Tan(rad) end
+---@param x number
+---@return number
+function Math.Asin(x) end
+---@param x number
+---@return number
+function Math.Acos(x) end
+--- Atan(y) or Atan(y, x) like math.atan
+---@param y number
+---@param x number|nil
+---@return number
+function Math.Atan(y, x) end
+---@param y number
+---@param x number
+---@return number
+function Math.Atan2(y, x) end
+---@param deg number
+---@return number
+function Math.ToRadians(deg) end
+---@param rad number
+---@return number
+function Math.ToDegrees(rad) end
+
+-- Exponents
+---@param val number
+---@return number
+function Math.Sqrt(val) end
+---@param base number
+---@param exp number
+---@return number
+function Math.Pow(base, exp) end
+---@param x number
+---@return number
+function Math.Exp(x) end
+--- Natural log, or log in the given base
+---@param x number
+---@param base number|nil
+---@return number
+function Math.Log(x, base) end
+
+-- Rounding
+---@param val number
+---@return number
+function Math.Abs(val) end
+--- -1, 0 or 1
+---@param val number
+---@return integer
+function Math.Sign(val) end
+---@param val number
+---@return integer|number
+function Math.Floor(val) end
+---@param val number
+---@return integer|number
+function Math.Ceil(val) end
+--- Halves round away from zero
+---@param val number
+---@return integer|number
+function Math.Round(val) end
+--- Towards zero
+---@param val number
+---@return integer|number
+function Math.Trunc(val) end
+--- val - Floor(val)
+---@param val number
+---@return number
+function Math.Fract(val) end
+
+-- Min / Max / Clamp
+---@param ... number
+---@return number
+function Math.Min(...) end
+---@param ... number
+---@return number
+function Math.Max(...) end
 ---@param val number
 ---@param min number
 ---@param max number
 ---@return number
 function Math.Clamp(val, min, max) end
+---@param val number
+---@return number
+function Math.Clamp01(val) end
 
+-- Interpolation
+--- Unclamped
 ---@param a number
 ---@param b number
 ---@param t number
 ---@return number
 function Math.Lerp(a, b, t) end
-
+--- Where value sits between a and b (unclamped, 0 when a == b)
+---@param a number
+---@param b number
+---@param value number
+---@return number
+function Math.InverseLerp(a, b, value) end
+--- Maps value from [inMin, inMax] to [outMin, outMax] (unclamped)
+---@return number
+function Math.Remap(value, inMin, inMax, outMin, outMax) end
 ---@param edge0 number
 ---@param edge1 number
 ---@param x number
 ---@return number
 function Math.SmoothStep(edge0, edge1, x) end
-
----@param a number
----@param b number
----@return number
-function Math.Min(a, b) end
-
----@param a number
----@param b number
----@return number
-function Math.Max(a, b) end
-
----@param rad number
----@return number
-function Math.Cos(rad) end
-
----@param rad number
----@return number
-function Math.Sin(rad) end
-
----@param rad number
----@return number
-function Math.Tan(rad) end
-
----@param rad number
----@return number
-function Math.Asin(rad) end
-
----@param rad number
----@return number
-function Math.Acos(rad) end
-
----@param y number
+--- 0 when x < edge, else 1
+---@param edge number
 ---@param x number
 ---@return number
-function Math.Atan2(y, x) end
-
----@param deg number
+function Math.Step(edge, x) end
+--- Wraps t into [0, length)
+---@param t number
+---@param length number
 ---@return number
-function Math.ToRadians(deg) end
-
----@param rad number
+function Math.Repeat(t, length) end
+--- Bounces t between 0 and length
+---@param t number
+---@param length number
 ---@return number
-function Math.ToDegrees(rad) end
-
----@param val number
+function Math.PingPong(t, length) end
+---@param current number
+---@param target number
+---@param maxDelta number
 ---@return number
-function Math.Abs(val) end
-
----@param val number
+function Math.MoveTowards(current, target, maxDelta) end
+--- Shortest signed difference between two angles (radians)
+---@param fromRad number
+---@param toRad number
 ---@return number
-function Math.Sign(val) end
-
----@param val number
+function Math.DeltaAngle(fromRad, toRad) end
+--- Lerp along the shortest way around the circle (radians)
+---@param aRad number
+---@param bRad number
+---@param t number
 ---@return number
-function Math.Floor(val) end
+function Math.LerpAngle(aRad, bRad, t) end
+--- Critically damped spring towards target. Keep the returned velocity and pass it back next frame:
+--- x, vel = Math.SmoothDamp(x, target, vel, 0.3, dt)
+---@param current number
+---@param target number
+---@param velocity number
+---@param smoothTime number
+---@param deltaTime number
+---@param maxSpeed number|nil
+---@return number value, number velocity
+function Math.SmoothDamp(current, target, velocity, smoothTime, deltaTime, maxSpeed) end
+--- |a - b| <= epsilon * max(1, |a|, |b|), epsilon defaults to 1e-6
+---@param a number
+---@param b number
+---@param epsilon number|nil
+---@return boolean
+function Math.Approximately(a, b, epsilon) end
 
----@param val number
+-- Random (own generator: Math.SetSeed makes runs reproducible without touching math.random)
+--- [0, 1)
 ---@return number
-function Math.Ceil(val) end
-
----@param val number
+function Math.Random() end
+--- [min, max)
+---@param min number
+---@param max number
 ---@return number
-function Math.Round(val) end
-
----@param base number
----@param exp number
----@return number
-function Math.Pow(base, exp) end
-
----@param val number
----@return number
-function Math.Sqrt(val) end
+function Math.RandomRange(min, max) end
+--- Integer in [min, max], both inclusive
+---@param min integer
+---@param max integer
+---@return integer
+function Math.RandomInt(min, max) end
+---@param seed integer
+function Math.SetSeed(seed) end
+---@return Vec2
+function Math.RandomInsideUnitCircle() end
+---@return Vec3
+function Math.RandomOnUnitSphere() end
+---@return Vec3
+function Math.RandomInsideUnitSphere() end
 
 -- Vector Math
 ---@param a Vec3
@@ -741,26 +1203,45 @@ function Math.Sqrt(val) end
 ---@return Vec3
 function Math.LerpVec3(a, b, t) end
 
--- Directional Vectors
+-- Directional Vectors (forward is -Z)
 ---@return Vec3
 function Math.Up() end
 ---@return Vec3
+function Math.Down() end
+---@return Vec3
 function Math.Right() end
 ---@return Vec3
+function Math.Left() end
+---@return Vec3
 function Math.Forward() end
+---@return Vec3
+function Math.Back() end
 
 -- Colors
+--- hsv.x = hue in degrees (0-360), y = saturation, z = value
 ---@param hsv Vec3
 ---@return Vec3
 function Math.HSVToRGB(hsv) end
 
+--- Returns hue in degrees (0-360), saturation, value
 ---@param rgb Vec3
 ---@return Vec3
 function Math.RGBToHSV(rgb) end
 
+--- "#RRGGBB" / "RRGGBB" (alpha digits ignored). White when invalid
 ---@param hex string
 ---@return Vec3
 function Math.HexToRGB(hex) end
+
+--- "#RRGGBB" or "#RRGGBBAA" (# optional). White when invalid
+---@param hex string
+---@return Vec4
+function Math.HexToRGBA(hex) end
+
+--- "#RRGGBBAA"
+---@param color Vec4
+---@return string
+function Math.ColorToHex(color) end
 
 -- ==============================================================================
 -- UI SYSTEM

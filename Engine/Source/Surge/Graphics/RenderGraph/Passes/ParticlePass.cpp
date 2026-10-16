@@ -291,7 +291,7 @@ namespace Surge
         // Nothing size dependent, the pipeline follows the main pass framebuffer
     }
 
-    void ParticlePass::OnImGuiRender(FrameBlackboard& blackBoard)
+    void ParticlePass::RenderStatsViaImGui(FrameBlackboard& blackBoard)
     {
         const ParticleStats& stats = blackBoard.ParticleStatistics;
         if(stats.Systems == 0 && mDrawnParticles == 0)

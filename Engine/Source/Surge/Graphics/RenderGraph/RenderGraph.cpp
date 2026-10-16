@@ -252,7 +252,6 @@ namespace Surge
 
     void RenderGraph::RenderImGuiCallbacks()
     {
-        // The render debug UI is Editor code (Render Graph / Renderer panels), registered like any other callback
         for(auto& callback : mImGuiRenderCallbacks)
             callback();
     }

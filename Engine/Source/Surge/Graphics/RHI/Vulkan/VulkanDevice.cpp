@@ -120,7 +120,7 @@ namespace Surge
         else
             enabledFeatures.wideLines = VK_TRUE;
 
-        // Block compressed textures, sampling ASTC/ETC2/BC images is invalid unless the matching feature is enabled
+        // Block compressed textures
         mSupportsASTC = deviceFeatures.textureCompressionASTC_LDR == VK_TRUE;
         mSupportsETC2 = deviceFeatures.textureCompressionETC2 == VK_TRUE;
         mSupportsBC = deviceFeatures.textureCompressionBC == VK_TRUE;
@@ -128,6 +128,10 @@ namespace Surge
         enabledFeatures.textureCompressionETC2 = deviceFeatures.textureCompressionETC2;
         enabledFeatures.textureCompressionBC = deviceFeatures.textureCompressionBC;
         Log<Severity::Info>("Texture compression support: ASTC: {}, ETC2: {}, BC: {}", mSupportsASTC, mSupportsETC2, mSupportsBC);
+
+        VkPhysicalDeviceProperties deviceProperties;
+        vkGetPhysicalDeviceProperties(mGPU, &deviceProperties);
+        mMaxImageDimension2D = deviceProperties.limits.maxImageDimension2D;
 
         deviceInfo.pEnabledFeatures = &enabledFeatures;
         deviceInfo.queueCreateInfoCount = 1;

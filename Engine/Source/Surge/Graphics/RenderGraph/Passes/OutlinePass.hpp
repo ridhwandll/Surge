@@ -21,7 +21,7 @@ namespace Surge
         void Execute(const FrameContext& ctx, const FrameBlackboard& blackBoard) override;
         bool HasWork(const FrameBlackboard& blackBoard) const override { return !blackBoard.OutlineList.empty(); } // Editor selection only
         void Resize(Uint width, Uint height, FrameBlackboard& blackBoard) override;
-        void OnImGuiRender(FrameBlackboard& blackBoard) override;
+        void RenderStatsViaImGui(FrameBlackboard& blackBoard) override;
         void Shutdown(FrameBlackboard& blackBoard) override;
 
     private:

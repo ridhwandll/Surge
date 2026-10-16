@@ -7,7 +7,7 @@ namespace Surge
 {
     /*
     * GeometryPass:
-    * Reads : BlackBoard.ShadowPassImage
+    * Reads : BlackBoard.ShadowAtlas
     * Writes: Blackboard.MainPassColorImage, BlackBoard.MainPassDepthImage
     *
     * Per frame (Prepare): frustum culls every submitted submesh, sorts the survivors by material/mesh and merges identical
@@ -26,7 +26,7 @@ namespace Surge
         void Prepare(const FrameContext& ctx, FrameBlackboard& blackBoard) override;
         void Execute(const FrameContext& ctx, const FrameBlackboard& blackBoard) override;
         void Resize(Uint width, Uint height, FrameBlackboard& blackBoard) override;
-        void OnImGuiRender(FrameBlackboard& blackBoard) override;
+        void RenderStatsViaImGui(FrameBlackboard& blackBoard) override;
         void Shutdown(FrameBlackboard& blackBoard) override;
 
     public:
@@ -59,12 +59,14 @@ namespace Surge
         void UploadLights(const FrameContext& ctx, const FrameBlackboard& blackBoard);
         void EnsureInstanceCapacity(Uint frameIndex, Uint instanceCount);
         void UpdateDepthStoreOp(const FrameBlackboard& blackBoard);
+        void UpdateShadowDescriptors(const FrameContext& ctx, const FrameBlackboard& blackBoard);
 
     private:
         GraphicsRHI* mRHI;
         DescriptorSetHandle mFrameDescriptorSet;
         DescriptorSetHandle mShadowMapDescriptorSet;
         SamplerHandle mShadowSampler;
+        Uint mShadowAtlasVersion[RHISettings::FRAMES_IN_FLIGHT] = {}; // FrameBlackboard::ShadowAtlasVersion each frame's set was written with
         BufferHandle mLightUBOs[RHISettings::FRAMES_IN_FLIGHT];
         PipelineHandle m3DPipeline;
 

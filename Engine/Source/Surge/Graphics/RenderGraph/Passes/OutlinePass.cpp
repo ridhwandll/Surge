@@ -83,7 +83,7 @@ namespace Surge
         Core::AddFrameEndCallback([this, width, height, framebuffer]() { mRHI->ResizeFramebuffer(framebuffer, width, height); });
     }
 
-    void OutlinePass::OnImGuiRender(FrameBlackboard&) {}
+    void OutlinePass::RenderStatsViaImGui(FrameBlackboard&) {}
 
     void OutlinePass::Shutdown(FrameBlackboard& blackBoard)
     {

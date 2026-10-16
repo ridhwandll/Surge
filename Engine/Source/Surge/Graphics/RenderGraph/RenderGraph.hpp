@@ -53,7 +53,7 @@ namespace Surge
         void OnWindowResize(Uint width, Uint height);
         void ForceResize(Uint width, Uint height);
 
-        // Disabled: only the swapchain group runs (Editor: the scene is drawn by the Renderer's views, this graph just presents ImGui)
+        // Disabled: only the swapchain group runs (Editor: the scene is drawn by the Renderer's views, main graph just presents ImGui)
         void SetSceneEnabled(bool enabled) { mSceneEnabled = enabled; }
         bool IsSceneEnabled() const { return mSceneEnabled; }
 

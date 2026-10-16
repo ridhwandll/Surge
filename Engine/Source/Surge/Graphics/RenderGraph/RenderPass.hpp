@@ -35,7 +35,7 @@ namespace Surge
         // Groups whose passes all report no work this frame are skipped entirely (no render pass begin/clear/store)
         virtual bool HasWork([[maybe_unused]] const FrameBlackboard& blackboard) const { return true; }
         virtual void Resize(Uint width, Uint height, FrameBlackboard& blackBoard) = 0;
-        virtual void OnImGuiRender(FrameBlackboard& blackBoard) = 0;
+        virtual void RenderStatsViaImGui(FrameBlackboard& blackBoard) = 0;
         virtual void Shutdown(FrameBlackboard& blackBoard) = 0;
 
         const String& GetName() const { return mName; }

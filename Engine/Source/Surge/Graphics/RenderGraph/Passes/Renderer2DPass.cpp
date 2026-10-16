@@ -678,7 +678,7 @@ namespace Surge
         mRHI->DestroyBuffer(mQuadIB);
     }
 
-    void Renderer2DPass::OnImGuiRender(FrameBlackboard&)
+    void Renderer2DPass::RenderStatsViaImGui(FrameBlackboard&)
     {
         // Vertex buffer fill: green, orange past 65%, red past 95%
         const auto usageBar = [](Uint used, Uint capacity, size_t vertexSize) {

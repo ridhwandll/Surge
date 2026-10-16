@@ -77,6 +77,7 @@ namespace Surge
         PipelineHandle CreatePipeline(const PipelineDesc& desc);
         PipelineHandle CreateComputePipeline(const ComputePipelineDesc& desc);
         bool SupportsCompute() const { return mDevice.SupportsCompute(); }
+        Uint GetMaxImageDimension2D() const { return mDevice.GetMaxImageDimension2D(); }
         void DestroyPipeline(PipelineHandle h);
 
         SamplerHandle CreateSampler(const SamplerDesc& desc);
@@ -100,6 +101,7 @@ namespace Surge
         void CmdTransitionImageLayout(const FrameContext& ctx, ImageHandle h, ImageUsage newLayout);
         void CmdTransitionImageLayout(VkCommandBuffer cmd, ImageHandle h, ImageUsage newLayout);
         void CmdSetDepthBias(const FrameContext& ctx, float constantFactor, float clamp, float slopeFactor);
+        void CmdSetViewport(const FrameContext& ctx, Uint x, Uint y, Uint width, Uint height);
         void CmdBeginSwapchainRenderpass(const FrameContext& ctx);
         void CmdEndSwapchainRenderpass(const FrameContext& ctx);
 

@@ -64,7 +64,8 @@ namespace Surge
         {
             Core::GetRenderer()->SetRenderScale(mobile ? 0.8f : 1.0f);
             settings.Lighting.MaxLights = mobile ? 8 : 64;
-            settings.ShadowSettings_.CascadeCount = mobile ? 2 : MAX_SHADOW_CASCADE_COUNT;
+            settings.ShadowSettings_.ApplyQualityPreset(mobile ? ShadowQuality::LOW : ShadowQuality::ULTRA);
+            settings.ShadowSettings_.Distance = mobile ? 50.0f : 150.0f;
             settings.AOSettings.ApplyQualityPreset(mobile ? AOQuality::LOW : AOQuality::ULTRA);
             settings.AOSettings.Enable = !mobile;
             settings.Bloom.ApplyQualityPreset(mobile ? BloomQuality::LOW : BloomQuality::ULTRA);
@@ -178,19 +179,27 @@ namespace Surge
         if(BeginSection("Shadows"))
         {
             ShadowSettings& shadows = settings.ShadowSettings_;
-            // 2..MAX_SHADOW_CASCADE_COUNT
-            constexpr const char* cascadeNames[] = { "2", "3" };
-            static_assert(IM_ARRAYSIZE(cascadeNames) == MAX_SHADOW_CASCADE_COUNT - 1);
-            Row("Cascades");
-            int cascadeIndex = std::clamp(shadows.CascadeCount, 2, MAX_SHADOW_CASCADE_COUNT) - 2;
-            if(ImGui::Combo("##Cascades", &cascadeIndex, cascadeNames, IM_ARRAYSIZE(cascadeNames)))
-                shadows.CascadeCount = cascadeIndex + 2;
-            ImGuiAux::ItemTooltip("Each cascade is a full shadow render pass");
+            Row("Enabled");
+            ImGui::Checkbox("##Enabled", &shadows.Enable);
 
+            ImGui::BeginDisabled(!shadows.Enable);
+            QualityRow<ShadowQuality>(shadows);
+            Row("Distance");
+            ImGui::DragFloat("##Distance", &shadows.Distance, 0.5f, 1.0f, 2000.0f, "%.1f", ImGuiSliderFlags_AlwaysClamp);
+            ImGuiAux::ItemTooltip("View distance covered by the cascades, shorter = sharper shadows");
+            Row("Fade Range");
+            ImGui::SliderFloat("##FadeRange", &shadows.FadeRange, 0.0f, 0.5f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+            ImGuiAux::ItemTooltip("Fraction of Distance over which shadows fade out");
             Row("Split Lambda");
             ImGui::SliderFloat("##SplitLambda", &shadows.CascadeSplitLambda, 0.0f, 1.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
             ImGuiAux::ItemTooltip("0 = uniform splits, 1 = logarithmic (more resolution near the camera)");
+            Row("Cascade Blend");
+            ImGui::SliderFloat("##CascadeBlend", &shadows.CascadeBlend, 0.0f, 0.5f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+            ImGuiAux::ItemTooltip("Fraction of each cascade blended into the next one");
 
+            Row("Normal Bias");
+            ImGui::DragFloat("##NormalBias", &shadows.NormalBias, 0.05f, 0.0f, 10.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+            ImGuiAux::ItemTooltip("Receiver offset along its normal, in shadow texels (fixes acne at grazing angles)");
             Row("Bias Constant");
             ImGui::DragFloat("##BiasConstant", &shadows.DepthBiasConstant, 0.05f, 0.0f, 100.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
             Row("Bias Slope");
@@ -199,7 +208,36 @@ namespace Surge
             {
                 Row("Bias Clamp");
                 ImGui::DragFloat("##BiasClamp", &shadows.DepthBiasClamp, 0.05f, 0.0f, 100.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+
+                constexpr const char* cascadeNames[] = { "1", "2", "3" };
+                static_assert(IM_ARRAYSIZE(cascadeNames) == MAX_SHADOW_CASCADE_COUNT);
+                Row("Cascades");
+                int cascadeIndex = std::clamp(shadows.CascadeCount, 1, MAX_SHADOW_CASCADE_COUNT) - 1;
+                if(ImGui::Combo("##Cascades", &cascadeIndex, cascadeNames, IM_ARRAYSIZE(cascadeNames)))
+                    shadows.CascadeCount = cascadeIndex + 1;
+                ImGuiAux::ItemTooltip("Every cascade draws its casters again");
+
+                constexpr std::array<Uint, 4> resolutions = { 512, 1024, 2048, 4096 };
+                constexpr const char* resolutionNames[] = { "512", "1024", "2048", "4096" };
+                static_assert(IM_ARRAYSIZE(resolutionNames) == resolutions.size());
+                static_assert(resolutions.front() == ShadowSettings::MIN_RESOLUTION && resolutions.back() == ShadowSettings::MAX_RESOLUTION);
+                Row("Resolution");
+                int resolutionIndex = static_cast<int>(std::lower_bound(resolutions.begin(), resolutions.end(), shadows.Resolution) - resolutions.begin());
+                resolutionIndex = std::min(resolutionIndex, static_cast<int>(resolutions.size()) - 1);
+                if(ImGui::Combo("##Resolution", &resolutionIndex, resolutionNames, IM_ARRAYSIZE(resolutionNames)))
+                    shadows.Resolution = resolutions[resolutionIndex];
+                ImGuiAux::ItemTooltip("Per cascade, D16: 2048 = 8 MB, 4096 = 32 MB each");
+
+                constexpr const char* filterNames[] = { "3x3 (4 taps)", "5x5 (9 taps)", "7x7 (16 taps)" };
+                Row("Filter");
+                int filterIndex = std::clamp((shadows.FilterSize - 3) / 2, 0, 2);
+                if(ImGui::Combo("##Filter", &filterIndex, filterNames, IM_ARRAYSIZE(filterNames)))
+                    shadows.FilterSize = 3 + filterIndex * 2;
+                Row("Dithered Blend");
+                ImGui::Checkbox("##DitheredBlend", &shadows.DitheredBlend);
+                ImGuiAux::ItemTooltip("Picks one cascade per pixel in the blend band instead of sampling both");
             }
+            ImGui::EndDisabled();
             EndSection();
         }
 
@@ -320,7 +358,7 @@ namespace Surge
                 if(!pass->IsEnabled())
                     continue;
                 ImGui::PushID(pass.get());
-                pass->OnImGuiRender(graph.GetBlackboard());
+                pass->RenderStatsViaImGui(graph.GetBlackboard());
                 ImGui::PopID();
             }
 

@@ -21,7 +21,7 @@ namespace Surge
         void Execute(const FrameContext& ctx, const FrameBlackboard& blackboard) override;
         void Resize(Uint width, Uint height, FrameBlackboard& blackBoard) override;
         void Shutdown(FrameBlackboard& blackBoard) override;
-        void OnImGuiRender(FrameBlackboard& blackBoard) override;
+        void RenderStatsViaImGui(FrameBlackboard& blackBoard) override;
     public:
         static constexpr Uint MAX_QUADS_TOTAL = 100000;    // 100k quads total, across all(10) batches
         static constexpr Uint MAX_QUADS_PER_BATCH = 10000; // 10k quads in 1 batch

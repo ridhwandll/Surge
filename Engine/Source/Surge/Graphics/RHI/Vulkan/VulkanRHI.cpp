@@ -808,6 +808,25 @@ namespace Surge
         vkCmdSetDepthBias(mFrame.GetFrame(ctx.FrameIndex).CmdBuffer, constantFactor, clamp, slopeFactor);
     }
 
+    void VulkanRHI::CmdSetViewport(const FrameContext& ctx, Uint x, Uint y, Uint width, Uint height)
+    {
+        VkCommandBuffer cmd = mFrame.GetFrame(ctx.FrameIndex).CmdBuffer;
+
+        VkViewport vp = {};
+        vp.x = static_cast<float>(x);
+        vp.y = static_cast<float>(y);
+        vp.width = static_cast<float>(width);
+        vp.height = static_cast<float>(height);
+        vp.minDepth = 0.0f;
+        vp.maxDepth = 1.0f;
+        vkCmdSetViewport(cmd, 0, 1, &vp);
+
+        VkRect2D scissor = {};
+        scissor.offset = { static_cast<int32_t>(x), static_cast<int32_t>(y) };
+        scissor.extent = { width, height };
+        vkCmdSetScissor(cmd, 0, 1, &scissor);
+    }
+
     void VulkanRHI::CmdBeginSwapchainRenderpass(const FrameContext& ctx)
     {
         // Set clear color values

@@ -276,7 +276,7 @@ namespace Surge
         Core::AddFrameEndCallback([this, sceneSize, settings]() { mFullSize = sceneSize; RecreateTargets(settings->ResolutionScale); });
     }
 
-    void AmbientOcclusionPass::OnImGuiRender(FrameBlackboard& blackBoard)
+    void AmbientOcclusionPass::RenderStatsViaImGui(FrameBlackboard& blackBoard)
     {
         const AmbientOcclusionSettings& settings = blackBoard.AOSettings;
         if(!settings.Enable)

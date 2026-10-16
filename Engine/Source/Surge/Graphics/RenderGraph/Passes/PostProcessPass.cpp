@@ -158,7 +158,7 @@ namespace Surge
         Core::AddFrameEndCallback([this, width, height, framebuffer]() { mRHI->ResizeFramebuffer(framebuffer, width, height); });
     }
 
-    void PostProcessPass::OnImGuiRender(FrameBlackboard&) {}
+    void PostProcessPass::RenderStatsViaImGui(FrameBlackboard&) {}
 
     void PostProcessPass::Shutdown(FrameBlackboard& blackBoard)
     {

@@ -7,9 +7,12 @@ namespace Surge
     /*
     * ShadowPass:
     * Reads : Nothing
-    * Writes: Blackboard.ShadowPassFramebuffer
+    * Writes: Blackboard.ShadowAtlas, Blackboard.ShadowUBOs
+    *
+    * Directional light cascaded shadow maps. Every cascade is a region of one D16 atlas (side by side), all of them are drawn
+    * in a single render pass with a viewport per cascade. Prepare fits the cascades (stable bounding spheres, texel snapping,
+    * near plane fitted to the casters), culls + instances the casters per cascade and uploads the ShadowUBO
     */
-
     class GraphicsRHI;
     class ShadowPass : public RenderPass
     {
@@ -18,21 +21,28 @@ namespace Surge
         virtual ~ShadowPass() = default;
 
         void Setup(GraphicsRHI* rhi, FrameBlackboard& blackBoard) override;
+        void Prepare(const FrameContext& ctx, FrameBlackboard& blackBoard) override;
         void Execute(const FrameContext& ctx, const FrameBlackboard& blackBoard) override;
+        bool HasWork(const FrameBlackboard& blackBoard) const override { return blackBoard.ShadowSettings_.Enable && blackBoard.HasDirectionalLight; }
         void Resize(Uint width, Uint height, FrameBlackboard& blackBoard) override;
-        void OnImGuiRender(FrameBlackboard& blackBoard) override;
+        void RenderStatsViaImGui(FrameBlackboard& blackBoard) override;
         void Shutdown(FrameBlackboard& blackBoard) override;
-    private:
-        void CalculateCascades(const FrameBlackboard& bb);
-        void BuildCascadeDraws(const FrameContext& ctx, const FrameBlackboard& bb, Uint cascadeCount);
-        void EnsureInstanceCapacity(Uint frameIndex, Uint instanceCount);
 
     private:
+        struct Caster
+        {
+            glm::mat4 Transform;
+            glm::vec3 Center;  // World space AABB
+            glm::vec3 Extents;
+            const Mesh* Mesh_;
+            Uint SubmeshIndex;
+        };
+
         struct ShadowDrawItem
         {
             const Mesh* Mesh_;
             Uint SubmeshIndex;
-            Uint TransformIndex;
+            Uint CasterIndex;
         };
 
         struct ShadowDraw
@@ -43,28 +53,36 @@ namespace Surge
             Uint InstanceCount;
         };
 
+        Uint ComputeResolution(Uint requested, Uint cascadeCount) const;
+        void UpdateAtlas(FrameBlackboard& blackBoard, Uint cascadeCount);
+        void GatherCasters(const FrameBlackboard& blackBoard);
+        void BuildCascades(const FrameBlackboard& blackBoard, Uint cascadeCount);
+        void UploadShadowData(const FrameContext& ctx, const FrameBlackboard& blackBoard, Uint cascadeCount);
+        void EnsureInstanceCapacity(Uint frameIndex, Uint instanceCount);
+
     private:
         GraphicsRHI* mRHI;
 
-        // ShadowPass manages its own framebuffer
-        FramebufferHandle mShadowPassFramebuffer[MAX_SHADOW_CASCADE_COUNT];
-
-        PipelineHandle mShadowPipelines[MAX_SHADOW_CASCADE_COUNT];
+        // One framebuffer + pipeline for the whole atlas, the atlas keeps its handle when recreated (RenderGraph barriers stay valid)
+        FramebufferHandle mFramebuffer;
+        PipelineHandle mPipeline;
+        Uint mResolution = 0;    // Per cascade, after clamping to the device's max image size
+        Uint mAtlasCascades = 0; // Cascades the atlas is laid out for
+        Uint mActiveCascades = 0; // Cascades rendered this frame, 0 = nothing to do
 
         std::array<glm::mat4, MAX_SHADOW_CASCADE_COUNT> mLightViewProjections = {};
-        std::array<float, MAX_SHADOW_CASCADE_COUNT> mCascadeSplits = {};
         std::array<float, MAX_SHADOW_CASCADE_COUNT> mCascadeEnds = {};
-        float mShadowMapResolution;
+        std::array<float, MAX_SHADOW_CASCADE_COUNT> mTexelWorldSizes = {};
+        float mShadowDistance = 0.0f;
 
-        // Instancing: every cascade's visible casters, sorted by mesh, back to back in one per-frame buffer
+        // (Rid) Instancing: every cascade's visible casters, sorted by mesh, back to back in one per-frame buffer
         BufferHandle mInstanceBuffers[RHISettings::FRAMES_IN_FLIGHT];
         Uint mInstanceCapacity[RHISettings::FRAMES_IN_FLIGHT] = {};
         DescriptorSetHandle mInstanceSet;
-        Vector<glm::mat4> mCasterTransforms;  // Scratch: world transforms of every caster submesh this frame
-        Vector<ShadowDrawItem> mDrawItems;     // Scratch: visible items of one cascade
-        Vector<glm::mat4> mInstanceData;       // Scratch: what goes into the instance buffer
+        Vector<Caster> mCasters;           // Every shadow casting submesh this frame
+        Vector<ShadowDrawItem> mDrawItems; // Visible items of one cascade
+        Vector<glm::mat4> mInstanceData;   // What goes into the instance buffer
         std::array<Vector<ShadowDraw>, MAX_SHADOW_CASCADE_COUNT> mCascadeDraws;
         std::array<Uint, MAX_SHADOW_CASCADE_COUNT> mCascadeVisible = {};
-        Uint mCasterCount = 0;
     };
 }

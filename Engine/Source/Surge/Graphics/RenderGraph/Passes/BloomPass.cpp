@@ -348,7 +348,7 @@ namespace Surge
         Core::AddFrameEndCallback([this, sceneSize, settings]() { mFullSize = sceneSize; Rebuild(ComputeConfig(*settings)); });
     }
 
-    void BloomPass::OnImGuiRender(FrameBlackboard& blackBoard)
+    void BloomPass::RenderStatsViaImGui(FrameBlackboard& blackBoard)
     {
         if(!blackBoard.Bloom.Enable)
             return;

@@ -25,30 +25,85 @@ namespace Surge
     };
     static_assert(sizeof(FrameUBO) % 16 == 0, "Size of 'FrameUBO' struct must be 16 bytes aligned!");
 
+    // Mirrored in Renderer3D.glsl (set 2, binding 1)
     struct ShadowUBO
     {
-        glm::vec4 CascadeEnds;
-        glm::mat4 LightSpaceMatrix[MAX_SHADOW_CASCADE_COUNT];
+        glm::mat4 LightSpaceMatrix;                         // World -> cascade 0 (xy: [-1, 1], z: [0, 1])
+        glm::vec4 CascadeScale[MAX_SHADOW_CASCADE_COUNT];   // xyz: cascade 0 -> cascade i, w: world size of one shadow texel
+        glm::vec4 CascadeOffset[MAX_SHADOW_CASCADE_COUNT];  // xyz: cascade 0 -> cascade i
+        glm::vec4 CascadeEnds;                              // Positive view depth where each cascade ends
+        glm::vec2 AtlasTexelSize;                           // 1 / atlas size
+        float NormalBias;                                   // In shadow texels
+        float CascadeBlend;
+        float FadeStart;                                    // View depth where shadows start fading out
+        float Distance;                                     // View depth where they are gone
         Uint CascadeCount;
+        int FilterSize;                                     // Tent PCF width in texels: 3, 5 or 7
+        int DitheredBlend;
         int ShowCascades;
-        float _pad0, pad1;
+        int Enabled;
+        float _pad0;
     };
-    static_assert(sizeof(ShadowUBO) % 16 == 0, "Size of 'FrameUBO' struct must be 16 bytes aligned!");
+    static_assert(sizeof(ShadowUBO) % 16 == 0, "Size of 'ShadowUBO' struct must be 16 bytes aligned!");
 
+    enum class ShadowQuality : uint8_t
+    {
+        LOW,    // 2 cascades of 2048, 3x3 tent PCF (4 taps), dithered cascade blend (Mobile default)
+        MEDIUM, // 3 cascades of 2048, 5x5 tent PCF (9 taps)
+        HIGH,   // 3 cascades of 2048, 7x7 tent PCF (16 taps)
+        ULTRA   // 3 cascades of 4096, 7x7 tent PCF (16 taps) (Desktop default)
+    };
+
+    // Directional light cascaded shadow maps, every cascade is a region of one D16 atlas rendered in a single render pass
     struct ShadowSettings
     {
-#ifdef SURGE_PLATFORM_ANDROID
-        int CascadeCount = 2; // Each cascade is a full shadow render pass, 2 is the mobile budget
-#else
-        int CascadeCount = MAX_SHADOW_CASCADE_COUNT;
-#endif
+        static constexpr Uint MIN_RESOLUTION = 512;
+        static constexpr Uint MAX_RESOLUTION = 4096;
+
+        bool Enable = true;
+        ShadowQuality Quality = ShadowQuality::LOW;
+
+        // Driven by Quality via ApplyQualityPreset(), can be tweaked individually afterwards
+        int CascadeCount = 2;        // Every cascade draws its casters again
+        Uint Resolution = 2048;      // Per cascade, the atlas is CascadeCount * Resolution wide
+        int FilterSize = 3;          // Tent PCF width in texels: 3 (4 taps), 5 (9 taps) or 7 (16 taps)
+        bool DitheredBlend = true;   // Cascade blend picks one cascade per pixel (noise) instead of sampling both
+
+        float Distance = 50.0f;      // View depth covered by the cascades, shadows fade out over the last FadeRange of it
+        float FadeRange = 0.1f;
         float CascadeSplitLambda = 0.9f;
+        float CascadeBlend = 0.1f;   // Fraction of each cascade blended into the next one, hides the resolution jump
         bool ShowCascades = false;
 
-        // Scaled down per cascade by ShadowPass
+        float NormalBias = 1.0f;     // Receiver offset along its normal in shadow texels, so it scales with each cascade
         float DepthBiasConstant = 1.25f;
         float DepthBiasClamp = 0.0f;
         float DepthBiasSlope = 1.75f;
+
+        void ApplyQualityPreset(ShadowQuality quality)
+        {
+            Quality = quality;
+            switch(quality)
+            {
+                case ShadowQuality::LOW:    CascadeCount = 2; Resolution = 2048; FilterSize = 3; DitheredBlend = true;  break;
+                case ShadowQuality::MEDIUM: CascadeCount = 3; Resolution = 2048; FilterSize = 5; DitheredBlend = false; break;
+                case ShadowQuality::HIGH:   CascadeCount = 3; Resolution = 2048; FilterSize = 7; DitheredBlend = false; break;
+                case ShadowQuality::ULTRA:  CascadeCount = 3; Resolution = 4096; FilterSize = 7; DitheredBlend = false; break;
+            }
+        }
+
+        static ShadowSettings PlatformDefault()
+        {
+            ShadowSettings settings;
+#ifdef SURGE_PLATFORM_ANDROID
+            settings.ApplyQualityPreset(ShadowQuality::LOW);
+            settings.Distance = 50.0f;
+#else
+            settings.ApplyQualityPreset(ShadowQuality::ULTRA);
+            settings.Distance = 150.0f;
+#endif
+            return settings;
+        }
     };
 
     struct Environnment
@@ -332,7 +387,8 @@ namespace Surge
         ImageHandle BloomImage;    // Half res, final (top) mip of the bloom upsample chain
         ImageHandle UIOverlayImage;
         ImageHandle FinalImage;
-        ImageHandle ShadowMap[MAX_SHADOW_CASCADE_COUNT];
+        ImageHandle ShadowAtlas;     // D16, cascades side by side (ShadowPass)
+        Uint ShadowAtlasVersion = 0; // Bumped when the atlas is recreated (resolution/cascade count change), samplers rewrite their descriptors
 
         FramebufferHandle OutlineFramebuffer;
         FramebufferHandle PostProcessFramebuffer;
@@ -347,7 +403,7 @@ namespace Surge
         PipelineHandle MaterialPipeline; // TODO: Remove this (It is currently GeometryPassPipeline(set by GeometryPass::Setup))
 
         //Shadow Settings
-        ShadowSettings ShadowSettings_;
+        ShadowSettings ShadowSettings_ = ShadowSettings::PlatformDefault();
 
         // GI & skybox
         Environnment Env;

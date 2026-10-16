@@ -72,7 +72,7 @@ namespace Surge
 
     void SkyPass::Resize(Uint, Uint, FrameBlackboard&) { /*Resize handled by GeometryPass*/ }
 
-    void SkyPass::OnImGuiRender(FrameBlackboard&) {}
+    void SkyPass::RenderStatsViaImGui(FrameBlackboard&) {}
 
     void SkyPass::Shutdown(FrameBlackboard&)
     {

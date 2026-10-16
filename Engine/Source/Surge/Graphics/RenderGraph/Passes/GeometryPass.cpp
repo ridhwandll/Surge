@@ -129,28 +129,24 @@ namespace Surge
         shadowSamplerDesc.DebugName = "ShadowComparisonSampler";
         mShadowSampler = mRHI->CreateSampler(shadowSamplerDesc);
 
-        // Create DescriptorSetSlot::TWO, written once: the shadow maps never change (fixed resolution, never recreated)
-        // Inactive cascades keep their shadow map bound, the shader never samples a cascade >= CascadeCount
+        // Create DescriptorSetSlot::TWO: shadow atlas + ShadowUBO, the atlas binding is rewritten when ShadowPass recreates the atlas
         mShadowMapDescriptorSet = mRHI->CreateDescriptorSet(m3DPipeline, DescriptorSetSlot::TWO, DescriptorUpdateFrequency::DYNAMIC, "ShadowMap DescriptorSet [Set2]");
         for(Uint i = 0; i < RHISettings::FRAMES_IN_FLIGHT; i++)
         {
-            std::array<DescriptorWrite, MAX_SHADOW_CASCADE_COUNT + 1> writes = {};
-            for(Uint cascade = 0; cascade < MAX_SHADOW_CASCADE_COUNT; cascade++)
-            {
-                writes[cascade].Binding = cascade;
-                writes[cascade].Type = DescriptorType::TEXTURE;
-                writes[cascade].Sampler = mShadowSampler;
-                writes[cascade].Texture = blackBoard.ShadowMap[cascade];
-            }
-            writes[MAX_SHADOW_CASCADE_COUNT].Binding = 3;
-            writes[MAX_SHADOW_CASCADE_COUNT].Type = DescriptorType::UNIFORM_BUFFER;
-            writes[MAX_SHADOW_CASCADE_COUNT].Buffer = blackBoard.ShadowUBOs[i];
-            writes[MAX_SHADOW_CASCADE_COUNT].BufferRange = sizeof(ShadowUBO);
+            std::array<DescriptorWrite, 2> writes = {};
+            writes[0].Binding = 0;
+            writes[0].Type = DescriptorType::TEXTURE;
+            writes[0].Sampler = mShadowSampler;
+            writes[0].Texture = blackBoard.ShadowAtlas;
+            writes[1].Binding = 1;
+            writes[1].Type = DescriptorType::UNIFORM_BUFFER;
+            writes[1].Buffer = blackBoard.ShadowUBOs[i];
+            writes[1].BufferRange = sizeof(ShadowUBO);
             mRHI->UpdateDescriptorSet(mShadowMapDescriptorSet, writes.data(), static_cast<Uint>(writes.size()), i);
+            mShadowAtlasVersion[i] = blackBoard.ShadowAtlasVersion;
         }
 
-        for(Uint i = 0; i < MAX_SHADOW_CASCADE_COUNT; i++)
-            mImageReads.push_back(blackBoard.ShadowMap[i]);
+        mImageReads.push_back(blackBoard.ShadowAtlas);
 
         mImageWrites.push_back(blackBoard.MainPassColorImage);
         mImageWrites.push_back(blackBoard.MainPassDepthImage);
@@ -207,6 +203,22 @@ namespace Surge
         desc.DepthAttachment.Store = depthNeeded ? StoreOp::STORE : StoreOp::DONT_CARE;
         mRHI->RecreateFramebuffer(blackBoard.MainPassFramebuffer, desc); // Render pass compatible, pipelines stay valid
         mDepthStored = depthNeeded;
+    }
+
+    void GeometryPass::UpdateShadowDescriptors(const FrameContext& ctx, const FrameBlackboard& blackBoard)
+    {
+        // ShadowPass::Prepare (runs before this pass) recreated the atlas: new image view. Only this frame's copy is rewritten,
+        // the other frame in flight may still be reading its own until its slot comes around
+        if(mShadowAtlasVersion[ctx.FrameIndex] == blackBoard.ShadowAtlasVersion)
+            return;
+
+        DescriptorWrite write = {};
+        write.Binding = 0;
+        write.Type = DescriptorType::TEXTURE;
+        write.Sampler = mShadowSampler;
+        write.Texture = blackBoard.ShadowAtlas;
+        mRHI->UpdateDescriptorSet(mShadowMapDescriptorSet, &write, 1, ctx.FrameIndex);
+        mShadowAtlasVersion[ctx.FrameIndex] = blackBoard.ShadowAtlasVersion;
     }
 
     void GeometryPass::UploadLights(const FrameContext& ctx, const FrameBlackboard& blackBoard)
@@ -336,6 +348,7 @@ namespace Surge
     {
         SURGE_PROFILE_FUNC("GeometryPass::Prepare");
         UpdateDepthStoreOp(blackBoard);
+        UpdateShadowDescriptors(ctx, blackBoard);
         UploadLights(ctx, blackBoard);
         BuildDrawList(ctx, blackBoard);
     }
@@ -385,7 +398,7 @@ namespace Surge
         Core::AddFrameEndCallback([this, size, framebuffer]() { mRHI->ResizeFramebuffer(framebuffer, size.x, size.y); });
     }
 
-    void GeometryPass::OnImGuiRender(FrameBlackboard& blackBoard)
+    void GeometryPass::RenderStatsViaImGui(FrameBlackboard& blackBoard)
     {
         ImGui::SeparatorText("Geometry");
         ImGui::Text("Submeshes: %u visible / %u submitted", mVisibleSubmeshes, mSubmittedSubmeshes);

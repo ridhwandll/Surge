@@ -61,6 +61,7 @@ namespace Surge
         PipelineHandle CreatePipeline(const PipelineDesc& desc) { return mBackendRHI.CreatePipeline(desc); }
         PipelineHandle CreateComputePipeline(const ComputePipelineDesc& desc) { return mBackendRHI.CreateComputePipeline(desc); }
         bool SupportsCompute() const { return mBackendRHI.SupportsCompute(); }
+        Uint GetMaxImageDimension2D() const { return mBackendRHI.GetMaxImageDimension2D(); }
         void DestroyPipeline(PipelineHandle h) { mBackendRHI.DestroyPipeline(h); }
 
         // Samplers
@@ -97,6 +98,7 @@ namespace Surge
         void CmdEndRenderPass(const FrameContext& ctx, FramebufferHandle h) { mBackendRHI.CmdEndRenderPass(ctx, h); }
         void CmdTransitionImageLayout(const FrameContext& ctx, ImageHandle h, ImageUsage newLayout) { mBackendRHI.CmdTransitionImageLayout(ctx, h, newLayout); }
         void CmdSetDepthBias(const FrameContext& ctx, float constantFactor, float clamp, float slopeFactor) { mBackendRHI.CmdSetDepthBias(ctx, constantFactor, clamp, slopeFactor); }
+        void CmdSetViewport(const FrameContext& ctx, Uint x, Uint y, Uint width, Uint height) { mBackendRHI.CmdSetViewport(ctx, x, y, width, height); } // Viewport + scissor, inside a render pass (Example: one region of a shadow atlas)
         void ShowMetricsWindow() { mBackendRHI.ShowPoolDebugImGuiWindow(); }
 
         ImTextureID AddImGuiImage(ImageHandle h) { return mBackendRHI.AddImGuiImage(h); }

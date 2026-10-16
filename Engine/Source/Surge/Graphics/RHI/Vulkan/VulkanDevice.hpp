@@ -35,6 +35,7 @@ namespace Surge
         bool SupportsASTC() const { return mSupportsASTC; }
         bool SupportsETC2() const { return mSupportsETC2; }
         bool SupportsBC() const { return mSupportsBC; }
+        Uint GetMaxImageDimension2D() const { return mMaxImageDimension2D; }
         
         operator VkDevice() const { return mDevice; }
     private:
@@ -49,6 +50,7 @@ namespace Surge
         bool mSupportsASTC = false;
         bool mSupportsETC2 = false;
         bool mSupportsBC = false;
+        Uint mMaxImageDimension2D = 4096; // Vulkan guaranteed minimum
 
         VmaAllocator mVmaAllocator = VK_NULL_HANDLE;
         GPUMemoryStats mGPUMemoryStats;

@@ -436,7 +436,7 @@ namespace Surge
         Core::AddFrameEndCallback([this, width, height, framebuffer]() { mRHI->ResizeFramebuffer(framebuffer, width, height, resizeFinalImage); });
     }
 
-    void UIOverlayPass::OnImGuiRender(FrameBlackboard&) {}
+    void UIOverlayPass::RenderStatsViaImGui(FrameBlackboard&) {}
 
     void UIOverlayPass::Shutdown(FrameBlackboard& blackBoard)
     {
