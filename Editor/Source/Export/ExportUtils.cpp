@@ -2,6 +2,9 @@
 #include "Export/ExportUtils.hpp"
 #include "Export/ExportSession.hpp"
 #include "Surge/Asset/AssetManager.hpp"
+#include "Surge/Graphics/Renderer/Renderer.hpp"
+#include "Surge/Graphics/Shader/ShaderBinaryFormat.hpp"
+#include "Shader/ShaderCompiler.hpp"
 #include "Surge/Core/Core.hpp"
 #include "Surge/Utility/Filesystem.hpp"
 #include "Surge/Utility/Platform.hpp"
@@ -165,18 +168,28 @@ namespace Surge::ExportUtils
             job.CookedFiles.push_back({ sidecar, fs::relative(sidecar, assetsDir, ec) });
         }
 
+        // Engine shaders ship cooked only (Shaders/Cooked/<Name>.rSHADER), compiled by ShaderCompiler::CookLoadedShaders
+        for(const Shader& shader : Core::GetRenderer()->GetShaderManager().GetAllShaders())
+        {
+            const String cookedPath = ShaderBinary::GetCookedPath(shader.GetPath());
+            if(!ShaderCompiler::IsUpToDate(shader.GetPath(), cookedPath))
+            {
+                outMissing.push_back(shader.GetPath());
+                continue;
+            }
+            std::error_code ec;
+            job.CookedFiles.push_back({ cookedPath, fs::relative(cookedPath, "Engine/Assets", ec) });
+        }
+
         std::sort(outMissing.begin(), outMissing.end());
         return outMissing.empty();
     }
 
     bool StageRuntimeContent(ExportSession& session, const Path& root, const ExportJobInfo& job)
     {
-        const Path shadersPath = root / "Engine/Assets/Shaders";
-        Filesystem::CreateOrEnsureDirectories(shadersPath);
-        Filesystem::CopyDirectory("Engine/Assets/Shaders", shadersPath);
-
         // Cooked project content: the registry (path lookups, asset types) and Internal/, nothing else of the project's Assets folder
         const Path assetsPath = root / "Engine/Assets";
+        Filesystem::CreateOrEnsureDirectories(assetsPath);
         if(!Filesystem::CopyFile(job.ProjectDir / "Assets/AssetRegistry.surge", assetsPath / "AssetRegistry.surge"))
         {
             session.Error("Could not copy the asset registry (Assets/AssetRegistry.surge)");

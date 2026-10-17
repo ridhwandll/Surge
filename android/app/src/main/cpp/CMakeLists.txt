@@ -91,13 +91,6 @@ SurgeAddVendorLibrary(volk
     PUBLIC_DEFINES  VK_USE_PLATFORM_ANDROID_KHR
 )
 
-# SPIRV-Cross
-file(GLOB SPIRV_CROSS_SOURCES CONFIGURE_DEPENDS "${VENDOR_ROOT}/SPIRV-Cross/Source/*.cpp")
-SurgeAddVendorLibrary(SPIRV-Cross
-    SOURCES         ${SPIRV_CROSS_SOURCES}
-    PUBLIC_INCLUDES "${VENDOR_ROOT}/SPIRV-Cross/Include/SPIRV-Cross"
-)
-
 # ImGui (+ ImGuizmo, Vulkan/Android backends)
 set(IMGUI_ROOT "${VENDOR_ROOT}/ImGui")
 SurgeAddVendorLibrary(ImGui
@@ -152,7 +145,7 @@ SurgeAddVendorLibrary(miniaudio
     SOURCES "${VENDOR_ROOT}/miniaudio/miniaudio.c"
 )
 
-set(SURGE_VENDOR_LIBS volk SPIRV-Cross ImGui basisu Jolt lua miniaudio)
+set(SURGE_VENDOR_LIBS volk ImGui basisu Jolt lua miniaudio)
 
 # Engine (OBJECT library: objects are linked straight into the .so
 # So, self-registering translation units are never dropped by the linker
@@ -176,7 +169,6 @@ target_include_directories(Surge SYSTEM PUBLIC
     "${VENDOR_ROOT}/glm"
     "${VULKAN_HEADERS_INCLUDE}"
     "${VENDOR_ROOT}/VulkanMemoryAllocator/Include"
-    "${VENDOR_ROOT}/SPIRV-Cross/Include"
     "${VENDOR_ROOT}/Optick/Include"
     "${VENDOR_ROOT}/entt/Include"
     "${VENDOR_ROOT}/json/Include"

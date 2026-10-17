@@ -4,6 +4,7 @@
 #include "Surge/Graphics/RHI/RHIFrameContext.hpp"
 #include "Surge/Graphics/RenderGraph/RenderPass.hpp"
 #include "Surge/Graphics/RenderGraph/FrameBlackboard.hpp"
+#include <functional>
 
 namespace Surge
 {

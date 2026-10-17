@@ -33,6 +33,8 @@ namespace Surge
         AudioEngine* GetAudioEngine();
         Client* GetClient();
         Clock& GetClock();
+
+        String GetEngineBuildConfiguration();
     }
 
 } // namespace Surge::Core

@@ -228,6 +228,7 @@ namespace Surge
         {
             BloomSettings settings;
 #ifdef SURGE_PLATFORM_ANDROID
+            settings.Enable = false;
             settings.ApplyQualityPreset(BloomQuality::LOW);
 #else
             settings.ApplyQualityPreset(BloomQuality::ULTRA);
@@ -254,7 +255,7 @@ namespace Surge
 
     struct PostProcessSettings
     {
-        bool EnableFXAA = true;
+        bool EnableFXAA = false;
         glm::vec3 OutlineColor = glm::vec3(1.0f, 0.6f, 0.1f);
         float OutlineThickness = 1.1f;
         float VignetteIntensity = 0.0f;

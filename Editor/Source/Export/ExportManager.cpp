@@ -6,6 +6,7 @@
 #include "Export/Platforms/Apple/IOSExporter.hpp"
 #include "Export/Platforms/Apple/MacOSExporter.hpp"
 #include "Export/Platforms/Windows/WindowsExporter.hpp"
+#include "Shader/ShaderCompiler.hpp"
 #include "Surge/Core/Core.hpp"
 #include "Surge/Utility/Platform.hpp"
 #include "StatusBar/EditorStatusBar.hpp"
@@ -195,6 +196,16 @@ namespace Surge
         mSession.Log(Severity::Info, "> Cooking assets");
         Editor* editor = static_cast<Editor*>(Core::GetClient());
         editor->GetAssetImporter().ScanAndCookAll();
+
+        Vector<String> failedShaders;
+        if(!ShaderCompiler::CookLoadedShaders(failedShaders))
+        {
+            for(const String& path : failedShaders)
+                mSession.Log(Severity::Error, "Shader failed to compile: " + path);
+            mSession.Error(std::format("{} engine shader(s) failed to compile, see the Console", failedShaders.size()));
+            mSession.Finish(false);
+            return;
+        }
 
         mTask = GetExporter(mRunPlatform)->CreateTask();
         if(!mTask)

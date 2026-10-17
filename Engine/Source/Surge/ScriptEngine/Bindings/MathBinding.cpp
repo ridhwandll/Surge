@@ -488,8 +488,9 @@ namespace Surge::ScriptBinding
         // Vector 2
         sol::usertype<glm::vec2> vec2 = math.new_usertype<glm::vec2>("Vec2",
             sol::constructors<glm::vec2(), glm::vec2(float), glm::vec2(float, float)>(),
-            "x", &glm::vec2::x,
-            "y", &glm::vec2::y,
+            "x", sol::property([](glm::vec2& v) -> float { return v.x; }, [](glm::vec2& v, float val) { v.x = val; }),
+            "y", sol::property([](glm::vec2& v) -> float { return v.y; }, [](glm::vec2& v, float val) { v.y = val; }),
+
             sol::meta_function::to_string, [](const glm::vec2& v) { return std::format("Vec2({:.3f}, {:.3f})", v.x, v.y); },
 
             "Set",           [](glm::vec2& v, float x, float y) { v = glm::vec2(x, y); },
@@ -508,9 +509,9 @@ namespace Surge::ScriptBinding
         // Vector 3
         sol::usertype<glm::vec3> vec3 = math.new_usertype<glm::vec3>("Vec3",
             sol::constructors<glm::vec3(), glm::vec3(float), glm::vec3(float, float, float), glm::vec3(const glm::vec2&, float)>(),
-            "x", &glm::vec3::x,
-            "y", &glm::vec3::y,
-            "z", &glm::vec3::z,
+            "x", sol::property([](glm::vec3& v) -> float { return v.x; }, [](glm::vec3& v, float val) { v.x = val; }),
+            "y", sol::property([](glm::vec3& v) -> float { return v.y; }, [](glm::vec3& v, float val) { v.y = val; }),
+            "z", sol::property([](glm::vec3& v) -> float { return v.z; }, [](glm::vec3& v, float val) { v.z = val; }),
             sol::meta_function::to_string, [](const glm::vec3& v) { return std::format("Vec3({:.3f}, {:.3f}, {:.3f})", v.x, v.y, v.z); },
 
             "Set",            [](glm::vec3& v, float x, float y, float z) { v = glm::vec3(x, y, z); },
@@ -533,10 +534,10 @@ namespace Surge::ScriptBinding
         // Vector 4 (also colors: x,y,z,w = r,g,b,a)
         sol::usertype<glm::vec4> vec4 = math.new_usertype<glm::vec4>("Vec4",
             sol::constructors<glm::vec4(), glm::vec4(float), glm::vec4(float, float, float, float), glm::vec4(const glm::vec3&, float)>(),
-            "x", &glm::vec4::x,
-            "y", &glm::vec4::y,
-            "z", &glm::vec4::z,
-            "w", &glm::vec4::w,
+            "x", sol::property([](glm::vec4& v) -> float { return v.x; }, [](glm::vec4& v, float val) { v.x = val; }),
+            "y", sol::property([](glm::vec4& v) -> float { return v.y; }, [](glm::vec4& v, float val) { v.y = val; }),
+            "z", sol::property([](glm::vec4& v) -> float { return v.z; }, [](glm::vec4& v, float val) { v.z = val; }),
+            "w", sol::property([](glm::vec4& v) -> float { return v.w; }, [](glm::vec4& v, float val) { v.w = val; }),
             sol::meta_function::to_string, [](const glm::vec4& v) { return std::format("Vec4({:.3f}, {:.3f}, {:.3f}, {:.3f})", v.x, v.y, v.z, v.w); },
 
             "Set",    [](glm::vec4& v, float x, float y, float z, float w) { v = glm::vec4(x, y, z, w); },
@@ -549,15 +550,14 @@ namespace Surge::ScriptBinding
         // Quaternions (Rotations)
         math.new_usertype<glm::quat>("Quat",
             sol::no_constructor,
-            // glm's own 4 float constructor is (w, x, y, z): Lua gets (x, y, z, w) like the fields
             "new", sol::overload(
                 []() { return glm::quat(1.0f, 0.0f, 0.0f, 0.0f); },
                 [](float x, float y, float z, float w) { return glm::quat(w, x, y, z); },
                 [](const glm::vec3& eulerRad) { return glm::quat(eulerRad); }),
-            "x", &glm::quat::x,
-            "y", &glm::quat::y,
-            "z", &glm::quat::z,
-            "w", &glm::quat::w,
+            "x", sol::property([](glm::quat& q) -> float { return q.x; }, [](glm::quat& q, float val) { q.x = val; }),
+            "y", sol::property([](glm::quat& q) -> float { return q.y; }, [](glm::quat& q, float val) { q.y = val; }),
+            "z", sol::property([](glm::quat& q) -> float { return q.z; }, [](glm::quat& q, float val) { q.z = val; }),
+            "w", sol::property([](glm::quat& q) -> float { return q.w; }, [](glm::quat& q, float val) { q.w = val; }),
 
             // Operators
             sol::meta_function::multiplication, sol::overload(

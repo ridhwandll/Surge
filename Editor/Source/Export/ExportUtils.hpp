@@ -24,10 +24,10 @@ namespace Surge
         bool ValidateOutputFolder(const String& rawPath, bool clean, String& reason);
         void PrepareOutputFolder(ExportSession& session, const Path& out, bool clean);
 
-        // Main thread, after cooking: the cooked file of every registered asset. False (with the missing assets in outMissing) when one was not cooked
+        // Main thread, after cooking: the cooked file of every registered asset and engine shader. False (with the missing assets in outMissing) when one was not cooked
         bool CollectCookedContent(ExportJobInfo& job, Vector<String>& outMissing);
 
-        // Engine shaders + the registry + the collected cooked files (Assets/Internal) + a .surgeproj pointing at the chosen start scene, rooted at root.
+        // The registry + the collected cooked files (Assets/Internal, cooked engine shaders) + a .surgeproj pointing at the chosen start scene, rooted at root.
         // No source asset is shipped
         bool StageRuntimeContent(ExportSession& session, const Path& root, const ExportJobInfo& job);
 

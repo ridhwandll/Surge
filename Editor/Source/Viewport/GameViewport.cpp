@@ -181,6 +181,9 @@ namespace Surge
             ImGui::SetTooltip("Simulated device safe area for Safe Area widgets (notch, status and navigation bars)");
         ImGui::PopStyleColor();
 
+        ImGui::SameLine();
+        ImGui::Text("%s", Core::GetEngineBuildConfiguration().c_str());
+
         char resolution[48];
         std::snprintf(resolution, sizeof(resolution), "%d x %d", static_cast<int>(imageSize.x), static_cast<int>(imageSize.y));
         const float textWidth = ImGui::CalcTextSize(resolution).x;

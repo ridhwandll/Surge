@@ -15,8 +15,6 @@ set(VENDOR_INCLUDES
     Vendor/Vulkan-Headers/Include
     Vendor/VulkanMemoryAllocator/Include
     Vendor/volk
-    Vendor/shaderc/Include
-    Vendor/SPIRV-Cross/Include
     Vendor/ImGui
     Vendor/Optick/Include
     Vendor/entt/Include
@@ -29,14 +27,12 @@ set(VENDOR_INCLUDES
 
 set(LIB_LINKS
     volk
-    SPIRV-Cross
     ImGui
     Optick
     basisu
     Jolt
     lua
     miniaudio
-    ${CMAKE_SOURCE_DIR}/Engine/Vendor/shaderc/Lib/shaderc_shared.lib
 )
 
 add_library(Surge STATIC ${SOURCE_FILES})

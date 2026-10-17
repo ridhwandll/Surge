@@ -44,8 +44,6 @@ namespace Surge
                     session.Error("Failed to copy Player.exe to " + out.string());
                     return false;
                 }
-                if(fs::exists(playerDir / "shaderc_shared.dll"))
-                    Filesystem::CopyFile(playerDir / "shaderc_shared.dll", out / "shaderc_shared.dll"); // TODO: Remove
                 if(session.IsCancelled())
                     return false;
 

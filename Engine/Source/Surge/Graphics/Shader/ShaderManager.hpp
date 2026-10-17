@@ -5,6 +5,9 @@
 
 namespace Surge
 {
+    // Compiles sourcePath into cookedPath when the cooked file is missing or outdated (Editor only, see ShaderCompiler)
+    using ShaderCompileHook = void (*)(const String& sourcePath, const String& cookedPath, ShaderType types);
+
     class ShaderManager
     {
     public:
@@ -22,10 +25,15 @@ namespace Surge
         const Shader& Get(const String& shaderName) const; //Name with extension
         const Vector<Shader>& GetAllShaders() const { return mShaders; }
 
+        // Set before Core::Initialize, the Renderer loads the engine shaders while initializing
+        static void SetCompileHook(ShaderCompileHook hook) { sCompileHook = hook; }
+        static ShaderCompileHook GetCompileHook() { return sCompileHook; }
+
     private:
         String mBaseShaderPath;
         Vector<Shader> mShaders;
         Shader mDummyShader {};
+        static inline ShaderCompileHook sCompileHook = nullptr;
     };
 
 } // namespace Surge

@@ -85,6 +85,11 @@ namespace Surge::VulkanFramePacing
         SwappyVk_setWindow(device, swapchain, static_cast<ANativeWindow*>(nativeWindow));
         SetTargetFrameRate(device, swapchain, sTargetFPS);
         Log<Severity::Info>("[FramePacing] Swappy active, display refresh period: {:.2f} ms, target: {} fps", refreshPeriod / 1.0e6, sTargetFPS);
+
+        //TODO (Rid) Look at this again
+        SwappyVk_setMaxAutoSwapIntervalNS(16'666'667);
+        SwappyVk_setAutoSwapInterval(false);
+        SwappyVk_setAutoPipelineMode(false);
         return true;
     }
 

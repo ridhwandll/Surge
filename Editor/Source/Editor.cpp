@@ -42,6 +42,7 @@
 #include "Asset/Cookers/SceneCooker.hpp"
 #include "Asset/Cookers/ParticleEffectCooker.hpp"
 #include "Asset/Cookers/UILayoutCooker.hpp"
+#include "Shader/ShaderCompiler.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -1452,6 +1453,7 @@ int main()
     clientOptions.WindowDescription = {1280, 720, "Surge Editor", Surge::WindowFlags::NO_TITLEBAR};
 
     Surge::EditorConsole::Install(); // Before Core::Initialize so the Console also shows the engine startup logs
+    Surge::ShaderManager::SetCompileHook(&Surge::ShaderCompiler::CompileIfOutdated); // The Renderer loads the engine shaders during Core::Initialize
 
     Surge::Editor* app = Surge::MakeClient<Surge::Editor>();
     app->SetOptions(clientOptions);

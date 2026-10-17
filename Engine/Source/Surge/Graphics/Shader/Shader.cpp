@@ -1,209 +1,43 @@
 // Copyright (c) - SurgeTechnologies - All rights reserved
 #include "Surge/Graphics/Shader/Shader.hpp"
-#include "Surge/Core/Core.hpp"
+#include "Surge/Graphics/Shader/ShaderBinaryFormat.hpp"
 #include "Surge/Graphics/RHI/Vulkan/VulkanUtils.hpp"
-#include "Surge/Graphics/RHI/Vulkan/VulkanRHI.hpp"
 #include "Surge/Utility/Filesystem.hpp"
-
-#ifdef SURGE_PLATFORM_WINDOWS
-#include <shaderc/shaderc.hpp>
-#elif defined(SURGE_PLATFORM_ANDROID)
-#include "Surge/Platform/Android/AndroidApp.hpp"
-#include <game-activity/native_app_glue/android_native_app_glue.h>
-#include <android/asset_manager.h>
-#endif
 
 namespace Surge
 {
-    void Shader::ParseShader()
-    {
-#if defined(SURGE_PLATFORM_WINDOWS)
-        String source;
-        if (!Filesystem::ReadTextFile(mPath, source))
-            Log<Severity::Error>("Failed to read shader file at path: {0}", mPath);
-
-        const char* typeToken = "//SURGE:[Shader:";
-        size_t typeTokenLength = strlen(typeToken);
-        size_t pos = source.find(typeToken, 0);
-        while (pos != std::string::npos)
-        {
-            size_t eol = source.find_first_of("\r\n", pos);
-            size_t begin = pos + typeTokenLength + 1;
-            String type = source.substr(begin, eol - begin);
-            type.pop_back(); // Remove the closing ']' character
-            size_t nextLinePos = source.find_first_not_of("\r\n", eol);
-            //Log<Severity::Info>("Parsing shader type: {0}", type);
-            ShaderType shaderType = VulkanUtils::ShaderTypeFromString(type);
-            SG_ASSERT((int)shaderType, "Invalid shader type!");
-            pos = source.find(typeToken, nextLinePos);
-            mShaderSources[shaderType] = (pos == std::string::npos) ? source.substr(nextLinePos) : source.substr(nextLinePos, pos - nextLinePos);
-            //mHashCodes[shaderType] = Hash().Generate<String>(mShaderSources.at(shaderType));
-            mTypesBit |= shaderType;
-        }
-#endif
-    }
-
-#ifdef SURGE_PLATFORM_WINDOWS
-    // Resolves #include "File.glsli" relative to the directory of the shader being compiled
-    // Shaders using it need: #extension GL_GOOGLE_include_directive : require
-    // Includes are resolved at compile time on Windows, Android only ever sees the flattened SPIR-V
-    class ShaderIncluder : public shaderc::CompileOptions::IncluderInterface
-    {
-    public:
-        explicit ShaderIncluder(String baseDirectory)
-            : mBaseDirectory(std::move(baseDirectory)) {}
-
-        shaderc_include_result* GetInclude(const char* requestedSource, shaderc_include_type /*type*/, const char* /*requestingSource*/, size_t /*includeDepth*/) override
-        {
-            IncludeData* data = new IncludeData();
-            data->SourceName = std::format("{0}/{1}", mBaseDirectory, requestedSource);
-            if (!Filesystem::ReadTextFile(data->SourceName, data->Content))
-            {
-                // shaderc convention: empty source_name signals failure, content holds the error message
-                data->Content = std::format("Cannot open include file '{0}'", data->SourceName);
-                data->SourceName.clear();
-            }
-
-            data->Result.source_name = data->SourceName.c_str();
-            data->Result.source_name_length = data->SourceName.size();
-            data->Result.content = data->Content.c_str();
-            data->Result.content_length = data->Content.size();
-            data->Result.user_data = data;
-            return &data->Result;
-        }
-
-        void ReleaseInclude(shaderc_include_result* data) override
-        {
-            delete static_cast<IncludeData*>(data->user_data);
-        }
-
-    private:
-        struct IncludeData
-        {
-            shaderc_include_result Result = {};
-            String SourceName;
-            String Content;
-        };
-        String mBaseDirectory;
-    };
-
-    static shaderc_shader_kind ShadercShaderKindFromSurgeShaderType(const ShaderType& type)
-    {
-        switch (type)
-        {
-        case ShaderType::VERTEX: return shaderc_glsl_vertex_shader;
-        case ShaderType::FRAGMENT: return shaderc_glsl_fragment_shader;
-        case ShaderType::COMPUTE: return shaderc_glsl_compute_shader;
-        case ShaderType::NONE: SG_ASSERT_INTERNAL("ShaderType::None is invalid in this case!");
-        }
-
-        return static_cast<shaderc_shader_kind>(-1);
-    }
-#endif
-
-
-    void Shader::Compile()
-    {
-        // We compile only on windows, on android we load the precompiled SPIRV from the assets folder
-#ifdef SURGE_PLATFORM_WINDOWS
-        shaderc::Compiler compiler;
-        shaderc::CompileOptions options;
-        options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_1);
-        options.SetIncluder(std::make_unique<ShaderIncluder>(Filesystem::GetParentPath(mPath).string()));
-        // NOTE(Rid - AC3R) If we enable optimization, it removes the name :kekCry:
-        //options.SetOptimizationLevel(shaderc_optimization_level_performance);
-        //options.SetGenerateDebugInfo();
-
-        for (auto&& [stage, source] : mShaderSources)
-        {
-            SPIRVHandle spirvHandle;
-            spirvHandle.Type = stage;
-            
-            shaderc::CompilationResult result = compiler.CompileGlslToSpv(source, ShadercShaderKindFromSurgeShaderType(stage), Filesystem::GetFilenameWithoutExt(mPath).c_str(), options);
-            if (result.GetCompilationStatus() != shaderc_compilation_status_success)
-            {
-                Log<Severity::Error>("{}:{} Shader compilation failure!", VulkanUtils::ShaderTypeToString(stage), mPath);
-                Log<Severity::Error>("{} Error(s): \n{}", result.GetNumErrors(), result.GetErrorMessage());
-                SG_ASSERT_INTERNAL("Shader Compilation failure!");
-            }
-            else
-                spirvHandle.SPIRV = Vector<Uint>(result.cbegin(), result.cend());
-
-            String path = GetShaderCachePath(stage);
-            FILE* f = nullptr;
-            f = fopen(path.c_str(), "wb");
-            if (f)
-            {
-                fwrite(spirvHandle.SPIRV.data(), sizeof(Uint), spirvHandle.SPIRV.size(), f);
-                fclose(f);
-                //Log<Severity::Info>("Cached Shader at: {0}", path);
-            }
-
-            SG_ASSERT(!spirvHandle.SPIRV.empty(), "Invalid SPIRV!");
-            mShaderSPIRVs.push_back(spirvHandle);
-        }
-
-#elif defined(SURGE_PLATFORM_ANDROID)
-        Uint value = static_cast<Uint>(mTypesBit);
-        while (value > 0)
-        {
-            Uint lsb = value & -value;
-
-            SPIRVHandle spirvHandle;
-            spirvHandle.Type = static_cast<ShaderType>(lsb);
-
-            android_app* app = Android::GAndroidApp;
-            AAssetManager* assetManager = app->activity->assetManager;
-
-            String fullPath = GetShaderCachePath(spirvHandle.Type);
-            AAsset* asset = AAssetManager_open(assetManager, fullPath.c_str(), AASSET_MODE_BUFFER);
-            SG_ASSERT(asset, "Cannot open cached shader!");
-            // Read the buffer
-            size_t size = AAsset_getLength(asset);
-            if (size % 4 != 0)
-            {
-                Log<Severity::Error>("Shader %s size is not a multiple of 4!", mPath);
-                AAsset_close(asset);
-            }
-
-            Vector<Uint> spirvCode(size / sizeof(Uint));
-            AAsset_read(asset, spirvCode.data(), size);
-            AAsset_close(asset);
-            spirvHandle.SPIRV = spirvCode;
-
-            SG_ASSERT(!spirvHandle.SPIRV.empty(), "Invalid SPIRV!");
-            mShaderSPIRVs.push_back(spirvHandle);
-
-            value ^= lsb;
-        }
-#endif
-        ShaderReflector reflector;
-        mReflectionData = reflector.Reflect(Filesystem::GetFilenameWithExt(mPath), mShaderSPIRVs);
-        //mReflectionData.LogAll();
-    }
-
-    String Shader::GetShaderCachePath(ShaderType type)
-    {
-        String parentPath = Filesystem::GetParentPath(mPath).string();
-        String shaderName = Filesystem::GetFilenameWithExt(mPath);
-        String spirVDirectory = std::format("{0}/SPIRV", parentPath);
-        Filesystem::CreateOrEnsureDirectories(spirVDirectory);
-
-        String path = std::format("{0}/{1}_{2}.spv", spirVDirectory, shaderName, VulkanUtils::ShaderTypeToString(type));
-        return path;
-    }
-
-    void Shader::Load(const String& glslPath, ShaderType type)
+    bool Shader::Load(const String& glslPath, ShaderType type)
     {
         mPath = glslPath;
-        mTypesBit = ShaderType::NONE;
-        ParseShader();
-#ifdef SURGE_PLATFORM_WINDOWS
-        //On android we directly laod SPIRV from the assets folder, so we don't need to check if the shader type is present in the shader file
-        SG_ASSERT(type == mTypesBit, "Given shader type does not match the types present in the shader file! Make sure to use proper ShaderType in Shader::Load");
+        mTypesBit = type;
+        mShaderSPIRVs.clear();
+        mReflectionData = ShaderReflectionData();
+
+        const String cookedPath = ShaderBinary::GetCookedPath(glslPath);
+        ShaderBinary::CookedShader cooked;
+        if (!ShaderBinary::Read(cookedPath, cooked))
+        {
+            Log<Severity::Fatal>("[Shader] No usable cooked shader for {}: open the Editor once to compile the engine shaders", glslPath);
+            SG_ASSERT_INTERNAL("Missing cooked shader!");
+            return false;
+        }
+
+        if (cooked.Stages != type)
+        {
+            Log<Severity::Fatal>("[Shader] {} was cooked with stages {} but is loaded as {}", glslPath, VulkanUtils::ShaderTypeToString(cooked.Stages), VulkanUtils::ShaderTypeToString(type));
+            SG_ASSERT_INTERNAL("Shader stage mismatch!");
+            return false;
+        }
+
+#if defined(SURGE_PLATFORM_WINDOWS) && defined(SURGE_DEBUG)
+        // The Player never compiles, an edited shader only shows up once the Editor recompiled it
+        if (Filesystem::Exists(glslPath) && ShaderBinary::HashSource(glslPath, cooked.Includes) != cooked.SourceHash)
+            Log<Severity::Warn>("[Shader] {} changed since it was cooked, open the Editor to recompile it", glslPath);
 #endif
-        mTypesBit = type; // We need this for ANDROID as we directly load SPIRV from the assets folder, so we need to know which stages to load
-        Compile();
+
+        mShaderSPIRVs = std::move(cooked.SPIRVs);
+        mReflectionData = std::move(cooked.Reflection);
+        return true;
     }
 
 } // namespace Surge

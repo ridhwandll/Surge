@@ -242,4 +242,13 @@ namespace Surge::Core
         sCoreData.SurgeFrameCapper.SetTargetFPS(rhiPaces ? 0.0f : fps);
     }
 
+    String GetEngineBuildConfiguration()
+    {
+#if defined(SURGE_DEBUG)
+        return "DEBUG";
+#elif defined(SURGE_RELEASE)
+        return "RELEASE";
+#endif
+    }
+
 } // namespace Surge::Core

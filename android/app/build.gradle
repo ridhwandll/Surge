@@ -97,6 +97,12 @@ android {
         }
     }
 
+    // The Surge post-build step copies Engine/Assets wholesale, the runtime only loads cooked shaders (Shaders/Cooked/*.rSHADER)
+    // aapt's default pattern + GLSL sources
+    androidResources {
+        ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:<dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~:!*.glsl:!*.glsli'
+    }
+
     signingConfigs {
         // Populated when the editor exports with a keystore
         surgeRelease {

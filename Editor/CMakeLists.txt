@@ -16,8 +16,13 @@ file(GLOB_RECURSE SOURCE_FILES
 
 
 add_executable(Editor ${SOURCE_FILES})
-target_link_libraries(Editor PRIVATE Surge meshoptimizer)
+# The shader compiler (shaderc + SPIRV-Cross reflection) is Editor only, the runtime loads cooked shaders
+target_link_libraries(Editor PRIVATE Surge meshoptimizer SPIRV-Cross ${CMAKE_SOURCE_DIR}/Engine/Vendor/shaderc/Lib/shaderc_shared.lib)
 target_include_directories(Editor PRIVATE ${INCLUDE_DIRS})
+target_include_directories(Editor SYSTEM PRIVATE
+    ${CMAKE_SOURCE_DIR}/Engine/Vendor/shaderc/Include
+    ${CMAKE_SOURCE_DIR}/Engine/Vendor/SPIRV-Cross/Include
+)
 
 GroupSourcesByFolder(Editor)
 set_property(TARGET Editor PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
