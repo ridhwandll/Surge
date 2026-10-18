@@ -64,6 +64,7 @@ namespace Surge
         browser["SortField"] = ContentBrowser.SortField;
         browser["SortDescending"] = ContentBrowser.SortDescending;
         browser["FolderTreeWidth"] = ContentBrowser.FolderTreeWidth;
+        browser["DrawerHeight"] = ContentBrowser.DrawerHeight;
         browser["ShowUnimported"] = ContentBrowser.ShowUnimported;
         browser["SearchAllFolders"] = ContentBrowser.SearchAllFolders;
         browser["HiddenTypes"] = ContentBrowser.HiddenTypes;
@@ -137,6 +138,7 @@ namespace Surge
             Read(browser, "SortField", ContentBrowser.SortField);
             Read(browser, "SortDescending", ContentBrowser.SortDescending);
             Read(browser, "FolderTreeWidth", ContentBrowser.FolderTreeWidth);
+            Read(browser, "DrawerHeight", ContentBrowser.DrawerHeight);
             Read(browser, "ShowUnimported", ContentBrowser.ShowUnimported);
             Read(browser, "SearchAllFolders", ContentBrowser.SearchAllFolders);
             Read(browser, "HiddenTypes", ContentBrowser.HiddenTypes);
@@ -157,6 +159,7 @@ namespace Surge
         ContentBrowser.ThumbnailSize = glm::clamp(ContentBrowser.ThumbnailSize, 48.0f, 256.0f);
         ContentBrowser.SortField = glm::clamp(ContentBrowser.SortField, 0, 3);
         ContentBrowser.FolderTreeWidth = glm::clamp(ContentBrowser.FolderTreeWidth, 120.0f, 800.0f);
+        ContentBrowser.DrawerHeight = glm::clamp(ContentBrowser.DrawerHeight, 0.2f, 0.9f);
     }
 
     void EditorSettingsStore::Load(const Path& projectDir, EditorSettings& outSettings)

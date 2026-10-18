@@ -572,10 +572,15 @@ namespace Surge
                     else
                     {
                         // Drag the menu bar to move the window
-                        // Only check ImGui hover states if ImGui is actually enabled!
-                        bool isHoveringImGui = imGuiEnabled ? ImGui::IsAnyItemHovered() : false;
+                        // Only check ImGui hover states if ImGui is actually enabled! An open popup keeps the clicks: a click outside closes it
+                        bool isHoveringImGui = imGuiEnabled ? (ImGui::IsAnyItemHovered() || ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel)) : false;
 
-                        if(!isHoveringImGui && (mousePos.y < (windowRect.top + 35)))
+                        // Measured from the client areas top: a maximized windows rect overhangs the monitor
+                        const WindowsWindow* window = reinterpret_cast<WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+                        const float captionHeight = window ? window->mCaptionHeight : 0.0f;
+                        POINT clientTop = { 0, 0 };
+                        ClientToScreen(hWnd, &clientTop);
+                        if(!isHoveringImGui && (mousePos.y < (clientTop.y + static_cast<LONG>(captionHeight))))
                             return HTCAPTION;
                     }
                     break;
@@ -583,9 +588,21 @@ namespace Surge
             }
             case WM_NCCALCSIZE:
             {
-                // Preserve the old client area and align it with the upper-left corner of the new client area
-                // Starting with Windows Vista, removing the standard frame by simply returning 0 when the wParam is TRUE does not affect frames that area
-                // extended into the client area using the DwmExtendFrameIntoClientArea function.Only the standard frame will be removed
+                // (Rid) When handeling custom titlebars(by handeling WM_NCCALCSIZE) the client area overflows beyond the monitor size when maximized(Fuckass Win32).
+                // This Preserve the old client area when maximized and align it with the upper-left corner of the new client area
+                if(wParam == TRUE && IsZoomed(hWnd)) // IsZoomed means IsMaximized (Fuckass Win32(2))
+                {
+                    NCCALCSIZE_PARAMS* params = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
+                    const int frameX = GetSystemMetrics(SM_CXFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
+                    const int frameY = GetSystemMetrics(SM_CYFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
+
+                    //(Rid) Insets all four edges of the proposed client rectangle by the border thickness,
+                    // pulling the edges back inside the monitor's visible workspace (preventing the overflow)
+                    params->rgrc[0].left += frameX;
+                    params->rgrc[0].top += frameY;
+                    params->rgrc[0].right -= frameX;
+                    params->rgrc[0].bottom -= frameY;
+                }
                 return 0;
                 break;
             }

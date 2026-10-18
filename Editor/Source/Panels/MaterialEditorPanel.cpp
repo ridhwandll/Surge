@@ -1090,8 +1090,8 @@ namespace Surge
             const bool active = mPreviewShape == static_cast<PreviewShape>(i);
             if(active)
             {
-                ImGui::PushStyleColor(ImGuiCol_Button, ImGuiAux::Colors::ThemeColor2);
-                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGuiAux::Colors::ThemeColor2);
+                ImGui::PushStyleColor(ImGuiCol_Button, ImGuiAux::Colors::Selection);
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGuiAux::Colors::Selection);
             }
             if(ImGui::SmallButton(sShapeNames[i]) && !active)
             {
@@ -1109,8 +1109,8 @@ namespace Surge
         ImGui::SameLine();
         if(mAutoRotate)
         {
-            ImGui::PushStyleColor(ImGuiCol_Button, ImGuiAux::Colors::ThemeColor2);
-            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGuiAux::Colors::ThemeColor2);
+            ImGui::PushStyleColor(ImGuiCol_Button, ImGuiAux::Colors::Selection);
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGuiAux::Colors::Selection);
         }
         const bool toggleRotate = ImGui::SmallButton("Auto-Rotate");
         if(mAutoRotate)

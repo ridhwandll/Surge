@@ -42,6 +42,7 @@ namespace Surge
         constexpr float ROW_HEIGHT = 66.0f;
         constexpr float ROW_SPACING = 6.0f;
         constexpr float ROUNDING = 8.0f;
+        constexpr float BUTTON_ROUNDING = 2.0f;
         constexpr float FORM_MAX_WIDTH = 640.0f;
 
         namespace Palette
@@ -140,9 +141,9 @@ namespace Surge
             }
 
             ImDrawList* drawList = ImGui::GetWindowDrawList();
-            drawList->AddRectFilled(min, max, Col(background), 6.0f);
+            drawList->AddRectFilled(min, max, Col(background), BUTTON_ROUNDING);
             if(style == ButtonStyle::SECONDARY)
-                drawList->AddRect(min, max, Col(Palette::BORDER), 6.0f);
+                drawList->AddRect(min, max, Col(Palette::BORDER), BUTTON_ROUNDING);
 
             const ImVec2 textSize = BoldFont()->CalcTextSizeA(FONT_BUTTON, FLT_MAX, 0.0f, label);
             DrawText(drawList, BoldFont(), FONT_BUTTON, min.x + (size.x - textSize.x) * 0.5f, min.y + (size.y - textSize.y) * 0.5f, Col(text), label);
@@ -158,7 +159,7 @@ namespace Surge
 
             ImDrawList* drawList = ImGui::GetWindowDrawList();
             if(hovered || menuOpen)
-                drawList->AddRectFilled(min, ImVec2(min.x + size, min.y + size), Col(ImGui::IsItemActive() || menuOpen ? Palette::CONTROL_ACTIVE : Palette::CONTROL_HOVERED), 6.0f);
+                drawList->AddRectFilled(min, ImVec2(min.x + size, min.y + size), Col(ImGui::IsItemActive() || menuOpen ? Palette::CONTROL_ACTIVE : Palette::CONTROL_HOVERED), BUTTON_ROUNDING);
 
             const ImU32 color = Col(hovered || menuOpen ? Palette::TEXT : Palette::TEXT_MUTED);
             const float centerX = std::floor(min.x + size * 0.5f);

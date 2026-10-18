@@ -16,8 +16,8 @@ namespace Surge::ImGuiAux
 {
     namespace Colors
     {
-        constexpr glm::vec4 ThemeColor1 = glm::vec4(1.0f, 0.647f, 0.0f, 1.0f);     // Amber
-        constexpr glm::vec4 ThemeColor2 = glm::vec4(0.545f, 0.361f, 0.965f, 1.0f); // Cyber Violet
+        constexpr glm::vec4 ThemeColor1 = glm::vec4(1.0f, 0.647f, 0.0f, 1.0f); // Amber
+        constexpr glm::vec4 Selection = glm::vec4(0.30f, 0.30f, 0.30f, 1.0f);   // Gray: selected rows, toggled buttons, focus outlines
 
         constexpr glm::vec4 ExtraDark = glm::vec4(0.05f, 0.05f, 0.05f, 1.0f);
         constexpr glm::vec4 Red = glm::vec4(0.8f, 0.1f, 0.1f, 1.0f);
@@ -190,7 +190,7 @@ namespace Surge::ImGuiAux
 
         ImGui::PopItemWidth();
         if (ImGui::IsItemHovered() || ImGui::IsItemActive())
-            DrawRectAroundWidget(Colors::ThemeColor2, 2.0f, 1.0f);
+            DrawRectAroundWidget(Colors::Selection, 2.0f, 1.0f);
         ImGui::PopID();
 
         return result;
@@ -201,7 +201,7 @@ namespace Surge::ImGuiAux
         ImGui::TableNextColumn();
         bool isSlected = ImGui::Selectable(title);
         if (ImGui::IsItemFocused())
-            DrawRectAroundWidget(Colors::ThemeColor2, 2.0f, 1.0f);
+            DrawRectAroundWidget(Colors::Selection, 2.0f, 1.0f);
         return isSlected;
     }
 
@@ -216,7 +216,7 @@ namespace Surge::ImGuiAux
         result = ImGui::Button(buttonText);
 
         if (ImGui::IsItemHovered() || ImGui::IsItemActive())
-            DrawRectAroundWidget(Colors::ThemeColor2, 2.0f, 1.0f);
+            DrawRectAroundWidget(Colors::Selection, 2.0f, 1.0f);
         ImGui::PopID();
 
         return result;
@@ -227,7 +227,7 @@ namespace Surge::ImGuiAux
         bool result = ImGui::Button(label, size);
 
         if (ImGui::IsItemHovered() || ImGui::IsItemActive())
-            DrawRectAroundWidget(Colors::ThemeColor2, 2.0f, 1.0f);
+            DrawRectAroundWidget(Colors::Selection, 2.0f, 1.0f);
 
         return result;
     }

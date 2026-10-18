@@ -117,7 +117,7 @@ namespace Surge
         bool res = ImGui::Button(title);
 
         if (ImGui::IsItemHovered() || ImGui::IsItemActive())
-            DrawRectAroundWidget(Colors::ThemeColor2, 1.5f, 1.0f);
+            DrawRectAroundWidget(Colors::Selection, 1.5f, 1.0f);
 
         return res;
     }

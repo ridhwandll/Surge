@@ -1228,7 +1228,7 @@ namespace Surge
                 // Icon: outer box = parent, inner marker = anchor (lines for stretched axes)
                 const ImVec2 min = ImGui::GetItemRectMin();
                 const ImVec2 max = ImGui::GetItemRectMax();
-                drawList->AddRectFilled(min, max, isCurrent ? IM_COL32(255, 168, 0, 90) : (hovered ? IM_COL32(80, 80, 80, 255) : IM_COL32(45, 45, 45, 255)), 3.0f);
+                drawList->AddRectFilled(min, max, isCurrent ? IM_COL32(255, 168, 0, 90) : (hovered ? IM_COL32(80, 80, 80, 255) : IM_COL32(45, 45, 45, 255)), 2.0f);
                 const ImVec2 innerMin = { min.x + 5.0f, min.y + 5.0f };
                 const ImVec2 innerMax = { max.x - 5.0f, max.y - 5.0f };
                 drawList->AddRect(innerMin, innerMax, IM_COL32(150, 150, 150, 255));

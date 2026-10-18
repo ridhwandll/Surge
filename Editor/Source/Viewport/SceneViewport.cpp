@@ -247,9 +247,9 @@ namespace Surge
         auto toggleButton = [](const char* label, bool active, const char* tooltip) -> bool {
             if(active)
             {
-                ImGui::PushStyleColor(ImGuiCol_Button, ImGuiAux::Colors::ThemeColor2);
-                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGuiAux::Colors::ThemeColor2);
-                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_Button, ImGuiAux::Colors::Selection);
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGuiAux::Colors::Selection);
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
             }
             const bool pressed = ImGui::Button(label);
             if(active)
@@ -270,12 +270,12 @@ namespace Surge
             const bool active = settings.GizmoOperation == tool.Operation;
             if(active)
             {
-                ImGui::PushStyleColor(ImGuiCol_Button, ImGuiAux::Colors::ThemeColor2);
-                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGuiAux::Colors::ThemeColor2);
+                ImGui::PushStyleColor(ImGuiCol_Button, ImGuiAux::Colors::Selection);
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGuiAux::Colors::Selection);
             }
 
             ImGui::PushID(tool.Operation);
-            const ImVec4 tint = active ? ImVec4(0.0f, 0.0f, 0.0f, 1.0f) : ImVec4(0.85f, 0.85f, 0.85f, 1.0f);
+            const ImVec4 tint = active ? ImVec4(1.0f, 1.0f, 1.0f, 1.0f) : ImVec4(0.85f, 0.85f, 0.85f, 1.0f);
             if(GizmoIcons::IconButton("##Tool", rhi->GetImGuiImage(editor->GetToolIcon(tool.Icon)), toolButtonSize, tint, 0.9f))
                 settings.GizmoOperation = tool.Operation;
             ImGui::PopID();

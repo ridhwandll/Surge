@@ -18,6 +18,7 @@
 #include "Panels/MaterialEditorPanel.hpp"
 #include "Panels/UIEditorPanel.hpp"
 #include "Panels/ParticleEditorPanel.hpp"
+#include "Panels/EditorTitleBar.hpp"
 #include "StatusBar/EditorStatusBar.hpp"
 #include "Utility/ImGuiAux.hpp"
 
@@ -26,6 +27,7 @@
 #include <algorithm>
 #include <cctype>
 #include <chrono>
+#include <cmath>
 #include <ctime>
 
 namespace Surge
@@ -67,10 +69,10 @@ namespace Surge
             case AssetType::MATERIAL: return ImVec4(0.42f, 0.82f, 0.38f, 1.0f);
             case AssetType::SCENE: return ImVec4(1.00f, 0.62f, 0.18f, 1.0f);
             case AssetType::SCRIPT: return ImVec4(0.96f, 0.84f, 0.30f, 1.0f);
-            case AssetType::FONT: return ImVec4(0.68f, 0.52f, 0.98f, 1.0f);
+            case AssetType::FONT: return ImVec4(0.85f, 0.85f, 0.85f, 1.0f);
             case AssetType::AUDIO: return ImVec4(0.30f, 0.86f, 0.76f, 1.0f);
             case AssetType::UI_LAYOUT: return ImVec4(0.42f, 0.58f, 1.00f, 1.0f);
-            case AssetType::PARTICLE_EFFECT: return ImVec4(0.92f, 0.53f, 1.00f, 1.0f);
+            case AssetType::PARTICLE_EFFECT: return ImVec4(0.35f, 0.86f, 0.96f, 1.0f);
             default: return ImVec4(0.45f, 0.45f, 0.45f, 1.0f);
         }
     }
@@ -632,7 +634,12 @@ namespace Surge
 
     void ContentBrowserPanel::Render(bool* show)
     {
-        if(!*show)
+        constexpr float drawerSlideSeconds = 0.15f;
+        const float slideStep = ImGui::GetIO().DeltaTime / drawerSlideSeconds;
+        mDrawerAnimation = mDrawerOpen ? std::min(1.0f, mDrawerAnimation + slideStep) : std::max(0.0f, mDrawerAnimation - slideStep);
+        const bool drawerVisible = mDrawerAnimation > 0.0f;
+
+        if(!*show && !drawerVisible)
         {
             mDroppedFiles.clear();
             UpdateThumbnailTask(0); // Loading pauses while hidden
@@ -652,60 +659,204 @@ namespace Surge
         else if(mNeedsSort)
             SortAndFilter();
 
-        if(ImGui::Begin(PanelCodeToString(mCode), show, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
+        if(*show)
         {
-            HandleOsDrop();
-            CheckForExternalChanges();
-            DrawToolbar();
-
-            ImGui::Dummy(ImVec2(0.0f, 2.0f));
-            const float statusHeight = ImGui::GetFrameHeightWithSpacing();
-            const float bodyHeight = std::max(60.0f, ImGui::GetContentRegionAvail().y - statusHeight);
-
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(6.0f, 4.0f));
-            ImGui::BeginChild("##FolderTree", ImVec2(Settings().FolderTreeWidth, bodyHeight), ImGuiChildFlags_AlwaysUseWindowPadding);
-            ImGui::PopStyleVar();
-            DrawFolderTree();
-            ImGui::EndChild();
-
-            ImGui::SameLine(0.0f, 0.0f);
-            DrawSplitter(bodyHeight);
-            ImGui::SameLine(0.0f, 0.0f);
-
-            ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.0f, 0.0f, 0.0f, 0.12f));
-            // The list scrolls inside its table, Ctrl+Wheel zooms the grid instead of scrolling it
-            ImGuiWindowFlags contentFlags = ImGuiWindowFlags_None;
-            if(Settings().ListView)
-                contentFlags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
-            else if(ImGui::GetIO().KeyCtrl)
-                contentFlags = ImGuiWindowFlags_NoScrollWithMouse;
-            ImGui::BeginChild("##Content", ImVec2(0.0f, bodyHeight), ImGuiChildFlags_None, contentFlags);
-            ImGui::PopStyleColor();
-            DrawContent();
-            ImGui::EndChild();
-
-            DrawStatusBar();
-
-            if(ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows))
-                HandleShortcuts();
-            if(ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows))
+            if(mFocusTab)
             {
-                if(ImGui::IsMouseClicked(3)) // Mouse "back" button
-                    NavigateBack();
-                if(ImGui::IsMouseClicked(4))
-                    NavigateForward();
+                ImGui::SetNextWindowFocus();
+                mFocusTab = false;
+            }
+            if(ImGui::Begin(PanelCodeToString(mCode), show, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
+            {
+                if(drawerVisible) // The drawer has the browser while it is out
+                {
+                    ImGui::SetCursorPosY(std::floor((ImGui::GetWindowHeight() - ImGui::GetFontSize()) * 0.5f));
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+                    ImGuiAux::TextCentered("Open in the Content Drawer (Ctrl+Space)");
+                    ImGui::PopStyleColor();
+                }
+                else
+                    DrawBody();
+            }
+            else if(!drawerVisible)
+                mDroppedFiles.clear();
+            ImGui::End();
+        }
+
+        if(drawerVisible)
+            RenderDrawer();
+    }
+
+    void ContentBrowserPanel::DrawBody()
+    {
+        HandleOsDrop();
+        CheckForExternalChanges();
+        DrawToolbar();
+
+        ImGui::Dummy(ImVec2(0.0f, 2.0f));
+        const float statusHeight = ImGui::GetFrameHeightWithSpacing();
+        const float bodyHeight = std::max(60.0f, ImGui::GetContentRegionAvail().y - statusHeight);
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(6.0f, 4.0f));
+        ImGui::BeginChild("##FolderTree", ImVec2(Settings().FolderTreeWidth, bodyHeight), ImGuiChildFlags_AlwaysUseWindowPadding);
+        ImGui::PopStyleVar();
+        DrawFolderTree();
+        ImGui::EndChild();
+
+        ImGui::SameLine(0.0f, 0.0f);
+        DrawSplitter(bodyHeight);
+        ImGui::SameLine(0.0f, 0.0f);
+
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.0f, 0.0f, 0.0f, 0.12f));
+        // The list scrolls inside its table, Ctrl+Wheel zooms the grid instead of scrolling it
+        ImGuiWindowFlags contentFlags = ImGuiWindowFlags_None;
+        if(Settings().ListView)
+            contentFlags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
+        else if(ImGui::GetIO().KeyCtrl)
+            contentFlags = ImGuiWindowFlags_NoScrollWithMouse;
+        ImGui::BeginChild("##Content", ImVec2(0.0f, bodyHeight), ImGuiChildFlags_None, contentFlags);
+        ImGui::PopStyleColor();
+        DrawContent();
+        ImGui::EndChild();
+
+        DrawStatusBar();
+
+        if(ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows))
+            HandleShortcuts();
+        if(ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows))
+        {
+            if(ImGui::IsMouseClicked(3)) // Mouse "back" button
+                NavigateBack();
+            if(ImGui::IsMouseClicked(4))
+                NavigateForward();
+        }
+    }
+
+    void ContentBrowserPanel::SetDrawerOpen(bool open)
+    {
+        if(open == mDrawerOpen)
+            return;
+
+        mDrawerOpen = open;
+        mFocusDrawer = open;
+        mDrawerWasFocused = false;
+        mDrawerDragTracked = false;
+        mDragFromDrawer = false;
+    }
+
+    void ContentBrowserPanel::RenderDrawer()
+    {
+        // Between the title bar and the status bar, both step aside for a fullscreen viewport
+        const bool bars = static_cast<Editor*>(Core::GetClient())->IsTitlebarShown();
+        const ImGuiViewport* viewport = ImGui::GetMainViewport();
+        const float top = viewport->WorkPos.y + (bars ? EditorTitleBar::HEIGHT : 0.0f);
+        const float bottom = viewport->WorkPos.y + viewport->WorkSize.y - (bars ? EditorStatusBar::HEIGHT : 0.0f);
+        const float areaHeight = std::max(bottom - top, 1.0f);
+        const float height = std::floor(glm::clamp(Settings().DrawerHeight * areaHeight, std::min(200.0f, areaHeight), areaHeight));
+        const float slide = 1.0f - std::pow(1.0f - mDrawerAnimation, 3.0f); // Ease out
+
+        ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x, std::floor(bottom - height * slide)));
+        ImGui::SetNextWindowSize(ImVec2(viewport->WorkSize.x, height));
+        ImGui::SetNextWindowViewport(viewport->ID);
+        if(mFocusDrawer)
+        {
+            ImGui::SetNextWindowFocus();
+            mFocusDrawer = false;
+        }
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        constexpr ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollWithMouse;
+        const bool open = ImGui::Begin("Content Drawer###ContentDrawer", nullptr, flags);
+        ImGui::PopStyleVar(2);
+        if(open)
+        {
+            const ImVec2 min = ImGui::GetWindowPos();
+            const ImVec2 max(min.x + ImGui::GetWindowWidth(), min.y + ImGui::GetWindowHeight());
+            ImGui::GetWindowDrawList()->AddLine(min, ImVec2(max.x, min.y), ImGui::GetColorU32(ImVec4(0.26f, 0.26f, 0.26f, 1.0f)));
+
+            DrawDrawerHeader(areaHeight);
+            DrawBody();
+
+            // Closes like Unreal's: the focus went elsewhere (not to a popup of its own or a confirmation box), Esc, or a drag that started in it left it
+            const bool focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+            const bool hovered = ImGui::IsMouseHoveringRect(min, max, false);
+            const bool dragging = ImGui::GetDragDropPayload() != nullptr;
+            if(dragging && !mDrawerDragTracked)
+                mDragFromDrawer = hovered;
+            mDrawerDragTracked = dragging;
+
+            if(mDrawerOpen)
+            {
+                const ImGuiIO& io = ImGui::GetIO();
+                if(mDrawerWasFocused && !focused && !ImGui::GetTopMostPopupModal())
+                    SetDrawerOpen(false);
+                else if(focused && ImGui::IsKeyPressed(ImGuiKey_Escape, false) && !io.WantTextInput && mRenamingPath.empty() && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel))
+                    SetDrawerOpen(false);
+                else if(dragging && mDragFromDrawer && !hovered)
+                    SetDrawerOpen(false); // The payload outlives its source, it can still be dropped
+                else
+                    mDrawerWasFocused = focused;
             }
         }
-        else
-            mDroppedFiles.clear();
         ImGui::End();
+
+        // While sliding the drawer passes under the status bar, not over it
+        if(bars && mDrawerAnimation < 1.0f)
+        {
+            if(ImGuiWindow* statusBar = ImGui::FindWindowByName(EditorStatusBar::WINDOW_NAME))
+                ImGui::BringWindowToDisplayFront(statusBar);
+        }
+    }
+
+    void ContentBrowserPanel::DrawDrawerHeader(float areaHeight)
+    {
+        constexpr float headerHeight = 24.0f;
+        constexpr const char* dockLabel = "Dock in Layout";
+        const ImGuiStyle& style = ImGui::GetStyle();
+        const ImVec2 start = ImGui::GetCursorPos();
+        const float width = ImGui::GetContentRegionAvail().x;
+        const float dockWidth = ImGui::CalcTextSize(dockLabel).x + style.FramePadding.x * 2.0f;
+
+        // The header is the drawer's top edge: dragging it resizes the drawer
+        ImGui::InvisibleButton("##DrawerResize", ImVec2(std::max(width - dockWidth - style.ItemSpacing.x, 1.0f), headerHeight));
+        if(ImGui::IsItemHovered() || ImGui::IsItemActive())
+            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+        if(ImGui::IsItemActive() && ImGui::GetIO().MouseDelta.y != 0.0f)
+        {
+            float& heightRatio = Settings().DrawerHeight;
+            heightRatio = glm::clamp(heightRatio - ImGui::GetIO().MouseDelta.y / areaHeight, 0.2f, 0.9f);
+        }
+
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
+        const ImVec2 headerMin = ImGui::GetItemRectMin();
+        {
+            ImGuiAux::ScopedBoldFont font;
+            drawList->AddText(ImVec2(headerMin.x, std::floor(headerMin.y + (headerHeight - ImGui::GetFontSize()) * 0.5f)), ImGui::GetColorU32(ImGuiCol_TextDisabled), "CONTENT DRAWER");
+        }
+        const float gripX = std::floor(ImGui::GetWindowPos().x + ImGui::GetWindowWidth() * 0.5f);
+        const float gripY = std::floor(headerMin.y + headerHeight * 0.5f);
+        drawList->AddRectFilled(ImVec2(gripX - 18.0f, gripY - 1.5f), ImVec2(gripX + 18.0f, gripY + 1.5f), ImGui::GetColorU32(ImVec4(0.4f, 0.4f, 0.4f, 1.0f)), 1.5f);
+
+        ImGui::SetCursorPos(ImVec2(start.x + width - dockWidth, start.y + std::floor((headerHeight - ImGui::GetFrameHeight()) * 0.5f)));
+        if(ImGui::Button(dockLabel))
+        {
+            // The tab takes over right away, no slide
+            static_cast<Editor*>(Core::GetClient())->GetPanelManager().GetAllPanels()[mCode].Show = true;
+            SetDrawerOpen(false);
+            mDrawerAnimation = 0.0f;
+            mFocusTab = true;
+        }
+        ImGuiAux::ItemTooltip("Close the drawer and show the Content Browser as a tab");
+
+        ImGui::SetCursorPos(ImVec2(start.x, start.y + headerHeight + 2.0f));
     }
 
     void ContentBrowserPanel::DrawToolbar()
     {
         ContentBrowserSettings& settings = Settings();
         const ImGuiStyle& style = ImGui::GetStyle();
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
 
         {
             ImGuiAux::ScopedBoldFont bold;
@@ -790,9 +941,9 @@ namespace Surge
             const bool active = settings.ListView == (view == 1);
             if(active)
             {
-                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(ImGuiAux::Colors::ThemeColor2));
-                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(ImGuiAux::Colors::ThemeColor2));
-                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(ImGuiAux::Colors::Selection));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(ImGuiAux::Colors::Selection));
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
             }
             if(ImGui::Button(view == 0 ? "Grid" : "List"))
                 settings.ListView = view == 1;
@@ -1009,10 +1160,10 @@ namespace Surge
         // The open folder is highlighted like the selection in the Hierarchy
         if(isCurrent)
         {
-            ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(ImGuiAux::Colors::ThemeColor2));
-            ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(ImGuiAux::Colors::ThemeColor2));
-            ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(ImGuiAux::Colors::ThemeColor2));
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(ImGuiAux::Colors::Selection));
+            ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(ImGuiAux::Colors::Selection));
+            ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(ImGuiAux::Colors::Selection));
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
             ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
         }
         const bool open = ImGui::TreeNodeEx(node.Name.c_str(), flags, "%s", node.Name.c_str());

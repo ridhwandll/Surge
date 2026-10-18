@@ -77,7 +77,7 @@ namespace Surge
             else if constexpr(std::is_same_v<T, EnvironmentComponent>)       return { GizmoIcon::ENVIRONMENT, IM_COL32(255, 170, 100, 255) };
             else if constexpr(std::is_same_v<T, TextComponent>)              return { GizmoIcon::TEXT, IM_COL32(225, 225, 225, 255) };
             else if constexpr(std::is_same_v<T, RigidbodyComponent>)         return { GizmoIcon::RIGIDBODY, PHYSICS_COLOR };
-            else if constexpr(std::is_same_v<T, ScriptComponent>)            return { GizmoIcon::SCRIPT, IM_COL32(185, 150, 255, 255) };
+            else if constexpr(std::is_same_v<T, ScriptComponent>)            return { GizmoIcon::SCRIPT, IM_COL32(230, 220, 80, 255) };
             else if constexpr(std::is_same_v<T, UICanvasComponent>)          return { GizmoIcon::UI_CANVAS, IM_COL32(240, 130, 190, 255) };
             else if constexpr(std::is_same_v<T, AudioSourceComponent>)       return { GizmoIcon::AUDIO_SOURCE, AUDIO_COLOR };
             else if constexpr(std::is_same_v<T, AudioListenerComponent>)     return { GizmoIcon::AUDIO_LISTENER, AUDIO_COLOR };
@@ -223,7 +223,7 @@ namespace Surge
                 ImGui::PopStyleVar();
 
                 if(ImGui::IsItemHovered() || ImGui::IsItemActive())
-                    ImGuiAux::DrawRectAroundWidget(ImGuiAux::Colors::ThemeColor2, OUTLINE_THICKNESS, 1.0f);
+                    ImGuiAux::DrawRectAroundWidget(ImGuiAux::Colors::Selection, OUTLINE_THICKNESS, 1.0f);
 
                 ImGui::PopID();
                 if(axis < 2)
@@ -282,7 +282,7 @@ namespace Surge
                 acceptsDrag = am->GetMetadata(*static_cast<const AssetID*>(drag->Data)).Type == expectedType;
 
             ImGuiAux::ScopedBoldFont font;
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f);
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
             ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, OUTLINE_THICKNESS);
             ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.5f));
 
@@ -739,7 +739,7 @@ namespace Surge
                 // Name on the left, where the material comes from on the right
                 const float buttonWidth = ImGui::GetContentRegionAvail().x - (overridden ? frameHeight + spacing : 0.0f);
                 const ImVec4 border = acceptsDrag ? ImVec4(ImGuiAux::Colors::ThemeColor1) : (material ? SLOT_BORDER : ImVec4(0.65f, 0.25f, 0.25f, 1.0f));
-                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f);
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
                 ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, OUTLINE_THICKNESS);
                 ImGui::PushStyleColor(ImGuiCol_Border, border);
                 ImGui::PushStyleColor(ImGuiCol_Button, SLOT_BG);
@@ -811,7 +811,7 @@ namespace Surge
                 if(overridden)
                 {
                     ImGui::SameLine(0.0f, spacing);
-                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f);
+                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
                     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, OUTLINE_THICKNESS);
                     ImGui::PushStyleColor(ImGuiCol_Button, SLOT_BG);
                     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.55f, 0.18f, 0.18f, 1.0f));
@@ -925,7 +925,7 @@ namespace Surge
         const float width = glm::min(ImGui::GetContentRegionAvail().x, 240.0f);
         ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (ImGui::GetContentRegionAvail().x - width) * 0.5f);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.0f, 7.0f));
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
         ImGui::PushStyleColor(ImGuiCol_Button, SLOT_BG);
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, SLOT_BG_HOVERED);
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, SLOT_BG_ACTIVE);

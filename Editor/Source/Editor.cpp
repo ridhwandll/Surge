@@ -14,7 +14,6 @@
 #include "Surge/Utility/Filesystem.hpp"
 
 #include "Utility/ImGuiAux.hpp"
-#include "Gizmos/GizmoIcons.hpp"
 #include <imgui_stdlib.h>
 #include "Viewport/SceneViewport.hpp"
 #include "Viewport/GameViewport.hpp"
@@ -47,8 +46,6 @@
 #include <algorithm>
 #include <cmath>
 #include <iterator>
-#include <cstdio>
-#include <mutex>
 
 
 namespace Surge
@@ -145,8 +142,14 @@ namespace Surge
         mPanelManager.PushPanel<AssetRegistryPanel>();
         mPanelManager.PushPanel<RendererPanel>();
         mPanelManager.PushPanel<ParticleEditorPanel>();
-        mPanelManager.GetAllPanels()[PanelCode::ParticleEditor].Show = false; // Opens with an effect (Content Browser, Inspector)
         Core::GetWindow()->SetFileDropEnabled(true); // Files dropped from Explorer are imported by the Content Browser
+
+        auto& allPanels = mPanelManager.GetAllPanels();
+        allPanels[PanelCode::ContentBrowser].Show = false;
+        allPanels[PanelCode::AssetRegistry].Show = false;
+        allPanels[PanelCode::Console].Show = false;
+        allPanels[PanelCode::UIEditor].Show = false;
+        allPanels[PanelCode::ParticleEditor].Show = false;
 
         mHistory.SetScene(mActiveScene.Raw());
 
@@ -167,10 +170,8 @@ namespace Surge
             mGizmos.SubmitSceneDebug(scene, GetSelectedEntity());
         };
 
-        mEngineLogo = GenerateImage("Editor/Assets/Textures/EngineLogo.png");
-        mMinimize = GenerateImage("Editor/Assets/Textures/Minimize.png");
-        mMaximize = GenerateImage("Editor/Assets/Textures/Maximize.png");
-        mClose = GenerateImage("Editor/Assets/Textures/Close.png");
+        mTitleBar.Init(this);
+        Core::GetWindow()->SetCaptionHeight(EditorTitleBar::HEIGHT);
 
         constexpr const char* toolIconPaths[] = {
             "Editor/Assets/Textures/ToolSelect.png",
@@ -215,21 +216,16 @@ namespace Surge
 
     void Editor::OnImGuiRender()
     {
-        constexpr float titleBarHeight = 65.0f;
-
         if(mCurrentProject.IsValid())
         {
             HandleShortcuts();
 
-            const char* unsavedMarker = mHistory.IsDirty() ? " *" : "";
-#ifdef SURGE_DEBUG
-            DrawCustomTitlebar(("[DEBUG] Surge Editor //" + mCurrentProject.Name + unsavedMarker).c_str(), titleBarHeight);
-#elif defined(SURGE_RELEASE)
-            DrawCustomTitlebar(("Surge Editor //" + mCurrentProject.Name + unsavedMarker).c_str(), titleBarHeight);
-#endif
             if(mShowTitlebar) // Both bars step aside for the fullscreen viewport, the dockspace keeps its size so the layout doesn't shift
+            {
+                mTitleBar.Render();
                 EditorStatusBar::Get().Render();
-            ImGuiAux::DockSpace(titleBarHeight, [this](ImGuiID dockspaceID, ImVec2 size) { BuildDefaultLayout(dockspaceID, size, mViewports); }, mResetLayoutRequested, EditorStatusBar::HEIGHT);
+            }
+            ImGuiAux::DockSpace(EditorTitleBar::HEIGHT, [this](ImGuiID dockspaceID, ImVec2 size) { BuildDefaultLayout(dockspaceID, size, mViewports); }, mResetLayoutRequested, EditorStatusBar::HEIGHT);
             mResetLayoutRequested = false;
             mPanelManager.RenderPanels();
             mViewports.Render();
@@ -259,215 +255,16 @@ namespace Surge
         }
         else
         {
-            constexpr float projectWindowTitlebarHeight = 40.0f;
-            DrawCustomTitlebar("Project Browser", projectWindowTitlebarHeight, false);
-            mProjectBrowser.Render(projectWindowTitlebarHeight);
+            mTitleBar.Render();
+            mProjectBrowser.Render(EditorTitleBar::HEIGHT);
         }
         ImGuiAux::RenderConfirmationBox();
     }
 
-    void Editor::DrawCustomTitlebar(const char* title, float titleBarHeight, bool showMenuItems)
+    void Editor::ShowTitlebar(bool show)
     {
-        if (!mShowTitlebar)
-            return;
-
-        ImGuiViewport* viewport = ImGui::GetMainViewport();
-
-        ImVec4 bgColor = ImGuiAux::Colors::ExtraDark;
-        ImVec4 textColor = ImGuiAux::Colors::White;
-        if(IsPlaying())
-        {
-            float time = static_cast<float>(ImGui::GetTime());
-            float pulse = (glm::sin(time * 2.0f) + 1.0f) * 0.5f;
-
-            glm::vec4 bgBright = ImGuiAux::Colors::ThemeColor2;
-            glm::vec4 bgDark = ImGuiAux::Colors::ExtraDark;
-
-            glm::vec4 txtBright = ImGuiAux::Colors::White;
-            glm::vec4 txtDark = bgDark;
-
-            bgColor = glm::mix(bgDark, bgBright, pulse);
-            textColor = glm::mix(txtBright, txtDark, pulse);
-        }
-
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, bgColor);
-        ImGui::PushStyleColor(ImGuiCol_Text, textColor);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
-        ImGui::SetNextWindowPos(viewport->Pos);
-        ImGui::SetNextWindowSize(ImVec2(viewport->Size.x, titleBarHeight));
-
-        constexpr ImGuiWindowFlags titlebarFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollWithMouse;
-
-        if(ImGui::Begin("##SurgeTitleBar", nullptr, titlebarFlags))
-        {
-            ImFont* boldFont = ImGui::GetIO().Fonts->Fonts[1];
-            float availableWidth = ImGui::GetContentRegionAvail().x;
-            constexpr float topPadding = 10.0f;
-            float currentX = 10.0f; // Left padding
-
-            // ENGINE ICON
-            float logoWidthHeight = showMenuItems ? 50.0f : 28.0f;
-            float logoYPos = showMenuItems ? topPadding : ((titleBarHeight - logoWidthHeight) * 0.5f);
-
-            ImGui::SetCursorPos(ImVec2(currentX, logoYPos));
-            ImTextureID engineLogoTextureID = mRenderer->GetRHI()->GetImGuiImage(mEngineLogo);
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0)); // Transparent button
-            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
-            if(ImGui::ImageButton("EngineIcon", engineLogoTextureID, ImVec2(logoWidthHeight, logoWidthHeight)) && showMenuItems)
-                CloseProject();
-            ImGui::PopStyleColor(2);
-            currentX += logoWidthHeight + 5.0f;
-
-            // EDITOR MENUS & PLAYBACK
-            if(showMenuItems)
-            {
-                // MENUS
-                ImGui::SetCursorPos(ImVec2(currentX, topPadding));
-                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0)); // Transparent button
-                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 1.0f, 1.0f, 0.1f));
-                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 6.0f));
-
-                if(ImGui::Button("FILE"))
-                    ImGui::OpenPopup("FileMenu");
-                ImGui::SameLine();
-                if(ImGui::Button("EDIT"))
-                    ImGui::OpenPopup("EditMenu");
-                ImGui::SameLine();
-                if(ImGui::Button("VIEW"))
-                    ImGui::OpenPopup("WindowMenu");
-                ImGui::SameLine();
-                if(ImGui::Button("HELP"))
-                    mShowShortcutsWindow = true;
-
-                ImGui::PopStyleVar();
-                ImGui::PopStyleColor(2);
-
-                currentX = ImGui::GetCursorPosX();
-
-                // Menu Popups
-                ImGuiAux::StyledPopupVars::Push();
-                ImGui::SetCursorPosY(titleBarHeight);
-                if(ImGui::BeginPopup("WindowMenu", ImGuiPopupFlags_None))
-                {
-                    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]); // Bold font
-                    ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "EDITOR PANELS");
-                    ImGui::PopFont();
-
-                    ImGuiAux::StyledSeparator();
-
-                    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.18f, 0.18f, 0.18f, 1.0f));
-                    for(auto& [panelCode, panel] : mPanelManager.GetAllPanels())
-                        ImGui::MenuItem(PanelCodeToString(panelCode), nullptr, &panel.Show);
-
-                    ImGuiAux::StyledSeparator();
-                    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]); // Bold font
-                    ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "VIEWPORTS");
-                    ImGui::PopFont();
-                    mViewports.DrawMenuItems();
-                    ImGuiAux::StyledSeparator();
-
-                    if(ImGui::MenuItem("Reset Layout"))
-                    {
-                        for(auto& [panelCode, panel] : mPanelManager.GetAllPanels())
-                            panel.Show = true;
-                        if(!mViewports.GetActiveSceneView())
-                            mViewports.AddSceneView();
-                        if(!mViewports.GetGameView())
-                            mViewports.OpenGameView();
-                        RequestResetLayout(); // Rebuilt right before the dockspace next frame
-                    }
-                    ImGui::PopStyleColor();
-                    ImGui::EndPopup();
-                }
-                DrawFileMenu();
-                DrawEditMenu();
-                ImGuiAux::StyledPopupVars::Pop();
-
-                // PLAYBACK CONTROLS (BOTTOM ROW, under the title)
-                constexpr float titleRowBottom = 30.0f;
-                DrawPlaybackControls(availableWidth, titleRowBottom, titleBarHeight);
-            }
-
-            // TITLE
-            constexpr float titleFontSize = 19.0f;
-            ImGui::PushFont(boldFont, titleFontSize);
-            float textWidth = ImGui::CalcTextSize(title).x;
-            float centerPosX = (availableWidth - textWidth) * 0.5f;
-            float titleYPos = showMenuItems ? topPadding : ((titleBarHeight - titleFontSize) * 0.5f);
-
-            // Prevent overlap with menus/logo if the window gets squished
-            if(centerPosX > currentX + 20.0f)
-            {
-                ImGui::SetCursorPos(ImVec2(centerPosX, titleYPos));
-                ImGui::Text("%s", title);
-            }
-            ImGui::PopFont();
-
-            // WINDOW CONTROLS
-            constexpr float controlsWidth = 120.0f;
-            constexpr float rightPadding = 10.0f;
-
-            // Button height is 24px + 6px + 6px = 36px. Center it perfectly when in 40px mode.
-            float windowTopPadding = showMenuItems ? topPadding : ((titleBarHeight - 36.0f) * 0.5f);
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0)); // Transparent buttons
-            ImGui::SetCursorPos(ImVec2(availableWidth - controlsWidth - rightPadding, windowTopPadding));
-
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.0f, 6.0f));
-            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
-
-            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.4f, 0.4f, 0.4f, 1.0f));
-            if(ImGui::ImageButton("##Minimize", mRenderer->GetRHI()->GetImGuiImage(mMinimize), ImVec2(24.0f, 24.0f)))
-                Core::GetWindow()->Minimize();
-
-            ImGui::SameLine();
-
-            if(ImGui::ImageButton("##Maximize", mRenderer->GetRHI()->GetImGuiImage(mMaximize), ImVec2(24.0f, 24.0f)))
-            {
-                Window* window = Core::GetWindow();
-                if(window->IsWindowMaximized())
-                    window->RestoreFromMaximize();
-                else
-                    window->Maximize();
-            }
-            ImGui::PopStyleColor();
-
-            ImGui::SameLine();
-
-            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.2f, 0.2f, 1.0f));
-            if(ImGui::ImageButton("##Close", mRenderer->GetRHI()->GetImGuiImage(mClose), ImVec2(24.0f, 24.0f)))
-                ConfirmDiscardChanges("Exit", []() { Platform::RequestExit(); });
-
-            ImGui::PopStyleVar(2);
-            ImGui::PopStyleColor(2);
-
-            // FPS
-            if(showMenuItems)
-            {
-                static float sUpdateTimer = 0.0f;
-                static String sFpsText = "0.00 ms | 0 FPS";
-
-                sUpdateTimer += ImGui::GetIO().DeltaTime;
-                if(sUpdateTimer >= 0.25f)
-                {
-                    const float frameTimeMs = Core::GetClock().GetMilliseconds();
-                    const float fps = ImGui::GetIO().Framerate;
-                    sFpsText = std::format("{:.2f} ms | {:.0f} FPS", frameTimeMs, fps);
-                    sUpdateTimer = 0.0f;
-                }
-
-                const float fpsWidth = ImGui::CalcTextSize(sFpsText.c_str()).x;
-
-                ImGui::SetCursorPos(ImVec2(availableWidth - fpsWidth - rightPadding, 48.0f));
-                ImGui::Text("%s", sFpsText.c_str());
-
-                DrawConsoleCounters(availableWidth - fpsWidth - rightPadding - 16.0f, 48.0f);
-            }
-        }
-        ImGui::End();
-
-        ImGui::PopStyleVar(2);
-        ImGui::PopStyleColor(2);
+        mShowTitlebar = show;
+        Core::GetWindow()->SetCaptionHeight(show ? EditorTitleBar::HEIGHT : 0.0f); // A fullscreen viewport must not drag the window
     }
 
     void Editor::RenderEditorSettings()
@@ -1062,6 +859,9 @@ namespace Surge
         // Before the text input check: Ctrl+S right after typing a value must still save
         if(ctrl && !shift && ImGui::IsKeyPressed(ImGuiKey_S, false))
             SaveScene();
+        // Also while typing: it closes the drawer whose search box has the focus (InputText ignores Ctrl+Space)
+        if(ctrl && !shift && ImGui::IsKeyPressed(ImGuiKey_Space, false))
+            mPanelManager.GetPanel<ContentBrowserPanel>()->ToggleDrawer();
 
         // Text fields keep their own Ctrl+Z/C/V, the UI/Particle/Material Editors run their own history while they are focused
         if(io.WantTextInput || mPanelManager.GetPanel<UIEditorPanel>()->OwnsShortcuts() || mPanelManager.GetPanel<ParticleEditorPanel>()->OwnsShortcuts() || mPanelManager.GetPanel<MaterialEditorPanel>()->OwnsShortcuts())
@@ -1093,166 +893,6 @@ namespace Surge
             DuplicateEntity(selected);
         if(ImGui::IsKeyPressed(ImGuiKey_Delete, false) && selected)
             DeleteEntity(selected);
-    }
-
-    void Editor::DrawEditMenu()
-    {
-        if(!ImGui::BeginPopup("EditMenu", ImGuiPopupFlags_None))
-            return;
-
-        {
-            ImGuiAux::ScopedBoldFont font;
-            ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "EDIT");
-        }
-        ImGuiAux::StyledSeparator();
-
-        const bool playing = IsPlaying();
-        const String undoLabel = mHistory.CanUndo() ? std::format("Undo {}", mHistory.GetUndoName()) : String("Undo");
-        const String redoLabel = mHistory.CanRedo() ? std::format("Redo {}", mHistory.GetRedoName()) : String("Redo");
-
-        ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.18f, 0.18f, 0.18f, 1.0f));
-        if(ImGuiAux::StyledMenuItem(undoLabel.c_str(), "Ctrl+Z", nullptr, !playing && mHistory.CanUndo()))
-            RequestUndo();
-        if(ImGuiAux::StyledMenuItem(redoLabel.c_str(), "Ctrl+Y", nullptr, !playing && mHistory.CanRedo()))
-            RequestRedo();
-
-        ImGuiAux::StyledSeparator();
-
-        Entity selected = GetSelectedEntity();
-        const bool hasSelection = (bool)selected;
-        if(ImGuiAux::StyledMenuItem("Copy", "Ctrl+C", nullptr, hasSelection))
-            CopyEntity(selected);
-        if(ImGuiAux::StyledMenuItem("Paste", "Ctrl+V", nullptr, !playing && HasEntityInClipboard()))
-            PasteEntity();
-        if(ImGuiAux::StyledMenuItem("Duplicate", "Ctrl+D", nullptr, hasSelection))
-            DuplicateEntity(selected);
-        if(ImGuiAux::StyledMenuItem("Delete", "Del", nullptr, hasSelection))
-            DeleteEntity(selected);
-
-        ImGuiAux::StyledSeparator();
-
-        if(ImGuiAux::StyledMenuItem("Focus Selection", "F", nullptr, hasSelection))
-            FocusEntity(selected);
-        ImGui::PopStyleColor();
-
-        ImGui::EndPopup();
-    }
-
-    void Editor::DrawFileMenu()
-    {
-        if(!ImGui::BeginPopup("FileMenu", ImGuiPopupFlags_None))
-            return;
-
-        {
-            ImGuiAux::ScopedBoldFont font;
-            ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "FILE");
-        }
-        ImGuiAux::StyledSeparator();
-
-        const bool playing = IsPlaying();
-        const AssetID currentSceneID = mActiveScene->GetID();
-        const bool sceneIsAsset = currentSceneID && mAssetManager->IsRegistered(currentSceneID);
-
-        ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.18f, 0.18f, 0.18f, 1.0f));
-        if(ImGuiAux::StyledMenuItem("New Scene", "Ctrl+N", nullptr, !playing))
-            NewScene();
-
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 4.0f));
-        if(ImGui::BeginMenu("Open Scene", !playing))
-        {
-            // Sorted by path, the registry map has no stable order
-            Vector<Pair<String, AssetID>> scenes;
-            for(const auto& [id, metadata] : mAssetManager->GetRegistryMap())
-            {
-                if(metadata.Type == AssetType::SCENE && !HasFlag(metadata.Flags, AssetFlags::MISSING))
-                    scenes.push_back({ metadata.RelativePath, id });
-            }
-            std::sort(scenes.begin(), scenes.end(), [](const auto& a, const auto& b) { return a.Data1 < b.Data1; });
-
-            if(scenes.empty())
-                ImGui::TextDisabled("No scenes in the project");
-            for(const auto& [path, id] : scenes)
-            {
-                const bool isCurrent = id == currentSceneID;
-                const char* tag = isCurrent ? "OPEN" : (id == mCurrentProject.StartScene ? "START" : nullptr);
-                if(ImGuiAux::StyledMenuItem(path.c_str(), tag, nullptr, !isCurrent))
-                    OpenScene(id);
-            }
-            ImGui::EndMenu();
-        }
-        ImGui::PopStyleVar();
-
-        ImGuiAux::StyledSeparator();
-
-        if(ImGuiAux::StyledMenuItem("Save Scene", "Ctrl+S", nullptr, sceneIsAsset))
-            SaveScene();
-        if(ImGuiAux::StyledMenuItem("Save Scene As...", "Ctrl+Shift+S", nullptr, !playing))
-            mOpenSaveSceneAsPopup = true;
-        if(ImGuiAux::StyledMenuItem("Set as Start Scene", nullptr, nullptr, sceneIsAsset && currentSceneID != mCurrentProject.StartScene && !mProjectFilePath.empty()))
-            SetStartScene(currentSceneID);
-
-        ImGuiAux::StyledSeparator();
-
-        if(ImGuiAux::StyledMenuItem("Show Project in Explorer"))
-            Platform::OpenFolderInExplorer(Filesystem::GetParentPath(mProjectFilePath).string());
-        if(ImGuiAux::StyledMenuItem("Close Project"))
-            CloseProject();
-        if(ImGuiAux::StyledMenuItem("Exit"))
-            ConfirmDiscardChanges("Exit", []() { Platform::RequestExit(); });
-        ImGui::PopStyleColor();
-
-        ImGui::EndPopup();
-    }
-
-    void Editor::DrawPlaybackControls(float availableWidth, float rowTop, float rowBottom)
-    {
-        constexpr int buttonCount = 3;
-        constexpr float spacing = 4.0f;
-        const ImVec2 buttonSize(34.0f, 26.0f);
-
-        // The whole group is centered on the title bar, vertically inside the row under the title
-        const float groupWidth = buttonSize.x * buttonCount + spacing * (buttonCount - 1);
-        const float startX = (availableWidth - groupWidth) * 0.5f;
-        if(startX < 70.0f)
-            return; // Window too narrow, keep clear of the engine logo
-
-        const bool playing = IsPlaying();
-        const bool paused = IsPaused();
-        const ImVec4 glyphColor = ImGui::GetStyleColorVec4(ImGuiCol_Text); // Follows the title bar's play mode pulse
-
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 1.0f, 1.0f, 0.06f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 1.0f, 1.0f, 0.14f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 1.0f, 1.0f, 0.22f));
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
-
-        ImGui::SetCursorPos(ImVec2(startX, (rowTop + rowBottom - buttonSize.y) * 0.5f));
-        if(GizmoIcons::IconButton("##PlayStop", playing ? GizmoIcon::STOP : GizmoIcon::PLAY, buttonSize, glyphColor))
-        {
-            if(playing)
-                OnRuntimeEnd();
-            else
-                OnRuntimeStart();
-        }
-        ImGuiAux::ItemTooltip(playing ? "Stop (F5)" : "Play (F5)");
-
-        if(!playing)
-            ImGui::BeginDisabled();
-
-        ImGui::SameLine(0.0f, spacing);
-        if(GizmoIcons::IconButton("##PauseResume", paused ? GizmoIcon::PLAY : GizmoIcon::PAUSE, buttonSize, paused ? ImVec4(ImGuiAux::Colors::ThemeColor1) : glyphColor))
-            SetPaused(!paused);
-        ImGuiAux::ItemTooltip(paused ? "Resume (F6)" : "Pause (F6)");
-
-        ImGui::SameLine(0.0f, spacing);
-        if(GizmoIcons::IconButton("##Step", GizmoIcon::STEP, buttonSize, glyphColor))
-            StepFrame();
-        ImGuiAux::ItemTooltip("Step one frame, pauses first (F7)");
-
-        if(!playing)
-            ImGui::EndDisabled();
-
-        ImGui::PopStyleVar();
-        ImGui::PopStyleColor(3);
     }
 
     void Editor::RenderSaveSceneAsPopup()
@@ -1313,39 +953,6 @@ namespace Surge
         ImGui::EndPopup();
     }
 
-    void Editor::DrawConsoleCounters(float rightEdgeX, float y)
-    {
-        EditorConsole& console = EditorConsole::Get();
-        Uint warnings = 0, errors = 0;
-        {
-            std::lock_guard<std::mutex> lock(console.GetMutex());
-            warnings = console.GetWarningCount();
-            errors = console.GetErrorCount();
-        }
-
-        char warningText[32], errorText[32];
-        std::snprintf(warningText, sizeof(warningText), "%u WARN", warnings);
-        std::snprintf(errorText, sizeof(errorText), "%u ERR", errors);
-
-        constexpr float spacing = 10.0f;
-        const float width = ImGui::CalcTextSize(warningText).x + spacing + ImGui::CalcTextSize(errorText).x;
-        ImGui::SetCursorPos(ImVec2(rightEdgeX - width, y));
-
-        auto counter = [this](const char* text, Uint count, const ImVec4& color) {
-            ImGui::PushStyleColor(ImGuiCol_Text, count > 0 ? color : ImVec4(0.4f, 0.4f, 0.4f, 1.0f));
-            ImGui::TextUnformatted(text);
-            ImGui::PopStyleColor();
-            if(ImGui::IsItemHovered())
-                ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-            if(ImGui::IsItemClicked())
-                mPanelManager.GetPanel<ConsolePanel>()->Focus();
-        };
-
-        counter(warningText, warnings, ImVec4(1.0f, 0.8f, 0.25f, 1.0f));
-        ImGui::SameLine(0.0f, spacing);
-        counter(errorText, errors, ImVec4(1.0f, 0.4, 0.45f, 1.0f));
-    }
-
     void Editor::RenderShortcutsWindow()
     {
         if(!mShowShortcutsWindow)
@@ -1362,6 +969,7 @@ namespace Surge
             { "Ctrl+N", "New scene" },
             { "Ctrl+S", "Save scene" },
             { "Ctrl+Shift+S", "Save scene as" },
+            { "Ctrl+Space", "Content Drawer (Esc or a click outside closes it)" },
             { "Ctrl+Z", "Undo" },
             { "Ctrl+Y / Ctrl+Shift+Z", "Redo" },
             { "PLAY MODE", nullptr },
@@ -1432,10 +1040,7 @@ namespace Surge
         mGizmos.Shutdown();
         mAssetImporter.Shutdown();
         Scope<GraphicsRHI>& rhi = Core::GetRenderer()->GetRHI();
-        rhi->DestroyImage(mEngineLogo);
-        rhi->DestroyImage(mMinimize);
-        rhi->DestroyImage(mMaximize);
-        rhi->DestroyImage(mClose);
+        mTitleBar.Shutdown();
         for(ImageHandle icon : mToolIcons)
             rhi->DestroyImage(icon);
         mPanelManager.GetPanel<ContentBrowserPanel>()->ReleaseGPUResources(); // Its images use the icon sampler

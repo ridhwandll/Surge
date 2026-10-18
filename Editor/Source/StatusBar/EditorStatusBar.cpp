@@ -80,7 +80,7 @@ namespace Surge
             const float rounding = (max.y - min.y) * 0.5f;
             drawList->AddRectFilled(min, max, ImGui::GetColorU32(ImVec4(0.18f, 0.18f, 0.18f, 1.0f)), rounding);
 
-            const ImU32 fillColor = ImGui::GetColorU32(ImGuiAux::Colors::ThemeColor2);
+            const ImU32 fillColor = ImGui::GetColorU32(ImGuiAux::Colors::Selection);
             const float width = max.x - min.x;
             if(progress < 0.0f)
             {
@@ -187,7 +187,7 @@ namespace Surge
 
         constexpr ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
                                            ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
-        if(ImGui::Begin("##SurgeStatusBar", nullptr, flags))
+        if(ImGui::Begin(WINDOW_NAME, nullptr, flags))
         {
             const ImVec2 windowPos = ImGui::GetWindowPos();
             const float width = ImGui::GetWindowWidth();

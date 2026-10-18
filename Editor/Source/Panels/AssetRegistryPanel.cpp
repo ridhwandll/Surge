@@ -70,7 +70,7 @@ namespace Surge
 
     void AssetRegistryPanel::DrawToolbar()
     {
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
         {
             ImGuiAux::ScopedBoldFont font;
             if(ImGuiAux::Button("SERIALIZE TO DISK"))

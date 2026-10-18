@@ -4,6 +4,7 @@
 #include "Surge/Graphics/Camera/EditorCamera.hpp"
 #include "Surge/Graphics/RHI/RHIHandle.hpp"
 #include "Panels/PanelManager.hpp"
+#include "Panels/EditorTitleBar.hpp"
 #include "ProjectBrowser.hpp"
 #include "History/EditorHistory.hpp"
 #include "History/SceneCommands.hpp"
@@ -42,7 +43,8 @@ namespace Surge
         virtual Ref<Scene> GetRuntimeScene() const override { return mRuntimeScene ? mRuntimeScene : mActiveScene; }
 
         bool IsPlaying() const { return (bool)mRuntimeScene; }
-        void ShowTitlebar(bool show) { mShowTitlebar = show; }
+        void ShowTitlebar(bool show); // Hidden (with the status bar) while a viewport is fullscreen
+        bool IsTitlebarShown() const { return mShowTitlebar; }
         void OnRuntimeStart();
         void OnRuntimeEnd();
         virtual void ChangeRuntimeScene(AssetID sceneID) override; // Scene.Load from Lua while playing, the edited scene stays as it is
@@ -55,6 +57,7 @@ namespace Surge
         void LoadScene(Ref<Scene>&& scene);
         void SetCurrentProject(const Project& project, const Path& projectFile); // Also loads the project's editor settings
         const Project& GetCurrentProject() const { return mCurrentProject; }
+        const Path& GetProjectFilePath() const { return mProjectFilePath; }
         void LoadStartupScene(); // The scene that was open last time, the project's start scene otherwise
         void CloseProject();     // Back to the Project Browser (asks first when there are unsaved changes)
 
@@ -63,6 +66,8 @@ namespace Surge
         void OpenScene(AssetID sceneID); // Asks first when there are unsaved changes
         void SaveSceneAs(const String& relativePath); // Relative to the Assets folder, the editor switches to the new file
         void SetStartScene(AssetID sceneID);          // Writes the project file
+        void OpenSaveSceneAsPopup() { mOpenSaveSceneAsPopup = true; }
+        void OpenShortcutsWindow() { mShowShortcutsWindow = true; }
 
         EditorSettings& GetSettings() { return mSettings; }
         void FocusEntity(Entity entity);
@@ -104,11 +109,6 @@ namespace Surge
         void UpdateGameResolution(); // Runtime cameras follow the Game view's size
         void OnImGuiRender();
         void HandleShortcuts();
-        void DrawCustomTitlebar(const char* title, float titleBarHeight, bool showMenuItems = true);
-        void DrawEditMenu();
-        void DrawFileMenu();
-        void DrawPlaybackControls(float availableWidth, float rowTop, float rowBottom); // Centered as one group
-        void DrawConsoleCounters(float rightEdgeX, float y);
         void RenderEditorSettings();
         void RenderShortcutsWindow();
         void RenderSaveSceneAsPopup();
@@ -122,10 +122,7 @@ namespace Surge
         bool mResetLayoutRequested = false;
         bool mOpenSaveSceneAsPopup = false;
         String mSaveSceneAsPath;
-        ImageHandle mEngineLogo;
-        ImageHandle mMinimize;
-        ImageHandle mMaximize;
-        ImageHandle mClose;
+        EditorTitleBar mTitleBar;
         SamplerHandle mIconSampler; // Linear + mipmapped, icons are drawn well below their source size
         ImageHandle mToolIcons[static_cast<size_t>(ToolIcon::COUNT)];
 

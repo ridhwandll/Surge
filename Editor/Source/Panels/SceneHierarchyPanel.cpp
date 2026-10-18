@@ -28,7 +28,7 @@ namespace Surge
 {
     namespace
     {
-        constexpr ImU32 SELECTED_FOREGROUND = IM_COL32(12, 12, 12, 255);
+        constexpr ImU32 SELECTED_FOREGROUND = IM_COL32(245, 245, 245, 255);
         constexpr ImU32 DROP_INDICATOR = IM_COL32(255, 165, 0, 255); // ThemeColor1
         constexpr float ROW_GRADIENT_WIDTH = 0.2f;  // Fraction of the row the type color fades over
         constexpr float ROW_GRADIENT_ALPHA = 0.22f; // Opacity at the left edge
@@ -284,7 +284,7 @@ namespace Surge
         }
 
         // Search + ADD
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
         {
             ImGuiAux::ScopedBoldFont font;
             constexpr const char* addButtonLabel = " ADD ";
@@ -390,11 +390,11 @@ namespace Surge
         ImGui::TableNextColumn();
 
         const float labelX = ImGui::GetCursorScreenPos().x + ImGui::GetTreeNodeToLabelSpacing();
-        ImGui::PushStyleColor(ImGuiCol_Header, ImGuiAux::Colors::ThemeColor2);
+        ImGui::PushStyleColor(ImGuiCol_Header, ImGuiAux::Colors::Selection);
         if(isSelected)
         {
-            ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImGuiAux::Colors::ThemeColor2);
-            ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImGuiAux::Colors::ThemeColor2);
+            ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImGuiAux::Colors::Selection);
+            ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImGuiAux::Colors::Selection);
         }
         const bool opened = ImGui::TreeNodeEx(reinterpret_cast<void*>(static_cast<uint64_t>(static_cast<Uint>(handle))), flags, "%s", ""); // Label drawn below, with the icon
         ImGui::PopStyleColor(isSelected ? 3 : 1);
@@ -472,7 +472,7 @@ namespace Surge
         }
 
         // Type icon
-        const ImU32 background = isSelected ? ImGui::GetColorU32(ImGuiAux::Colors::ThemeColor2) : ImGui::GetColorU32(ImGuiCol_WindowBg);
+        const ImU32 background = isSelected ? ImGui::GetColorU32(ImGuiAux::Colors::Selection) : ImGui::GetColorU32(ImGuiCol_WindowBg);
         GizmoIcons::DrawGlyph(drawList, ImVec2(labelX + fontSize * 0.5f, centerY), fontSize * 0.86f, icon.Icon, isSelected ? SELECTED_FOREGROUND : icon.Color, background);
 
         // Script indicator on the right edge

@@ -1102,12 +1102,12 @@ namespace Surge
             const bool active = mGizmoOperation == tool.Operation;
             if(active)
             {
-                ImGui::PushStyleColor(ImGuiCol_Button, ImGuiAux::Colors::ThemeColor2);
-                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGuiAux::Colors::ThemeColor2);
+                ImGui::PushStyleColor(ImGuiCol_Button, ImGuiAux::Colors::Selection);
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGuiAux::Colors::Selection);
             }
 
             ImGui::PushID(tool.Operation);
-            const ImVec4 tint = active ? ImVec4(0.0f, 0.0f, 0.0f, 1.0f) : ImVec4(0.85f, 0.85f, 0.85f, 1.0f);
+            const ImVec4 tint = active ? ImVec4(1.0f, 1.0f, 1.0f, 1.0f) : ImVec4(0.85f, 0.85f, 0.85f, 1.0f);
             if(GizmoIcons::IconButton("##PreviewTool", rhi->GetImGuiImage(editor->GetToolIcon(tool.Icon)), toolButtonSize, tint, 0.9f))
                 mGizmoOperation = tool.Operation;
             ImGui::PopID();

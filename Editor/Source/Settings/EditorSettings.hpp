@@ -16,6 +16,7 @@ namespace Surge
         int SortField = 0; // ContentBrowserPanel::SortField
         bool SortDescending = false;
         float FolderTreeWidth = 220.0f;
+        float DrawerHeight = 0.4f; // Content Drawer (Ctrl+Space), fraction of the editor area
         bool ShowUnimported = true;
         bool SearchAllFolders = true;
         Uint HiddenTypes = 0;     // Bit per AssetType hidden by the filter

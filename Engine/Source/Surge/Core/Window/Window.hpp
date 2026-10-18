@@ -67,6 +67,9 @@ namespace Surge
         // Accept files dragged from the OS (FilesDroppedEvent), off by default. No-op where unsupported
         virtual void SetFileDropEnabled(bool) {}
 
+        // WindowFlags::NO_TITLEBAR: height (pixels) of the band at the top that drags the window where ImGui doesn't use the mouse. No-op where unsupported
+        virtual void SetCaptionHeight(float) {}
+
         const WindowDesc& GetData() const { return mWindowData; }
 
     protected:

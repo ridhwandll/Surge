@@ -25,7 +25,7 @@ namespace Surge
     namespace
     {
         constexpr ImVec4 kAccent = ImGuiAux::Colors::ThemeColor1;
-        constexpr ImVec4 kAccentHover = ImGuiAux::Colors::ThemeColor2;
+        constexpr ImVec4 kAccentHover = ImGuiAux::Colors::Selection;
         constexpr ImVec4 kAccentActive = ImGuiAux::Colors::ThemeColor1;
         constexpr ImVec4 kInputBg = ImVec4(0.067f, 0.067f, 0.067f, 1.0f);
         constexpr ImVec4 kInputHover = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
@@ -35,7 +35,7 @@ namespace Surge
         constexpr ImVec4 kOk = ImVec4(0.35f, 0.80f, 0.45f, 1.0f);
         constexpr ImVec4 kWarn = ImVec4(0.95f, 0.75f, 0.25f, 1.0f);
         constexpr ImVec4 kErr = ImVec4(0.95f, 0.3f, 0.3f, 1.0f);
-        constexpr float kRounding = 2.5f;
+        constexpr float kRounding = 2.0f;
 
         ImFont* sBold = nullptr;
         float sLabelWidth = 0.0f;

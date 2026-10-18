@@ -23,6 +23,7 @@ namespace Surge
      * - Create, rename (F2), duplicate, cut/copy/paste, move by drag & drop (onto folders, the tree or the breadcrumbs), delete to the Recycle Bin
      * - Import from the OS (drop files on the panel or use Import), unimported files are shown and can be imported in place
      * Every file operation goes through AssetFileOps, so registered assets keep their AssetID when they are moved or renamed
+     * - Content Drawer (Ctrl+Space, like Unreal): the same browser slides up from the bottom over the editor, also while its tab is closed
      */
     class ContentBrowserPanel : public IPanel
     {
@@ -50,6 +51,11 @@ namespace Surge
         void RequestRefresh() { mNeedsRefresh = true; }
         void ReleaseGPUResources(); // Icons + thumbnails, before the Editor's icon sampler goes away
         ThumbnailCache& GetThumbnails() { return mThumbnails; } // Shared with the asset pickers, uploads only while the browser is shown
+
+        // Closes again on Ctrl+Space, Esc, a click outside or a drag leaving it (dropping into a viewport/the Inspector)
+        void ToggleDrawer() { SetDrawerOpen(!mDrawerOpen); }
+        void SetDrawerOpen(bool open);
+        bool IsDrawerOpen() const { return mDrawerOpen; }
 
     private:
         struct Item
@@ -98,6 +104,9 @@ namespace Surge
         void NavigateUp();
 
         // UI
+        void DrawBody(); // Everything inside the window, shared by the tab and the drawer (only one of them draws it per frame)
+        void RenderDrawer();
+        void DrawDrawerHeader(float areaHeight);
         void DrawToolbar();
         void DrawBreadcrumbs(float width);
         void DrawFilterPopup();
@@ -206,6 +215,15 @@ namespace Surge
         String mStatusMessage;
         bool mStatusIsError = false;
         float mStatusTimer = 0.0f;
+
+        // Content Drawer
+        bool mDrawerOpen = false;
+        float mDrawerAnimation = 0.0f; // 0 = closed .. 1 = open, drawn until it slid out
+        bool mFocusDrawer = false;
+        bool mDrawerWasFocused = false;
+        bool mDrawerDragTracked = false; // A drag in progress was seen, mDragFromDrawer tells where it started
+        bool mDragFromDrawer = false;
+        bool mFocusTab = false;          // Dock in Layout
     };
 
 } // namespace Surge

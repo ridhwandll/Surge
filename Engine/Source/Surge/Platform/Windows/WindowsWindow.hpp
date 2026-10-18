@@ -32,6 +32,7 @@ namespace Surge
         virtual void ShowConsole(bool show) const override;
         virtual void* GetNativeWindowHandle() override { return mWin32Window; }
         virtual void SetFileDropEnabled(bool enabled) override;
+        virtual void SetCaptionHeight(float height) override { mCaptionHeight = height; }
 
     private:
         void ApplyFlags();
@@ -43,5 +44,6 @@ namespace Surge
         std::function<void(Event&)> mEventCallback;
         WindowState mWindowState;
         HWND mWin32Window;
+        float mCaptionHeight = 35.0f;
     };
 } // namespace Surge

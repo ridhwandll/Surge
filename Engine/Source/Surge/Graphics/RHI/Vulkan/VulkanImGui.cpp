@@ -268,7 +268,7 @@ namespace Surge
         ImVec4* colors = style.Colors;
 
         style.TabRounding = 1.5f;
-        style.FrameRounding = 0.5f;
+        style.FrameRounding = 2.0f;
         //style.FrameBorderSize = 1.0f;
         style.PopupRounding = 3.5f;
         style.ScrollbarSize = 10.0f;

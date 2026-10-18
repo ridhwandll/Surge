@@ -14,9 +14,10 @@ namespace Surge
     {
     public:
         static constexpr float ROW_HEIGHT = 26.0f;
-        static constexpr float BOTTOM_PADDING = 6.0f;
+        static constexpr float BOTTOM_PADDING = 2.0f;
         static constexpr float HEIGHT = ROW_HEIGHT + BOTTOM_PADDING;
         static constexpr float INDETERMINATE = -1.0f;
+        static constexpr const char* WINDOW_NAME = "##SurgeStatusBar";
 
         static EditorStatusBar& Get();
 

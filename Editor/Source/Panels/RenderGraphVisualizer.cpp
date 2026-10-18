@@ -43,7 +43,7 @@ namespace Surge
             {
                 case PassGroup::SHADOW:            return IM_COL32(65, 145, 75, 255);
                 case PassGroup::OUTLINE_MASK:      return IM_COL32(40, 115, 155, 255);
-                case PassGroup::MAIN_SCENE:        return IM_COL32(150, 95, 150, 255);
+                case PassGroup::MAIN_SCENE:        return IM_COL32(95, 115, 140, 255);
                 case PassGroup::AMBIENT_OCCLUSION: return IM_COL32(95, 105, 180, 255);
                 case PassGroup::BLOOM:             return IM_COL32(200, 105, 160, 255);
                 case PassGroup::POST_PROCESS:      return IM_COL32(190, 95, 80, 255);
