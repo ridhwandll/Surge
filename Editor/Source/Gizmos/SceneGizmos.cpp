@@ -98,7 +98,7 @@ namespace Surge
 
             if(shape)
             {
-                // Same placement as the runtime body: local transform, center of mass offset rotated into place
+                // Shape::Draw takes the center of mass transform: the body sits at the entity (local transform), its COM offset rotated into place
                 const glm::quat q = glm::quat(glm::radians(transformComp.Rotation));
                 const JPH::Quat joltRotation = JPH::Quat(q.x, q.y, q.z, q.w);
                 JPH::Vec3 joltPosition = JPH::Vec3(transformComp.Position.x, transformComp.Position.y, transformComp.Position.z);

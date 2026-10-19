@@ -335,7 +335,6 @@ namespace Surge
     void Physics::CreateRigidbody(Entity entity)
     {
         JPH::ShapeRefC shape = CreateShape(entity);
-        JPH::Vec3 comOffset = shape->GetCenterOfMass();
 
         auto& transform = entity.GetComponent<TransformComponent>();
         auto& rb = entity.GetComponent<RigidbodyComponent>();
@@ -354,10 +353,10 @@ namespace Surge
             objectLayer = PhysicsLayers::DYNAMIC;
         }
 
+        // Jolt's body position is the shape's origin (= the entity's), it places the center of mass itself (Body::GetPosition() = COM - R * GetCenterOfMass())
         JPH::Vec3 joltPosition = JPH::Vec3(transform.Position.x, transform.Position.y, transform.Position.z);
         JPH::Quat joltRotation = GlmToJolt(transform.Rotation);
-        joltPosition = joltPosition + joltRotation * comOffset;
-        JPH::BodyCreationSettings settings(shape, joltPosition, GlmToJolt(transform.Rotation), motionType, objectLayer);
+        JPH::BodyCreationSettings settings(shape, joltPosition, joltRotation, motionType, objectLayer);
 
         settings.mGravityFactor = rb.UseGravity ? 1.0f : 0.0f;
         settings.mIsSensor = rb.IsSensor;
@@ -527,38 +526,34 @@ namespace Surge
                 return new JPH::BoxShape(JPH::Vec3::sReplicate(0.5f));
 
             const Vector<Vertex>& meshVertices = mesh->GetVertices();
+            const Vector<Submesh>& submeshes = mesh->GetSubmeshes();
             if(meshVertices.empty())
             {
                 Log<Severity::Warn>("[Physics] Entity {} mesh has 0 CPU vertices!", (Uint)entity);
                 return new JPH::BoxShape(JPH::Vec3::sReplicate(0.5f));
             }
 
-            // Rotate + Scale
+            // (Rid) Same space as the rendered mesh (node transform, like the MeshCollider), then local rotation, entity scale and the scaled LocalOffset.
+            // Points stay where the mesh is: the hull's center of mass is handled by Jolt, recentering here would move the collider off the mesh
             glm::quat localRot = glm::quat(glm::radians(convex->LocalRotation));
             Vector<JPH::Vec3> joltVertices;
             joltVertices.reserve(meshVertices.size());
-            for(const auto& v : meshVertices)
+            for(const Submesh& submesh : submeshes)
             {
-                glm::vec3 r = localRot * v.Position;
-                joltVertices.emplace_back(JPH::Vec3(r.x * absScale.x, r.y * absScale.y, r.z * absScale.z));
+                const Uint lastVertex = std::min(submesh.BaseVertex + submesh.VertexCount, static_cast<Uint>(meshVertices.size()));
+                for(Uint vIndex = submesh.BaseVertex; vIndex < lastVertex; ++vIndex)
+                {
+                    const glm::vec3 nodePos = glm::vec3(submesh.Transform * glm::vec4(meshVertices[vIndex].Position, 1.0f));
+                    const glm::vec3 r = localRot * nodePos + convex->LocalOffset;
+                    joltVertices.emplace_back(JPH::Vec3(r.x * absScale.x, r.y * absScale.y, r.z * absScale.z));
+                }
             }
 
-            // Subtract vertex centroid so Jolt's COM lands near origin
-            JPH::Vec3 centroid = JPH::Vec3::sZero();
-            for(const auto& v : joltVertices)
-                centroid += v;
-            centroid /= (float)joltVertices.size();
-            for(auto& v : joltVertices)
-                v -= centroid;
-
-            // LocalOffset in scaled space (AFTER scale, not before)
-            JPH::Vec3 scaledOffset(
-                convex->LocalOffset.x * absScale.x,
-                convex->LocalOffset.y * absScale.y,
-                convex->LocalOffset.z * absScale.z
-            );
-            for(auto& v : joltVertices)
-                v += scaledOffset;
+            if(joltVertices.empty())
+            {
+                Log<Severity::Warn>("[Physics] Entity {} mesh has no submesh vertices!", (Uint)entity);
+                return new JPH::BoxShape(JPH::Vec3::sReplicate(0.5f));
+            }
 
             // Compute hull bounds for adaptive convex radius
             JPH::Vec3 bboxMin = joltVertices[0], bboxMax = joltVertices[0];

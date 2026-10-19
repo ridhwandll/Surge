@@ -185,40 +185,128 @@ namespace Surge
         return outSpec;
     }
 
+    static const char* GetImageExtension(const Byte* bytes, size_t size)
+    {
+        if(size >= 8 && memcmp(bytes, "\x89PNG", 4) == 0)
+            return ".png";
+        if(size >= 3 && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF)
+            return ".jpg";
+        return nullptr;
+    }
+
+    // Leaves an identical file untouched: its mod time is part of the texture's AssetStamp, rewriting it would re-cook the texture
+    static bool WriteFileIfChanged(const Path& path, const Byte* bytes, size_t size)
+    {
+        Vector<Byte> existing;
+        if(Filesystem::Exists(path) && Filesystem::ReadBinaryFile(path, existing) && existing.size() == size && memcmp(existing.data(), bytes, size) == 0)
+            return true;
+
+        return Filesystem::WriteBinaryFile(path, bytes, size);
+    }
+
+    // Embedded images (.glb buffer views, base64 data URIs) have no source file the texture pipeline could cook, so they are written next to
+    // the mesh as "<Mesh>_Textures/Image<N>_<Usage>.png|jpg" and imported like any other texture. The usage suffix picks the color space
+    // (Texture2DCooker::IsLinearColorSpace reads the file name). Returns the absolute path, empty on failure
+    static Path ExtractEmbeddedImage(const Path& meshPath, cgltf_data* data, cgltf_image* image, const char* usage)
+    {
+        const Uint imageIndex = static_cast<Uint>(cgltf_image_index(data, image));
+        const Byte* bytes = nullptr;
+        size_t size = 0;
+        void* decoded = nullptr;
+
+        if(image->buffer_view)
+        {
+            bytes = cgltf_buffer_view_data(image->buffer_view);
+            size = image->buffer_view->size;
+        }
+        else // data:image/png;base64,...
+        {
+            const char* comma = strchr(image->uri, ',');
+            if(!comma || !strstr(image->uri, ";base64"))
+            {
+                Log<Severity::Warn>("[MeshCooker] Image {} of '{}' has an unsupported data URI, skipped", imageIndex, meshPath.string());
+                return {};
+            }
+
+            const char* base64 = comma + 1;
+            const size_t length = strlen(base64);
+            size_t padding = 0;
+            while(padding < 2 && padding < length && base64[length - 1 - padding] == '=')
+                padding++;
+
+            size = length / 4 * 3;
+            size = size > padding ? size - padding : 0;
+            cgltf_options options = {};
+            if(size == 0 || cgltf_load_buffer_base64(&options, size, base64, &decoded) != cgltf_result_success)
+            {
+                Log<Severity::Warn>("[MeshCooker] Image {} of '{}' has a malformed data URI, skipped", imageIndex, meshPath.string());
+                return {};
+            }
+            bytes = static_cast<const Byte*>(decoded);
+        }
+
+        Path imagePath;
+        const char* extension = bytes ? GetImageExtension(bytes, size) : nullptr;
+        if(extension)
+        {
+            const Path directory = Filesystem::GetParentPath(meshPath) / (Filesystem::GetFilenameWithoutExt(meshPath) + "_Textures");
+            imagePath = directory / std::format("Image{}_{}{}", imageIndex, usage, extension);
+
+            Filesystem::CreateOrEnsureDirectories(directory);
+            if(!Filesystem::Exists(directory) || !WriteFileIfChanged(imagePath, bytes, size))
+            {
+                Log<Severity::Error>("[MeshCooker] Failed to write the embedded image '{}'", imagePath.string());
+                imagePath.clear();
+            }
+        }
+        else
+            Log<Severity::Warn>("[MeshCooker] Image {} of '{}' is not a PNG or JPEG ({}), skipped", imageIndex, meshPath.string(), image->mime_type ? image->mime_type : "unknown type");
+
+        free(decoded); // (Rid IMPORTANT) cgltf's default allocator is malloc Look here if someone ever implements a custom allocator that doesn't use malloc/free
+        return imagePath;
+    }
+
     static void ExtractMaterials(const String& absPath, cgltf_data* data, MeshSpecification& spec)
     {
-        auto SetMaterialTexture = [&](const Path& meshPath, cgltf_texture_view& texView, Ref<Material>& material, const String& texName) -> bool {
+        AssetManager* assetManager = Core::GetAssetManager();
+        bool importedTextures = false;
+
+        auto SetMaterialTexture = [&](const Path& meshPath, cgltf_texture_view& texView, Ref<Material>& material, const String& texName, const char* usage) -> bool {
             if(!texView.texture || !texView.texture->image)
                 return false;
 
             cgltf_image* image = texView.texture->image;
-            AssetManager* assetManager = Core::GetAssetManager();
 
-            if(image->buffer_view)
-            {
-                Log<Severity::Error>("[Mesh] Embedded textures(.glb) are not supported yet, mesh is loading without textures", texName);
-                return false;
-            }
+            Path absTexturePath;
+            if(image->buffer_view || (image->uri && strncmp(image->uri, "data:", 5) == 0))
+                absTexturePath = ExtractEmbeddedImage(meshPath, data, image, usage);
             else if(image->uri)
             {
-                const Path absTexturePath = (Filesystem::GetParentPath(meshPath) / image->uri).lexically_normal();
-                const Path relTexturePath = absTexturePath.lexically_relative(Path(assetManager->GetAssetsDirectory()));
-
-                if(relTexturePath.empty() || *relTexturePath.begin() == "..")
-                {
-                    Log<Severity::Warn>("[Mesh] Texture '{}' is outside the assets directory, skipping.", absTexturePath.string());
-                    return false;
-                }
-
-                const AssetID texID = assetManager->Import(relTexturePath.generic_string(), AssetType::TEXTURE2D);
-
-                if(!texID.IsValid())
-                    return false;
-
-                material->SetTexture(texName, assetManager->Load<Texture2D>(texID));
-                return true;
+                String uri = image->uri;
+                uri.resize(cgltf_decode_uri(uri.data())); // "My%20Texture.png" -> "My Texture.png"
+                absTexturePath = (Filesystem::GetParentPath(meshPath) / uri).lexically_normal();
             }
-            return false;
+
+            if(absTexturePath.empty())
+                return false;
+
+            const Path relTexturePath = absTexturePath.lexically_relative(Path(assetManager->GetAssetsDirectory()));
+            if(relTexturePath.empty() || *relTexturePath.begin() == "..")
+            {
+                Log<Severity::Warn>("[Mesh] Texture '{}' is outside the assets directory, skipping.", absTexturePath.string());
+                return false;
+            }
+
+            const String relativePath = relTexturePath.generic_string();
+            if(!assetManager->GetIDFromPath(relativePath).IsValid())
+                importedTextures = true;
+            const AssetID texID = assetManager->Import(relativePath, AssetType::TEXTURE2D);
+
+            if(!texID.IsValid())
+                return false;
+
+            material->SetTexture(texName, assetManager->Load<Texture2D>(texID));
+            return true;
             };
 
         if(data->materials_count > 0)
@@ -247,15 +335,15 @@ namespace Surge
                     material->Set<float>("Metallic", pbr.metallic_factor);
                     material->Set<float>("Reflectance", 0.5f);
 
-                    if(SetMaterialTexture(absPath, pbr.base_color_texture, material, "AlbedoMap"))
+                    if(SetMaterialTexture(absPath, pbr.base_color_texture, material, "AlbedoMap", "BaseColor"))
                         material->Set<int>("UseAlbedoMap", 1);
-                    if(SetMaterialTexture(absPath, pbr.metallic_roughness_texture, material, "RoughnessMetallicMap"))
+                    if(SetMaterialTexture(absPath, pbr.metallic_roughness_texture, material, "RoughnessMetallicMap", "MetallicRoughness"))
                     {
                         material->Set<int>("UseRoughnessMap", 1);
                         material->Set<int>("UseMetallicMap", 1);
                     }
                 }
-                if(SetMaterialTexture(absPath, mat.normal_texture, material, "NormalMap"))
+                if(SetMaterialTexture(absPath, mat.normal_texture, material, "NormalMap", "Normal"))
                     material->Set<int>("UseNormalMap", 1);
                 else
                     material->Set<int>("UseNormalMap", 0);
@@ -263,10 +351,14 @@ namespace Surge
                 material->Set<glm::vec3>("Emission", glm::vec3(mat.emissive_factor[0], mat.emissive_factor[1], mat.emissive_factor[2]));
                 float emissiveStrength = mat.has_emissive_strength ? mat.emissive_strength.emissive_strength : 1.0f;
                 material->Set<float>("EmissionIntensity", emissiveStrength);
-                if(SetMaterialTexture(absPath, mat.emissive_texture, material, "EmissionMap"))
+                if(SetMaterialTexture(absPath, mat.emissive_texture, material, "EmissionMap", "Emission"))
                     material->Set<int>("UseEmissionMap", 1);
             }
         }
+
+        // The mesh binary references the textures by ID, which must survive an Editor restart
+        if(importedTextures)
+            assetManager->SerializeRegistry();
     }
 
     static void FreeGLTF(cgltf_data* data)
